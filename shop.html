@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop | The Black Sheep Shop</title>
+  <meta name="description" content="Browse gifts and products from The Black Sheep Shop in Ambleside." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="index.html" class="brand"><span class="brand-mark">🐑</span><span><strong>The Black Sheep Shop</strong><small>Ambleside</small></span></a>
+      <nav class="main-nav">
+        <a href="index.html">Home</a>
+        <a href="shop.html" class="active">Shop</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+        <a href="admin.html">Admin</a>
+      </nav>
+      <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="container section-head stack-mobile">
+      <div>
+        <p class="eyebrow">Catalogue</p>
+        <h1>Shop all products</h1>
+      </div>
+      <div class="filters">
+        <input id="search-input" class="input" type="search" placeholder="Search products" />
+        <select id="category-filter" class="input select">
+          <option value="all">All categories</option>
+        </select>
+      </div>
+    </div>
+    <div class="container">
+      <div id="shop-products" class="product-grid"></div>
+      <p id="empty-state" class="empty-state hidden">No products match your filter.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div><strong>The Black Sheep Shop</strong><p>Ambleside, LA22 0AD</p></div>
+      <div><a href="shop.html">Shop</a><a href="about.html">About</a><a href="contact.html">Contact</a></div>
+    </div>
+  </footer>
+
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/site.js"></script>
+</body>
+</html>

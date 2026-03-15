@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Black Sheep Shop | Ambleside Gift Shop</title>
+  <meta name="description" content="The Black Sheep Shop in Ambleside. Gifts, home pieces, seasonal items, and hand-picked products." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="index.html" class="brand">
+        <span class="brand-mark">🐑</span>
+        <span>
+          <strong>The Black Sheep Shop</strong>
+          <small>Ambleside</small>
+        </span>
+      </a>
+      <nav class="main-nav">
+        <a href="index.html" class="active">Home</a>
+        <a href="shop.html">Shop</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+        <a href="admin.html">Admin</a>
+      </nav>
+      <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <p class="eyebrow">Local gift shop • Ambleside • LA22 0AD</p>
+          <h1>Simple, elegant gift shopping for The Black Sheep Shop.</h1>
+          <p class="hero-copy">A clean static website that works on GitHub Pages. Fast, free, and easy to manage with JSON import/export from the admin page.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="shop.html">Browse products</a>
+            <a class="btn btn-secondary" href="admin.html">Open admin</a>
+          </div>
+          <ul class="hero-points">
+            <li>Static website</li>
+            <li>Admin with add/edit/delete</li>
+            <li>Import / export product data</li>
+            <li>Local image links or uploaded previews</li>
+          </ul>
+        </div>
+        <div class="hero-card">
+          <div class="hero-card-inner">
+            <p class="card-label">Featured</p>
+            <h2>Hand-picked gifts for visitors and locals.</h2>
+            <p>Use this version now. Later, if needed, connect it to Firebase or Supabase.</p>
+            <div class="hero-badges">
+              <span>Fast</span>
+              <span>Mobile-friendly</span>
+              <span>GitHub-ready</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container section-head">
+        <div>
+          <p class="eyebrow">Shop</p>
+          <h2>Featured products</h2>
+        </div>
+        <a href="shop.html" class="text-link">View all</a>
+      </div>
+      <div class="container">
+        <div id="featured-products" class="product-grid"></div>
+      </div>
+    </section>
+
+    <section class="section soft-bg">
+      <div class="container info-grid">
+        <article class="info-card">
+          <h3>Why this version works</h3>
+          <p>No server. No hosting complexity. No forced ads. It can go straight to GitHub Pages.</p>
+        </article>
+        <article class="info-card">
+          <h3>How admin works</h3>
+          <p>You manage products in the browser, then export one JSON file and upload it to GitHub.</p>
+        </article>
+        <article class="info-card">
+          <h3>Upgrade path</h3>
+          <p>Later, keep the same design and connect live storage without rebuilding the whole shop.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <strong>The Black Sheep Shop</strong>
+        <p>Ambleside, LA22 0AD</p>
+      </div>
+      <div>
+        <a href="shop.html">Shop</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/site.js"></script>
+</body>
+</html>

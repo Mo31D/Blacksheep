@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin | The Black Sheep Shop</title>
+  <meta name="description" content="Admin page for The Black Sheep Shop static website." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="index.html" class="brand"><span class="brand-mark">🐑</span><span><strong>The Black Sheep Shop</strong><small>Ambleside</small></span></a>
+      <nav class="main-nav">
+        <a href="index.html">Home</a>
+        <a href="shop.html">Shop</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+        <a href="admin.html" class="active">Admin</a>
+      </nav>
+      <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="container admin-layout">
+      <section class="admin-panel">
+        <p class="eyebrow">Admin</p>
+        <h1>Product control</h1>
+        <p class="muted">This page saves changes in your browser. Use export to update the live <code>products.json</code> file in GitHub.</p>
+
+        <form id="product-form" class="admin-form">
+          <input type="hidden" id="product-id" />
+          <label>Name<input id="product-name" class="input" required /></label>
+          <label>Price<input id="product-price" class="input" type="number" step="0.01" min="0" required /></label>
+          <label>Category<input id="product-category" class="input" required /></label>
+          <label>Image URL<input id="product-image" class="input" placeholder="assets/img/item.jpg or https://..." /></label>
+          <label>Upload preview image<input id="product-image-upload" class="input" type="file" accept="image/*" /></label>
+          <label>Description<textarea id="product-description" class="input textarea" rows="5" required></textarea></label>
+          <label class="checkbox-row"><input id="product-featured" type="checkbox" /> Featured</label>
+          <label class="checkbox-row"><input id="product-active" type="checkbox" checked /> Active</label>
+          <div class="admin-actions">
+            <button class="btn btn-primary" type="submit">Save product</button>
+            <button class="btn btn-secondary" type="button" id="reset-form">Clear</button>
+          </div>
+        </form>
+
+        <div class="toolbar">
+          <button class="btn btn-secondary" id="export-json">Export JSON</button>
+          <label class="file-btn">Import JSON<input id="import-json" type="file" accept="application/json" hidden /></label>
+          <button class="btn btn-secondary" id="reset-local">Reset local changes</button>
+        </div>
+        <p id="admin-message" class="status-text"></p>
+      </section>
+
+      <section class="admin-list-wrap">
+        <div class="list-head">
+          <h2>Products</h2>
+          <input id="admin-search" class="input" type="search" placeholder="Search products" />
+        </div>
+        <div id="admin-product-list" class="admin-product-list"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div><strong>The Black Sheep Shop</strong><p>Ambleside, LA22 0AD</p></div>
+      <div><a href="shop.html">Shop</a><a href="about.html">About</a><a href="contact.html">Contact</a></div>
+    </div>
+  </footer>
+
+  <script src="assets/js/store.js"></script>
+  <script src="assets/js/admin.js"></script>
+  <script src="assets/js/site.js"></script>
+</body>
+</html>

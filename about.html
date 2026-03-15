@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About | The Black Sheep Shop</title>
+  <meta name="description" content="The Black Sheep Shop is a family-run shop offering gifts and souvenirs in the heart of Ambleside." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css" />
+  <style>
+    .about-shell {
+      max-width: 860px;
+      margin: 0 auto;
+      display: grid;
+      gap: 20px;
+    }
+    .about-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .about-hero {
+      padding: 12px 0 4px;
+    }
+    .about-hero p {
+      max-width: 620px;
+      color: var(--muted);
+      margin: 0;
+      font-size: 1.05rem;
+    }
+    .about-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .simple-list {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+    .simple-list li + li {
+      margin-top: 10px;
+    }
+    .visit-grid {
+      display: grid;
+      gap: 14px;
+    }
+    .visit-row {
+      display: grid;
+      gap: 4px;
+    }
+    .visit-row strong {
+      font-size: 0.92rem;
+    }
+    .visit-row span,
+    .visit-row a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+    .hours-inline {
+      color: var(--muted);
+      line-height: 1.7;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a href="index.html" class="brand"><span class="brand-mark">🐑</span><span><strong>The Black Sheep Shop</strong><small>Ambleside</small></span></a>
+      <nav class="main-nav">
+        <a href="index.html">Home</a>
+        <a href="shop.html">Shop</a>
+        <a href="about.html" class="active">About</a>
+        <a href="contact.html">Contact</a>
+        <a href="admin.html">Admin</a>
+      </nav>
+      <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="container">
+      <div class="about-shell">
+        <section class="about-hero">
+          <p class="eyebrow">About</p>
+          <h1>The Black Sheep Shop</h1>
+          <p>Gifts and souvenirs in the heart of Ambleside.</p>
+          <div class="about-actions">
+            <a class="btn btn-primary" href="shop.html">Browse the shop</a>
+            <a class="btn btn-secondary" href="contact.html">Visit us</a>
+          </div>
+        </section>
+
+        <section class="about-card prose">
+          <h2>A family-run shop in Ambleside</h2>
+          <p>We keep things simple: a warm, friendly shop with a carefully chosen mix of gifts, souvenirs, local treats, ice cream, and seasonal finds.</p>
+          <ul class="simple-list">
+            <li>Gifts, souvenirs, and local treats</li>
+            <li>Ice cream, Kendal Mint Cake, and Peter Rabbit gifts</li>
+            <li>Toys and seasonal items throughout the year</li>
+          </ul>
+        </section>
+
+        <section class="about-card prose">
+          <h2>Visit us</h2>
+          <div class="visit-grid">
+            <div class="visit-row">
+              <strong>Address</strong>
+              <span>2 Lancaster House, Lake Road, Ambleside, Cumbria, LA22 0AD</span>
+            </div>
+            <div class="visit-row">
+              <strong>Email</strong>
+              <a href="mailto:lucynarowinska@gmail.com">lucynarowinska@gmail.com</a>
+            </div>
+            <div class="visit-row">
+              <strong>Telephone</strong>
+              <a href="tel:+447776185647">(0)77 7618 5647</a>
+            </div>
+            <div class="visit-row">
+              <strong>Opening hours</strong>
+              <p class="hours-inline">Sun 10:30 am–5 pm · Mon Closed · Tue–Sat 10:30 am–5 pm</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div><strong>The Black Sheep Shop</strong><p>2 Lancaster House, Lake Road, Ambleside, Cumbria, LA22 0AD</p></div>
+      <div><a href="shop.html">Shop</a><a href="about.html">About</a><a href="contact.html">Contact</a></div>
+    </div>
+  </footer>
+
+  <script src="assets/js/site.js"></script>
+</body>
+</html>
