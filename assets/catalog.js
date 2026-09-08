@@ -1,0 +1,13 @@
+window.CATALOG={"gifts":[],"icecream":[],"romneys":[],"hawkshead":[],"fragrances":[]};
+document.write('<script src="assets/catalog-parts/01-gifts.js"><\/script>');
+document.write('<script src="assets/catalog-parts/02-gifts.js"><\/script>');
+document.write('<script src="assets/catalog-parts/03-gifts.js"><\/script>');
+document.write('<script src="assets/catalog-parts/04-gifts.js"><\/script>');
+document.write('<script src="assets/catalog-parts/05-gifts.js"><\/script>');
+document.write('<script src="assets/catalog-parts/06-gifts.js"><\/script>');
+document.write('<script src="assets/catalog-parts/07-gifts.js"><\/script>');
+document.write('<script src="assets/catalog-parts/08-gifts.js"><\/script>');
+document.write('<script src="assets/catalog-parts/09-icecream.js"><\/script>');
+document.write('<script src="assets/catalog-parts/10-romneys.js"><\/script>');
+document.write('<script src="assets/catalog-parts/11-hawkshead.js"><\/script>');
+document.write('<script src="assets/catalog-parts/12-fragrances.js"><\/script>');
