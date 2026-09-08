@@ -1,0 +1,35 @@
+GIFT IMAGE MAP — THE BLACK SHEEP SHOP
+
+56.png   COLLECTION HERO — Peter Rabbit
+57.png   COLLECTION HERO — Highland Cows
+58.png   COLLECTION HERO — Fridge Magnets
+59.png   COLLECTION HERO — Mugs
+60.png   COLLECTION HERO — Souvenirs
+61.png   COLLECTION HERO — Soft Toys
+62.png   COLLECTION HERO — Cards & Stationery
+63.png   COLLECTION HERO — Seasonal Gifts
+
+64.png   Peter Rabbit — Peter Rabbit Soft Toys
+65.png   Highland Cows — Highland Cow Soft Toys
+66.png   Fridge Magnets — Ambleside Fridge Magnets
+67.png   Mugs — Lake District Mugs
+68.png   Peter Rabbit — Peter Rabbit Keepsakes
+69.png   Highland Cows — Highland Cow Mugs
+70.png   Fridge Magnets — Lake District Fridge Magnets
+71.png   Mugs — Animal & Character Mugs
+72.png   Peter Rabbit — Peter Rabbit Mugs & Gifts
+73.png   Highland Cows — Highland Cow Keepsakes
+74.png   Fridge Magnets — Character Fridge Magnets
+75.png   Mugs — Gift Mugs
+76.png   Souvenirs — Ambleside Souvenirs
+77.png   Souvenirs — Lake District Keepsakes
+78.png   Souvenirs — Keyrings & Small Gifts
+79.png   Soft Toys — Animal Soft Toys
+80.png   Soft Toys — Children’s Soft Toys
+81.png   Soft Toys — Collectable Characters
+82.png   Cards & Stationery — Greeting Cards
+83.png   Cards & Stationery — Postcards & Local Cards
+84.png   Cards & Stationery — Stationery & Paper Gifts
+85.png   Seasonal Gifts — Christmas Gifts
+86.png   Seasonal Gifts — Seasonal Decorations
+87.png   Seasonal Gifts — Small Seasonal Gifts

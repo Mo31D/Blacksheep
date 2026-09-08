@@ -1,0 +1,202 @@
+# The Black Sheep Shop — Image Replacement Map
+
+## Rule
+All numbered image files are deliberately replaceable. Keep the same filename and aspect ratio when replacing a temporary/generated/placeholder image.
+
+## Existing visual slots
+- `1.png` — Home hero; future image should show a product-rich but organised real shop scene.
+- `8.png` — Home/About supporting shop-range image.
+- `9.png` — Ice cream hero.
+- `46.png` — Romney's hero; use real Romney's packaging only.
+- `47.png` — Gifts landing hero.
+- `48.png` — About image; use a genuine current shop/interior image.
+- `49.png` — Hawkshead Relish hero; use real jars/bottles only.
+- `56.png`–`63.png` — Primary Gifts collection images: Peter Rabbit, Highland Cows, Fridge Magnets, Mugs, Souvenirs, Soft Toys, Cards, Seasonal.
+- `88.png` — Keyrings & Pin Badges.
+- `89.png` — Maps, Books & Jigsaws.
+- `90.png` — The Black Sheep Shop fudge/biscuits/confectionery.
+- `91.png` — Lakeland Fragrances.
+- `92.png` — Home Gifts & Art.
+- `93.png` — Toys & Games.
+
+## Product image placeholders
+The report-derived product inventory uses one unique image slot per item:
+- `100.png` — **BSF-001** — Salted Caramel Fudge — source evidence: IMG_4256.
+- `101.png` — **BSF-002** — Clotted Cream Fudge — source evidence: IMG_4288.
+- `102.png` — **BSF-003** — Vanilla Fudge — source evidence: IMG_4288.
+- `103.png` — **BSF-004** — Butter Fudge — source evidence: IMG_4288.
+- `104.png` — **BSF-005** — Chocolate Chip & Orange Biscuits — source evidence: IMG_4256.
+- `105.png` — **BSF-006** — Golden Crunch Biscuits — source evidence: IMG_4256.
+- `106.png` — **BSF-007** — Ginger Biscuits — source evidence: IMG_4256.
+- `107.png` — **BSF-008** — Peanut Brittle — source evidence: IMG_4256.
+- `108.png` — **BSF-009** — Bagged biscuits/sweets assorted — source evidence: IMG_4278, IMG_4300.
+- `109.png` — **BSF-010** — Rock sticks / long lollies assorted — source evidence: IMG_4300.
+- `110.png` — **BSF-011** — Sheep Sh*t – Farmyard Fresh — source evidence: IMG_4300.
+- `111.png` — **BSF-012** — Mallow Sheep — source evidence: IMG_4300.
+- `112.png` — **PR-001** — Peter Rabbit plush — source evidence: IMG_4259, IMG_4297.
+- `113.png` — **PR-002** — Benjamin Bunny plush — source evidence: IMG_4259, IMG_4297.
+- `114.png` — **PR-003** — Jemima Puddle-Duck plush — source evidence: IMG_4259, IMG_4297.
+- `115.png` — **PR-004** — Tom Kitten plush — source evidence: IMG_4259.
+- `116.png` — **PR-005** — Mrs Tiggy-Winkle plush — source evidence: IMG_4259.
+- `117.png` — **PR-006** — Mr Jeremy Fisher plush — source evidence: IMG_4259.
+- `118.png` — **PR-007** — Squirrel Nutkin plush — source evidence: IMG_4259.
+- `119.png` — **PR-008** — Additional Beatrix Potter character plush assortment — source evidence: IMG_4259, IMG_4297.
+- `120.png` — **PR-009** — Peter Rabbit floral candle range — source evidence: IMG_4260.
+- `121.png` — **PR-010** — Peter Rabbit Wellington-boot shaped floral candle/container — source evidence: IMG_4260.
+- `122.png` — **PR-011** — Peter Rabbit Tea Tin — source evidence: IMG_4296, IMG_4299.
+- `123.png` — **PR-012** — Peter Rabbit boxed egg-cup set — source evidence: IMG_4296.
+- `124.png` — **PR-013** — Peter Rabbit character egg cup — source evidence: IMG_4296.
+- `125.png` — **PR-014** — Jemima Puddle-Duck character egg cup — source evidence: IMG_4296.
+- `126.png` — **PR-015** — Additional character egg cup(s) — source evidence: IMG_4296.
+- `127.png` — **PR-016** — Peter Rabbit mugs — source evidence: IMG_4299.
+- `128.png` — **PR-017** — Peter Rabbit plates — source evidence: IMG_4299.
+- `129.png` — **PR-018** — Peter Rabbit bowls — source evidence: IMG_4299.
+- `130.png` — **PR-019** — Peter Rabbit boxed tableware gift sets — source evidence: IMG_4299.
+- `131.png` — **PR-020** — Peter Rabbit boxed cutlery-style gift sets — source evidence: IMG_4299.
+- `132.png` — **PR-021** — Peter Rabbit small kitchen utensils/spatula-style gifts — source evidence: IMG_4299.
+- `133.png` — **PR-022** — Peter Rabbit alphabet letters A–Z — source evidence: IMG_4295, IMG_4298.
+- `134.png` — **PR-023** — Peter Rabbit baby/occasion photo frames — source evidence: IMG_4298.
+- `135.png` — **PR-024** — Peter Rabbit pens — source evidence: IMG_4298.
+- `136.png` — **PR-025** — Peter Rabbit Poster Art Set — source evidence: IMG_4298.
+- `137.png` — **PR-026** — Peter Rabbit colouring/activity/stationery items — source evidence: IMG_4298.
+- `138.png` — **PR-027** — Peter Rabbit textile/tote/tea-towel style item — source evidence: IMG_4298.
+- `139.png` — **PR-028** — Peter Rabbit round small gifts/coasters — source evidence: IMG_4299.
+- `140.png` — **PR-029** — The Tale of Peter Rabbit — source evidence: IMG_4298.
+- `141.png` — **PR-030** — The Tale of Benjamin Bunny — source evidence: IMG_4298.
+- `142.png` — **PR-031** — The Tale of Squirrel Nutkin — source evidence: IMG_4298.
+- `143.png` — **PR-032** — The Tale of Mr. Jeremy Fisher — source evidence: IMG_4298.
+- `144.png` — **PR-033** — The Tale of Mrs. Tiggy-Winkle — source evidence: IMG_4298.
+- `145.png` — **PR-034** — The Tale of Jemima Puddle-Duck — source evidence: IMG_4298.
+- `146.png` — **PR-035** — The Tale of Two Bad Mice — source evidence: IMG_4298.
+- `147.png` — **PR-036** — The Tailor of Gloucester — source evidence: IMG_4298.
+- `148.png` — **PR-037** — The Tale of the Flopsy Bunnies — source evidence: IMG_4298.
+- `149.png` — **PR-038** — The Tale of Pigling Bland — source evidence: IMG_4298.
+- `150.png` — **PR-039** — The Tale of Johnny Town-Mouse — source evidence: IMG_4298.
+- `151.png` — **PR-040** — The Tale of Mr. Tod — source evidence: IMG_4298.
+- `152.png` — **PR-041** — The Tale of Timmy Tiptoes — source evidence: IMG_4298.
+- `153.png` — **PR-042** — The Tale of Samuel Whiskers — source evidence: IMG_4298.
+- `154.png` — **PR-043** — The Tale of Mrs. Tittlemouse — source evidence: IMG_4298.
+- `155.png` — **PR-044** — Appley Dapply’s Nursery Rhymes — source evidence: IMG_4298.
+- `156.png` — **PR-045** — Cecily Parsley’s Nursery Rhymes — source evidence: IMG_4298.
+- `157.png` — **HC-001** — Highland Cow plush – large — source evidence: IMG_4257, IMG_4301, IMG_4309.
+- `158.png` — **HC-002** — Highland Cow plush – assorted sizes — source evidence: IMG_4301, IMG_4309.
+- `159.png` — **HC-003** — Three Highland Cows – see/hear/speak no evil ornament — source evidence: IMG_4264.
+- `160.png` — **HC-004** — Highland Cow in bath ornament — source evidence: IMG_4265.
+- `161.png` — **HC-005** — Highland Cow on toilet/reading ornament — source evidence: IMG_4265.
+- `162.png` — **HC-006** — Highland Cow LOVE plaque/group — source evidence: IMG_4301.
+- `163.png` — **HC-007** — Highland Cow FAMILY plaque/group — source evidence: IMG_4301.
+- `164.png` — **HC-008** — Highland Cow HOME / home-message plaque(s) — source evidence: IMG_4301.
+- `165.png` — **HC-009** — ‘This home is filled with love & dreams’ Highland Cow plaque — source evidence: IMG_4301.
+- `166.png` — **HC-010** — ‘When we have each other we have everything’ Highland Cow plaque — source evidence: IMG_4301.
+- `167.png` — **HC-011** — Dangling-leg Highland Cow figurines assorted — source evidence: IMG_4269, IMG_4301.
+- `168.png` — **HC-012** — Boxed Highland Cow resin figurines assorted — source evidence: IMG_4301.
+- `169.png` — **HC-013** — Reflections by Leonardo Highland Cow figurines — source evidence: IMG_4301.
+- `170.png` — **HC-014** — Silver/metallic Highland Cow sculptures — source evidence: IMG_4269, IMG_4301.
+- `171.png` — **HC-015** — Leonardo Christmas Highland Cow – postbox/gift small — source evidence: IMG_4270.
+- `172.png` — **HC-016** — Leonardo Christmas Highland Cow – large Santa/postbox — source evidence: IMG_4270.
+- `173.png` — **HC-017** — Christmas Highland Cow pair with pudding — source evidence: IMG_4271.
+- `174.png` — **HC-018** — Christmas Highland Cow with tree/reindeer styling — source evidence: IMG_4271.
+- `175.png` — **HC-019** — Christmas Highland Cow FAMILY ornament — source evidence: IMG_4272.
+- `176.png` — **HC-020** — Christmas Highland Cow pair holding present — source evidence: IMG_4273.
+- `177.png` — **HC-021** — Christmas Highland Cow family riding/stacked group — source evidence: IMG_4274.
+- `178.png` — **HC-022** — Christmas Highland Cows trio with scarves/hats — source evidence: IMG_4275.
+- `179.png` — **HC-023** — Christmas Highland Cow family on snow base — source evidence: IMG_4276, IMG_4310.
+- `180.png` — **SOU-001** — Bridge House Ambleside crystal block — source evidence: IMG_4258.
+- `181.png` — **SOU-002** — AMBLESIDE faceted crystal paperweights – assorted colours — source evidence: IMG_4262.
+- `182.png` — **SOU-003** — Scafell Pike Lake District mountain-relief glass — source evidence: IMG_4268.
+- `183.png` — **SOU-004** — Helvellyn Lake District mountain-relief glass — source evidence: IMG_4268.
+- `184.png` — **SOU-005** — Lake District scenic keyrings — source evidence: IMG_4263, IMG_4307.
+- `185.png` — **SOU-006** — Ambleside / Bridge House keyrings — source evidence: IMG_4263, IMG_4307.
+- `186.png` — **SOU-007** — Bottle-opener keyrings — source evidence: IMG_4263, IMG_4307.
+- `187.png` — **SOU-008** — London bus / phone box / campervan keyrings — source evidence: IMG_4307.
+- `188.png` — **SOU-009** — Union Jack keyrings — source evidence: IMG_4307.
+- `189.png` — **SOU-010** — Lake District shield pin badges — source evidence: IMG_4306.
+- `190.png` — **SOU-011** — Tradition souvenir badges/pins — source evidence: IMG_4306.
+- `191.png` — **SOU-012** — Union Jack/British pin badges — source evidence: IMG_4306.
+- `192.png` — **SOU-013** — Ambleside fridge magnets – assorted scenic designs — source evidence: IMG_4303, IMG_4305.
+- `193.png` — **SOU-014** — Windermere fridge magnets – steamer/lake designs — source evidence: IMG_4303, IMG_4304.
+- `194.png` — **SOU-015** — Lake District sheep magnets — source evidence: IMG_4303, IMG_4305.
+- `195.png` — **SOU-016** — Lake District map magnets — source evidence: IMG_4303, IMG_4304.
+- `196.png` — **SOU-017** — Bridge House Ambleside magnets — source evidence: IMG_4303, IMG_4305.
+- `197.png` — **SOU-018** — Bottle-opener fridge magnets — source evidence: IMG_4305.
+- `198.png` — **SOU-019** — ‘Lousy Magnet’ Lake District novelty magnet — source evidence: IMG_4305.
+- `199.png` — **SOU-020** — Lake District text/sheep novelty magnets — source evidence: IMG_4305.
+- `200.png` — **SOU-021** — Lake District snow globes – assorted — source evidence: IMG_4294, IMG_4308.
+- `201.png` — **SOU-022** — Ship-in-a-bottle / nautical glass souvenir — source evidence: IMG_4308.
+- `202.png` — **SOU-023** — Lake District scenic coasters — source evidence: IMG_4308.
+- `203.png` — **SOU-024** — Lake District playing cards — source evidence: IMG_4308.
+- `204.png` — **SOU-025** — Lake District tote bags — source evidence: IMG_4308.
+- `205.png` — **SOU-026** — Lake District/Ambleside novelty pens — source evidence: IMG_4308.
+- `206.png` — **SOU-027** — ‘I LOVE AMBLESIDE’ navy cap — source evidence: IMG_4267.
+- `207.png` — **SOU-028** — Sunhats / bucket hats / caps assorted — source evidence: IMG_4293.
+- `208.png` — **SOU-029** — Sunglasses assortment — source evidence: IMG_4293.
+- `209.png` — **SOU-030** — Walking sticks/canes — source evidence: IMG_4284.
+- `210.png` — **SOU-031** — Local framed prints / Bridge House & lake scenes — source evidence: IMG_4257.
+- `211.png` — **SOU-032** — Animal watercolour framed prints — source evidence: IMG_4281, IMG_4284.
+- `212.png` — **SOU-033** — Lake District scenic postcards — source evidence: IMG_4283.
+- `213.png` — **SOU-034** — Lake District maps / guidebooks / travel books — source evidence: IMG_4283.
+- `214.png` — **SOU-035** — Collins Britain Road/Travel map — source evidence: IMG_4283.
+- `215.png` — **SOU-036** — Lake District Jigsaws – scenic assortment — source evidence: IMG_4261, IMG_4285.
+- `216.png` — **SOU-037** — Herdies 1000 Piece Jigsaw Puzzle — source evidence: IMG_4261.
+- `217.png` — **SOU-038** — Lake District Watercolour 1000 Piece Jigsaw Puzzle — source evidence: IMG_4261.
+- `218.png` — **SOU-039** — Lake District Lap Map Jigsaw Puzzle 1000 — source evidence: IMG_4261.
+- `219.png` — **SOU-040** — Ambleside Jigsaw 1000 — source evidence: IMG_4261.
+- `220.png` — **PL-001** — Ambleside sheep plush – blue hoodie — source evidence: IMG_4266.
+- `221.png` — **PL-002** — Ambleside sheep plush – pink hoodie — source evidence: IMG_4266.
+- `222.png` — **PL-003** — Lake District/Ambleside scarf sheep/lamb plush — source evidence: IMG_4257.
+- `223.png` — **PL-004** — Sheep/lamb plush assortment — source evidence: IMG_4309.
+- `224.png` — **PL-005** — Rabbit plush assortment — source evidence: IMG_4309.
+- `225.png` — **PL-006** — Bear plush assortment — source evidence: IMG_4279, IMG_4309.
+- `226.png` — **PL-007** — Dog plush assortment — source evidence: IMG_4279, IMG_4309.
+- `227.png` — **PL-008** — Small collectible animal plush assortment — source evidence: IMG_4279, IMG_4309.
+- `228.png` — **PL-009** — Lake District branded sheep plush in dark shirts — source evidence: IMG_4309.
+- `229.png` — **PL-010** — Other animal plush: pig/elephant/fox/owl/etc. — source evidence: IMG_4279, IMG_4309.
+- `230.png` — **ROM-001** — Romney’s Kendal Mint Cake – multiple pack sizes/variants — source evidence: IMG_4278, IMG_4300.
+- `231.png` — **ROM-002** — Romney’s Hand Baked Biscuits — source evidence: IMG_4300.
+- `232.png` — **ROM-003** — Romney’s Shortbread Selection — source evidence: IMG_4300.
+- `233.png` — **ROM-004** — Romney’s boxed confectionery / gift packs assorted — source evidence: IMG_4278, IMG_4300.
+- `234.png` — **HR-001** — Black Garlic Ketchup — source evidence: IMG_4290.
+- `235.png` — **HR-002** — Bloody Mary Ketchup — source evidence: IMG_4290.
+- `236.png` — **HR-003** — Traditional English Mustard — source evidence: IMG_4290.
+- `237.png` — **HR-004** — Raspberry & Vanilla Jam — source evidence: IMG_4290.
+- `238.png` — **HR-005** — Strawberry & Black Pepper Jam — source evidence: IMG_4290.
+- `239.png` — **HR-006** — Damson Extra Jam — source evidence: IMG_4290.
+- `240.png` — **HR-007** — Red Onion Marmalade — source evidence: IMG_4290.
+- `241.png` — **HR-008** — Five Fruit Marmalade — source evidence: IMG_4290.
+- `242.png` — **HR-009** — Beetroot & Horseradish Chutney — source evidence: IMG_4290.
+- `243.png` — **HR-010** — Hot Garlic Pickle — source evidence: IMG_4290.
+- `244.png` — **HR-011** — Piccalilli Pickle — source evidence: IMG_4290.
+- `245.png` — **HR-012** — Westmorland Chutney — source evidence: IMG_4290.
+- `246.png` — **LF-001** — Tranquillity Eau de Parfum — source evidence: IMG_4287.
+- `247.png` — **LF-002** — Soul Eau de Parfum — source evidence: IMG_4287.
+- `248.png` — **LF-003** — Poetry Eau de Parfum — source evidence: IMG_4287.
+- `249.png` — **LF-004** — Embrace Eau de Parfum — source evidence: IMG_4287.
+- `250.png` — **LF-005** — Soft Lavender fragrance — source evidence: IMG_4287.
+- `251.png` — **LF-006** — Heather fragrance — source evidence: IMG_4287.
+- `252.png` — **LF-007** — Bluebell fragrance — source evidence: IMG_4287.
+- `253.png` — **LF-008** — White Musk fragrance — source evidence: IMG_4287.
+- `254.png` — **LF-009** — Wild Orchid fragrance — source evidence: IMG_4287.
+- `255.png` — **ICE-001** — Luxury Lakes Ice Cream – cabinet/range — source evidence: IMG_4289.
+- `256.png` — **ICE-002** — Mint Choc Chip — source evidence: IMG_4289.
+- `257.png` — **ICE-003** — Crushed Strawberry — source evidence: IMG_4289.
+- `258.png` — **ICE-004** — Blackcurrant & Cream — source evidence: IMG_4289.
+- `259.png` — **ICE-005** — Additional Luxury Lakes flavours (names not fully legible) — source evidence: IMG_4289.
+- `260.png` — **HOME-001** — Animal-themed cushions — source evidence: IMG_4281.
+- `261.png` — **HOME-002** — Animal/bird clocks — source evidence: IMG_4281.
+- `262.png` — **HOME-003** — Animal-themed mugs — source evidence: IMG_4281.
+- `263.png` — **HOME-004** — Jewellery / necklaces / earrings display — source evidence: IMG_4281.
+- `264.png` — **HOME-005** — Photo frames / occasion frames — source evidence: IMG_4281.
+- `265.png` — **HOME-006** — Decorative plaques/signs with family/relationship text — source evidence: IMG_4281, IMG_4308.
+- `266.png` — **HOME-007** — Chopping boards / paddle boards with animal art — source evidence: IMG_4300.
+- `267.png` — **HOME-008** — Tea towels / oven gloves / textile kitchen gifts — source evidence: IMG_4282.
+- `268.png` — **HOME-009** — Small animal ornaments (frogs, sheep, birds, houses etc.) — source evidence: IMG_4277, IMG_4294.
+- `269.png` — **CARD-001** — Birthday cards – multiple ages — source evidence: IMG_4292.
+- `270.png` — **CARD-002** — Relation cards: Mum/Dad/Auntie/etc. — source evidence: IMG_4292.
+- `271.png` — **CARD-003** — Animal-themed humour/general greeting cards — source evidence: IMG_4292.
+- `272.png` — **CARD-004** — Thank You / Thank Ewe style gift cards/boxes — source evidence: IMG_4278, IMG_4300.
+- `273.png` — **CARD-005** — Scenic Lake District cards/postcards — source evidence: IMG_4283.
+- `274.png` — **TOY-001** — Children’s jigsaws/puzzles assorted — source evidence: IMG_4285.
+- `275.png` — **TOY-002** — Chomping Shark game — source evidence: IMG_4285.
+- `276.png` — **TOY-003** — Line Up 4 game — source evidence: IMG_4285.
+- `277.png` — **TOY-004** — Football/sports balls assorted — source evidence: IMG_4285.
+- `278.png` — **TOY-005** — Farm/vehicle toys assorted — source evidence: IMG_4285.
