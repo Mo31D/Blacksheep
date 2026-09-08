@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-label="Black sheep emblem">
+<defs><radialGradient id="w" cx="42%" cy="32%"><stop offset="0" stop-color="#505050"/><stop offset="1" stop-color="#171717"/></radialGradient><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d2b06d"/><stop offset="1" stop-color="#8f6a2c"/></linearGradient></defs>
+<g fill="url(#w)" stroke="#090909" stroke-width="4">
+<circle cx="110" cy="84" r="55"/><circle cx="72" cy="60" r="25"/><circle cx="148" cy="60" r="25"/><circle cx="61" cy="93" r="27"/><circle cx="159" cy="93" r="27"/><circle cx="81" cy="39" r="24"/><circle cx="139" cy="39" r="24"/>
+</g>
+<path d="M59 87C38 72 26 75 18 91c19 0 29 8 40 17zM161 87c21-15 33-12 41 4-19 0-29 8-40 17z" fill="#202020" stroke="#090909" stroke-width="4"/>
+<path d="M110 70c-31 0-46 22-43 55 3 34 20 58 43 58s40-24 43-58c3-33-12-55-43-55z" fill="#242424" stroke="#0a0a0a" stroke-width="5"/>
+<ellipse cx="88" cy="113" rx="8" ry="7" fill="url(#g)"/><ellipse cx="132" cy="113" rx="8" ry="7" fill="url(#g)"/><circle cx="88" cy="113" r="3"/><circle cx="132" cy="113" r="3"/>
+<path d="M91 151q19 13 38 0" fill="none" stroke="#b79556" stroke-width="4" stroke-linecap="round"/><path d="M103 143q7-6 14 0" fill="none" stroke="#050505" stroke-width="5" stroke-linecap="round"/>
+</svg>
