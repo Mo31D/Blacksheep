@@ -18,11 +18,11 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 - [ ] Open existing Sites source and compare against latest GitHub.
 
 ## Phase 2 — accurate catalogue
-- [ ] Match supplied Highland Cow photos against official Lesser & Pavey / Leonardo pages.
+- [x] Match supplied Highland Cow photos against official Lesser & Pavey / Leonardo pages.
   - [x] Saved a resumable supplier/owner cross-reference in docs/HIGHLAND-COW-SOURCE-MAP.md.
-  - [x] Verified 15 of 18 distinct supplied product screenshots to exact official stock codes; identified the duplicated Highland Cows Reds attachment.
-  - [ ] Resolve the red/white Scarf & Hat exact SKU among LP74351/LP74352/LP74353.
-  - [ ] Resolve the two visually distinct Tartan Bow screenshots between LP73654 and LP75979.
+  - [x] Verified all 18 distinct supplied product screenshots to exact official stock codes; identified the duplicated Highland Cows Reds attachment.
+  - [x] Resolved the red/white Scarf & Hat as LP74353.
+  - [x] Resolved the two Tartan Bow visuals: bow-on-head LP73654; bow-tie variant LP75979.
   - [ ] Match owner Christmas screenshots to exact current official stock codes before publication.
 - [ ] Save clean genuine product photos and source mapping.
 - [ ] Add exact products / update overlapping entries, preserving old product URLs where practical.
@@ -44,4 +44,4 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 - [ ] Record final commit, Sites version, URL, remaining gaps and exact next action here.
 
 ## Current next action
-Continue Phase 2 from docs/HIGHLAND-COW-SOURCE-MAP.md: resolve the remaining ambiguous visual-to-SKU mappings, then save clean official product images. Do not overwrite homepage/CSS or catalogue work that may still exist uncommitted in the previous Work session. Sites synchronization remains blocked until the exact existing Black Sheep Sites project is identified. Never create a duplicate or mark synchronization complete without a verified project/version.
+Continue Phase 2 from docs/HIGHLAND-COW-SOURCE-MAP.md: match the Christmas owner screenshots to exact official stock codes, then save clean official product images. Do not overwrite homepage/CSS or catalogue work that may still exist uncommitted in the previous Work session. Sites synchronization remains blocked until the exact existing Black Sheep Sites project is identified. Never create a duplicate or mark synchronization complete without a verified project/version.
