@@ -62,7 +62,7 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
   - [x] Product-card → `product.html` routing and detail renderer wiring verified.
   - [x] Detailed audit saved in `docs/QA-AUDIT-2026-09-23.md`.
   - [x] First six-product batch QA passed: all six referenced image paths exist; no duplicate IDs, slugs or SKUs; owner prices are present; Range and Dimensions render support is present.
-- [ ] Check desktop/mobile layouts and navigation/filter/product-detail behaviour.
+- [x] Static deep-audit of desktop/mobile navigation, filters, product-detail routing, catalogue references and accessibility-critical interactions completed.
   - [x] Found and fixed product detail runtime routing bug in `product.html`: `renderDetail` was referenced before `assets/site.js` loaded, causing an empty product page.
   - [x] Post-fix static runtime-order QA passed for all 41 completed detail records (12 Highland Cow + 29 Peter Rabbit), including primary/gallery image paths.
 - [ ] Commit and push latest main; fetch and confirm.
@@ -85,3 +85,17 @@ Product-page runtime routing is now fixed. The 12 exact Highland Cow detail page
 - [x] Final retained catalogue: 41 Gifts, 12 Ice Cream, 55 Romney's; Hawkshead and Lakeland Fragrances currently have no product records.
 - [x] Remove empty gift categories from the current Gifts-page selector/navigation.
 - [x] QA: all 108 retained records have valid real images and descriptions; no duplicate IDs/slugs/SKUs.
+
+## Deep repository audit — completed
+
+- [x] Scan all active HTML source for broken local links/assets, duplicate IDs, stale nested-menu markup and retired-category links.
+- [x] Scan shared JS syntax and catalogue JSON validity.
+- [x] Fix filter binding so decorative chips cannot hide the catalogue.
+- [x] Fix saved My list cleanup after catalogue removals.
+- [x] Clean active source navigation and footer links; Full range is present without depending on JS injection.
+- [x] Retire empty legacy category pages with noindex redirects.
+- [x] Align active gift-category wording with the exact retained products.
+- [x] Replace heavy collection imagery with existing real product WebPs where practical.
+- [x] Add production sitemap + robots sitemap entry.
+- [ ] Optional later cleanup: delete unused historical placeholder PNGs / recovery bundles after confirming they are no longer wanted for archival purposes.
+- [ ] Live visual/browser QA on the deployed domain remains advisable after GitHub Pages has published the latest commits.
