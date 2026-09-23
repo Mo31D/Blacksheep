@@ -1,5 +1,8 @@
 # The Black Sheep Shop — Image Replacement Map
 
+## Current status — 23 September 2026
+This file is primarily a historical replacement map. The active curated catalogue no longer uses the old numbered product placeholder records. Peter Rabbit and Highland Cow products use real descriptive WebP assets; active collection cards use real product WebPs where available. Do not interpret the numbered legacy list as products that should be re-added.
+
 ## Rule
 All numbered image files are deliberately replaceable. Keep the same filename and aspect ratio when replacing a temporary/generated/placeholder image.
 
