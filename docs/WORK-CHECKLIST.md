@@ -149,3 +149,16 @@ Repository QA currently has no known blocking issue. Hosting/deployment state st
 - [ ] Push validated source and check live deployment (see dated work report for latest status).
 - [ ] Sync existing Sites project: owner/editor discovery did not return Black Sheep; do not create another project.
 - [ ] Complete mobile and desktop visual review after deployment.
+
+## Romney's official-source enrichment — completed
+
+- [x] Match 35 exact current Romney's/confectionery products to current official manufacturer product pages.
+- [x] Add exact official URL, official product name, manufacturer and verification date to `assets/catalog.js`.
+- [x] Add official SKU only where directly verified.
+- [x] Add visible official product name + manufacturer source link to all 35 static product pages.
+- [x] Add Product JSON-LD `sameAs` + manufacturer relationship to all 35 matched pages.
+- [x] Preserve all Black Sheep shop prices.
+- [x] Correct ROM-054 and ROM-055 brand to Walker's Nonsuch across catalogue, product pages, Romney's cards, Full Range and schema.
+- [x] Save `docs/ROMNEYS-SOURCE-MAP.md` and dated work report.
+- [x] Extend search-readiness verification to protect the 35 mappings.
+- [ ] Research exact current sources for the remaining 20 Romney's-section products only when a genuine exact match can be confirmed; do not use similar products as substitutes.
