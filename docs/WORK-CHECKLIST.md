@@ -38,6 +38,15 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 - [ ] Add verified Christmas products.
 - [x] Completed customer-facing detail data for the first 12 exact Highland Cow products: concise descriptions, brand, product code, range, dimensions where verified, material, owner-confirmed prices, and availability handling.
 
+## Peter Rabbit internal detail sync
+- [x] Compared Black Sheep Peter Rabbit catalogue against `Mo31D/Lakesidepinicnew/src/catalogue.json`.
+- [x] Found 29 exact shared Peter Rabbit products by product name/SKU and enriched their internal detail pages.
+- [x] Preserved Black Sheep prices, images, IDs and URLs; imported only verified shared product facts from Lakeside.
+- [x] Added structured Dimensions, Material, Packaging, Care and Suitable-for fields where supported by the Lakeside product record.
+- [x] Kept descriptions concise and customer-facing rather than copying source notes.
+- [x] QA passed for the 29 shared products: all image paths resolve and there are no duplicate IDs, slugs or SKUs.
+- [ ] Remaining 40 Peter Rabbit entries are older in-store/generic records without an exact detailed Lakeside match; leave unchanged until each product is positively identified.
+
 ## Phase 3 — shop photography and layout
 - [ ] Open Google Maps in browser and inspect 360° photos.
 - [ ] Add a suitable attributed tour/embed/link or permitted genuine images.
@@ -54,4 +63,4 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 - [ ] Record final commit, Sites version, URL, remaining gaps and exact next action here.
 
 ## Current next action
-The first 12 exact Highland Cow products now have complete internal product-detail data and valid image paths on GitHub. Continue with the next verified Highland Cow products, then the Christmas range. Keep detail pages selective: short product description plus Brand, Price when owner-confirmed, Product code, Range, Dimensions when verified, Material and Availability. Do not add filler or duplicate Collection/Range information. Public live-site verification remains pending because the custom domain is not reachable from the current web checker. Sites synchronization remains blocked until the exact existing Black Sheep Sites project is identified; never create a duplicate.
+The Highland Cow 12-product detail pass and the 29 exact shared Peter Rabbit detail pages are complete on GitHub. Continue with the remaining exact Highland Cow products and then verified Christmas products. For Peter Rabbit, do not enrich the remaining 40 generic/in-store-only records until each is positively identified against a reliable product source. Keep internal pages selective: concise description plus only useful verified fields. Public live-site verification remains pending because the custom domain is not reachable from the current web checker. Sites synchronization remains blocked until the exact existing Black Sheep Sites project is identified; never create a duplicate.
