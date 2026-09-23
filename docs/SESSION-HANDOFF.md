@@ -132,3 +132,14 @@ Current QA status: no blocking repository issue found in the completed catalogue
 - Hero copy changed to “Find something to take home.” with a single short supporting sentence.
 - The large “Explore the range” block was replaced by a compact results bar with a live visible-product count.
 - Search, collection selector and quick filters remain the primary navigation pattern inside Gifts.
+
+## My list + Full range — 23 September 2026
+
+- Added a lightweight persistent "My list" feature inspired by Lakeside Picnic.
+- My list is a pre-visit planning list only: no checkout, payment or online ordering.
+- A compact My list button with item count is injected into the shared header on every page.
+- Product cards and product detail pages now support Add to My list.
+- The list is stored locally in the browser, supports quantity changes/removal/clear, and opens in a Black Sheep-styled side drawer.
+- Added a "Full range" link to desktop and mobile navigation via shared JS, pointing to the existing `all-products.html`.
+- Updated Full range to the current curated catalogue only: 108 products total (41 gifts, 12 ice cream, 55 Romney's); removed stale Hawkshead/Fragrances filters and copy.
+- Preserve this as a lightweight pre-visit feature; do not turn it into checkout unless the owner explicitly asks.
