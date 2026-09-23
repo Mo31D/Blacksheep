@@ -1,26 +1,30 @@
-404.html
-about.html
-gifts-animals.html
-gifts-cards.html
-gifts-fridge-magnets.html
-gifts-highland-cows.html
-gifts-home-art.html
-gifts-home.html
-gifts-keyrings-badges.html
-gifts-lake-district.html
-gifts-local-food.html
-gifts-maps-books-jigsaws.html
-gifts-mugs.html
-gifts-peter-rabbit.html
-gifts-seasonal.html
-gifts-soft-toys.html
-gifts-souvenirs.html
-gifts-toys-games.html
-gifts.html
-hawkshead-relish.html
-icecream.html
+ACTIVE PAGES
 index.html
-lakeland-fragrances.html
-product.html
+gifts.html
+gifts-peter-rabbit.html
+gifts-highland-cows.html
+gifts-mugs.html
+gifts-soft-toys.html
+gifts-cards.html
+gifts-seasonal.html
+gifts-keyrings-badges.html
+gifts-home-art.html
+gifts-toys-games.html
+icecream.html
 romneys.html
+hawkshead-relish.html
+all-products.html
+product.html
+about.html
 visit.html
+404.html
+
+REDIRECT / LEGACY ROUTES
+gifts-animals.html -> gifts-highland-cows.html
+gifts-home.html -> gifts-mugs.html
+gifts-lake-district.html -> gifts.html
+gifts-fridge-magnets.html -> gifts.html
+gifts-souvenirs.html -> gifts.html
+gifts-maps-books-jigsaws.html -> gifts.html
+gifts-local-food.html -> romneys.html
+lakeland-fragrances.html -> gifts.html
