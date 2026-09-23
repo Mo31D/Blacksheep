@@ -47,6 +47,12 @@ At the end:
 
 ## Latest completed work
 
+- Synced internal-page product facts for 29 exact Peter Rabbit products shared with `Mo31D/Lakesidepinicnew`, using `src/catalogue.json` as the factual source while preserving Black Sheep prices, product URLs and images.
+- Peter Rabbit pages now selectively show useful structured details such as dimensions, material, packaging, suitability and care where verified.
+- Added renderer support for `Suitable for` and `Care` rows.
+- Peter Rabbit QA passed: all 29 shared product image paths exist; no duplicate IDs, slugs or SKUs were introduced.
+- The remaining 40 Peter Rabbit entries are generic/store-photo records without exact detailed Lakeside matches and were intentionally left unchanged rather than guessed.
+
 - Completed internal product-detail content for 12 exact Highland Cow products. Each page now uses concise customer-facing copy and only useful fields: Brand, owner-confirmed Price, Product code, Range, verified Dimensions, Material and Availability.
 - Added exact catalogue entries for LP76232 Ear Moofs, LP76228 Beer Cheers, LP75983 Hairdo and LP75341 With Thistle.
 - Upgraded existing HC-004 and HC-005 in place to LP75454 Soaking and LP75453 Loo-Time, preserving their existing product URLs.
@@ -88,10 +94,10 @@ Do not publish the £26.99 HOME / LOVE / FAMILY price until its exact scope is c
 Continue directly on `main`.
 
 Priority:
-1. Continue the next verified Highland Cow product batch using the same internal-page standard: concise description + Brand + owner-confirmed Price + Product code + Range + verified Dimensions + Material + Availability.
-2. Do not publish unconfirmed prices.
-3. Add verified Christmas Highland Cow products after the remaining standard range.
-4. Re-run duplicate ID/slug/SKU and image-path QA after each batch.
+1. Continue remaining verified Highland Cow products, then the Christmas Highland Cow range.
+2. Treat Peter Rabbit shared-detail sync as complete for the 29 exact matched products.
+3. Do not enrich the remaining 40 generic Peter Rabbit records until each product is positively identified.
+4. Re-run image-path and duplicate ID/slug/SKU QA after each catalogue milestone.
 5. Then continue homepage/shop photography/layout work.
 6. Update this handoff and `docs/WORK-CHECKLIST.md` after each milestone.
 
