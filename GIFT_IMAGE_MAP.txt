@@ -1,3 +1,9 @@
+DEPRECATED / HISTORICAL MAP
+
+The numbered collection/product slots below document the earlier broad placeholder catalogue. They are NOT the active catalogue source of truth.
+
+Current active Peter Rabbit and Highland Cow products use descriptive WebP files under images/peter-rabbit/ and images/highland-cows/. Active collection cards also use those real product WebPs. Do not restore the numbered placeholder product records merely because they appear in this historical map.
+
 GIFT IMAGE MAP — THE BLACK SHEEP SHOP
 
 56.png   COLLECTION HERO — Peter Rabbit
