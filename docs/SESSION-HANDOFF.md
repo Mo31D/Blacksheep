@@ -57,7 +57,7 @@ At the end:
 - Peter Rabbit pages now selectively show useful structured details such as dimensions, material, packaging, suitability and care where verified.
 - Added renderer support for `Suitable for` and `Care` rows.
 - Peter Rabbit QA passed: all 29 shared product image paths exist; no duplicate IDs, slugs or SKUs were introduced.
-- The remaining 40 Peter Rabbit entries are generic/store-photo records without exact detailed Lakeside matches and were intentionally left unchanged rather than guessed.
+- Owner later narrowed the catalogue scope: the 40 generic/store-photo Peter Rabbit records were removed. Keep only the 29 exact Peter Rabbit products matched to Lakeside Picnic unless the owner explicitly requests more.
 
 - Completed internal product-detail content for 12 exact Highland Cow products. Each page now uses concise customer-facing copy and only useful fields: Brand, owner-confirmed Price, Product code, Range, verified Dimensions, Material and Availability.
 - Added exact catalogue entries for LP76232 Ear Moofs, LP76228 Beer Cheers, LP75983 Hairdo and LP75341 With Thistle.
@@ -100,10 +100,10 @@ Do not publish the £26.99 HOME / LOVE / FAMILY price until its exact scope is c
 Continue directly on `main`.
 
 Priority:
-1. Continue remaining verified Highland Cow products, then the verified Christmas Highland Cow range.
-2. Keep LP75453 Loo-Time and LP75454 Soaking without prices until the owner confirms them.
-3. Treat the 29 exact Peter Rabbit shared-detail pages as complete and QA-passed.
-4. Do not enrich the remaining 40 generic Peter Rabbit records without positive identification.
+1. Preserve the intentionally reduced catalogue: 12 completed Highland Cow products and 29 exact Peter Rabbit products only.
+2. Do not re-add the 20 removed legacy Highland Cow records or 40 removed generic Peter Rabbit records unless the owner explicitly requests it.
+3. Keep LP75453 Loo-Time and LP75454 Soaking without prices until the owner confirms them.
+4. Treat the 29 exact Peter Rabbit shared-detail pages as complete and QA-passed.
 5. Run the same repository QA after each new batch.
 6. Later complete live desktop/mobile browser validation and synchronize the exact existing Black Sheep Sites project once it is identified.
 7. Update this handoff and `docs/WORK-CHECKLIST.md` after each milestone.
