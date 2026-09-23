@@ -116,3 +116,11 @@ Current QA status: no blocking repository issue found in the completed catalogue
 - The previous desktop dropdown and mobile nested gift submenu are intentionally disabled/removed at runtime.
 - Gift-category navigation now lives inside `gifts.html`: search, a 14-option collection selector and compact quick filters.
 - Preserve the Black Sheep visual system; do not restore the old crowded nested menu unless the owner explicitly requests it.
+
+## Catalogue cleanup — 23 September 2026
+
+- Owner instructed that only fully updated products should remain visible.
+- Removed all remaining placeholder/unmodified gift records, all placeholder Hawkshead Relish product records and all placeholder Lakeland Fragrances product records.
+- Retained catalogue totals: 41 Gifts (29 Peter Rabbit + 12 Highland Cow), 12 Ice Cream and 55 Romney's.
+- Post-cleanup QA: 108 retained product records total; every retained record has a real existing image and a description; zero placeholder-image records remain; zero duplicate IDs, slugs or SKUs.
+- Empty gift-category links were removed from the Gifts browser/runtime navigation. Do not re-add removed placeholder products unless the owner explicitly requests and supplies/approves real images and proper descriptions.
