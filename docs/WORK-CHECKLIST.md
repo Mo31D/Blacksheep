@@ -63,9 +63,11 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
   - [x] Detailed audit saved in `docs/QA-AUDIT-2026-09-23.md`.
   - [x] First six-product batch QA passed: all six referenced image paths exist; no duplicate IDs, slugs or SKUs; owner prices are present; Range and Dimensions render support is present.
 - [ ] Check desktop/mobile layouts and navigation/filter/product-detail behaviour.
+  - [x] Found and fixed product detail runtime routing bug in `product.html`: `renderDetail` was referenced before `assets/site.js` loaded, causing an empty product page.
+  - [x] Post-fix static runtime-order QA passed for all 41 completed detail records (12 Highland Cow + 29 Peter Rabbit), including primary/gallery image paths.
 - [ ] Commit and push latest main; fetch and confirm.
 - [ ] Push same source to resolved Sites project, save version, publish and confirm status.
 - [ ] Record final commit, Sites version, URL, remaining gaps and exact next action here.
 
 ## Current next action
-QA confirms the completed scope is internally consistent: the 12 exact Highland Cow detail pages and 29 exact shared Peter Rabbit detail pages have valid images/routes and no duplicate IDs/slugs/SKUs. Continue with the remaining verified Highland Cow products, then the Christmas range. Keep Loo-Time and Soaking prices unpublished until owner-confirmed. For Peter Rabbit, do not enrich the remaining 40 generic/in-store-only records until each is positively identified. Live-browser desktop/mobile validation and Sites synchronization remain open because the live custom domain/Sites project is not currently available to this session.
+Product-page runtime routing is now fixed. The 12 exact Highland Cow detail pages and 29 exact shared Peter Rabbit detail pages have valid data, routes and images with no duplicate IDs/slugs/SKUs. Continue with the remaining verified Highland Cow products, then the Christmas range. Keep Loo-Time and Soaking prices unpublished until owner-confirmed. For Peter Rabbit, do not enrich the remaining 40 generic/in-store-only records until each is positively identified. Live-browser desktop/mobile validation and Sites synchronization remain open because the live custom domain/Sites project is not currently available to this session.
