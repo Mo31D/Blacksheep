@@ -2,6 +2,8 @@
 
 Updated: 23 September 2026
 
+Latest handoff commit before this note: `abb7d3855662c45216008a5720b5d10af02a2282`
+
 This is the short handoff file for ChatGPT, Work/Sites, Codex, or any future session. Read this before making changes.
 
 ## Authority
