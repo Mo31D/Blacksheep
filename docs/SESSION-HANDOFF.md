@@ -124,3 +124,11 @@ Current QA status: no blocking repository issue found in the completed catalogue
 - Retained catalogue totals: 41 Gifts (29 Peter Rabbit + 12 Highland Cow), 12 Ice Cream and 55 Romney's.
 - Post-cleanup QA: 108 retained product records total; every retained record has a real existing image and a description; zero placeholder-image records remain; zero duplicate IDs, slugs or SKUs.
 - Empty gift-category links were removed from the Gifts browser/runtime navigation. Do not re-add removed placeholder products unless the owner explicitly requests and supplies/approves real images and proper descriptions.
+
+## Gifts landing compacted — 23 September 2026
+
+- The Gifts page intro was shortened substantially.
+- Mobile now hides the large gifts hero image so category controls appear much sooner.
+- Hero copy changed to “Find something to take home.” with a single short supporting sentence.
+- The large “Explore the range” block was replaced by a compact results bar with a live visible-product count.
+- Search, collection selector and quick filters remain the primary navigation pattern inside Gifts.
