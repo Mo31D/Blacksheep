@@ -46,7 +46,7 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 - [x] Added structured Dimensions, Material, Packaging, Care and Suitable-for fields where supported by the Lakeside product record.
 - [x] Kept descriptions concise and customer-facing rather than copying source notes.
 - [x] QA passed for the 29 shared products: all image paths resolve and there are no duplicate IDs, slugs or SKUs.
-- [ ] Remaining 40 Peter Rabbit entries are older in-store/generic records without an exact detailed Lakeside match; leave unchanged until each product is positively identified.
+- [x] Owner scope decision: remove the 40 older/generic Peter Rabbit records. Keep only the 29 exact Peter Rabbit products matched to Lakeside Picnic; do not re-add the removed records unless the owner explicitly requests it.
 
 ## Phase 3 — shop photography and layout
 - [ ] Open Google Maps in browser and inspect 360° photos.
@@ -70,4 +70,4 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 - [ ] Record final commit, Sites version, URL, remaining gaps and exact next action here.
 
 ## Current next action
-Product-page runtime routing is now fixed. The 12 exact Highland Cow detail pages and 29 exact shared Peter Rabbit detail pages have valid data, routes and images with no duplicate IDs/slugs/SKUs. Continue with the remaining verified Highland Cow products, then the Christmas range. Keep Loo-Time and Soaking prices unpublished until owner-confirmed. For Peter Rabbit, do not enrich the remaining 40 generic/in-store-only records until each is positively identified. Live-browser desktop/mobile validation and Sites synchronization remain open because the live custom domain/Sites project is not currently available to this session.
+Product-page runtime routing is now fixed. The 12 exact Highland Cow detail pages and 29 exact shared Peter Rabbit detail pages have valid data, routes and images with no duplicate IDs/slugs/SKUs. Catalogue scope is now intentionally reduced: keep only the 12 completed Highland Cow products and the 29 exact Peter Rabbit products matched to Lakeside Picnic. The previous 20 legacy Highland Cow records and 40 generic Peter Rabbit records were removed by owner instruction and must not be re-added unless explicitly requested. Keep Loo-Time and Soaking prices unpublished until owner-confirmed. Live-browser desktop/mobile validation and Sites synchronization remain open because the live custom domain/Sites project is not currently available to this session.
