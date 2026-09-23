@@ -2,7 +2,7 @@
 
 Updated: 23 September 2026
 
-Latest handoff commit before this note: `abb7d3855662c45216008a5720b5d10af02a2282`
+Latest verified QA milestone: `b497f948ee09b81a2746f03af6ea26b20d1f63e7`
 
 This is the short handoff file for ChatGPT, Work/Sites, Codex, or any future session. Read this before making changes.
 
@@ -46,6 +46,9 @@ At the end:
 4. State any unresolved blockers explicitly.
 
 ## Latest completed work
+
+- Full repository QA audit completed and saved in `docs/QA-AUDIT-2026-09-23.md`: 173 gift records checked; 0 duplicate IDs, slugs or SKUs; 0 missing referenced gift images; catalogue parses and site JS compiles.
+- Both six-image Highland Cow upload batches are present in `images/highland-cows/`; all 12 exact Highland Cow detail records resolve to those images.
 
 - Synced internal-page product facts for 29 exact Peter Rabbit products shared with `Mo31D/Lakesidepinicnew`, using `src/catalogue.json` as the factual source while preserving Black Sheep prices, product URLs and images.
 - Peter Rabbit pages now selectively show useful structured details such as dimensions, material, packaging, suitability and care where verified.
@@ -94,11 +97,12 @@ Do not publish the £26.99 HOME / LOVE / FAMILY price until its exact scope is c
 Continue directly on `main`.
 
 Priority:
-1. Continue remaining verified Highland Cow products, then the Christmas Highland Cow range.
-2. Treat Peter Rabbit shared-detail sync as complete for the 29 exact matched products.
-3. Do not enrich the remaining 40 generic Peter Rabbit records until each product is positively identified.
-4. Re-run image-path and duplicate ID/slug/SKU QA after each catalogue milestone.
-5. Then continue homepage/shop photography/layout work.
-6. Update this handoff and `docs/WORK-CHECKLIST.md` after each milestone.
+1. Continue remaining verified Highland Cow products, then the verified Christmas Highland Cow range.
+2. Keep LP75453 Loo-Time and LP75454 Soaking without prices until the owner confirms them.
+3. Treat the 29 exact Peter Rabbit shared-detail pages as complete and QA-passed.
+4. Do not enrich the remaining 40 generic Peter Rabbit records without positive identification.
+5. Run the same repository QA after each new batch.
+6. Later complete live desktop/mobile browser validation and synchronize the exact existing Black Sheep Sites project once it is identified.
+7. Update this handoff and `docs/WORK-CHECKLIST.md` after each milestone.
 
-Current limitation: repository QA is complete, but the public custom domain remains unreachable from the current web checker, so live-page verification is still pending.
+Current QA status: no blocking repository issue found in the completed catalogue/detail scope.
