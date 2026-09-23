@@ -46,13 +46,32 @@ The sequence below follows the attachment filenames in lexical order after extra
 | Hughie Highland Cows True Love | LP74102 | £15.99 | Official identity verified |
 | Highland Cow Baubles 6 Set | LP55203 | £9.90 | Official identity verified |
 
+
+## Christmas owner screenshot mapping
+
+The Christmas screenshots in `IMG_9973.PNG`–`IMG_9976.PNG` were cross-checked against current Lesser & Pavey / Joe Davies product imagery and stock records.
+
+| Owner item | Official stock code | Owner price | Verification |
+|---|---|---:|---|
+| Highland Cow Baubles 6 Set | LP55203 | £9.90 | Official Lesser & Pavey product name/code already confirmed |
+| Small seated Christmas Highland Cow with Santa hat, green scarf and gift sack | LP55394 | £10.00 | Exact product image match; supplier/Joe Davies lists it as Xmas Highland Cow LED Small / With Bag |
+| Three Highland Cows behind fence with multicolour LED string | LP55397 | £24.95 | Exact image match; supplier code is Xmas Highland Cow LED Triple / Highland Cows 3 With LED |
+| Christmas Highland Cow family of three with tree/sign and LED string | LP55400 | £24.95 | Exact image match; supplier code is Xmas Highland Cow LED Family |
+| Two Highland Cows beside large gold light-up Christmas tree | LP55733 | £21.95 | Exact image match; supplier code is Xmas 2 Highland Cows With Tree / Light Up Tree Large |
+| White hat/scarf Highland Cow balancing on snow/skateboard base | LP55737 | £8.50 | Exact image match; supplier code is Xmas Highland Cow Skateboard |
+| Gold Christmas-tree costume Highland Cow with LED detail | LP55729 | £10.00 | Exact official product image match; supplier code is Xmas Tree Highland Cow LED |
+| Highland Cow with gold antlers, bell/foliage and coloured light string | LP54610 | £10.00 | Exact product image match; EAN 5010792546100 and MPN LP54610 confirmed by current retailer listing |
+| Festive Highland Cow pair in red outfits holding presents | LP55905 | £13.99 | Exact composition/product-image match; supplier lists Xmas Highland Cows Presents |
+
+All owner Christmas products shown in the supplied screenshots now have an identified stock code. Preserve the owner’s prices above even if supplier/retailer prices differ.
+
 ## Owner-price notes that must stay conservative
 
 - Red and tartan couples are explicitly £13.99 each.
 - The home-message plaque is explicitly £28.99.
 - £26.99 appears after the HOME / LOVE / FAMILY group, but the owner message does not prove whether that price applies to each item or only one product. Keep unpublished until confirmed.
 - The owner said “Those single highland cows are £9.50”. Apply that only to visually matching standard singles. Do not automatically assign it to larger bath/toilet or other materially different variants.
-- Christmas prices recorded in `docs/OWNER-REQUESTS.md` remain valid evidence, but exact official SKU/image matching should be completed before catalogue publication.
+- Christmas prices recorded in `docs/OWNER-REQUESTS.md` are now mapped to exact stock codes above. Use the owner’s prices, not external retail prices.
 
 ## Official codes independently confirmed
 
@@ -61,9 +80,8 @@ The official Lesser & Pavey catalogue currently lists:
 
 ## Safe next action
 
-1. Resolve the three Scarf & Hat colour variants to exact stock codes.
-2. Resolve which supplied Tartan Bow visual is LP73654 and which is LP75979.
-3. Match the Christmas owner screenshots to current official Lesser & Pavey stock codes.
-4. Save clean official product images under stable descriptive filenames.
-5. Only then edit `assets/catalog.js`; preserve existing slugs where an existing catalogue product represents the same physical item.
-6. Do not edit homepage/CSS until the previous Work session’s uncommitted local changes are reconciled.
+1. Save clean official product images under stable descriptive filenames, keeping a source URL/SKU manifest.
+2. Reconcile the previous Work session before editing `assets/catalog.js`, homepage or CSS; those files may contain uncommitted local work.
+3. Once reconciled, update or add catalogue entries while preserving existing slugs for the same physical products.
+4. Apply only owner-confirmed prices. Keep the ambiguous £26.99 HOME / LOVE / FAMILY price unpublished until the owner confirms its scope.
+5. Do not create a new Sites project; synchronize only after the exact existing Black Sheep Sites project is identified.
