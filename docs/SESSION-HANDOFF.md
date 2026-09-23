@@ -47,6 +47,9 @@ At the end:
 
 ## Latest completed work
 
+- Fixed a product detail page runtime bug: `product.html` previously referenced `renderDetail` before `assets/site.js` loaded, which could leave the detail area blank. The scripts now load first and the renderer is registered afterwards (commit `87e901d1fb3883eff924691756538fbd4aecc397`).
+- Post-fix QA confirms all 41 completed detail records (12 Highland Cow + 29 Peter Rabbit) have valid slugs, labels and image paths; gallery paths also resolve.
+
 - Full repository QA audit completed and saved in `docs/QA-AUDIT-2026-09-23.md`: 173 gift records checked; 0 duplicate IDs, slugs or SKUs; 0 missing referenced gift images; catalogue parses and site JS compiles.
 - Both six-image Highland Cow upload batches are present in `images/highland-cows/`; all 12 exact Highland Cow detail records resolve to those images.
 
