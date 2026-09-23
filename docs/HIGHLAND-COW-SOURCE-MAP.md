@@ -78,6 +78,13 @@ All owner Christmas products shown in the supplied screenshots now have an ident
 The official Lesser & Pavey catalogue currently lists:
 `LP60930`, `LP73651`, `LP73652`, `LP73653`, `LP73654`, `LP74351`, `LP74352`, `LP74353`, `LP74354`, `LP74355`, `LP74358`, `LP75341`, `LP75452`, `LP75453`, `LP75454`, `LP75455`, `LP75979`, `LP75983`, `LP75984`, `LP76228`, `LP76229` and `LP76232` in the Highland Cow range. The Hughie catalogue lists `LP74102` as “Hughie Highland Cows True Love”; the supplier search lists `LP55203` as “Highland Cow Baubles 6 Set”.
 
+
+## Current GitHub image audit
+
+The existing Highland Cow image slots `images/157.png` through `images/179.png` are not distinct product photography on current `main`: all 23 paths point to the same 3,082-byte blob (`36b57af455721db234911805d3276eaba3ae5bfa`). Treat them as placeholders that still need replacement.
+
+Do **not** replace these paths from this continuation until the previous Work session is reconciled, because Work had already begun product-image work locally when its usage limit was reached. This audit is recorded so the next session can detect whether those local replacements were recovered before writing over them.
+
 ## Safe next action
 
 1. Save clean official product images under stable descriptive filenames, keeping a source URL/SKU manifest.
