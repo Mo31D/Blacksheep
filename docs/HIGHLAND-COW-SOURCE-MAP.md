@@ -97,3 +97,7 @@ Do **not** replace these paths from this continuation until the previous Work se
 ### LP54679 source verification
 
 The owner’s Christmas family image (two adult Highland cows with a calf beside a Merry Christmas sign/tree) matches Leonardo product code `LP54679`. A current retailer product page identifies the same figurine as code `lp54679` and gives dimensions of approximately 18 × 10 × 22cm. This replaces the earlier provisional LP55400 mapping; LP55400 is a different current LED Family item.
+
+## Superseding owner scope — 23 September 2026
+
+The research above remains historical evidence only. The active website catalogue is intentionally limited to the 12 completed Highland Cow records that already have real product photography and descriptions. The legacy numbered Highland Cow slots (including `images/157.png`–`179.png`) are no longer pending website work and must **not** be re-added merely because this research identified additional products. Add further Highland Cow products only after a new explicit owner request and after the product has approved imagery and copy.
