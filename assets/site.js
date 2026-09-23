@@ -25,7 +25,7 @@ function renderDetail(){const root=document.getElementById('detail');if(!root||!
 
 /* Pre-visit list: a lightweight saved list, not checkout. */
 const blackSheepListKey='black-sheep-previsit-list-v1';
-function getBlackSheepList(){try{const raw=JSON.parse(localStorage.getItem(blackSheepListKey)||'[]');return Array.isArray(raw)?raw.filter(x=>x&&x.type&&x.slug&&Number(x.quantity)>0):[]}catch{return[]}}
+function getBlackSheepList(){try{const raw=JSON.parse(localStorage.getItem(blackSheepListKey)||'[]');if(!Array.isArray(raw))return[];const clean=raw.filter(x=>x&&x.type&&x.slug&&Number(x.quantity)>0&&findItem(x.type,x.slug)).map(x=>({...x,quantity:Math.max(1,Math.floor(Number(x.quantity)||1))}));if(clean.length!==raw.length)try{localStorage.setItem(blackSheepListKey,JSON.stringify(clean))}catch{}return clean}catch{return[]}}
 function saveBlackSheepList(items){try{localStorage.setItem(blackSheepListKey,JSON.stringify(items))}catch{}updateBlackSheepListUI()}
 function blackSheepListCount(){return getBlackSheepList().reduce((n,x)=>n+Number(x.quantity||0),0)}
 function addToBlackSheepList(event,type,slug){event?.preventDefault?.();event?.stopPropagation?.();const item=findItem(type,slug);if(!item)return;const list=getBlackSheepList();const existing=list.find(x=>x.type===type&&x.slug===slug);if(existing)existing.quantity+=1;else list.push({type,slug,quantity:1});saveBlackSheepList(list);showBlackSheepListToast(item.name+' added to My list')}
