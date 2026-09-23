@@ -47,6 +47,12 @@ At the end:
 
 ## Latest completed work
 
+- Completed internal product-detail content for 12 exact Highland Cow products. Each page now uses concise customer-facing copy and only useful fields: Brand, owner-confirmed Price, Product code, Range, verified Dimensions, Material and Availability.
+- Added exact catalogue entries for LP76232 Ear Moofs, LP76228 Beer Cheers, LP75983 Hairdo and LP75341 With Thistle.
+- Upgraded existing HC-004 and HC-005 in place to LP75454 Soaking and LP75453 Loo-Time, preserving their existing product URLs.
+- Loo-Time and Soaking remain intentionally without a published price until the owner confirms their shop prices.
+- Product-detail UI was simplified so Range replaces the redundant Collection row when a specific range is present.
+
 - First exact Highland Cow image/product batch prepared: LP73651, LP73652, LP74354, LP74355, LP74358 and LP75455.
 - Six user-supplied 800×800 product photos were converted to WebP with stable descriptive filenames and uploaded to `images/highland-cows/` on `main` in commit `432927584c2ff0ea1c34ab9e2e63211b535328c3`.
 - Repository QA confirms all six catalogue image references resolve to existing files, with no duplicate IDs, slugs or SKUs in this batch.
@@ -82,12 +88,11 @@ Do not publish the £26.99 HOME / LOVE / FAMILY price until its exact scope is c
 Continue directly on `main`.
 
 Priority:
-1. Start the next exact Highland Cow batch using `docs/HIGHLAND-COW-SOURCE-MAP.md`.
-2. Prefer products with already confirmed owner prices and supplied imagery.
-3. For each product: prepare a clean WebP, add/update the catalogue entry with SKU/price/brand/details, verify image path, then commit.
-4. Add the verified Christmas Highland Cow products after the standard range.
-5. Validate the full Highland Cow collection for duplicate IDs/slugs/SKUs, broken image paths and prices.
-6. Then continue homepage/shop photography/layout work.
-7. Update this handoff and `docs/WORK-CHECKLIST.md` after each milestone.
+1. Continue the next verified Highland Cow product batch using the same internal-page standard: concise description + Brand + owner-confirmed Price + Product code + Range + verified Dimensions + Material + Availability.
+2. Do not publish unconfirmed prices.
+3. Add verified Christmas Highland Cow products after the remaining standard range.
+4. Re-run duplicate ID/slug/SKU and image-path QA after each batch.
+5. Then continue homepage/shop photography/layout work.
+6. Update this handoff and `docs/WORK-CHECKLIST.md` after each milestone.
 
-Current limitation: repository QA is complete for the first batch, but the public custom domain could not be reached from the current web checker, so live-page verification remains pending.
+Current limitation: repository QA is complete, but the public custom domain remains unreachable from the current web checker, so live-page verification is still pending.
