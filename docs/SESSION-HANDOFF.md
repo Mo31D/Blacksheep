@@ -2,7 +2,7 @@
 
 Updated: 23 September 2026
 
-Latest verified QA milestone: `b497f948ee09b81a2746f03af6ea26b20d1f63e7`
+Latest verified implementation milestone: `7ff604b053242b90d23f67d2c655580ef7c91e57`
 
 This is the short handoff file for ChatGPT, Work/Sites, Codex, or any future session. Read this before making changes.
 
@@ -44,6 +44,72 @@ At the end:
 2. Replace the “Latest completed work” and “Exact next action” sections below.
 3. Record the final commit SHA.
 4. State any unresolved blockers explicitly.
+
+## CRITICAL LATEST HANDOFF — post-SEO/search rebuild, 23 September 2026
+
+**Work/Sites: fetch the newest GitHub `main` before doing anything. Do not restore an older Work-local copy over GitHub.**
+
+The repository was substantially upgraded today for Google/Search/AI readability while preserving the Black Sheep design and the current curated catalogue.
+
+### Search architecture now in production source
+- The canonical product architecture is now **108 static HTML product pages** under `products/<slug>.html`.
+- Do **not** restore `product.html?type=...&slug=...` as the indexable product architecture. That file is legacy-only, has `noindex,follow`, and redirects old visitors to the static URL.
+- Every static product page contains its customer-facing H1, description, primary image, verified product facts, canonical URL and JSON-LD directly in source HTML. Product indexing no longer depends on client-side rendering.
+- Product/collection links now point directly to `/products/<slug>.html`.
+- Active collection pages contain prerendered product cards/links in source HTML. Shared JS enhances filtering and My List but preserves prerendered catalogue content instead of rebuilding it.
+- Current catalogue remains **108 products total: 41 Gifts (29 Peter Rabbit + 12 Highland Cow), 12 Luxury Lakes Ice Cream, 55 Romney's/confectionery**.
+- Hawkshead Relish remains an informational in-store range page with no invented individual products.
+
+### Structured data / entity layer
+- Static product pages use a linked JSON-LD graph containing `Store`, `WebSite`, `WebPage`, `BreadcrumbList` and `Product`.
+- Product collection pages use `Store`, `WebSite`, `CollectionPage` and `ItemList`.
+- About uses `AboutPage`; Visit uses `ContactPage`.
+- The entity graph uses stable production URLs and the real Black Sheep shop/address/telephone/Facebook identity.
+- Do not add ecommerce `Offer`/checkout claims unless the site actually gains a genuine online purchase flow. Current availability language intentionally describes in-store stock truthfully.
+
+### Indexing / discovery
+- `sitemap.xml` now contains **125 URLs**: 17 active non-product pages + 108 static product URLs.
+- The sitemap currently contains **111 image entries** and **zero legacy query product URLs**.
+- `robots.txt` points to the production sitemap.
+- Active pages use self-referencing canonicals and `index,follow,max-image-preview:large`.
+- `404.html` is `noindex,follow`.
+- Retired empty routes remain `noindex` shells with canonical/redirect handling. Do not bring them back as thin pages.
+
+### Important live/mobile bug found and fixed
+Owner screenshots taken after the SEO changes showed raw text above the page such as:
+`property="og:image" content="https://theblacksheepshop.co.uk/images/1.png"`
+
+Cause: malformed Open Graph markup in compact HTML pages.
+
+This was audited across **all 17 active HTML pages and fixed everywhere**. Each active page now has:
+- exactly one valid absolute `og:image` meta tag,
+- one `og:image:alt`,
+- one `twitter:card=summary_large_image`,
+- no stray visible `og:image` fragment.
+
+Do not reproduce the previous regex/meta transformation that dropped the opening `<meta` tag.
+
+### Automated regression protection
+- `scripts/verify-search-readiness.mjs` verifies catalogue uniqueness, active-page canonicals/robots/entity graphs, valid social metadata, parseable JSON-LD, all static product pages, product/image file references, sitemap consistency, raw collection links, ItemList graphs, legacy redirects and the 404 policy.
+- `.github/workflows/search-readiness.yml` runs this verification on pushes to `main` and pull requests.
+- Preserve and extend these checks whenever changing catalogue/SEO architecture.
+
+### What Work should do next
+1. Fetch newest remote `main` and treat it as source of truth.
+2. Sync **the same existing Black Sheep Sites project** from this GitHub state; never create a duplicate Sites project.
+3. After deployment, perform live mobile + desktop visual QA, specifically confirming there is no metadata text above the top bar on Gifts, Peter Rabbit, Highland Cows, Ice Cream, About and Visit.
+4. Preserve the 108-product static URL architecture, prerendered collection HTML, schema graphs, sitemap and CI checks.
+5. Do not re-add removed placeholder products/categories or old nested Gifts navigation.
+6. If Search Console access for Black Sheep becomes available, verify sitemap ingestion, indexing/canonical selection and real search performance from GSC. Do not infer ranking from repository checks alone.
+7. Google Maps/360 imagery work and exact Sites synchronization remain separate follow-up tasks.
+
+### Current repository QA summary
+- Catalogue: 108 records; 0 duplicate IDs, slugs or non-empty SKUs in the current audit.
+- Sitemap: 125 URLs; 108 product URLs; 111 image entries; 0 legacy query product URLs.
+- All 17 active core pages: canonical present, index policy present, JSON-LD parses successfully.
+- All active pages: corrected social metadata; no malformed visible `og:image` fragment.
+- Representative Peter Rabbit, Highland Cow, Ice Cream and Romney's product pages: one H1, one canonical, valid JSON-LD graph including Product/BreadcrumbList, one og:image and one Twitter card.
+- GitHub `main` remains authoritative. Preserve newer commits and never force-push.
 
 ## Latest completed work
 
@@ -97,18 +163,18 @@ Do not publish the £26.99 HOME / LOVE / FAMILY price until its exact scope is c
 
 ## Exact next action
 
-Continue directly on `main`.
+Continue from the newest GitHub `main`.
 
 Priority:
-1. Preserve the intentionally reduced catalogue: 12 completed Highland Cow products and 29 exact Peter Rabbit products only.
-2. Do not re-add the 20 removed legacy Highland Cow records or 40 removed generic Peter Rabbit records unless the owner explicitly requests it.
-3. Keep LP75453 Loo-Time and LP75454 Soaking without prices until the owner confirms them.
-4. Treat the 29 exact Peter Rabbit shared-detail pages as complete and QA-passed.
-5. Run the same repository QA after each new batch.
-6. Later complete live desktop/mobile browser validation and synchronize the exact existing Black Sheep Sites project once it is identified.
-7. Update this handoff and `docs/WORK-CHECKLIST.md` after each milestone.
+1. Do not redesign/restart. Preserve the current Black Sheep visual system and reduced 108-product catalogue.
+2. Sync the exact existing Black Sheep Sites project from GitHub when its identity/URL is available; GitHub is newer and authoritative.
+3. Re-test the deployed domain on mobile and desktop after publish, especially the top of every page after the repaired Open Graph metadata.
+4. Preserve static `/products/<slug>.html` pages and prerendered collection HTML; do not revert to JS-only indexable content.
+5. Preserve Product/Breadcrumb/ItemList/Store/WebSite schema, sitemap, robots and the search-readiness CI workflow.
+6. Keep LP75453 Loo-Time and LP75454 Soaking without guessed prices until owner confirmation.
+7. Google Maps/360 imagery, Black Sheep Search Console analysis and external local-authority work remain follow-up items.
 
-Current QA status: no blocking repository issue found in the completed catalogue/detail scope.
+Current repository QA status: **no blocking repository issue found after the post-SEO audit and social-metadata repair.** Live deployment verification is still required after the hosting layer republishes the newest main.
 
 ## Navigation update — 23 September 2026
 
