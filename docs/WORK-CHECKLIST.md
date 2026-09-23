@@ -31,6 +31,7 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
   - [x] Prepared six clean 800×800 WebP files from the user-supplied originals for LP73651, LP73652, LP74354, LP74355, LP74358 and LP75455.
   - [x] Created repository upload folder `images/highland-cows/` with exact filename manifest.
   - [x] User uploaded all six prepared WebP binaries to `images/highland-cows/` on `main` in commit `432927584c2ff0ea1c34ab9e2e63211b535328c3`.
+- [x] Second six-product Highland Cow image batch uploaded to the same folder: LP76232, LP76228, LP75983, LP75453, LP75454 and LP75341.
 - [x] Add exact products / update overlapping entries, preserving old product URLs where practical.
   - [x] Added LP73651, LP73652, LP74354, LP74355 and LP74358 as exact catalogue entries.
   - [x] Upgraded existing HC-003 in place to LP75455 Highland Cow Trio, preserving its existing slug/URL.
@@ -56,6 +57,10 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 
 ## Phase 4 — checks, synchronization and handoff
 - [ ] Verify catalogue images, links, duplicate IDs/slugs and current prices.
+  - [x] Full repository QA audit completed for current gift catalogue: 173 gift records, 0 duplicate IDs, 0 duplicate slugs, 0 duplicate SKUs, 0 missing referenced gift images.
+  - [x] `assets/catalog.js` parses and `assets/site.js` compiles successfully.
+  - [x] Product-card → `product.html` routing and detail renderer wiring verified.
+  - [x] Detailed audit saved in `docs/QA-AUDIT-2026-09-23.md`.
   - [x] First six-product batch QA passed: all six referenced image paths exist; no duplicate IDs, slugs or SKUs; owner prices are present; Range and Dimensions render support is present.
 - [ ] Check desktop/mobile layouts and navigation/filter/product-detail behaviour.
 - [ ] Commit and push latest main; fetch and confirm.
@@ -63,4 +68,4 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 - [ ] Record final commit, Sites version, URL, remaining gaps and exact next action here.
 
 ## Current next action
-The Highland Cow 12-product detail pass and the 29 exact shared Peter Rabbit detail pages are complete on GitHub. Continue with the remaining exact Highland Cow products and then verified Christmas products. For Peter Rabbit, do not enrich the remaining 40 generic/in-store-only records until each is positively identified against a reliable product source. Keep internal pages selective: concise description plus only useful verified fields. Public live-site verification remains pending because the custom domain is not reachable from the current web checker. Sites synchronization remains blocked until the exact existing Black Sheep Sites project is identified; never create a duplicate.
+QA confirms the completed scope is internally consistent: the 12 exact Highland Cow detail pages and 29 exact shared Peter Rabbit detail pages have valid images/routes and no duplicate IDs/slugs/SKUs. Continue with the remaining verified Highland Cow products, then the Christmas range. Keep Loo-Time and Soaking prices unpublished until owner-confirmed. For Peter Rabbit, do not enrich the remaining 40 generic/in-store-only records until each is positively identified. Live-browser desktop/mobile validation and Sites synchronization remain open because the live custom domain/Sites project is not currently available to this session.
