@@ -47,6 +47,11 @@ At the end:
 
 ## Latest completed work
 
+- First exact Highland Cow image/product batch prepared: LP73651, LP73652, LP74354, LP74355, LP74358 and LP75455.
+- Six user-supplied 800×800 product photos were converted to WebP with stable descriptive filenames and packaged for upload.
+- Repository folder `images/highland-cows/` now exists with an exact filename manifest.
+- Catalogue/product pages are prepared on `main`: five new exact entries were added and existing HC-003 was upgraded in place to LP75455 Highland Cow Trio.
+- Product detail rendering now shows optional Range and Dimensions fields.
 - Latest Peter Rabbit and full Romney’s catalogue work was preserved from earlier GitHub updates.
 - Owner evidence from `Blacksheep.zip` was extracted and recorded.
 - The 19 supplied Highland Cow product screenshots were audited: 18 distinct products plus one duplicate.
@@ -77,12 +82,17 @@ Do not publish the £26.99 HOME / LOVE / FAMILY price until its exact scope is c
 Continue directly on `main`.
 
 Priority:
-1. Acquire clean genuine Highland Cow product images from official/supplier sources.
-2. Use stable descriptive WebP filenames rather than opaque numeric placeholders where practical.
-3. Update the relevant `assets/catalog.js` Highland Cow entries with exact product names, SKUs, clean images and only owner-confirmed prices.
-4. Add the verified Christmas items.
-5. Validate Highland Cow category/search/product-detail behaviour on desktop and mobile.
-6. Then continue homepage/shop photography/layout work, including genuine shop/Google 360 imagery where permitted and useful.
-7. Update this handoff after each milestone.
+1. Upload the prepared six WebP files to `images/highland-cows/` using the exact filenames in that folder's README:
+   - `highland-cow-flowers-lp73651.webp`
+   - `highland-cow-pink-bow-lp73652.webp`
+   - `highland-cow-scarf-tartan-lp74354.webp`
+   - `highland-cows-tartan-lp74355.webp`
+   - `highland-cows-reds-lp74358.webp`
+   - `highland-cow-trio-lp75455.webp`
+2. Verify the six live product cards/detail pages after upload.
+3. Continue the next exact Highland Cow product-image batch and then verified Christmas items.
+4. Validate Highland Cow category/search/product-detail behaviour on desktop and mobile.
+5. Then continue homepage/shop photography/layout work, including genuine shop/Google 360 imagery where permitted and useful.
+6. Update this handoff after each milestone.
 
 If ChatGPT cannot directly retrieve a suitable image binary, ask the user to download/upload it manually using exact link + filename + target path instructions rather than blocking the entire task.
