@@ -1,7 +1,7 @@
 # Black Sheep — resumable work checklist
 
 Updated 2026-09-23. Repository: https://github.com/Mo31D/Blacksheep — branch main.
-Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is authoritative.
+GitHub `main` is authoritative. Latest verified search/QA implementation milestone: `7ff604b053242b90d23f67d2c655580ef7c91e57` (documentation commits may be newer).
 
 ## Resume rules
 1. Read this file, docs/OWNER-REQUESTS.md, docs/HIGHLAND-COW-SOURCE-MAP.md and docs/SESSION-HANDOFF.md before editing.
@@ -56,7 +56,7 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 - [ ] Preserve shop identity: black/gold frame, colourful real merchandise, in-store catalogue.
 
 ## Phase 4 — checks, synchronization and handoff
-- [ ] Verify catalogue images, links, duplicate IDs/slugs and current prices.
+- [x] Verify current catalogue structure, links, duplicate IDs/slugs/SKUs and search architecture.
   - [x] Full repository QA audit completed for current gift catalogue: 173 gift records, 0 duplicate IDs, 0 duplicate slugs, 0 duplicate SKUs, 0 missing referenced gift images.
   - [x] `assets/catalog.js` parses and `assets/site.js` compiles successfully.
   - [x] Product-card → `product.html` routing and detail renderer wiring verified.
@@ -65,12 +65,23 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 - [x] Static deep-audit of desktop/mobile navigation, filters, product-detail routing, catalogue references and accessibility-critical interactions completed.
   - [x] Found and fixed product detail runtime routing bug in `product.html`: `renderDetail` was referenced before `assets/site.js` loaded, causing an empty product page.
   - [x] Post-fix static runtime-order QA passed for all 41 completed detail records (12 Highland Cow + 29 Peter Rabbit), including primary/gallery image paths.
-- [ ] Commit and push latest main; fetch and confirm.
+- [x] Commit/push current GitHub `main` milestones and re-fetch the resulting source for verification.
 - [ ] Push same source to resolved Sites project, save version, publish and confirm status.
 - [ ] Record final commit, Sites version, URL, remaining gaps and exact next action here.
 
 ## Current next action
-Product-page runtime routing is now fixed. The 12 exact Highland Cow detail pages and 29 exact shared Peter Rabbit detail pages have valid data, routes and images with no duplicate IDs/slugs/SKUs. Catalogue scope is now intentionally reduced: keep only the 12 completed Highland Cow products and the 29 exact Peter Rabbit products matched to Lakeside Picnic. The previous 20 legacy Highland Cow records and 40 generic Peter Rabbit records were removed by owner instruction and must not be re-added unless explicitly requested. Keep Loo-Time and Soaking prices unpublished until owner-confirmed. Live-browser desktop/mobile validation and Sites synchronization remain open because the live custom domain/Sites project is not currently available to this session.
+
+GitHub `main` is the current source of truth after the 23 September search/SEO architecture rebuild and metadata repair.
+
+1. Work/Sites must fetch newest `main` before editing and must not restore its older JS-only product architecture.
+2. Sync the **same existing Black Sheep Sites project** from GitHub when its identity/URL is available; do not create a duplicate.
+3. After publish, perform live mobile + desktop QA. Specifically verify that the raw `og:image` text previously visible above the top bar is gone on all pages.
+4. Preserve 108 static `/products/<slug>.html` product pages, prerendered collection product links, canonical URLs, JSON-LD graphs, sitemap and the search-readiness CI workflow.
+5. Keep the intentionally reduced product scope: 29 Peter Rabbit + 12 Highland Cow + 12 Ice Cream + 55 Romney's. Do not re-add placeholders.
+6. Keep Loo-Time and Soaking prices unpublished until owner-confirmed.
+7. Remaining external work: exact Sites synchronization, live deployment QA, Google Maps/360 imagery review, and Black Sheep Search Console analysis when access is available.
+
+Repository QA currently has no known blocking issue. Hosting/deployment state still needs confirmation after the newest `main` is published.
 
 ## Navigation decision — completed
 
@@ -99,3 +110,26 @@ Product-page runtime routing is now fixed. The 12 exact Highland Cow detail page
 - [x] Add production sitemap + robots sitemap entry.
 - [ ] Optional later cleanup: delete unused historical placeholder PNGs / recovery bundles after confirming they are no longer wanted for archival purposes.
 - [ ] Live visual/browser QA on the deployed domain remains advisable after GitHub Pages has published the latest commits.
+
+## Search engineering rebuild — completed
+
+- [x] Create canonical static HTML product pages for all 108 retained catalogue records under `products/<slug>.html`.
+- [x] Change catalogue/card links to the static product URLs.
+- [x] Prerender product cards/links into source HTML for Gifts, category pages, Ice Cream, Romney's and Full range.
+- [x] Keep JavaScript as enhancement for search/filtering/My List instead of requiring JS to discover/index core product content.
+- [x] Retire `product.html?type=...&slug=...` as an indexable route; legacy route is `noindex,follow` and forwards to static products.
+- [x] Add linked Store/WebSite/WebPage/Product/Breadcrumb JSON-LD to static product pages.
+- [x] Add CollectionPage + ItemList JSON-LD to product collections.
+- [x] Build production sitemap with 125 URLs: 17 active pages + 108 products, plus 111 product image entries.
+- [x] Confirm sitemap contains zero legacy query product URLs.
+- [x] Keep `robots.txt` pointed to the production sitemap and 404 page `noindex,follow`.
+- [x] Add `scripts/verify-search-readiness.mjs` and GitHub Actions search-readiness workflow.
+- [x] Harden CI to detect catalogue duplicates, missing static products/images, invalid JSON-LD, bad canonicals/robots, malformed social metadata, missing ItemList graphs, sitemap drift and unsafe legacy routes.
+
+## Social metadata regression — fixed
+
+- [x] Owner mobile screenshots exposed raw `property="og:image" ...` text above the site after an earlier metadata transformation.
+- [x] Audited all 17 active core pages, not just the three shown in screenshots.
+- [x] Repaired every active page to exactly one valid absolute `og:image`, one `og:image:alt` and one `twitter:card` tag.
+- [x] Re-audited all 17 active heads: zero malformed visible og:image fragments remain in repository source.
+- [x] Added regression detection to the search-readiness verifier so this class of error is caught automatically in future.
