@@ -28,8 +28,13 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
   - [x] Resolved the two Tartan Bow visuals: bow-on-head LP73654; bow-tie variant LP75979.
   - [x] Matched all owner Christmas screenshots to stock codes; details and owner prices are recorded in docs/HIGHLAND-COW-SOURCE-MAP.md.
 - [ ] Save clean genuine product photos and source mapping.
-- [ ] Add exact products / update overlapping entries, preserving old product URLs where practical.
-- [ ] Apply owner prices only where clearly mapped; flag ambiguous prices privately.
+  - [x] Prepared six clean 800×800 WebP files from the user-supplied originals for LP73651, LP73652, LP74354, LP74355, LP74358 and LP75455.
+  - [x] Created repository upload folder `images/highland-cows/` with exact filename manifest.
+  - [ ] Upload the six prepared WebP binaries into `images/highland-cows/` (manual user upload is acceptable).
+- [x] Add exact products / update overlapping entries, preserving old product URLs where practical.
+  - [x] Added LP73651, LP73652, LP74354, LP74355 and LP74358 as exact catalogue entries.
+  - [x] Upgraded existing HC-003 in place to LP75455 Highland Cow Trio, preserving its existing slug/URL.
+- [x] Apply owner prices only where clearly mapped; flag ambiguous prices privately for this six-product batch (£9.50 singles, £13.99 pairs, £14.95 trio).
 - [ ] Add verified Christmas products.
 
 ## Phase 3 — shop photography and layout
@@ -47,4 +52,4 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 - [ ] Record final commit, Sites version, URL, remaining gaps and exact next action here.
 
 ## Current next action
-Proceed directly from current GitHub `main`; do not wait for the old Work-local state. Finish Phase 2 first: acquire/prepare clean Highland Cow product images, update exact catalogue entries and owner-confirmed prices, then validate the Highland Cow and Christmas sections. After that continue to homepage/shop photography/layout. Use docs/SESSION-HANDOFF.md as the concise cross-session handoff. Sites synchronization remains blocked until the exact existing Black Sheep Sites project is identified; never create a duplicate.
+Upload the six prepared WebP binaries into `images/highland-cows/` using the exact filenames listed in that folder's README. The six product pages/catalogue records are already prepared on `main`, including SKU, brand, price, dimensions, material, range and descriptions. After the files are uploaded, verify all six product images/pages on the live Highland Cows collection, then continue with the next verified Highland Cow batch and Christmas products. Sites synchronization remains blocked until the exact existing Black Sheep Sites project is identified; never create a duplicate.
