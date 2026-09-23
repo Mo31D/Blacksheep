@@ -36,6 +36,7 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
   - [x] Upgraded existing HC-003 in place to LP75455 Highland Cow Trio, preserving its existing slug/URL.
 - [x] Apply owner prices only where clearly mapped; flag ambiguous prices privately for this six-product batch (£9.50 singles, £13.99 pairs, £14.95 trio).
 - [ ] Add verified Christmas products.
+- [x] Completed customer-facing detail data for the first 12 exact Highland Cow products: concise descriptions, brand, product code, range, dimensions where verified, material, owner-confirmed prices, and availability handling.
 
 ## Phase 3 — shop photography and layout
 - [ ] Open Google Maps in browser and inspect 360° photos.
@@ -53,4 +54,4 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 - [ ] Record final commit, Sites version, URL, remaining gaps and exact next action here.
 
 ## Current next action
-The first six Highland Cow image/product records are complete on GitHub and passed repository QA. Continue with the next verified Highland Cow batch, prioritising owner-supplied products with confirmed £9.50/£11/£13.99/£15.99 pricing, then add the verified Christmas range. Public-domain/live-site verification is still pending because the custom domain could not be reached from the current web checker; repository paths and catalogue references are confirmed correct. Sites synchronization remains blocked until the exact existing Black Sheep Sites project is identified; never create a duplicate.
+The first 12 exact Highland Cow products now have complete internal product-detail data and valid image paths on GitHub. Continue with the next verified Highland Cow products, then the Christmas range. Keep detail pages selective: short product description plus Brand, Price when owner-confirmed, Product code, Range, Dimensions when verified, Material and Availability. Do not add filler or duplicate Collection/Range information. Public live-site verification remains pending because the custom domain is not reachable from the current web checker. Sites synchronization remains blocked until the exact existing Black Sheep Sites project is identified; never create a duplicate.
