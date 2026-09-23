@@ -4,11 +4,14 @@ Updated 2026-09-23. Repository: https://github.com/Mo31D/Blacksheep — branch m
 Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is authoritative.
 
 ## Resume rules
-1. Read this file and docs/OWNER-REQUESTS.md. Fetch origin/main before edits.
-2. Preserve every new remote commit; never force push. Inspect working tree first.
-3. Complete one phase, validate, commit and push; update this checklist.
-4. Synchronize the SAME Sites project after each published code milestone. Do not invent a Sites ID or create a duplicate.
-5. The uploaded source evidence is Blacksheep.zip, Library ID libfile_aea3ba2b6374819189c3a1ca92c93517. Contains 10 owner-message screenshots + 19 product screenshots (one duplicate).
+1. Read this file, docs/OWNER-REQUESTS.md, docs/HIGHLAND-COW-SOURCE-MAP.md and docs/SESSION-HANDOFF.md before editing.
+2. GitHub `main` is now the primary working source. The user is continuing the project directly and does not depend on recovering the old Work-local tree.
+3. Fetch current `main` before edits. Preserve newer commits; never force-push.
+4. Complete work in small verifiable milestones, commit/push each milestone, then update this checklist and docs/SESSION-HANDOFF.md.
+5. Work/Sites is optional and may rejoin later. When it does, it must read the checklist/handoff first and sync from current GitHub rather than assuming its old local state is authoritative.
+6. The user can assist with manual asset acquisition when useful: provide exact source link, exact filename, target repository folder and any conversion/cropping requirement.
+7. Synchronize the SAME Sites project when its identity becomes available. Do not invent a Sites ID or create a duplicate.
+8. The uploaded source evidence is Blacksheep.zip, Library ID libfile_aea3ba2b6374819189c3a1ca92c93517. Contains 10 owner-message screenshots + 19 product screenshots (one duplicate).
 
 ## Phase 1 — restore and compare
 - [x] Fetch current GitHub main and inspect recent commits.
@@ -44,4 +47,4 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 - [ ] Record final commit, Sites version, URL, remaining gaps and exact next action here.
 
 ## Current next action
-Continue Phase 2 from docs/HIGHLAND-COW-SOURCE-MAP.md: save clean official product images with a source/SKU manifest. Before editing assets/catalog.js, homepage or CSS, reconcile the previous Work session because those files may contain uncommitted local changes. Do not overwrite homepage/CSS or catalogue work that may still exist uncommitted in the previous Work session. Sites synchronization remains blocked until the exact existing Black Sheep Sites project is identified. Never create a duplicate or mark synchronization complete without a verified project/version.
+Proceed directly from current GitHub `main`; do not wait for the old Work-local state. Finish Phase 2 first: acquire/prepare clean Highland Cow product images, update exact catalogue entries and owner-confirmed prices, then validate the Highland Cow and Christmas sections. After that continue to homepage/shop photography/layout. Use docs/SESSION-HANDOFF.md as the concise cross-session handoff. Sites synchronization remains blocked until the exact existing Black Sheep Sites project is identified; never create a duplicate.
