@@ -23,7 +23,7 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
   - [x] Verified all 18 distinct supplied product screenshots to exact official stock codes; identified the duplicated Highland Cows Reds attachment.
   - [x] Resolved the red/white Scarf & Hat as LP74353.
   - [x] Resolved the two Tartan Bow visuals: bow-on-head LP73654; bow-tie variant LP75979.
-  - [ ] Match owner Christmas screenshots to exact current official stock codes before publication.
+  - [x] Matched all owner Christmas screenshots to stock codes; details and owner prices are recorded in docs/HIGHLAND-COW-SOURCE-MAP.md.
 - [ ] Save clean genuine product photos and source mapping.
 - [ ] Add exact products / update overlapping entries, preserving old product URLs where practical.
 - [ ] Apply owner prices only where clearly mapped; flag ambiguous prices privately.
@@ -44,4 +44,4 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 - [ ] Record final commit, Sites version, URL, remaining gaps and exact next action here.
 
 ## Current next action
-Continue Phase 2 from docs/HIGHLAND-COW-SOURCE-MAP.md: match the Christmas owner screenshots to exact official stock codes, then save clean official product images. Do not overwrite homepage/CSS or catalogue work that may still exist uncommitted in the previous Work session. Sites synchronization remains blocked until the exact existing Black Sheep Sites project is identified. Never create a duplicate or mark synchronization complete without a verified project/version.
+Continue Phase 2 from docs/HIGHLAND-COW-SOURCE-MAP.md: save clean official product images with a source/SKU manifest. Before editing assets/catalog.js, homepage or CSS, reconcile the previous Work session because those files may contain uncommitted local changes. Do not overwrite homepage/CSS or catalogue work that may still exist uncommitted in the previous Work session. Sites synchronization remains blocked until the exact existing Black Sheep Sites project is identified. Never create a duplicate or mark synchronization complete without a verified project/version.
