@@ -71,3 +71,9 @@ Starting GitHub revision: c09e625 (latest fetched at task start). GitHub is auth
 
 ## Current next action
 Product-page runtime routing is now fixed. The 12 exact Highland Cow detail pages and 29 exact shared Peter Rabbit detail pages have valid data, routes and images with no duplicate IDs/slugs/SKUs. Catalogue scope is now intentionally reduced: keep only the 12 completed Highland Cow products and the 29 exact Peter Rabbit products matched to Lakeside Picnic. The previous 20 legacy Highland Cow records and 40 generic Peter Rabbit records were removed by owner instruction and must not be re-added unless explicitly requested. Keep Loo-Time and Soaking prices unpublished until owner-confirmed. Live-browser desktop/mobile validation and Sites synchronization remain open because the live custom domain/Sites project is not currently available to this session.
+
+## Navigation decision — completed
+
+- [x] Remove the crowded nested Gifts & Souvenirs menu from desktop and mobile navigation.
+- [x] Keep Gifts & Souvenirs as a direct link to `gifts.html`.
+- [x] Move category choice into the Gifts page with search, collection selector and quick filters, while preserving the Black Sheep design language.
