@@ -77,3 +77,11 @@ Product-page runtime routing is now fixed. The 12 exact Highland Cow detail page
 - [x] Remove the crowded nested Gifts & Souvenirs menu from desktop and mobile navigation.
 - [x] Keep Gifts & Souvenirs as a direct link to `gifts.html`.
 - [x] Move category choice into the Gifts page with search, collection selector and quick filters, while preserving the Black Sheep design language.
+
+## Product cleanup — completed
+
+- [x] Remove every unmodified/placeholder product record.
+- [x] Keep only products with real images and proper descriptions from completed work.
+- [x] Final retained catalogue: 41 Gifts, 12 Ice Cream, 55 Romney's; Hawkshead and Lakeland Fragrances currently have no product records.
+- [x] Remove empty gift categories from the current Gifts-page selector/navigation.
+- [x] QA: all 108 retained records have valid real images and descriptions; no duplicate IDs/slugs/SKUs.
