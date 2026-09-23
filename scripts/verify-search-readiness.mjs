@@ -75,7 +75,7 @@ for(const {item} of rows){
   if((h.match(/<meta\b[^>]*name=["']twitter:card["'][^>]*>/gi)||[]).length!==1) fail.push('Product must have exactly one twitter:card meta tag: '+p);
   if(item.official){
     if(!h.includes(item.official.url)) fail.push('Official source missing from static product page: '+p);
-    if(!h.includes(item.official.name.replace(/&/g,'&amp;'))&&!h.includes(item.official.name)) fail.push('Official product name missing from static product page: '+p);
+    if(!h.includes(esc(item.official.name))&&!h.includes(item.official.name)) fail.push('Official product name missing from static product page: '+p);
     let parsed=null;
     try{parsed=JSON.parse([...h.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)][0]?.[1]||'null')}catch{}
     const productNode=parsed?.['@graph']?.find(x=>x['@type']==='Product');
