@@ -64,3 +64,7 @@ node scripts/build-icecream.mjs --check
 ```
 
 The builder updates the 12 static flavour pages from `scripts/templates/icecream-product.html`, ice-cream cards in both collections, their ItemLists, sitemap image entries, and the retired Pistachio route. CI rejects drift. It does not regenerate or overwrite unrelated gift/confectionery product pages. To change the flavour-page layout, edit the template/builder, not its generated output. Changing the number of flavours requires deliberately updating the builder's 12-card guard and reviewing shop stock.
+
+### Verified Romney's / confectionery sources
+
+35 exact Romney's-section products now carry verified official product-page provenance in `assets/catalog.js`. See `docs/ROMNEYS-SOURCE-MAP.md`. Static product pages expose the official product name/source and Product JSON-LD links the entity to the manufacturer URL. The other 20 records remain intentionally unmatched until an exact current official page is verified. Black Sheep prices remain authoritative for the shop.
