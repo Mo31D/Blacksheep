@@ -223,3 +223,15 @@ Current repository QA status: **no blocking repository issue found after the pos
 ## Latest continuation: official Lakes rebuild — 2026-09-23
 
 Read `docs/WORK-REPORT-ICE-CREAM-2026-09-23.md` first for the current checkpoint and unresolved work, and `docs/LAKES-ICE-CREAM-SOURCE-MAP.md` for all manufacturer/image provenance. GitHub main remains authoritative. The rebuilt range has Plum & Damson instead of Pistachio, 12 exact official photos, verified factual details, static pages and deterministic reconciliation. Run `node scripts/build-icecream.mjs --check` as well as the existing search-readiness verifier. No duplicate Sites project was created; Black Sheep was not returned by owner/editor discovery. Older dirty Work edits must not be restored over main.
+
+## Romney's official-source enrichment — 23 September 2026
+
+- 35 exact products in the 55-item Romney's/confectionery catalogue now have verified official manufacturer product-page mappings in `assets/catalog.js`.
+- Source/provenance map: `docs/ROMNEYS-SOURCE-MAP.md`.
+- Work report: `docs/WORK-REPORT-ROMNEYS-OFFICIAL-SOURCES-2026-09-23.md`.
+- All 35 corresponding static product pages visibly show the official product name and a direct official manufacturer link.
+- Their Product JSON-LD now uses `sameAs` for the official product URL and identifies the manufacturer; verified official SKUs were added where directly confirmed.
+- Black Sheep prices were preserved and were not replaced by manufacturer web prices.
+- The remaining 20 Romney's-section records are intentionally unmatched. Do not link them to merely similar/current products without exact verification.
+- ROM-054 Dreamy Creamy Toffee and ROM-055 Lovely Liquorice are Walker's Nonsuch products; their brand was corrected in catalogue data, product pages, Romney's cards, Full Range cards and Product schema.
+- `scripts/verify-search-readiness.mjs` now protects the 35 verified source mappings from drift.
