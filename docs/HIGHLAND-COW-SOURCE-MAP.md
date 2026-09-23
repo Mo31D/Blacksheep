@@ -20,8 +20,8 @@ The sequence below follows the attachment filenames in lexical order after extra
 | 1 | att.-ZMznKDRZI5E6JPwh3BVPm9MbXF39iPFMWKORT0lEVk.JPG | Highland Cow Flowers | LP73651 | Owner grouped standard single cows at £9.50 | Verified identity |
 | 2 | att.7I5yTEMA86qaO_HeX2MfJfOD0-ra47ZQfLXy8TX-UbA.JPG | Highland Cow Scarf Tartan | LP74354 | Standard-single £9.50 group | Verified identity |
 | 3 | att.AqUcru0G9JJvjArAq5fnqHrdixZ_8_tbOWwjyzq4swM.JPG | Highland Cow Soaking | LP75454 | Do not inherit £9.50 automatically; size/variant scope needs confirmation | Verified identity; price hold |
-| 4 | att.DQMOO83hbR2_DT2nR0l-NzhZMko3B3Go-Dggl3cjqnw.JPG | Highland Cow Scarf & Hat — red/white variant | LP74351 / LP74352 / LP74353 | Standard-single £9.50 group | Exact colour-to-SKU still to resolve |
-| 5 | att.FGg7Qj_km248hxKVaPPUdcDCmL4xIvJpkYjEqA-hBD0.JPG | Highland Cow Tartan Bow — variant A | LP73654 / LP75979 | Standard-single £9.50 group | Two official products share this title; exact visual-to-SKU mapping still to resolve |
+| 4 | att.DQMOO83hbR2_DT2nR0l-NzhZMko3B3Go-Dggl3cjqnw.JPG | Highland Cow Scarf & Hat — red/white variant | LP74353 | Standard-single £9.50 group | Verified: LP74351 is blue/white; LP74352 is green/white; LP74353 is red/white |
+| 5 | att.FGg7Qj_km248hxKVaPPUdcDCmL4xIvJpkYjEqA-hBD0.JPG | Highland Cow Tartan Bow — bow on head | LP73654 | Standard-single £9.50 group | Verified against supplier/retailer product imagery and dimensions |
 | 6 | att.Rg5zKp8SPvNUvmJy9s2C6XQmHOUPRWDLnWs340Y45nI.JPG | Highland Cow Loo-Time | LP75453 | Do not inherit £9.50 automatically; size/variant scope needs confirmation | Verified identity; price hold |
 | 7 | att.T09OrzV0_wYCjD8m88lIKzJbLEBA_HAhzivzUGyecPk.JPG | Highland Cow Hand Bag | LP73653 | Standard-single £9.50 group | Verified identity |
 | 8 | att.bCiLMkRS5dMEmHi2u83KdjgTkPZlnH8cKWweDyHMTRU.JPG | Highland Cow Hairdo | LP75983 | Standard-single £9.50 group | Verified identity |
@@ -35,7 +35,7 @@ The sequence below follows the attachment filenames in lexical order after extra
 | 16 | att.rc69PlxQ482TH5LtwMlC-IJQ83Ie5v8RVz-yPW5yI4U.JPG | Highland Cow Piper | LP75452 | Standard-single £9.50 group | Verified identity |
 | 17 | att.rjWPhV0aY8amj98pQODvBTUO8W6_wD9WHjF6BR30E5E.JPG | Highland Cow Happy Hour | LP76229 | Standard-single £9.50 group | Verified identity |
 | 18 | att.tu-at2lfp-pwCC8-X9HN8g7Dd6ipmo-vEBezj2mOtIE.JPG | Highland Cow Pink Bow | LP73652 | Standard-single £9.50 group | Verified identity |
-| 19 | att.vQVwLvRlSugK8qm8xmTskdoPWYhGdq7kyTtxjsqxavo.JPG | Highland Cow Tartan Bow — variant B | LP73654 / LP75979 | Standard-single £9.50 group | Two official products share this title; exact visual-to-SKU mapping still to resolve |
+| 19 | att.vQVwLvRlSugK8qm8xmTskdoPWYhGdq7kyTtxjsqxavo.JPG | Highland Cow Tartan Bow — bow-tie variant | LP75979 | Standard-single £9.50 group | Verified against current supplier listings; this later line is described as a tartan bow-tie ornament |
 
 ## Additional owner-confirmed products
 
