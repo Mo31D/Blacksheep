@@ -114,7 +114,7 @@ Current QA status: no blocking repository issue found in the completed catalogue
 
 - Gifts & Souvenirs is now a direct top-level navigation link on desktop and mobile.
 - The previous desktop dropdown and mobile nested gift submenu are intentionally disabled/removed at runtime.
-- Gift-category navigation now lives inside `gifts.html`: search, a 14-option collection selector and compact quick filters.
+- Gift-category navigation now lives inside `gifts.html`: search, a 10-option selector (All + 9 current collections) and compact quick filters.
 - Preserve the Black Sheep visual system; do not restore the old crowded nested menu unless the owner explicitly requests it.
 
 ## Catalogue cleanup — 23 September 2026
@@ -137,9 +137,19 @@ Current QA status: no blocking repository issue found in the completed catalogue
 
 - Added a lightweight persistent "My list" feature inspired by Lakeside Picnic.
 - My list is a pre-visit planning list only: no checkout, payment or online ordering.
-- A compact My list button with item count is injected into the shared header on every page.
+- A compact My list button with item count is injected into the shared header on every active page.
 - Product cards and product detail pages now support Add to My list.
 - The list is stored locally in the browser, supports quantity changes/removal/clear, and opens in a Black Sheep-styled side drawer.
-- Added a "Full range" link to desktop and mobile navigation via shared JS, pointing to the existing `all-products.html`.
+- Added a "Full range" link directly to desktop and mobile source navigation, with shared JS retaining a defensive no-duplicate fallback.
 - Updated Full range to the current curated catalogue only: 108 products total (41 gifts, 12 ice cream, 55 Romney's); removed stale Hawkshead/Fragrances filters and copy.
 - Preserve this as a lightweight pre-visit feature; do not turn it into checkout unless the owner explicitly asks.
+
+## Deep technical audit — 23 September 2026
+
+- Audited every runtime HTML page, the full catalogue, shared JS/CSS, local links/assets, robots/sitemap and current project documentation.
+- Active HTML has no broken local href/src references, duplicate IDs found in the audit, obsolete nested Gifts markup, or links to retired empty gift pages.
+- Retired empty routes redirect with noindex; current category copy was aligned to actual retained products.
+- Fixed decorative-chip filter collision, stale My list entries, product metadata/canonical updates and mobile-menu aria-expanded state.
+- Replaced large collection-card/category-hero PNG usage with existing real product WebPs where practical.
+- Added production sitemap and robots declaration.
+- Known remaining non-blocking debt: many unused historical numbered PNG placeholder files and restore/b64 artifacts still exist in the repository; they are not referenced by the active catalogue.
