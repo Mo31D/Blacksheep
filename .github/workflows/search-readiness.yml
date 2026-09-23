@@ -12,3 +12,4 @@ jobs:
         with:
           node-version: '20'
       - run: node scripts/verify-search-readiness.mjs
+      - run: node scripts/build-icecream.mjs --check

@@ -50,3 +50,17 @@ GitHub `main` is the source of truth. Preserve newer commits; do not restore the
 - Product and collection links must point to the static product URL, never back to the legacy query-string route.
 - Do not add online-purchase Offer markup unless the site actually supports that purchase flow; current product pages describe in-store availability truthfully.
 - Preserve the Store → WebSite → WebPage/CollectionPage/Product entity graph and self-referencing canonicals.
+
+### Updating the verified Lakes Ice Cream range
+
+`assets/catalog.js` is the data source. The `official` object on each ice-cream record preserves the manufacturer URL, exact image provenance, verification date, ingredients, allergens, dietary statements, awards and nutrition (per **100 ml**). See `docs/LAKES-ICE-CREAM-SOURCE-MAP.md`.
+
+After changing an ice-cream record, run:
+
+```sh
+node scripts/build-icecream.mjs
+node scripts/verify-search-readiness.mjs
+node scripts/build-icecream.mjs --check
+```
+
+The builder updates the 12 static flavour pages from `scripts/templates/icecream-product.html`, ice-cream cards in both collections, their ItemLists, sitemap image entries, and the retired Pistachio route. CI rejects drift. It does not regenerate or overwrite unrelated gift/confectionery product pages. To change the flavour-page layout, edit the template/builder, not its generated output. Changing the number of flavours requires deliberately updating the builder's 12-card guard and reviewing shop stock.

@@ -40,3 +40,6 @@ section{padding:78px 0}.section-head{display:flex;justify-content:space-between;
 .breadcrumbs span[aria-current="page"]{color:var(--muted)}
 :where(a,button,input,select):focus-visible{outline:3px solid var(--gold2);outline-offset:3px}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Manufacturer detail panels retain the existing shop typography and palette. */
+.icecream-information{padding-top:16px;padding-bottom:48px;max-width:1000px}.icecream-information details{border-bottom:1px solid #d9d2c7;padding:18px 0}.icecream-information summary{cursor:pointer;font-weight:700;padding:4px 0}.icecream-information p{line-height:1.7}.icecream-information table{width:100%;max-width:620px;border-collapse:collapse;margin:18px 0}.icecream-information caption{text-align:left;margin-bottom:12px}.icecream-information th,.icecream-information td{text-align:left;padding:9px 12px;border-bottom:1px solid #e4ded4}.icecream-information .small{font-size:.9rem}.product-static .detail-media img{height:auto;object-fit:contain}

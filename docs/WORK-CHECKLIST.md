@@ -133,3 +133,19 @@ Repository QA currently has no known blocking issue. Hosting/deployment state st
 - [x] Repaired every active page to exactly one valid absolute `og:image`, one `og:image:alt` and one `twitter:card` tag.
 - [x] Re-audited all 17 active heads: zero malformed visible og:image fragments remain in repository source.
 - [x] Added regression detection to the search-readiness verifier so this class of error is caught automatically in future.
+
+## 2026-09-23 — official Lakes rebuild checkpoint
+
+- [x] Fetch latest main; starting SHA `b6c99de01e37e91a876852dcab062ec1ac33d9eb`; isolated clean worktree used.
+- [x] Read current handoff, owner requests, source map, README, verifier and CI; preserve static SEO architecture.
+- [x] Baseline search-readiness and HTML/link/schema checks.
+- [x] Fix nested-product My List image and navigation URLs.
+- [x] Open all 12 official manufacturer flavour pages and retain verified facts/provenance.
+- [x] Replace Pistachio with Plum & Damson; safely retire old static route.
+- [x] Replace 12 flavour photos with optimised exact official WebP images.
+- [x] Enrich static pages; retain ingredients/nutrition/dietary/award facts and safety warnings.
+- [x] Add deterministic builder and CI drift check; reconcile collections/schema/sitemap.
+- [x] Local verification: 108 products / 125 sitemap URLs; 136 HTML files without audit errors; DOM interaction checks passed.
+- [ ] Push validated source and check live deployment (see dated work report for latest status).
+- [ ] Sync existing Sites project: owner/editor discovery did not return Black Sheep; do not create another project.
+- [ ] Complete mobile and desktop visual review after deployment.

@@ -219,3 +219,7 @@ Current repository QA status: **no blocking repository issue found after the pos
 - Replaced large collection-card/category-hero PNG usage with existing real product WebPs where practical.
 - Added production sitemap and robots declaration.
 - Known remaining non-blocking debt: many unused historical numbered PNG placeholder files and restore/b64 artifacts still exist in the repository; they are not referenced by the active catalogue.
+
+## Latest continuation: official Lakes rebuild — 2026-09-23
+
+Read `docs/WORK-REPORT-ICE-CREAM-2026-09-23.md` first for the current checkpoint and unresolved work, and `docs/LAKES-ICE-CREAM-SOURCE-MAP.md` for all manufacturer/image provenance. GitHub main remains authoritative. The rebuilt range has Plum & Damson instead of Pistachio, 12 exact official photos, verified factual details, static pages and deterministic reconciliation. Run `node scripts/build-icecream.mjs --check` as well as the existing search-readiness verifier. No duplicate Sites project was created; Black Sheep was not returned by owner/editor discovery. Older dirty Work edits must not be restored over main.
