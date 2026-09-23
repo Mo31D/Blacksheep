@@ -109,3 +109,10 @@ Priority:
 7. Update this handoff and `docs/WORK-CHECKLIST.md` after each milestone.
 
 Current QA status: no blocking repository issue found in the completed catalogue/detail scope.
+
+## Navigation update — 23 September 2026
+
+- Gifts & Souvenirs is now a direct top-level navigation link on desktop and mobile.
+- The previous desktop dropdown and mobile nested gift submenu are intentionally disabled/removed at runtime.
+- Gift-category navigation now lives inside `gifts.html`: search, a 14-option collection selector and compact quick filters.
+- Preserve the Black Sheep visual system; do not restore the old crowded nested menu unless the owner explicitly requests it.
