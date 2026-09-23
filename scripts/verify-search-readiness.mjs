@@ -51,6 +51,7 @@ for(const [p,n] of Object.entries(expectedRawLinks)){
   const h=read(p);
   const got=(h.match(/href=["']\/products\//g)||[]).length;
   if(got<n) fail.push('Too few raw product links in '+p+': '+got+' < '+n);
+  if(!h.includes('"@type":"ItemList"')) fail.push('Missing ItemList graph: '+p);
 }
 
 const legacy=read('product.html');
