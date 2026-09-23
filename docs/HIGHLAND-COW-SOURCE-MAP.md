@@ -56,7 +56,7 @@ The Christmas screenshots in `IMG_9973.PNG`–`IMG_9976.PNG` were cross-checked 
 | Highland Cow Baubles 6 Set | LP55203 | £9.90 | Official Lesser & Pavey product name/code already confirmed |
 | Small seated Christmas Highland Cow with Santa hat, green scarf and gift sack | LP55394 | £10.00 | Exact product image match; supplier/Joe Davies lists it as Xmas Highland Cow LED Small / With Bag |
 | Three Highland Cows behind fence with multicolour LED string | LP55397 | £24.95 | Exact image match; supplier code is Xmas Highland Cow LED Triple / Highland Cows 3 With LED |
-| Christmas Highland Cow family of three with tree/sign and LED string | LP55400 | £24.95 | Exact image match; supplier code is Xmas Highland Cow LED Family |
+| Christmas Highland Cow family of three with Merry Christmas sign/tree | LP54679 | £24.95 | Exact product-image match; Leonardo retailer page identifies code LP54679, approx. 18 × 10 × 22cm |
 | Two Highland Cows beside large gold light-up Christmas tree | LP55733 | £21.95 | Exact image match; supplier code is Xmas 2 Highland Cows With Tree / Light Up Tree Large |
 | White hat/scarf Highland Cow balancing on snow/skateboard base | LP55737 | £8.50 | Exact image match; supplier code is Xmas Highland Cow Skateboard |
 | Gold Christmas-tree costume Highland Cow with LED detail | LP55729 | £10.00 | Exact official product image match; supplier code is Xmas Tree Highland Cow LED |
@@ -92,3 +92,8 @@ Do **not** replace these paths from this continuation until the previous Work se
 3. Once reconciled, update or add catalogue entries while preserving existing slugs for the same physical products.
 4. Apply only owner-confirmed prices. Keep the ambiguous £26.99 HOME / LOVE / FAMILY price unpublished until the owner confirms its scope.
 5. Do not create a new Sites project; synchronize only after the exact existing Black Sheep Sites project is identified.
+
+
+### LP54679 source verification
+
+The owner’s Christmas family image (two adult Highland cows with a calf beside a Merry Christmas sign/tree) matches Leonardo product code `LP54679`. A current retailer product page identifies the same figurine as code `lp54679` and gives dimensions of approximately 18 × 10 × 22cm. This replaces the earlier provisional LP55400 mapping; LP55400 is a different current LED Family item.
