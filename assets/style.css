@@ -14,3 +14,6 @@ section{padding:78px 0}.section-head{display:flex;justify-content:space-between;
 
 @media(max-width:1080px){.brand-strip{height:145px}.brand-strip-featured{height:200px}.footer-wordmark strong{font-size:29px}}
 @media(max-width:620px){.brand-strip,.brand-strip-featured{height:145px;background-position:center 46%}.footer-mark{width:58px;height:58px}.footer-wordmark strong{font-size:27px}.footer-wordmark small{font-size:8px;letter-spacing:.19em}footer{padding-top:30px}}
+
+/* Peter Rabbit exact catalogue media */
+.product-img.contain{background:#fff}.product-img.contain img{object-fit:contain;padding:14px;background:#fff}.product-price,.detail-price{font-weight:800;color:var(--ink)}.detail-media.contain{background:#fff}.detail-media.contain>img{object-fit:contain;padding:24px;background:#fff}.detail-gallery-track{display:flex;width:100%;height:100%;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}.detail-gallery-track::-webkit-scrollbar{display:none}.detail-gallery-slide{flex:0 0 100%;width:100%;height:100%;scroll-snap-align:start;scroll-snap-stop:always}.detail-gallery-slide img{width:100%;height:100%;object-fit:cover}.detail-gallery.contain .detail-gallery-slide img{object-fit:contain;padding:24px;background:#fff}
