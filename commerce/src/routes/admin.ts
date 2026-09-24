@@ -8,11 +8,16 @@ import {
 } from "../data/admin-orders";
 import { validateAdminOrderAction } from "../domain/admin-order";
 import {
+  adminSessionCookie,
+  clearAdminSessionCookie,
+  requestAdminLoginCode,
+  revokeAdminSession,
   verifyAdminAccess,
+  verifyAdminLoginCode,
   type AdminAccessEnv,
   type AdminIdentity,
 } from "../security/admin-access";
-import { adminHtml } from "../admin/ui";
+import { adminHtml, adminLoginHtml } from "../admin/ui";
 import { notifyPaymentConfirmed, notifyPaymentRequest, type PaymentNotificationEnv } from "../notifications/payment";
 
 export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
@@ -60,21 +65,75 @@ export async function handleAdminRequest(
   dependencies: Partial<AdminDependencies> = {},
 ): Promise<Response> {
   const deps = { ...defaults, ...dependencies };
+  const url = new URL(request.url);
+
+  if (url.pathname === "/admin/auth/request" && request.method === "POST") {
+    const result = await requestAdminLoginCode(env);
+    if (!result.ok) {
+      return error(result.code ?? "admin_login_failed", result.status, "Unable to send login code.");
+    }
+    return json({ ok: true });
+  }
+
+  if (url.pathname === "/admin/auth/verify" && request.method === "POST") {
+    let raw: unknown;
+    try {
+      raw = await readJson(request);
+    } catch {
+      return error("admin_invalid_request", 400, "Invalid login code.");
+    }
+    const code =
+      raw && typeof raw === "object" && !Array.isArray(raw)
+        ? String((raw as Record<string, unknown>).code ?? "").trim()
+        : "";
+    const result = await verifyAdminLoginCode(code, env);
+    if (!result.ok) {
+      return error(result.code, result.status, "Invalid or expired login code.");
+    }
+    const response = json({ ok: true });
+    response.headers.append("set-cookie", adminSessionCookie(result.token));
+    return response;
+  }
+
+  if (url.pathname === "/admin/auth/logout" && request.method === "POST") {
+    await revokeAdminSession(request, env);
+    const response = json({ ok: true });
+    response.headers.append("set-cookie", clearAdminSessionCookie());
+    return response;
+  }
+
   const access = await deps.verifyAccessFn(request, env);
+
+  if (
+    (url.pathname === "/admin" || url.pathname === "/admin/") &&
+    request.method === "GET" &&
+    (!access.ok || !access.identity)
+  ) {
+    return new Response(adminLoginHtml(), {
+      status: 200,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "no-store",
+        "x-robots-tag": "noindex, nofollow",
+        "content-security-policy":
+          "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+      },
+    });
+  }
+
   if (!access.ok || !access.identity) {
     return error(
       access.code ?? "admin_forbidden",
       access.status,
-      access.status === 404 ? "Not found." : "Admin access denied.",
+      "Admin sign-in required.",
     );
   }
 
   if (!env.DB) return error("database_unavailable", 503, "Order database unavailable.");
 
-  const url = new URL(request.url);
   const identity: AdminIdentity = access.identity;
 
-  if ((url.pathname === "/" || url.pathname === "/admin") && request.method === "GET") {
+  if ((url.pathname === "/admin" || url.pathname === "/admin/") && request.method === "GET") {
     return new Response(adminHtml(identity.email), {
       headers: {
         "content-type": "text/html; charset=utf-8",
@@ -86,21 +145,26 @@ export async function handleAdminRequest(
     });
   }
 
-  if (url.pathname === "/api/orders" && request.method === "GET") {
+  if (url.pathname === "/admin/api/orders" && request.method === "GET") {
     const status = url.searchParams.get("status");
     const orders = await listAdminOrders(env.DB, status);
     return json({ orders });
   }
 
-  const match = url.pathname.match(/^\/api\/orders\/([^/]+)$/);
+  const match = url.pathname.match(/^\/admin\/api\/orders\/([^/]+)$/);
   if (match && request.method === "GET") {
     const reference = decodeURIComponent(match[1]);
     const order = await getAdminOrderDetail(env.DB, reference);
     return order ? json({ order }) : error("order_not_found", 404, "Order not found.");
   }
 
-  const actionMatch = url.pathname.match(/^\/api\/orders\/([^/]+)\/actions$/);
+  const actionMatch = url.pathname.match(/^\/admin\/api\/orders\/([^/]+)\/actions$/);
   if (actionMatch && request.method === "POST") {
+    const requestOrigin = request.headers.get("origin");
+    if (requestOrigin && requestOrigin !== url.origin) {
+      return error("admin_origin_forbidden", 403, "Admin request origin is not allowed.");
+    }
+
     const reference = decodeURIComponent(actionMatch[1]);
     const order = await getAdminOrderState(env.DB, reference);
     if (!order) return error("order_not_found", 404, "Order not found.");
