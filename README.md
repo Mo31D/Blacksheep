@@ -14,8 +14,8 @@ Production domain: **https://theblacksheepshop.co.uk**
 Only products with real product imagery and descriptions are retained:
 - 41 Gifts: 29 Peter Rabbit + 12 Highland Cow.
 - 12 Luxury Lakes Ice Cream flavours.
-- 55 Romney's / confectionery products.
-- 108 product records total.
+- 56 Romney's / confectionery products.
+- 109 product records total.
 - Hawkshead Relish remains an informational in-store range page; no individual Hawkshead products are currently published.
 - Lakeland Fragrances and other empty legacy gift categories redirect to the current Gifts page.
 
@@ -67,4 +67,17 @@ The builder updates the 12 static flavour pages from `scripts/templates/icecream
 
 ### Verified Romney's / confectionery sources
 
-35 exact Romney's-section products now carry verified official product-page provenance in `assets/catalog.js`. See `docs/ROMNEYS-SOURCE-MAP.md`. Static product pages expose the official product name/source and Product JSON-LD links the entity to the manufacturer URL. The other 20 records remain intentionally unmatched until an exact current official page is verified. Black Sheep prices remain authoritative for the shop.
+Romney's/confectionery product provenance is stored internally in `docs/ROMNEYS-SOURCE-MAP.md`. Manufacturer URLs are verification metadata only and must **not** appear on customer-facing product pages, product images/names, or Product JSON-LD.
+
+`assets/catalog.js` remains authoritative for Black Sheep prices and product identity. `scripts/build-romneys.mjs` regenerates the static Romney product pages, Romney collection, Full Range Romney cards, ItemLists and sitemap product entries. `scripts/verify-search-readiness.mjs` rejects supplier-link leakage, brand/schema mismatches, missing assets and collection-card drift.
+
+After changing a Romney/confectionery record, run:
+
+```sh
+node scripts/build-romneys-source-map.mjs
+node scripts/build-romneys.mjs
+node scripts/verify-search-readiness.mjs
+node scripts/build-romneys.mjs --check
+```
+
+Supplier retail prices are never a data source for Black Sheep pricing.
