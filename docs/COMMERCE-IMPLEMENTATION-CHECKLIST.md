@@ -40,7 +40,7 @@ Status: IN PROGRESS — waiting only on manual Cloudflare prerequisites / stagin
 - [x] Define Commerce V1 target architecture.
 - [x] Decide on Cloudflare Worker + D1 backend.
 - [x] Define future-ready cart/order/payment/shipping boundaries.
-- [ ] Complete manual Cloudflare prerequisites in `docs/CLOUDFLARE-COMMERCE-SETUP.md`.
+- [ ] Complete manual Cloudflare prerequisites in `docs/CLOUDFLARE-COMMERCE-SETUP.md` (D1 staging + production created; Turnstile and secrets still pending).
 - [x] Create `commerce-v1` branch from the newest `main`.
 - [x] Confirm hostname strategy: staging on `workers.dev` first; production later on `api.theblacksheepshop.co.uk`.
 
@@ -89,8 +89,8 @@ Goal: real persistent orders exist before checkout is connected.
 - [ ] Add unique idempotency key.
 - [ ] Add status constraints/validation.
 - [ ] Add indexes needed for owner queue and reference lookup.
-- [ ] Bind staging D1.
-- [ ] Apply staging migration.
+- [ ] Bind staging D1 (database created; ID still needed).
+- [ ] Apply staging migration after binding.
 - [ ] Add repository/data-access layer.
 - [ ] Add transaction-safe order creation.
 - [ ] Add tests for persistence and duplicate idempotency.
