@@ -1,10 +1,9 @@
 import type { D1DatabaseLike } from "../data/d1";
 import { recordOrderEvent } from "../data/order-events";
-import type { SendEmailBindingLike } from "./order-notifier";
+import { resolveEmailSender, type EmailProviderEnv } from "./email-provider";
 
-export interface PaymentNotificationEnv {
+export interface PaymentNotificationEnv extends EmailProviderEnv {
   DB?: D1DatabaseLike;
-  EMAIL?: SendEmailBindingLike;
   ORDER_EMAIL_FROM?: string;
 }
 
@@ -40,9 +39,10 @@ async function attempt(
   env: PaymentNotificationEnv,
   orderId: string,
   eventPrefix: string,
+  provider: string,
   send: () => Promise<void>,
 ): Promise<void> {
-  if (!env.DB || !env.EMAIL || !env.ORDER_EMAIL_FROM) return;
+  if (!env.DB || !env.ORDER_EMAIL_FROM) return;
 
   for (let attemptNumber = 1; attemptNumber <= 2; attemptNumber += 1) {
     try {
@@ -51,7 +51,7 @@ async function attempt(
         orderId,
         eventType: `${eventPrefix}_SENT`,
         metadata: {
-          provider: "cloudflare-email",
+          provider,
           attempts: attemptNumber,
         },
       });
@@ -62,7 +62,7 @@ async function attempt(
           orderId,
           eventType: `${eventPrefix}_FAILED`,
           metadata: {
-            provider: "cloudflare-email",
+            provider,
             attempts: attemptNumber,
             error: "send_failed",
           },
@@ -76,8 +76,9 @@ export async function notifyPaymentRequest(
   env: PaymentNotificationEnv,
   order: PaymentNotificationSnapshot,
 ): Promise<void> {
+  const resolved = resolveEmailSender(env);
   if (
-    !env.EMAIL ||
+    !resolved ||
     !env.ORDER_EMAIL_FROM ||
     order.finalTotalMinor === null ||
     !order.paymentRequestUrl
@@ -86,8 +87,8 @@ export async function notifyPaymentRequest(
   }
 
   const total = money(order.finalTotalMinor);
-  await attempt(env, order.id, "PAYMENT_REQUEST_EMAIL", async () => {
-    await env.EMAIL!.send({
+  await attempt(env, order.id, "PAYMENT_REQUEST_EMAIL", resolved.provider, async () => {
+    await resolved.sender.send({
       from: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
       to: { email: order.customerEmail, name: order.customerName },
       subject: `Payment request for ${order.publicReference}`,
@@ -111,10 +112,11 @@ export async function notifyPaymentConfirmed(
   env: PaymentNotificationEnv,
   order: PaymentNotificationSnapshot,
 ): Promise<void> {
-  if (!env.EMAIL || !env.ORDER_EMAIL_FROM) return;
+  const resolved = resolveEmailSender(env);
+  if (!resolved || !env.ORDER_EMAIL_FROM) return;
 
-  await attempt(env, order.id, "PAYMENT_CONFIRMED_EMAIL", async () => {
-    await env.EMAIL!.send({
+  await attempt(env, order.id, "PAYMENT_CONFIRMED_EMAIL", resolved.provider, async () => {
+    await resolved.sender.send({
       from: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
       to: { email: order.customerEmail, name: order.customerName },
       subject: `Payment received for ${order.publicReference}`,
