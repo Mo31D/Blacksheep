@@ -449,8 +449,9 @@ Not required for Commerce V1, but architecture must not block:
 
 ## Current exact next action
 
-1. Onboard Cloudflare Email Service for `theblacksheepshop.co.uk`.
-2. Configure the Worker `EMAIL` binding plus `ORDER_EMAIL_FROM` and `ORDER_OWNER_EMAIL`.
-3. Send one owner + customer staging email and verify the corresponding `order_events`.
-4. Configure Cloudflare Zero Trust Access for the private admin and verify one complete staging admin workflow.
-5. Confirm the legal proprietor/business identity and the final working customer-service email before production cutover.
+1. Resend domain `theblacksheepshop.co.uk` is verified.
+2. Create a Resend API key with sending access only; store it only as Worker runtime secret `RESEND_API_KEY`.
+3. Configure `ORDER_EMAIL_FROM` and `ORDER_OWNER_EMAIL` on the staging Worker.
+4. Send one owner + customer staging email and verify the corresponding `order_events`.
+5. Configure Cloudflare Zero Trust Access for the private admin and verify one complete staging admin workflow.
+6. Confirm the legal proprietor/business identity and the final working customer-service email before production cutover.
