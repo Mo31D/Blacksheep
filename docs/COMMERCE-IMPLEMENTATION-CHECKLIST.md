@@ -135,29 +135,36 @@ Validation: Commerce CI PASS; Search readiness PASS.
 
 ## Phase 4 — Secure order creation API
 
+Status: CODE + CI COMPLETE — staging Turnstile secret and live endpoint verification pending.
+
 Goal: `POST /v1/orders` creates a valid real order.
 
-- [ ] Define request/response schema.
-- [ ] Validate customer fields.
-- [ ] Validate fulfilment method.
-- [ ] Validate UK address fields when delivery is selected.
-- [ ] Validate product IDs and quantities.
-- [ ] Recalculate price/subtotal server-side.
-- [ ] Generate non-guessable internal ID.
-- [ ] Generate readable public reference.
-- [ ] Enforce idempotency.
-- [ ] Integrate Turnstile server verification.
-- [ ] Add request-size and quantity limits.
-- [ ] Add rate/abuse controls.
-- [ ] Persist order + items + initial event atomically.
-- [ ] Return public reference and safe summary.
-- [ ] Test forged price attempt.
-- [ ] Test stale/deleted product.
-- [ ] Test arriving-soon/out-of-stock/unpriced product.
-- [ ] Test duplicate submission.
-- [ ] Test invalid/expired/replayed Turnstile token.
+- [x] Define request/response schema.
+- [x] Validate customer fields.
+- [x] Validate fulfilment method.
+- [x] Validate UK address fields when delivery is selected.
+- [x] Validate product IDs and quantities.
+- [x] Recalculate price/subtotal server-side.
+- [x] Generate non-guessable internal ID.
+- [x] Generate readable public reference.
+- [x] Enforce idempotency.
+- [x] Integrate mandatory Turnstile server verification in code.
+- [x] Add request-size and quantity limits.
+- [x] Add Worker rate-limit binding and abuse controls.
+- [x] Persist order + items + initial event atomically.
+- [x] Return public reference and safe summary.
+- [x] Test forged price attempt.
+- [x] Test stale/deleted product.
+- [x] Test arriving-soon/out-of-stock/unpriced products.
+- [x] Test duplicate submission.
+- [x] Test invalid/expired/replayed Turnstile token.
+- [ ] Add `TURNSTILE_SECRET_KEY` to the staging Worker secret store.
+- [ ] Verify a real staging Turnstile token against `POST /v1/orders`.
+- [ ] Confirm a test order is written to staging D1 and an idempotent retry does not create a duplicate.
 
-**Suggested commit:** `commerce: create secure order-request endpoint`
+Validation: Commerce CI PASS; 32 automated tests PASS; catalogue drift check PASS; local D1 migration PASS; Wrangler staging dry-run PASS.
+
+**Commits:** `commerce: add secure order creation API`, follow-up test coverage.
 
 ## Phase 5 — Cart engine refactor
 

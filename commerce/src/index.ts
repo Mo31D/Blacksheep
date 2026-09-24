@@ -1,9 +1,14 @@
 import type { D1DatabaseLike } from "./data/d1";
+import { handleCreateOrder, type RateLimiterLike } from "./routes/orders";
 
 interface Env {
   ENVIRONMENT?: string;
   ALLOWED_ORIGINS?: string;
   DB?: D1DatabaseLike;
+  ORDER_RATE_LIMITER?: RateLimiterLike;
+  TURNSTILE_SECRET_KEY?: string;
+  TURNSTILE_ALLOWED_HOSTNAMES?: string;
+  TURNSTILE_EXPECTED_ACTION?: string;
 }
 
 const SERVICE = "black-sheep-commerce-api";
@@ -78,6 +83,16 @@ async function route(request: Request, env: Env): Promise<Response> {
       environment: env.ENVIRONMENT ?? "unknown",
       database: env.DB ? "bound" : "unbound",
     });
+  }
+
+  if (url.pathname === "/v1/orders") {
+    if (request.method !== "POST") {
+      return json(
+        { error: { code: "method_not_allowed", message: "Method not allowed." } },
+        { status: 405, headers: { allow: "POST, OPTIONS" } },
+      );
+    }
+    return handleCreateOrder(request, env);
   }
 
   return json(
