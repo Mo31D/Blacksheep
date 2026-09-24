@@ -1,13 +1,12 @@
 # Black Sheep — Session Handoff
 
 > **COMMERCE V1 — ACTIVE NEXT PHASE**  
-> The next implementation track is now the Commerce V1 architecture. Read these before any commerce work:
-> - `docs/COMMERCE-ARCHITECTURE-2026-09-24.md`
-> - `docs/COMMERCE-IMPLEMENTATION-CHECKLIST.md`
-> - `docs/CLOUDFLARE-COMMERCE-SETUP.md`
+> Phase 1 Worker foundation is complete and staging health is verified.  
+> Phase 2 D1 order persistence is complete on staging; production D1 remains untouched.  
+> Phase 3 server-authoritative catalogue/pricing is complete and CI passes.  
+> Turnstile widget `Black Sheep Checkout` is created; site key is recorded.  
+> **Next:** store the Turnstile secret directly as a Cloudflare Worker secret, then implement Phase 4 `POST /v1/orders` with server-side Turnstile verification, idempotency and D1 persistence.
 >
-> Commerce Phase 1 foundation is now merged to `main`: `/commerce`, TypeScript Worker, `/health`, CORS, tests, Wrangler staging/production config, Commerce CI and manual deploy workflow. CI and Search readiness pass. The staging Worker has also deployed successfully at `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev`. Cloudflare D1/Turnstile resources are not created yet. Current rule: verify `/health` in a browser, then create D1 staging + production and proceed to Phase 2. Do not start cart/checkout UI yet.
-
 > **NEXT-PHASE BASELINE — 24 September 2026**  
 > Before relying on older counts/status sections below, read:
 > - `docs/NEXT-PHASE-BASELINE-2026-09-24.md`
