@@ -124,7 +124,11 @@ for(const {type,item} of rows){
       if(!read('hawkshead-relish.html').includes('src="images/'+item.img+'"')) fail.push('Hawkshead collection image mismatch: '+item.id);
       if(!read('all-products.html').includes('src="images/'+item.img+'"')) fail.push('Full range Hawkshead image mismatch: '+item.id);
     }
-    if(item.id==='HR-001'||item.id==='HR-008'){
+    if(item.stockStatus==='out-of-stock'){
+      if(!h.includes('Out of stock')) fail.push('Hawkshead out-of-stock label missing: '+p);
+      if(typeof item.price!=='number') fail.push('Hawkshead out-of-stock item missing price: '+item.id);
+    }
+    if(item.id==='HR-001'){
       if((item.gallery||[]).length!==2) fail.push('Hawkshead two-image gallery count mismatch: '+item.id);
       for(const g of (item.gallery||[])){
         if(!exists('images/'+g.src)) fail.push('Missing Hawkshead gallery image: images/'+g.src);

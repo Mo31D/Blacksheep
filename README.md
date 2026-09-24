@@ -68,11 +68,11 @@ The builder updates the 12 static flavour pages from `scripts/templates/icecream
 
 ### Verified Hawkshead Relish sources
 
-The 16 current Hawkshead Relish records store their manufacturer URL and verified product facts in `assets/catalog.js`; the internal provenance list is `docs/HAWKSHEAD-RELISH-SOURCE-MAP.md`. The public static pages live under `products/hr-*.html`, are pre-rendered in `hawkshead-relish.html` and `all-products.html`, and are included in `sitemap.xml`.
+The 15 current Hawkshead Relish records store their manufacturer URL and verified product facts in `assets/catalog.js`; the internal provenance list is `docs/HAWKSHEAD-RELISH-SOURCE-MAP.md`. The public static pages live under `products/hr-*.html`, are pre-rendered in `hawkshead-relish.html` and `all-products.html`, and are included in `sitemap.xml`.
 
-Do **not** import Hawkshead Relish manufacturer retail prices as Black Sheep prices. Numeric Hawkshead prices are published only from owner-confirmed Black Sheep pricing; currently 13 Hawkshead products have owner-confirmed prices and 3 remain unpriced.
+Do **not** import Hawkshead Relish manufacturer retail prices as Black Sheep prices. Numeric Hawkshead prices are published only from owner-confirmed Black Sheep pricing; currently 14 Hawkshead products have owner-confirmed prices and 1 remains unpriced.
 
-Exact owner-supplied images are wired for HR-001 through HR-012 in `images/hawkshead-relish/`. HR-001 and HR-008 each have a two-image gallery (pack-shot + lifestyle). HR-013 through HR-016 intentionally retain the genuine shared range image until exact product imagery is supplied.
+Exact owner-supplied images are wired for HR-001 through HR-012 in `images/hawkshead-relish/`. HR-001 has a two-image gallery (pack-shot + lifestyle). Five Fruit Marmalade (former HR-008) has been removed from the active catalogue at the owner's request. HR-013 through HR-016 intentionally retain the genuine shared range image until exact product imagery is supplied.
 
 ### Verified Romney's / confectionery sources
 

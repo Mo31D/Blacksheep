@@ -15,12 +15,12 @@ GitHub `main` is authoritative. Latest verified search/QA implementation milesto
 
 ## Hawkshead Relish catalogue — updated 2026-09-24
 
-- [x] Current Hawkshead catalogue: **16 products**.
-- [x] Apply **13 owner-confirmed Black Sheep prices** from 24 September 2026.
+- [x] Current Hawkshead catalogue: **15 products**.
+- [x] Apply **14 owner-confirmed Black Sheep prices** from 24 September 2026.
 - [x] Add Bloody Mary Chutney, Honeycomb Honey, Cumberland Sauce and Cheeseboard Chutney with official product facts.
 - [x] Preserve Bloody Mary Ketchup, Red Onion Marmalade and Hot Garlic Pickle without guessed prices.
 - [x] Keep all Product Information disclosure elements open by default.
-- [x] Full range now contains **124 products**; sitemap target is **141 URLs**.
+- [x] Full range now contains **123 products**; sitemap target is **140 URLs**.
 - [x] Search readiness passed on implementation commit `bba82641f56c160e0d48f563b64f12b924fa078d`.
 - [x] Wire exact owner-supplied product images for HR-001 through HR-012.
 - [x] Configure two-image galleries for HR-001 Black Garlic Ketchup and HR-008 Five Fruit Marmalade.
@@ -189,3 +189,6 @@ Search-readiness QA passed for implementation commit `bba82641f56c160e0d48f563b6
 - [ ] Sync the same existing Black Sheep Sites project when its exact identity is available; do not create a duplicate.
 - [x] GitHub Pages build/deployment succeeded for verified main SHA `08817788b722cbb6ad675f331ff4f8532e2a0c74`.
 - [ ] Complete browser-level live mobile/desktop visual verification; external domain fetch was unavailable in this session.
+
+- [x] Mark Bloody Mary Ketchup (£4.70) and Hot Garlic Pickle (£5.30) out of stock.
+- [x] Remove Five Fruit Marmalade from the active catalogue and product routes.

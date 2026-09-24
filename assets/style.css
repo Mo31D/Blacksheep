@@ -79,3 +79,6 @@ section{padding:78px 0}.section-head{display:flex;justify-content:space-between;
 
 /* Mixed-fit product gallery slides */
 .detail-gallery.contain .detail-gallery-slide.cover img,.detail-gallery-slide.cover img{object-fit:cover;padding:0;background:transparent}.detail-gallery-slide.contain img{object-fit:contain;padding:24px;background:#fff}
+
+/* Stock status */
+.stock-card-label,.stock-badge.out-of-stock{display:inline-flex;align-items:center;width:max-content;border-radius:999px;background:#f2e6e2;color:#8b3528;font-size:11px;font-weight:800;letter-spacing:.02em}.stock-card-label{padding:5px 8px;margin-top:4px}.stock-badge.out-of-stock{padding:7px 11px;margin:0 0 14px}.stock-row span{font-weight:800;color:#8b3528}.is-out-of-stock .product-img img{opacity:.72}

@@ -59,8 +59,8 @@ At the end:
 
 - GitHub `main` remains authoritative.
 - Verified implementation commit: `bba82641f56c160e0d48f563b64f12b924fa078d`.
-- Current catalogue: **124 products total** = 41 Gifts + 12 Luxury Lakes Ice Cream + 55 Romney's/confectionery + **16 Hawkshead Relish**.
-- Hawkshead Relish: **13 owner-priced products**, plus Bloody Mary Ketchup, Red Onion Marmalade and Hot Garlic Pickle retained without numeric Black Sheep prices.
+- Current catalogue: **123 products total** = 41 Gifts + 12 Luxury Lakes Ice Cream + 55 Romney's/confectionery + **15 Hawkshead Relish**.
+- Hawkshead Relish: **14 owner-priced products**; Red Onion Marmalade remains the only active Hawkshead product without a confirmed numeric price.
 - Added exact products and official detail data: Bloody Mary Chutney (£5.70), Honeycomb Honey (£7.95), Cumberland Sauce (£4.70), Cheeseboard Chutney (£5.30).
 - Owner-confirmed existing prices: The Original Black Garlic Ketchup £6.80; Traditional English Mustard £3.60; Raspberry & Vanilla Jam £4.30; Strawberry & Black Pepper Jam £4.30; Damson Extra Jam £4.30; Five Fruit Marmalade £4.30; Beetroot & Horseradish Chutney £5.30; Piccalilli £5.30; Westmorland Chutney £5.30.
 - Official product names are retained even where the owner's shorthand differs.
@@ -310,3 +310,9 @@ Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` b
 3. Replace shared Hawkshead range imagery with exact individual pack-shots when available.
 4. Sync the same existing Black Sheep Sites project when its exact identity is available, then run live mobile/desktop QA.
 5. Keep remaining Romney identity/weight questions evidence-only; do not guess.
+
+### Hawkshead stock correction — 24 September 2026
+- Bloody Mary Ketchup: £4.70, out of stock.
+- Hot Garlic Pickle: £5.30, out of stock.
+- Five Fruit Marmalade removed from the active catalogue and static product route.
+- Active catalogue total: 123 products; Hawkshead: 15.

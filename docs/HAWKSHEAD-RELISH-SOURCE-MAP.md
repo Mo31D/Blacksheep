@@ -6,7 +6,7 @@ These URLs are internal provenance for the Black Sheep catalogue. Manufacturer r
 
 The catalogue currently retains the original 12 products and adds four further owner-priced products: Bloody Mary Chutney, Honeycomb Honey, Cumberland Sauce and Cheeseboard Chutney. Existing Bloody Mary Ketchup, Red Onion Marmalade and Hot Garlic Pickle remain listed but without a numeric Black Sheep price because none was supplied in this price update.
 
-Exact owner-supplied product imagery is now wired for HR-001 through HR-012 under `images/hawkshead-relish/`. HR-001 (The Original Black Garlic Ketchup) and HR-008 (Five Fruit Marmalade) each use a two-image gallery: a clean pack-shot plus a lifestyle image. HR-013 through HR-016 still use the genuine shared range photograph `images/49.png` because no exact individual image has been supplied for those four products.
+Exact owner-supplied product imagery is now wired for HR-001 through HR-012 under `images/hawkshead-relish/`. HR-001 (The Original Black Garlic Ketchup) uses a two-image gallery: a clean pack-shot plus a lifestyle image. Five Fruit Marmalade (former HR-008) has been removed from the active catalogue at the owner's request. HR-013 through HR-016 still use the genuine shared range photograph `images/49.png` because no exact individual image has been supplied for those four products.
 
 | ID | Product | Pack | Black Sheep price | Official source |
 |---|---|---:|---:|---|
@@ -17,7 +17,6 @@ Exact owner-supplied product imagery is now wired for HR-001 through HR-012 unde
 | HR-005 | Strawberry & Black Pepper Jam | 225g | £4.30 | https://www.hawksheadrelish.com/shop/jams/strawberry-black-pepper-jam |
 | HR-006 | Damson Extra Jam | 220g | £4.30 | https://www.hawksheadrelish.com/shop/jams/damson-extra-jam |
 | HR-007 | Red Onion Marmalade | 210g | — | https://www.hawksheadrelish.com/shop/chutneys-pickles-relishes/red-onion-marmalade-200g |
-| HR-008 | Five Fruit Marmalade | 225g | £4.30 | https://www.hawksheadrelish.com/shop/marmalades-curds/five-fruit-marmalade |
 | HR-009 | Beetroot & Horseradish Chutney | 205g | £5.30 | https://www.hawksheadrelish.com/shop/chutneys-pickles-relishes/beetroot-horseradish-chutney |
 | HR-010 | Hot Garlic Pickle | 195g | — | https://www.hawksheadrelish.com/shop/chutneys-pickles-relishes/hot-garlic-pickle |
 | HR-011 | Piccalilli | 185g | £5.30 | https://www.hawksheadrelish.com/shop/chutneys-pickles-relishes/piccalilli-jar |
@@ -58,3 +57,8 @@ The following two canonical product pages are now gallery-ready and safely fall 
   - `images/hawkshead-relish/hr-008-five-fruit-marmalade-lifestyle.webp`
 
 Both pages use the existing swipe/scroll product gallery component. The first image is the clean product packshot; the second is the lifestyle image. Once these exact files are uploaded, no further page-layout change is required for the two-image gallery to appear.
+
+## Stock update — 24 September 2026
+- Bloody Mary Ketchup — £4.70 — out of stock.
+- Hot Garlic Pickle — £5.30 — out of stock.
+- Five Fruit Marmalade — removed from the active Black Sheep catalogue because it is not stocked.
