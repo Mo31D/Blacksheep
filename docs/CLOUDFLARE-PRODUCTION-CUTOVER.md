@@ -12,8 +12,10 @@ This runbook is deliberately conservative. Do not apply production D1 migrations
 - Staging Worker and staging D1 are deployed.
 - Staging Turnstile secret is configured.
 - Commerce code is complete through Phase 13 on `commerce-v1`.
-- A temporary production-hostname staging verifier exists on `main` at:
-  `/commerce-stage-check-260924.html`
+- Controlled staging order/idempotency verification has passed.
+- Resend staging delivery has passed for both customer and owner notifications.
+- Cloudflare Access is no longer required: the admin now uses an owner-email one-time-code login stored as hashed D1 state.
+- Temporary staging verifier pages have been removed after their gates passed.
 
 ## Gate A — controlled staging order
 
@@ -55,31 +57,25 @@ Do not replace the working Resend integration during cutover unless there is a s
 
 ## Gate C — private owner admin
 
-The admin code fails closed unless the exact admin hostname and a valid Cloudflare Access JWT are present.
+The current admin no longer depends on Cloudflare Zero Trust Access.
 
-Recommended hostname:
-`admin.theblacksheepshop.co.uk`
+Authentication model:
+- Admin is served by the Commerce Worker at `/admin`.
+- Pressing **Send login code** sends a six-digit one-time code to the configured `ORDER_OWNER_EMAIL`.
+- Codes expire after 10 minutes, have a failed-attempt cap and are stored hashed in D1.
+- Successful login creates a hashed server-side session with a Secure, HttpOnly, SameSite cookie.
+- Sessions expire after 12 hours and can be revoked on logout.
 
-1. In Cloudflare Zero Trust create a **Self-hosted Access application** for the exact admin hostname.
-2. Add an allow policy for the owner/admin identity only.
-3. Record:
-   - Access team domain, for example `https://<team>.cloudflareaccess.com`
-   - application AUD
-4. Configure Worker variables:
-   - `ADMIN_HOSTNAME=admin.theblacksheepshop.co.uk`
-   - `ADMIN_TEAM_DOMAIN=https://<team>.cloudflareaccess.com`
-   - `ADMIN_ACCESS_AUD=<Access application AUD>`
-   - `ADMIN_ALLOWED_EMAILS=<comma-separated owner/admin emails>`
-5. Attach the admin custom domain only when the Access application/policy is ready.
-6. Verify:
-   - unauthenticated access is denied
-   - authorized login succeeds
-   - order list/detail works
-   - one staging order can progress through review → quote → payment request → paid → preparing → shipped/ready → complete
+Staging gate:
+1. Apply `commerce/migrations/0001_admin_email_auth.sql` to staging D1.
+2. Deploy the newest `commerce-v1` Worker to staging.
+3. Open the staging Worker `/admin` route.
+4. Request a code and confirm it arrives only at the owner email.
+5. Sign in and verify order list/detail.
+6. Move one staging order through review → quote → payment request → paid → preparing → shipped/ready → complete.
+7. Verify unauthorized API requests remain denied.
 
-Cloudflare docs reviewed:
-- https://developers.cloudflare.com/workers/configuration/cloudflare-access/
-- https://developers.cloudflare.com/workers/configuration/routing/custom-domains/
+No Cloudflare Zero Trust subscription or payment-card onboarding is required for this V1 admin flow.
 
 ## Gate D — legal/business identity
 
@@ -102,16 +98,15 @@ Only after Gates A–D pass:
 2. Apply production D1 migrations:
    `npm run db:migrate:production`
 3. Configure the production `TURNSTILE_SECRET_KEY` as a Worker secret.
-4. Configure production Email Service binding/variables.
-5. Configure production admin Access variables.
-6. Attach:
-   - `api.theblacksheepshop.co.uk` as the public API Custom Domain
-   - `admin.theblacksheepshop.co.uk` as the Access-protected admin Custom Domain
-7. Change storefront checkout API base from the staging `workers.dev` URL to:
+4. Configure production Resend/owner-email variables and secrets.
+5. Apply the admin email-auth migration to production D1.
+6. Attach `api.theblacksheepshop.co.uk` as the public Commerce Worker Custom Domain.
+7. Serve the protected owner admin at `https://api.theblacksheepshop.co.uk/admin` unless a separate admin hostname is deliberately added later.
+8. Change storefront checkout API base from the staging `workers.dev` URL to:
    `https://api.theblacksheepshop.co.uk`
-8. Disable production `workers.dev`/preview exposure if no longer required.
-9. Deploy production Worker.
-10. Verify `/health` on the API custom domain.
+9. Disable production `workers.dev`/preview exposure if no longer required.
+10. Deploy production Worker.
+11. Verify `/health`, order creation and `/admin` authentication on the production custom domain.
 
 Cloudflare recommends Custom Domains for a Worker acting as the origin for a business application rather than relying on `workers.dev`.
 
@@ -142,7 +137,7 @@ Cloudflare recommends Custom Domains for a Worker acting as the origin for a bus
 
 ## Do not do
 
-- Do not put any Turnstile secret, Access credential, API token or banking credential in GitHub.
+- Do not put any Turnstile secret, Resend API key, session secret/token or banking credential in GitHub.
 - Do not expose the reusable NatWest payment link in public storefront code.
 - Do not mark an order PAID from customer/browser input.
 - Do not use email as the source of truth for orders.
