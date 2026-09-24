@@ -1,5 +1,13 @@
 # Black Sheep — Session Handoff
 
+> **COMMERCE V1 — ACTIVE NEXT PHASE**  
+> The next implementation track is now the Commerce V1 architecture. Read these before any commerce work:
+> - `docs/COMMERCE-ARCHITECTURE-2026-09-24.md`
+> - `docs/COMMERCE-IMPLEMENTATION-CHECKLIST.md`
+> - `docs/CLOUDFLARE-COMMERCE-SETUP.md`
+>
+> Current rule: do not start cart/checkout UI until the staging Worker skeleton, CI and D1 binding are stable. The owner must complete only the manual Cloudflare prerequisites; all remaining implementation should follow the checklist milestone-by-milestone.
+
 > **NEXT-PHASE BASELINE — 24 September 2026**  
 > Before relying on older counts/status sections below, read:
 > - `docs/NEXT-PHASE-BASELINE-2026-09-24.md`
