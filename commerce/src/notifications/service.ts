@@ -6,6 +6,7 @@ import type {
 } from "../domain/order";
 import { CloudflareEmailOrderNotifier } from "./cloudflare-email";
 import { resolveEmailSender, type EmailProviderEnv } from "./email-provider";
+import { ResendSendError } from "./resend-email";
 
 export interface NotificationEnv extends EmailProviderEnv {
   DB?: D1DatabaseLike;
@@ -30,7 +31,7 @@ async function attemptNotification(
         metadata: { provider, attempts: attempt },
       });
       return;
-    } catch {
+    } catch (cause) {
       if (attempt === maxAttempts) {
         await recordOrderEvent(db, {
           orderId,
@@ -39,6 +40,12 @@ async function attemptNotification(
             provider,
             attempts: attempt,
             error: "send_failed",
+            ...(cause instanceof ResendSendError
+              ? {
+                  providerStatus: cause.status,
+                  providerCode: cause.providerCode,
+                }
+              : {}),
           },
         });
       }
