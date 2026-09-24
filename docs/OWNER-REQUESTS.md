@@ -34,3 +34,11 @@ Name normalization follows the current official Hawkshead Relish product names. 
 - All single Happy Highland Cow figurines are **£9.50**. This includes Highland Cow Soaking and Highland Cow Loo-Time as well as the other single-cow designs already priced at £9.50.
 - Highland Cow Loo-Time (the cow seated on the toilet reading a newspaper, HC-005 / LP75453) is **out of stock**.
 - Multi-cow pieces such as Highland Cow Trio and the two-cow designs keep their existing prices.
+
+## Highland Cow Christmas/Halloween arrival update — 24 September 2026
+
+**Available in store / on the shelves (9):** LP55737, LP55899, LP55203, LP55906, LP55733, LP55394, LP55397, LP55400, LP55729.
+
+**Arriving soon / awaiting delivery (14):** LP55590, LP55595, LP55596, LP55599, LP55579, LP55580, LP55571, LP55572, LP55573, LP55574, LP55577, LP55570, LP55734, LP55904.
+
+Customer wording rule: awaiting-delivery items are **Arriving soon**, never **Out of stock**. All 23 remain placeholders/noindex until image, price and verified details are completed.

@@ -210,3 +210,11 @@ Search-readiness QA passed for implementation commit `bba82641f56c160e0d48f563b6
 - [x] Do not infer product images, prices, dimensions or descriptions.
 - [x] Keep placeholder pages noindex and out of sitemap until completed.
 - [ ] Replace each placeholder with verified image, owner price and factual product details.
+
+## Highland Cow placeholder arrival states — completed 2026-09-24
+- [x] Record owner-confirmed availability for all 23 placeholder SKUs.
+- [x] Mark 9 as Available in store and 14 as Arriving soon.
+- [x] Never label awaiting-delivery items Out of stock.
+- [x] Separate arrival state from missing image/price/details on cards and product pages.
+- [x] Keep all 23 placeholders noindex and excluded from sitemap until completed.
+- [x] Add QA for the 9/14 partition and customer-facing wording.

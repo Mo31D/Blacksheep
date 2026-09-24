@@ -72,6 +72,10 @@ for(const item of (catalog.hawkshead||[])){
   if(typeof item.price==='number' && item.priceSource!=='owner-confirmed-2026-09-24') fail.push('Hawkshead price missing owner-confirmed source: '+item.id);
 }
 
+const highlandPlaceholders=(catalog.gifts||[]).filter(x=>x.placeholder===true&&/^HC-(?:03[3-9]|04[0-9]|05[0-5])$/.test(x.id||''));
+if(highlandPlaceholders.length!==23) fail.push('Unexpected Highland placeholder count');
+if(highlandPlaceholders.filter(x=>x.availabilityStatus==='in-store').length!==9||highlandPlaceholders.filter(x=>x.availabilityStatus==='arriving-soon').length!==14) fail.push('Unexpected Highland placeholder arrival partition');
+
 const romneyImageSources=new Map();
 for(const item of (catalog.romneys||[])){
   const u=item.official?.imageUrl;
@@ -88,6 +92,11 @@ for(const {type,item} of rows){
   if(!h.includes('<h1>'+esc(item.name)+'</h1>')) fail.push('Missing static H1: '+p);
   if(!h.includes('"@type":"Product"')||!h.includes('"@type":"BreadcrumbList"')) fail.push('Missing product/breadcrumb schema: '+p);
   if(item.placeholder){
+    if(!['in-store','arriving-soon'].includes(item.availabilityStatus)) fail.push('Placeholder availability state missing/invalid: '+item.id);
+    if(item.availabilitySource!=='owner-confirmed-2026-09-24') fail.push('Placeholder availability source missing: '+item.id);
+    const availabilityLabel=item.availabilityStatus==='in-store'?'Available in store':'Arriving soon';
+    if(!h.includes(availabilityLabel)) fail.push('Placeholder availability UI missing: '+p);
+    if(item.availabilityStatus==='arriving-soon' && /Out of stock/i.test(h)) fail.push('Arriving placeholder must not say Out of stock: '+p);
     if(!h.includes('name="robots" content="noindex,follow"')) fail.push('Placeholder product must be noindex: '+p);
     if(sitemap.includes('<loc>'+canonical+'</loc>')) fail.push('Placeholder product must stay out of sitemap: '+p);
     if(!h.includes('Image coming soon')||!h.includes(item.sku||'')) fail.push('Placeholder product UI incomplete: '+p);

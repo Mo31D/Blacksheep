@@ -346,3 +346,9 @@ Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` b
 - Placeholder pages are live in the catalogue but use `noindex,follow` and stay out of the sitemap until completed.
 - Gift totals: 64; Highland Cows: 35; Seasonal: 29; Home Gifts: 41; Full range: 146.
 - Seasonal category now covers Christmas + Halloween rather than Christmas-only wording.
+
+### Highland Cow placeholder availability — 24 September 2026
+- 23 Christmas/Halloween Highland Cow placeholders now carry owner-confirmed arrival state: 9 Available in store, 14 Arriving soon.
+- Arriving soon is distinct from Out of stock and must never render as Out of stock.
+- Cards separate missing catalogue data from availability: Image coming soon + Price coming soon + In store/Arriving soon.
+- Placeholder product pages remain noindex and outside the sitemap until image, price and verified product data are complete.
