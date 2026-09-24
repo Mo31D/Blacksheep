@@ -40,7 +40,7 @@ Status: IN PROGRESS — waiting only on manual Cloudflare prerequisites / stagin
 - [x] Define Commerce V1 target architecture.
 - [x] Decide on Cloudflare Worker + D1 backend.
 - [x] Define future-ready cart/order/payment/shipping boundaries.
-- [ ] Complete manual Cloudflare prerequisites in `docs/CLOUDFLARE-COMMERCE-SETUP.md`.
+- [ ] Complete manual Cloudflare prerequisites in `docs/CLOUDFLARE-COMMERCE-SETUP.md` (D1 staging + production created; Turnstile and secrets still pending).
 - [x] Create `commerce-v1` branch from the newest `main`.
 - [x] Confirm hostname strategy: staging on `workers.dev` first; production later on `api.theblacksheepshop.co.uk`.
 
@@ -48,7 +48,7 @@ Status: IN PROGRESS — waiting only on manual Cloudflare prerequisites / stagin
 
 ## Phase 1 — Commerce project skeleton
 
-Status: CODE + CI COMPLETE — staging deployment verification pending.
+Status: COMPLETE — staging Worker deployed, build verified, and `/health` confirmed remotely.
 
 Goal: backend deploys before changing customer UX.
 
@@ -64,8 +64,8 @@ Goal: backend deploys before changing customer UX.
 - [x] Add `.github/workflows/commerce-ci.yml`.
 - [x] Add `.github/workflows/commerce-deploy.yml`.
 - [x] Confirm Commerce CI passes on `commerce-v1` (5 tests + TypeScript + Wrangler staging dry-run passed).
-- [ ] Deploy staging Worker.
-- [ ] Verify health endpoint remotely.
+- [x] Deploy staging Worker at `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev`.
+- [x] Verify `/health` response remotely from a browser/session: `{"service":"black-sheep-commerce-api","status":"ok","environment":"staging"}`.
 
 **Validation:**
 - existing Search readiness PASS
@@ -89,8 +89,8 @@ Goal: real persistent orders exist before checkout is connected.
 - [ ] Add unique idempotency key.
 - [ ] Add status constraints/validation.
 - [ ] Add indexes needed for owner queue and reference lookup.
-- [ ] Bind staging D1.
-- [ ] Apply staging migration.
+- [ ] Bind staging D1 (database created; ID still needed).
+- [ ] Apply staging migration after binding.
 - [ ] Add repository/data-access layer.
 - [ ] Add transaction-safe order creation.
 - [ ] Add tests for persistence and duplicate idempotency.
@@ -340,7 +340,8 @@ Not required for Commerce V1, but architecture must not block:
 
 ## Current exact next action
 
-1. In Cloudflare Workers Builds, use root `/commerce`, build `npm run check`, deploy `npx wrangler deploy --env staging`, preview `npx wrangler preview --env staging`.
-2. Deploy the staging Worker and verify `/health`.
-3. Then create the two D1 databases and Turnstile resources before Phase 2/4 implementation.
-4. Do not start Basket/Checkout UI until the backend foundation is verified.
+1. Create the two D1 databases: `black-sheep-commerce-staging` and `black-sheep-commerce-prod`.
+2. Record both D1 database IDs.
+3. Bind staging D1 to the Worker and implement/apply Phase 2 migrations from GitHub.
+4. Create the Turnstile widget after D1 setup.
+5. Do not start Basket/Checkout UI until the D1 foundation is wired and verified.
