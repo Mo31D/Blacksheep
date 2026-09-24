@@ -201,3 +201,23 @@ Implementation can begin with:
 - `workers.dev`
 
 The live domain should be touched only when Commerce staging has passed its tests.
+
+
+## Current D1 resources — created 24 September 2026
+
+- Staging: `black-sheep-commerce-staging`
+  - Database ID: `d442b45d-93b6-4535-b76a-4b72e62dc271`
+  - Region: Western Europe
+  - Read replication: Disabled
+- Production: `black-sheep-commerce-prod`
+  - Database ID: `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
+  - Region: Western Europe
+  - Read replication: Disabled
+
+Both IDs are now recorded in `commerce/wrangler.jsonc`.
+
+### Next Cloudflare action
+
+The current Workers Builds token was created for Worker deployment and may not have permission to execute D1 migrations directly. Before remote staging migration, grant the deployment automation D1 edit/write access scoped to the staging D1 resource if the dashboard offers resource-level scoping. Keep production D1 migration permission separate until staging has been verified.
+
+Do not apply the production migration yet.
