@@ -370,3 +370,141 @@ function renderBasketPage(){
   root.innerHTML=rows.map(basketPageRow).join('');
 }
 document.addEventListener('DOMContentLoaded',renderBasketPage);
+
+
+const blackSheepCheckoutDraftKey='black-sheep-checkout-draft-v1';
+function checkoutEscape(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
+function getCheckoutDraft(){try{const data=JSON.parse(localStorage.getItem(blackSheepCheckoutDraftKey)||'{}');return data&&typeof data==='object'?data:{}}catch{return{}}}
+function saveCheckoutDraft(data){try{localStorage.setItem(blackSheepCheckoutDraftKey,JSON.stringify({fulfilmentMethod:data.fulfilmentMethod==='collection'?'collection':'delivery'}))}catch{}}
+function setCheckoutFulfilment(method){
+  const delivery=method==='delivery';
+  document.getElementById('checkoutDeliveryFields')?.toggleAttribute('hidden',!delivery);
+  document.querySelectorAll('#checkoutDeliveryFields input[data-delivery-required]').forEach(input=>input.required=delivery);
+}
+function checkoutFormData(){
+  const form=document.getElementById('checkoutForm');
+  if(!form)return null;
+  const fd=new FormData(form);
+  const fulfilmentMethod=fd.get('fulfilmentMethod')==='collection'?'collection':'delivery';
+  const data={
+    fulfilmentMethod,
+    customerName:String(fd.get('customerName')||'').trim(),
+    customerEmail:String(fd.get('customerEmail')||'').trim(),
+    customerPhone:String(fd.get('customerPhone')||'').trim(),
+    note:String(fd.get('note')||'').trim(),
+    deliveryAddress:null
+  };
+  if(fulfilmentMethod==='delivery'){
+    data.deliveryAddress={
+      line1:String(fd.get('line1')||'').trim(),
+      line2:String(fd.get('line2')||'').trim(),
+      town:String(fd.get('town')||'').trim(),
+      county:String(fd.get('county')||'').trim(),
+      postcode:String(fd.get('postcode')||'').trim().toUpperCase(),
+      country:'GB'
+    };
+  }
+  return data;
+}
+function checkoutReviewItem(row){
+  const total=row.purchasable&&row.lineTotal!==null?formatPrice(row.lineTotal):'—';
+  return '<div class="checkout-review-item"><span>'+checkoutEscape(row.quantity+' × '+row.item.name)+'</span><strong>'+total+'</strong></div>';
+}
+function renderCheckoutReview(data){
+  const rows=blackSheepCart.resolvedItems();
+  document.getElementById('checkoutReviewItems').innerHTML=rows.map(checkoutReviewItem).join('');
+  document.getElementById('checkoutReviewSubtotal').textContent=formatPrice(blackSheepCart.subtotal());
+  const contact=document.getElementById('checkoutReviewContact');
+  contact.innerHTML='<strong>'+checkoutEscape(data.customerName)+'</strong><span>'+checkoutEscape(data.customerEmail)+'</span>'+(data.customerPhone?'<span>'+checkoutEscape(data.customerPhone)+'</span>':'');
+  const fulfilment=document.getElementById('checkoutReviewFulfilment');
+  if(data.fulfilmentMethod==='collection'){
+    fulfilment.innerHTML='<strong>Collection from Ambleside</strong><span>We will confirm when your order is ready.</span>';
+  }else{
+    const a=data.deliveryAddress;
+    fulfilment.innerHTML='<strong>Delivery</strong><span>'+checkoutEscape(a.line1)+'</span>'+(a.line2?'<span>'+checkoutEscape(a.line2)+'</span>':'')+'<span>'+checkoutEscape(a.town)+(a.county?', '+checkoutEscape(a.county):'')+'</span><span>'+checkoutEscape(a.postcode)+'</span><span>United Kingdom</span>';
+  }
+  const note=document.getElementById('checkoutReviewNote');
+  note.hidden=!data.note;
+  if(data.note)note.textContent=data.note;
+}
+function showCheckoutStep(step){
+  const details=document.getElementById('checkoutDetailsStep');
+  const review=document.getElementById('checkoutReviewStep');
+  const isReview=step==='review';
+  details.hidden=isReview;
+  review.hidden=!isReview;
+  document.querySelectorAll('.checkout-progress-step').forEach(el=>el.classList.toggle('active',el.dataset.step===step));
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(isReview)initCheckoutTurnstile();
+}
+function reviewCheckout(event){
+  event?.preventDefault?.();
+  const form=document.getElementById('checkoutForm');
+  if(!form?.reportValidity())return;
+  const data=checkoutFormData();
+  if(!data)return;
+  if(!blackSheepCart.canCheckout()){
+    const error=document.getElementById('checkoutFormError');
+    error.hidden=false;
+    error.textContent='Your basket contains an item that cannot currently be ordered. Return to the basket and review it.';
+    return;
+  }
+  document.getElementById('checkoutFormError').hidden=true;
+  window.__blackSheepCheckoutData=data;
+  saveCheckoutDraft(data);
+  renderCheckoutReview(data);
+  showCheckoutStep('review');
+}
+function editCheckout(){showCheckoutStep('details')}
+function checkoutTurnstileToken(){
+  return document.querySelector('#checkoutTurnstile input[name="cf-turnstile-response"]')?.value||'';
+}
+function checkoutTurnstileChanged(){
+  const submit=document.getElementById('checkoutSubmitRequest');
+  if(!submit)return;
+  const ready=document.documentElement.dataset.orderSubmitReady==='true';
+  submit.disabled=!(ready&&checkoutTurnstileToken()&&blackSheepCart.canCheckout());
+}
+function onCheckoutTurnstileSuccess(){checkoutTurnstileChanged()}
+function onCheckoutTurnstileExpired(){checkoutTurnstileChanged()}
+function initCheckoutTurnstile(){
+  const root=document.getElementById('checkoutTurnstile');
+  if(!root||root.dataset.rendered==='1'||!window.turnstile)return;
+  const siteKey=root.dataset.sitekey;
+  if(!siteKey)return;
+  const allowed=['theblacksheepshop.co.uk','www.theblacksheepshop.co.uk','localhost','127.0.0.1'];
+  if(!allowed.includes(location.hostname)){
+    root.innerHTML='<p class="checkout-security-note">Security verification is enabled on the production shop domain.</p>';
+    return;
+  }
+  window.turnstile.render(root,{
+    sitekey:siteKey,
+    action:'order_request',
+    callback:onCheckoutTurnstileSuccess,
+    'expired-callback':onCheckoutTurnstileExpired,
+    'error-callback':onCheckoutTurnstileExpired
+  });
+  root.dataset.rendered='1';
+}
+function initCheckoutPage(){
+  const page=document.getElementById('checkoutPage');
+  if(!page)return;
+  const guard=document.getElementById('checkoutGuard');
+  const flow=document.getElementById('checkoutFlow');
+  if(!blackSheepCart.resolvedItems().length||!blackSheepCart.canCheckout()){
+    guard.hidden=false;
+    flow.hidden=true;
+    return;
+  }
+  guard.hidden=true;
+  flow.hidden=false;
+  const draft=getCheckoutDraft();
+  const method=draft.fulfilmentMethod==='collection'?'collection':'delivery';
+  const input=document.querySelector('input[name="fulfilmentMethod"][value="'+method+'"]');
+  if(input)input.checked=true;
+  setCheckoutFulfilment(method);
+  document.querySelectorAll('input[name="fulfilmentMethod"]').forEach(el=>el.addEventListener('change',()=>{setCheckoutFulfilment(el.value);saveCheckoutDraft({fulfilmentMethod:el.value})}));
+  document.getElementById('checkoutForm')?.addEventListener('submit',reviewCheckout);
+  checkoutTurnstileChanged();
+}
+document.addEventListener('DOMContentLoaded',initCheckoutPage);
