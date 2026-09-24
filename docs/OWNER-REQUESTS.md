@@ -28,3 +28,9 @@ Name normalization follows the current official Hawkshead Relish product names. 
 - Bloody Mary Ketchup — £4.70 — **out of stock**.
 - Hot Garlic Pickle — £5.30 — **out of stock**.
 - Five Fruit Marmalade — remove from the active catalogue; owner does not stock it.
+
+## Highland Cow pricing / stock — 24 September 2026
+
+- All single Happy Highland Cow figurines are **£9.50**. This includes Highland Cow Soaking and Highland Cow Loo-Time as well as the other single-cow designs already priced at £9.50.
+- Highland Cow Loo-Time (the cow seated on the toilet reading a newspaper, HC-005 / LP75453) is **out of stock**.
+- Multi-cow pieces such as Highland Cow Trio and the two-cow designs keep their existing prices.
