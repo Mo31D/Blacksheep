@@ -49,3 +49,31 @@ Customer wording rule: awaiting-delivery items are **Arriving soon**, never **Ou
 - Products already on the shelves show the normal £9.50 card with **no “In stock/In store” badge**.
 - Products awaiting delivery show **Arriving soon** using the same compact pill treatment as “Out of stock”, but with a different warm/gold colour.
 - Placeholder image remains until each exact product image is added; the card no longer uses “Details coming soon” as a pseudo-price.
+
+## Exact prices for the 23 newly added Highland Cow products — 24 September 2026
+
+- LP55737 — Xmas Highland Cow Skateboard — £8.50
+- LP55590 — Xmas Highland Cow Tree S — £7.50 — Arriving soon
+- LP55595 — Xmas Highland Cow on Toilet — £9.50 — Arriving soon
+- LP55596 — Xmas Highland Cows in Bath — £10.00 — Arriving soon
+- LP55599 — Xmas Sitting Highland Cow — £9.50 — Arriving soon
+- LP55579 — Three Xmas Highland Cows — £12.85 — Arriving soon
+- LP55580 — Xmas Highland Cow Family — £13.50 — Arriving soon
+- LP55571 — Xmas Highland Cow — £9.50 — Arriving soon
+- LP55572 — Sitting Xmas Highland Cow — £9.50 — Arriving soon
+- LP55573 — Sitting Xmas Highland Cow — £9.50 — Arriving soon
+- LP55574 — Xmas Highland Cow Family — £12.85 — Arriving soon
+- LP55577 — Xmas Highland Cows Chef 16cm — £9.50 — Arriving soon
+- LP55570 — Xmas Highland Cows — £12.50 — Arriving soon
+- LP55899 — Xmas Highland Cow — £10.00
+- LP55734 — Halloween Highland Cow — £29.99 — Arriving soon
+- LP55203 — Highland Cow Baubles 6 Set — £9.90
+- LP55904 — Xmas Highland Cows Mistletoe — £13.99 — Arriving soon
+- LP55906 — Xmas Highland Cows Presents — £13.99
+- LP55733 — Xmas 2 Highland Cows with Tree — £21.95
+- LP55394 — Xmas Highland Cow with Bag — £10.00
+- LP55397 — Highland Cows 3 with LED — £24.95
+- LP55400 — Highland Cow Family with LED — £24.85
+- LP55729 — Xmas Tree Highland Cow LED — £10.00
+
+LP55906 (“Xmas Highland Cows Presents”) is the couple with presents in red pyjamas; price £13.99. This is a clarification of the existing SKU, not an additional product.

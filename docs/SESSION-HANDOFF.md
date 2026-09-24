@@ -352,3 +352,8 @@ Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` b
 - Arriving soon is distinct from Out of stock and must never render as Out of stock.
 - Cards separate missing catalogue data from availability: Image coming soon + Price coming soon + In store/Arriving soon.
 - Placeholder product pages remain noindex and outside the sitemap until image, price and verified product data are complete.
+
+### Highland Cow exact owner pricing — 24 September 2026
+- Replaced the temporary £9.50 blanket price on all 23 newly added Christmas/Halloween Highland Cow placeholders with exact per-SKU owner prices.
+- Arrival state remains unchanged: 9 available/no badge, 14 Arriving soon.
+- LP55906 is clarified as the couple with presents in red pyjamas (£13.99); no duplicate product was created.

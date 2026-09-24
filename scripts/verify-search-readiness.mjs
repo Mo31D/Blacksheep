@@ -72,11 +72,13 @@ for(const item of (catalog.hawkshead||[])){
   if(typeof item.price==='number' && item.priceSource!=='owner-confirmed-2026-09-24') fail.push('Hawkshead price missing owner-confirmed source: '+item.id);
 }
 
+const expectedHighlandPlaceholderPrices={"LP55737":8.5,"LP55899":10,"LP55203":9.9,"LP55906":13.99,"LP55733":21.95,"LP55394":10,"LP55397":24.95,"LP55400":24.85,"LP55729":10,"LP55590":7.5,"LP55595":9.5,"LP55596":10,"LP55599":9.5,"LP55579":12.85,"LP55580":13.5,"LP55571":9.5,"LP55572":9.5,"LP55573":9.5,"LP55574":12.85,"LP55577":9.5,"LP55570":12.5,"LP55734":29.99,"LP55904":13.99};
 const highlandPlaceholders=(catalog.gifts||[]).filter(x=>x.placeholder===true&&/^HC-(?:03[3-9]|04[0-9]|05[0-5])$/.test(x.id||''));
 if(highlandPlaceholders.length!==23) fail.push('Unexpected Highland placeholder count');
+for(const item of highlandPlaceholders){if(expectedHighlandPlaceholderPrices[item.sku]!==item.price)fail.push('Highland placeholder owner price drift: '+item.sku)}
 if(highlandPlaceholders.filter(x=>x.availabilityStatus==='in-store').length!==9||highlandPlaceholders.filter(x=>x.availabilityStatus==='arriving-soon').length!==14) fail.push('Unexpected Highland placeholder arrival partition');
 
-for(const file of ['gifts.html','gifts-highland-cows.html','gifts-seasonal.html','gifts-home-art.html','all-products.html']){const h=read(file);for(const item of highlandPlaceholders){const pos=h.indexOf('data-url="/products/'+item.slug+'.html"');if(pos<0){fail.push('Missing Highland placeholder card: '+file+' '+item.id);continue}const card=h.slice(pos,h.indexOf('</article>',pos));if(!card.includes('£9.50'))fail.push('Highland placeholder card pricing/status mismatch: '+file+' '+item.id);if(item.availabilityStatus==='arriving-soon'&&!card.includes('Arriving soon'))fail.push('Highland arriving-soon card badge missing: '+file+' '+item.id);if(item.availabilityStatus==='in-store'&&/In store|Available in store/.test(card))fail.push('Highland available card should have no stock badge: '+file+' '+item.id)}}
+for(const file of ['gifts.html','gifts-highland-cows.html','gifts-seasonal.html','gifts-home-art.html','all-products.html']){const h=read(file);for(const item of highlandPlaceholders){const pos=h.indexOf('data-url="/products/'+item.slug+'.html"');if(pos<0){fail.push('Missing Highland placeholder card: '+file+' '+item.id);continue}const card=h.slice(pos,h.indexOf('</article>',pos));if(!card.includes(money(item.price)))fail.push('Highland placeholder card pricing/status mismatch: '+file+' '+item.id);if(item.availabilityStatus==='arriving-soon'&&!card.includes('Arriving soon'))fail.push('Highland arriving-soon card badge missing: '+file+' '+item.id);if(item.availabilityStatus==='in-store'&&/In store|Available in store/.test(card))fail.push('Highland available card should have no stock badge: '+file+' '+item.id)}}
 
 const romneyImageSources=new Map();
 for(const item of (catalog.romneys||[])){
@@ -96,8 +98,8 @@ for(const {type,item} of rows){
   if(item.placeholder){
     if(!['in-store','arriving-soon'].includes(item.availabilityStatus)) fail.push('Placeholder availability state missing/invalid: '+item.id);
     if(item.availabilitySource!=='owner-confirmed-2026-09-24') fail.push('Placeholder availability source missing: '+item.id);
-    if(item.price!==9.5 || item.priceSource!=='owner-confirmed-2026-09-24') fail.push('Highland placeholder price must be owner-confirmed £9.50: '+item.id);
-    if(!h.includes('<div class="romneys-price">£9.50</div>')) fail.push('Placeholder £9.50 price missing: '+p);
+    if(typeof item.price!=='number' || item.priceSource!=='owner-confirmed-2026-09-24') fail.push('Highland placeholder owner price missing: '+item.id);
+    if(!h.includes('<div class="romneys-price">'+money(item.price)+'</div>')) fail.push('Placeholder owner price missing from page: '+p);
     if(item.availabilityStatus==='arriving-soon' && !h.includes('Arriving soon')) fail.push('Arriving placeholder badge missing: '+p);
     if(item.availabilityStatus==='in-store' && /Available in store|>In store</i.test(h)) fail.push('Available placeholder should not show an in-store badge/label: '+p);
     if(item.availabilityStatus==='arriving-soon' && /Out of stock/i.test(h.replace('out-of-stock arriving-soon','arriving-soon'))) fail.push('Arriving placeholder must not say Out of stock: '+p);
