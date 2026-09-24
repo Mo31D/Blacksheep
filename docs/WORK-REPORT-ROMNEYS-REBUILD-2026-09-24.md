@@ -65,7 +65,7 @@ The actual brand/manufacturer may still be shown as factual product information.
 
 ## QA
 
-Final staging QA after owner-price correction:
+Final QA after owner-price reconciliation on `main`:
 - **109** catalogue products.
 - **56** Romney's / confectionery cards.
 - **109** Full Range cards.
@@ -76,8 +76,8 @@ Final staging QA after owner-price correction:
 - No public Romney's/Walker/Elit supplier URL leakage on customer pages.
 - No duplicate official image provenance.
 - Static Romney builder passes `--check` with zero drift.
-- GitHub Actions final static-build run: **35984289128 — success**.
-- Generated pricing reconciliation commit: `c1dc76ab82795d2453b2a33ed11d40d274b8fb69`.
+- GitHub Actions owner-price reconciliation run: **35985625623 — success**.
+- Final generated owner-price reconciliation commit: `a5ebfc2d57d36d079414260ae320b27377e68ce3`.
 
 ## Next work
 
