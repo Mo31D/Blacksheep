@@ -90,8 +90,9 @@ for(const {type,item} of rows){
   if(!sitemap.includes('<loc>'+canonical+'</loc>')) fail.push('Product absent from sitemap: '+p);
   if(!h.includes('../images/'+item.img)) fail.push('Primary image absent from static HTML: '+p);
   if(!exists('images/'+item.img)) fail.push('Missing primary image file: images/'+item.img);
-  const closedDetails=(h.match(/<details\\b(?![^>]*\\bopen\\b)[^>]*>/gi)||[]).length;
-  if(closedDetails) fail.push('Product details must be open by default: '+p+' ('+closedDetails+' closed)');
+  const detailTags=h.match(/<details\b[^>]*>/gi)||[];
+  const closedDetails=detailTags.filter(tag=>!/\sopen(?:\s|=|>)/i.test(tag));
+  if(closedDetails.length) fail.push('Product details must be open by default: '+p+' ('+closedDetails.length+' closed)');
   for(const image of (item.gallery||[])) if(!exists('images/'+image.src)) fail.push('Missing gallery image file: images/'+image.src);
   const productJson=[...h.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
   for(const block of productJson){try{JSON.parse(block[1])}catch(e){fail.push('Invalid product JSON-LD in '+p+': '+e.message)}}
