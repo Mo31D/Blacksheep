@@ -69,19 +69,36 @@ describe("admin routes", () => {
     await expect(response.json()).resolves.toEqual({ orders: [] });
   });
 
-  it("fails closed when access is denied", async () => {
+  it("shows the login page for an unauthenticated admin page request", async () => {
     const response = await handleAdminRequest(
       new Request("https://admin.example.com/admin"),
       { DB: new Db() },
       {
         verifyAccessFn: async () => ({
           ok: false,
-          status: 403,
-          code: "admin_access_token_missing",
+          status: 401,
+          code: "admin_session_missing",
         }),
       },
     );
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("Admin sign in");
+  });
+
+  it("fails closed for unauthenticated admin API requests", async () => {
+    const response = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/orders"),
+      { DB: new Db() },
+      {
+        verifyAccessFn: async () => ({
+          ok: false,
+          status: 401,
+          code: "admin_session_missing",
+        }),
+      },
+    );
+
+    expect(response.status).toBe(401);
   });
 });
