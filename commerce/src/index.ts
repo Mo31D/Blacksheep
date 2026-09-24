@@ -9,6 +9,9 @@ interface Env {
   TURNSTILE_SECRET_KEY?: string;
   TURNSTILE_ALLOWED_HOSTNAMES?: string;
   TURNSTILE_EXPECTED_ACTION?: string;
+  RESEND_API_KEY?: string;
+  ORDER_EMAIL_FROM?: string;
+  ORDER_OWNER_EMAIL?: string;
 }
 
 const SERVICE = "black-sheep-commerce-api";
@@ -82,6 +85,11 @@ async function route(request: Request, env: Env): Promise<Response> {
       status: "ok",
       environment: env.ENVIRONMENT ?? "unknown",
       database: env.DB ? "bound" : "unbound",
+      notifications: {
+        provider: env.RESEND_API_KEY ? "resend" : "unconfigured",
+        fromConfigured: Boolean(env.ORDER_EMAIL_FROM),
+        ownerConfigured: Boolean(env.ORDER_OWNER_EMAIL),
+      },
     });
   }
 
