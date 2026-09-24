@@ -45,7 +45,7 @@ Status: IN PROGRESS — waiting only on manual Cloudflare prerequisites / stagin
 
 ## Phase 1 — Commerce project skeleton
 
-Status: CODE COMPLETE — CI/deployment verification pending.
+Status: CODE + CI COMPLETE — staging deployment verification pending.
 
 Goal: backend deploys before changing customer UX.
 
@@ -60,7 +60,7 @@ Goal: backend deploys before changing customer UX.
 - [x] Add unit-test runner.
 - [x] Add `.github/workflows/commerce-ci.yml`.
 - [x] Add `.github/workflows/commerce-deploy.yml`.
-- [ ] Confirm Commerce CI passes on `commerce-v1`.
+- [x] Confirm Commerce CI passes on `commerce-v1` (5 tests + TypeScript + Wrangler staging dry-run passed).
 - [ ] Deploy staging Worker.
 - [ ] Verify health endpoint remotely.
 
@@ -337,8 +337,7 @@ Not required for Commerce V1, but architecture must not block:
 
 ## Current exact next action
 
-1. Confirm Commerce CI passes for the Phase 1 branch.
-2. In Cloudflare Workers Builds, use root `/commerce`, build `npm run check`, deploy `npx wrangler deploy --env staging`, preview `npx wrangler preview --env staging`.
-3. Deploy the staging Worker and verify `/health`.
-4. Then create the two D1 databases and Turnstile resources before Phase 2/4 implementation.
-5. Do not start Basket/Checkout UI until the backend foundation is verified.
+1. In Cloudflare Workers Builds, use root `/commerce`, build `npm run check`, deploy `npx wrangler deploy --env staging`, preview `npx wrangler preview --env staging`.
+2. Deploy the staging Worker and verify `/health`.
+3. Then create the two D1 databases and Turnstile resources before Phase 2/4 implementation.
+4. Do not start Basket/Checkout UI until the backend foundation is verified.
