@@ -1,5 +1,8 @@
 # Black Sheep — Session Handoff
 
+> **COMMERCE PHASE 4 — CURRENT STATE**  
+> Secure order API is merged to `main` at `10c523439d18464ea4a668ac460c05727d065c65`. `POST /v1/orders` now has strict validation, server-authoritative pricing, UUID idempotency, readable order references, Turnstile Siteverify integration, rate limiting and atomic D1 persistence. Commerce CI passed with 32 tests. Live staging submission is intentionally blocked until the staging Worker secret `TURNSTILE_SECRET_KEY` is configured, then one real staging order + idempotent retry must be verified before Phase 5.
+
 > **COMMERCE V1 — ACTIVE NEXT PHASE**  
 > Phase 1 Worker foundation is complete and staging health is verified.  
 > Phase 2 D1 order persistence is complete on staging; production D1 remains untouched.  
