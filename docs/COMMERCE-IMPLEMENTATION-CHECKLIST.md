@@ -200,24 +200,36 @@ Validation:
 
 ## Phase 6 — Mini basket
 
-- [ ] Replace header My List treatment with Basket.
-- [ ] Item count.
-- [ ] Item image/placeholder.
-- [ ] Product name.
-- [ ] Unit price.
-- [ ] Quantity controls.
-- [ ] Remove.
-- [ ] Subtotal.
-- [ ] Clear basket with confirmation.
-- [ ] View Basket CTA.
-- [ ] Proper empty state.
-- [ ] Keyboard/focus trap.
-- [ ] Mobile behaviour.
-- [ ] No broken image state.
+Status: COMPLETE.
 
-**Suggested commit:** `commerce: add mini basket`
+- [x] Replace header My List treatment with Basket.
+- [x] Item count.
+- [x] Item image/placeholder.
+- [x] Product name.
+- [x] Unit price and line total.
+- [x] Quantity controls.
+- [x] Remove.
+- [x] Subtotal.
+- [x] Clear basket with confirmation.
+- [x] View Basket CTA.
+- [x] Proper empty state.
+- [x] Keyboard Escape + focus trap.
+- [x] Mobile full-height drawer behaviour.
+- [x] Broken-image fallback.
+
+Also added the `/basket.html` page foundation so the View Basket CTA never points to a missing route. Full standalone-basket checkout progression remains Phase 7/8 work.
+
+Validation:
+- cart-core tests
+- basket UI static checks
+- Commerce CI
+- Search readiness
+
+**Commit:** `commerce: add professional mini basket`
 
 ## Phase 7 — `basket.html`
+
+Status: IN PROGRESS — page foundation, responsive rows and summary are present; checkout progression remains intentionally deferred to Phase 8.
 
 - [ ] Full responsive basket page.
 - [ ] Product rows.
