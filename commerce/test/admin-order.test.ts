@@ -53,6 +53,38 @@ describe("admin order state machine", () => {
     ).toThrow("admin_url_must_be_https");
   });
 
+  it("requires fulfilment timing before sending a payment request", () => {
+    expect(() =>
+      validateAdminOrderAction(
+        {
+          ...deliveryOrder,
+          status: "QUOTED",
+          finalTotalMinor: 2995,
+          deliveryAmountMinor: 495,
+        },
+        {
+          action: "send_payment_request",
+          paymentRequestUrl: "https://pay.example.test/order-1",
+        },
+      ),
+    ).toThrow("admin_fulfilment_message_required");
+
+    const action = validateAdminOrderAction(
+      {
+        ...deliveryOrder,
+        status: "QUOTED",
+        finalTotalMinor: 2995,
+        deliveryAmountMinor: 495,
+      },
+      {
+        action: "send_payment_request",
+        paymentRequestUrl: "https://pay.example.test/order-1",
+        fulfilmentMessage: "Expected dispatch within 2 working days",
+      },
+    );
+    expect(action.fulfilmentMessage).toBe("Expected dispatch within 2 working days");
+  });
+
   it("does not allow marking unpaid submitted orders as paid", () => {
     expect(() =>
       validateAdminOrderAction(

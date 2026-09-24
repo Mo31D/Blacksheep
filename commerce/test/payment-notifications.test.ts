@@ -43,6 +43,7 @@ const order = {
   finalTotalMinor: 3495,
   paymentRequestUrl: "https://payment.example.test/order-1",
   fulfilmentMethod: "delivery",
+  fulfilmentMessage: "Expected dispatch within 2 working days",
 };
 
 describe("payment notifications", () => {
@@ -66,6 +67,9 @@ describe("payment notifications", () => {
     expect(sent).toHaveLength(1);
     expect(sent[0].text).toContain("£34.95");
     expect(sent[0].text).toContain(order.paymentRequestUrl);
+    expect(sent[0].text).toContain(order.fulfilmentMessage);
+    expect(sent[0].text).toContain("delivery-returns.html");
+    expect(sent[0].text).toContain("places the order");
     expect(sent[0].to).toMatchObject({ email: order.customerEmail });
     expect(db.statements[0].values[1]).toBe("PAYMENT_REQUEST_EMAIL_SENT");
   });
@@ -91,6 +95,27 @@ describe("payment notifications", () => {
     expect(db.statements).toHaveLength(0);
   });
 
+  it("does not send a payment request without fulfilment timing", async () => {
+    const db = new Db();
+    let sends = 0;
+    await notifyPaymentRequest(
+      {
+        DB: db,
+        EMAIL: {
+          async send() {
+            sends += 1;
+            return {};
+          },
+        },
+        ORDER_EMAIL_FROM: "orders@theblacksheepshop.co.uk",
+      },
+      { ...order, fulfilmentMessage: null },
+    );
+
+    expect(sends).toBe(0);
+    expect(db.statements).toHaveLength(0);
+  });
+
   it("sends a payment-confirmed acknowledgment", async () => {
     const db = new Db();
     const sent: any[] = [];
@@ -110,6 +135,7 @@ describe("payment notifications", () => {
 
     expect(sent).toHaveLength(1);
     expect(sent[0].subject).toContain("Payment received");
+    expect(sent[0].text).toContain("order is now confirmed");
     expect(db.statements[0].values[1]).toBe("PAYMENT_CONFIRMED_EMAIL_SENT");
   });
 });

@@ -22,9 +22,11 @@ assert.ok(privacy.includes("do not collect or store payment-card details"),"priv
 const returns=fs.readFileSync(path.join(root,"delivery-returns.html"),"utf8");
 assert.ok(returns.includes("within 14 days"),"returns page must state distance cancellation period");
 assert.ok(returns.includes("further 14 days"),"returns page must state return period after cancellation");
+assert.ok(returns.includes("Model cancellation form"),"returns page must include a cancellation form");
+assert.ok(returns.includes("no later than 14 days"),"returns page must state refund timing");
 const terms=fs.readFileSync(path.join(root,"terms.html"),"utf8");
 assert.ok(terms.includes("does not take payment"),"terms must explain request-first model");
-assert.ok(terms.includes("A contract is formed only when"),"terms must define order acceptance point");
+assert.ok(terms.includes("A contract is formed when payment is successfully received"),"terms must define order acceptance point");
 const checkout=fs.readFileSync(path.join(root,"checkout.html"),"utf8");
 for(const href of ["/privacy.html","/delivery-returns.html","/terms.html"]){
   assert.ok(checkout.includes(href),"checkout missing legal link "+href);

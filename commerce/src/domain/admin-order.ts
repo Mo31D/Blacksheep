@@ -8,6 +8,7 @@ export type AdminOrderAction =
       paymentProvider?: string | null;
       paymentReference?: string | null;
       paymentRequestUrl: string;
+      fulfilmentMessage: string;
     }
   | { action: "mark_paid"; paymentReference?: string | null }
   | { action: "start_preparing" }
@@ -39,6 +40,7 @@ export interface ValidatedAdminAction {
   paymentProvider?: string | null;
   paymentReference?: string | null;
   paymentRequestUrl?: string | null;
+  fulfilmentMessage?: string | null;
   trackingReference?: string | null;
   trackingUrl?: string | null;
   timestampField?: "quoted_at" | "paid_at" | "shipped_at" | "completed_at" | "cancelled_at";
@@ -108,17 +110,24 @@ export function validateAdminOrderAction(
       };
     }
 
-    case "send_payment_request":
+    case "send_payment_request": {
       requireStatus(order.status, ["QUOTED", "AWAITING_PAYMENT"], action);
       if (order.finalTotalMinor === null) throw new Error("admin_quote_required");
+      const paymentRequestUrl = httpsUrl(input.paymentRequestUrl);
+      const fulfilmentMessage = optionalText(input.fulfilmentMessage, 300);
+      if (!fulfilmentMessage || fulfilmentMessage.length < 3) {
+        throw new Error("admin_fulfilment_message_required");
+      }
       return {
         nextStatus: "AWAITING_PAYMENT",
         paymentStatus: "PAYMENT_REQUESTED",
         paymentProvider: optionalText(input.paymentProvider, 80) ?? "manual",
         paymentReference: optionalText(input.paymentReference, 180),
-        paymentRequestUrl: httpsUrl(input.paymentRequestUrl),
+        paymentRequestUrl,
+        fulfilmentMessage,
         eventType: "PAYMENT_REQUEST_SENT",
       };
+    }
 
     case "mark_paid":
       requireStatus(order.status, ["AWAITING_PAYMENT"], action);

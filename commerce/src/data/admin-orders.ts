@@ -103,6 +103,7 @@ export async function getAdminOrderDetail(
         payment_provider AS paymentProvider,
         payment_reference AS paymentReference,
         payment_request_url AS paymentRequestUrl,
+        fulfilment_message AS fulfilmentMessage,
         tracking_reference AS trackingReference,
         tracking_url AS trackingUrl,
         created_at AS createdAt,
@@ -198,6 +199,9 @@ export async function applyAdminOrderUpdate(
   if (action.paymentRequestUrl !== undefined) {
     set("payment_request_url", action.paymentRequestUrl);
   }
+  if (action.fulfilmentMessage !== undefined) {
+    set("fulfilment_message", action.fulfilmentMessage);
+  }
   if (action.trackingReference !== undefined) {
     set("tracking_reference", action.trackingReference);
   }
@@ -253,6 +257,7 @@ export async function getPaymentNotificationSnapshot(
   finalTotalMinor: number | null;
   paymentRequestUrl: string | null;
   fulfilmentMethod: string;
+  fulfilmentMessage: string | null;
 } | null> {
   return db
     .prepare(
@@ -263,7 +268,8 @@ export async function getPaymentNotificationSnapshot(
         customer_email AS customerEmail,
         final_total_minor AS finalTotalMinor,
         payment_request_url AS paymentRequestUrl,
-        fulfilment_method AS fulfilmentMethod
+        fulfilment_method AS fulfilmentMethod,
+        fulfilment_message AS fulfilmentMessage
       FROM orders
       WHERE public_reference = ?
       LIMIT 1`,

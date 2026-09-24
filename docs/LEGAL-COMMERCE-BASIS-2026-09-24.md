@@ -32,11 +32,11 @@ Purpose: implementation notes for Phase 13. This is not a substitute for tailore
 
 1. Public checkout links to Privacy, Delivery & returns and Terms before submission.
 2. The order request is explicitly not a payment and not automatic acceptance.
-3. Contract formation is stated to occur only when the shop confirms supply/final total and asks for payment.
-4. Distance cancellation copy uses the 14-day notification period plus the further 14-day return period from current GOV.UK guidance.
+3. The first checkout submission remains a non-binding order request. The shop's payment request is the offer; contract formation is stated to occur when payment is successfully received/confirmed, or another payment arrangement is expressly agreed.
+4. Distance cancellation copy uses the 14-day notification period plus the further 14-day return period from current GOV.UK guidance, states refund timing and includes a model cancellation form.
 5. Common exceptions are described rather than creating blanket “no returns” categories.
 6. Faulty/not-as-described rights are explicitly preserved.
-7. Browser localStorage is disclosed. Current storefront code contains no Google Analytics, Meta Pixel, Microsoft Clarity or equivalent advertising/analytics tracker.
+7. Browser localStorage is disclosed. ICO storage/access guidance was rechecked against the final guidance updated 29 April 2026. Current storefront code contains no Google Analytics, Meta Pixel, Microsoft Clarity or equivalent advertising/analytics tracker.
 8. Basket/security storage is treated as necessary to provide the requested shopping/checkout service; no consent banner is added while non-essential tracking remains absent.
 9. Privacy retention uses necessity/legal-record criteria rather than inventing a fixed retention period before the owner/accountant confirms the business retention schedule.
 
