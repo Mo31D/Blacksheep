@@ -59,6 +59,23 @@ async function readJson(request: Request): Promise<unknown> {
   return JSON.parse(text);
 }
 
+function adminOriginAllowed(request: Request, url: URL): boolean {
+  const origin = request.headers.get("origin");
+  if (origin) return origin === url.origin;
+
+  const referer = request.headers.get("referer");
+  if (referer) {
+    try {
+      return new URL(referer).origin === url.origin;
+    } catch {
+      return false;
+    }
+  }
+
+  // Non-browser clients do not always send Origin/Referer.
+  return true;
+}
+
 export async function handleAdminRequest(
   request: Request,
   env: AdminEnv,
@@ -66,6 +83,14 @@ export async function handleAdminRequest(
 ): Promise<Response> {
   const deps = { ...defaults, ...dependencies };
   const url = new URL(request.url);
+
+  if (
+    request.method === "POST" &&
+    url.pathname.startsWith("/admin/") &&
+    !adminOriginAllowed(request, url)
+  ) {
+    return error("admin_origin_forbidden", 403, "Admin request origin is not allowed.");
+  }
 
   if (url.pathname === "/admin/auth/request" && request.method === "POST") {
     const result = await requestAdminLoginCode(env);
