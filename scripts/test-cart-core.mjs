@@ -116,6 +116,7 @@ assert.match(basketHtml,/id="basketPageItems"/);
 assert.match(basketHtml,/id="basketPageSubtotal"/);
 assert.match(basketHtml,/href="\/checkout\.html"/);
 assert.match(basketHtml,/name="robots" content="noindex,follow"/);
+assert.match(basketHtml,/data-checkout-ready="(?:true|false)"/);
 console.log("Basket page contract checks passed.");
 
 
@@ -128,7 +129,7 @@ assert.match(checkoutHtml,/name="fulfilmentMethod" value="collection"/);
 assert.match(checkoutHtml,/id="checkoutReviewStep"/);
 assert.match(checkoutHtml,/id="checkoutTurnstile"/);
 assert.match(checkoutHtml,/0x4AAAAAAFChkRt-LzNQw9bK/);
-assert.match(checkoutHtml,/data-order-submit-ready="true"/);
+assert.match(checkoutHtml,/data-order-submit-ready="(?:true|false)"/);
 assert.match(checkoutHtml,/name="robots" content="noindex,follow"/);
 console.log("Checkout page contract checks passed.");
 

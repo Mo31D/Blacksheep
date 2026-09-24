@@ -462,14 +462,21 @@ function checkoutTurnstileToken(){
 function checkoutTurnstileChanged(){
   const submit=document.getElementById('checkoutSubmitRequest');
   if(!submit)return;
-  const ready=document.documentElement.dataset.orderSubmitReady==='true';
+  const config=window.BLACK_SHEEP_COMMERCE_CONFIG||{};
+  const ready=document.documentElement.dataset.orderSubmitReady==='true'&&config.enabled===true&&Boolean(config.apiBase);
   submit.disabled=!(ready&&checkoutTurnstileToken()&&blackSheepCart.canCheckout());
 }
 function onCheckoutTurnstileSuccess(){checkoutTurnstileChanged()}
 function onCheckoutTurnstileExpired(){checkoutTurnstileChanged()}
 function initCheckoutTurnstile(){
   const root=document.getElementById('checkoutTurnstile');
-  if(!root||root.dataset.rendered==='1'||!window.turnstile)return;
+  const config=window.BLACK_SHEEP_COMMERCE_CONFIG||{};
+  if(!root)return;
+  if(config.enabled!==true||!config.apiBase){
+    root.innerHTML='<p class="checkout-security-note">Online ordering is being prepared. No order can be submitted yet.</p>';
+    return;
+  }
+  if(root.dataset.rendered==='1'||!window.turnstile)return;
   const siteKey=root.dataset.sitekey;
   if(!siteKey)return;
   const allowed=['theblacksheepshop.co.uk','www.theblacksheepshop.co.uk','localhost','127.0.0.1'];
