@@ -28,6 +28,11 @@ describe("commerce worker", () => {
       status: "ok",
       environment: "test",
       database: "bound",
+      notifications: {
+        provider: "unconfigured",
+        fromConfigured: false,
+        ownerConfigured: false,
+      },
     });
   });
 
