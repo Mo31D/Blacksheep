@@ -1,5 +1,6 @@
 import type { D1DatabaseLike } from "./data/d1";
 import { handleCreateOrder, type RateLimiterLike } from "./routes/orders";
+import { handleAdminRequest } from "./routes/admin";
 
 interface Env {
   ENVIRONMENT?: string;
@@ -69,6 +70,10 @@ function preflight(request: Request, env: Env): Response {
 
 async function route(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
+
+  if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
+    return handleAdminRequest(request, env);
+  }
 
   if (request.method === "OPTIONS") return preflight(request, env);
 
