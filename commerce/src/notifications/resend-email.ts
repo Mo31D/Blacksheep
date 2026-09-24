@@ -24,7 +24,7 @@ export class ResendEmailSender implements SendEmailBindingLike {
 
   constructor(
     apiKey: string,
-    private readonly fetchImpl: typeof fetch = fetch,
+    private readonly fetchImpl?: typeof fetch,
   ) {
     this.apiKey = apiKey.trim();
   }
@@ -41,23 +41,30 @@ export class ResendEmailSender implements SendEmailBindingLike {
       throw new ResendSendError(0, "invalid_api_key_format");
     }
 
+    const requestInit: RequestInit = {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: mailbox(message.from),
+        to: [mailbox(message.to)],
+        reply_to: message.replyTo ? mailbox(message.replyTo) : undefined,
+        subject: message.subject,
+        text: message.text,
+        html: message.html,
+      }),
+    };
+
     let response: Response;
     try {
-      response = await this.fetchImpl("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: mailbox(message.from),
-          to: [mailbox(message.to)],
-          reply_to: message.replyTo ? mailbox(message.replyTo) : undefined,
-          subject: message.subject,
-          text: message.text,
-          html: message.html,
-        }),
-      });
+      if (this.fetchImpl) {
+        const fetchImpl = this.fetchImpl;
+        response = await fetchImpl("https://api.resend.com/emails", requestInit);
+      } else {
+        response = await fetch("https://api.resend.com/emails", requestInit);
+      }
     } catch {
       throw new ResendSendError(0, "transport_error");
     }
