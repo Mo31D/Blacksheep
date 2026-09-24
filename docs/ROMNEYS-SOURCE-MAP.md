@@ -1,381 +1,104 @@
-# Romney's / confectionery — verified official source map
-
-Verified: 23 September 2026
-
-This file records the 35 Black Sheep confectionery products that currently have an exact official product page match. Black Sheep shop prices remain independent and must not be replaced by manufacturer online prices.
-
-Products without an exact current official match are intentionally excluded rather than linked to a merely similar product.
-
-## Rules
-
-- `assets/catalog.js` remains the catalogue source of truth.
-- `official.url` is the exact manufacturer/product source used for entity linking.
-- `official.name` records the current official product name.
-- `official.sku` is included only where directly verified.
-- Romney's-section products can be third-party brands; do not force the Romney's brand when the manufacturer is different.
-- Walker's products remain in the Romney's/confectionery section because Black Sheep stocks them there, but their brand is Walker's Nonsuch.
-- Do not overwrite Black Sheep prices with official website prices.
-- Re-check official pages before importing ingredients/allergen/nutrition changes because recipes and listings can change.
-
-## Verified exact matches
-
-### ROM-013 — After Dinner Mint Fudge 150G
-
-- Black Sheep slug: `rom-013-after-dinner-mint-fudge-150g`
-- Official product: Handmade After Dinner Mint Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-after-dinner-mint-butter-fudge-150g-bag
-- Official SKU: `5022259602977`
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-014 — Triple Choc Fudge 150G
-
-- Black Sheep slug: `rom-014-triple-choc-fudge-150g`
-- Official product: Handmade Triple Chocolate Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-triple-chocolate-butter-fudge-150g-bag
-- Official SKU: `5022259603097`
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-015 — Honey Fudge 150G
-
-- Black Sheep slug: `rom-015-honey-fudge-150g`
-- Official product: Handmade Honey Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-honey-butter-fudge-150g-bag
-- Official SKU: `5022259603066`
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-016 — Ginger Fudge 150G
-
-- Black Sheep slug: `rom-016-ginger-fudge-150g`
-- Official product: Handmade Ginger Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-ginger-fudge-150g-bag-3-pack
-- Official SKU: `5022259603059`
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-017 — Butter Fudge 150g
-
-- Black Sheep slug: `rom-017-butter-fudge-150g`
-- Official product: Handmade Crumbly Butter Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/150g-hand-made-butter-fudge
-- Official SKU: `5022259602960`
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-018 — Cointreau & Orange FUDGE 150G
-
-- Black Sheep slug: `rom-018-cointreau-and-orange-fudge-150g`
-- Official product: Handmade Cointreau & Orange Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-cointreau-orange-butter-fudge-150g-bag
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-019 — CHOCOLATE ORANGE FUDGE 150G
-
-- Black Sheep slug: `rom-019-chocolate-orange-fudge-150g`
-- Official product: Handmade Milk Chocolate Orange Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-milk-chocolate-orange-fudge-150g-bag-3-pack
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-020 — CHOCOLATE FUDGE 150G
-
-- Black Sheep slug: `rom-020-chocolate-fudge-150g`
-- Official product: Handmade Chocolate Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-chocolate-butter-fudge-150g-bag
-- Official SKU: `5022259603011`
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-021 — CAPPUCCINO FUDGE 150G
-
-- Black Sheep slug: `rom-021-cappuccino-fudge-150g`
-- Official product: Handmade Cappuccino Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-cappuccino-fudge-150g-bag-3-pack
-- Official SKU: `5022259603035`
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-022 — BANOFFEE FUDGE 150G
-
-- Black Sheep slug: `rom-022-banoffee-fudge-150g`
-- Official product: Handmade Banoffee Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-banoffee-butter-fudge-150g-bag
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-023 — RUM & RAISIN FUDGE 150G
-
-- Black Sheep slug: `rom-023-rum-and-raisin-fudge-150g`
-- Official product: Handmade Cumbrian Rum & Raisin Butter Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-cumbrian-rum-raisin-butter-fudge-150g-bag
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-024 — WHITE CHOC FUDGE 150G
-
-- Black Sheep slug: `rom-024-white-choc-fudge-150g`
-- Official product: Handmade Belgian White Chocolate Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-belgian-white-chocolate-butter-fudge-150g-bag
-- Official SKU: `5022259603110`
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-025 — SALTED CARAMEL FUDGE 150G
-
-- Black Sheep slug: `rom-025-salted-caramel-fudge-150g`
-- Official product: Handmade Sea Salted Caramel Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-sea-salted-caramel-butter-fudge-150g-bag
-- Official SKU: `5022259603080`
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-026 — VANILLA FUDGE 150G
-
-- Black Sheep slug: `rom-026-vanilla-fudge-150g`
-- Official product: Handmade Vanilla Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-vanilla-fudge-150g-bag-3-pack
-- Official SKU: `5022259603103`
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-027 — Cherry Bakewell Fudge 150G
-
-- Black Sheep slug: `rom-027-cherry-bakewell-fudge-150g`
-- Official product: Handmade Cherry Bakewell Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-cherry-bakewell-butter-fudge-150g-bag
-- Official SKU: `5022259602991`
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-028 — CLOTTED CREAM FUDGE 150G
-
-- Black Sheep slug: `rom-028-clotted-cream-fudge-150g`
-- Official product: Handmade Clotted Cream Butter Fudge Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/hand-made-clotted-cream-butter-fudge-150g-bag
-- Official SKU: `5022259603004`
-- Black Sheep price preserved: £3.95
-- Verified: 2026-09-23
-
-### ROM-030 — Romney's Kendal Mint Cake 85g Bar
-
-- Black Sheep slug: `rom-030-romney-s-kendal-mint-cake-85g-bar`
-- Official product: 85g White Kendal Mint Cake
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/85g-white-kendal-mint-cake
-- Black Sheep price preserved: £1.50
-- Verified: 2026-09-23
-
-### ROM-031 — Brown Kendal Mint Cake 85g
-
-- Black Sheep slug: `rom-031-brown-kendal-mint-cake-85g`
-- Official product: 85g Brown Kendal Mint Cake
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/85g-brown-kendal-mint-cake
-- Black Sheep price preserved: £1.50
-- Verified: 2026-09-23
-
-### ROM-032 — Kendal Mint Cake 170g
-
-- Black Sheep slug: `rom-032-kendal-mint-cake-170g`
-- Official product: 170g White Kendal Mint Cake
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/170g-white-kendal-mint-cake
-- Black Sheep price preserved: £2.70
-- Verified: 2026-09-23
-
-### ROM-033 — Brown Kendal Mint Cake 170g
-
-- Black Sheep slug: `rom-033-brown-kendal-mint-cake-170g`
-- Official product: 170g Brown Kendal Mint Cake
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/170g-brown-kendal-mint-cake
-- Black Sheep price preserved: £2.70
-- Verified: 2026-09-23
-
-### ROM-034 — Extra Strong White Kendal Mint Cake 170g
-
-- Black Sheep slug: `rom-034-extra-strong-white-kendal-mint-cake-170g`
-- Official product: 170g Extra Strong White Kendal Mint Cake
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/170g-extra-strong-white-kendal-mint-cake
-- Black Sheep price preserved: £2.70
-- Verified: 2026-09-23
-
-### ROM-035 — Romneys Kendal Mint Cake Giant White 480g
-
-- Black Sheep slug: `rom-035-romneys-kendal-mint-cake-giant-white-480g`
-- Official product: 480g Giant White Kendal Mint Cake
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/480g-giant-white-kendal-mint-cake
-- Official SKU: `5022259602755`
-- Black Sheep price preserved: £2.70
-- Verified: 2026-09-23
-
-### ROM-036 — Triple Pack Kendal Mint Cake 227g
-
-- Black Sheep slug: `rom-036-triple-pack-kendal-mint-cake-227g`
-- Official product: 227g Triple Pack Kendal Mint Cake
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/227g-triple-pack-kendal-mint-cake
-- Black Sheep price preserved: £5.25
-- Verified: 2026-09-23
-
-### ROM-037 — Chocolate Covered Kendal Mint Cake 113g
-
-- Black Sheep slug: `rom-037-chocolate-covered-kendal-mint-cake-113g`
-- Official product: 113g Chocolate Covered Kendal Mint Cake
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/113g-chocolate-covered-kendal-mint-cake
-- Black Sheep price preserved: £2.65
-- Verified: 2026-09-23
-
-### ROM-038 — Romney's Strawberry Bon Bons
-
-- Black Sheep slug: `rom-038-romney-s-strawberry-bon-bons`
-- Official product: Strawberry Bon Bons
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/strawberry-bon-bons
-- Official SKU: `5022259601918`
-- Official pack detail: 160g
-- Black Sheep price preserved: £2.90
-- Verified: 2026-09-23
-
-### ROM-040 — Thank You Cat Novelty Box 300g
-
-- Black Sheep slug: `rom-040-thank-you-cat-novelty-box-300g`
-- Official product: 300g Thank You Cat Novelty Box
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/300g-thank-you-cat-novelty-box
-- Official SKU: `5022259601673`
-- Black Sheep price preserved: £7.85
-- Verified: 2026-09-23
-
-### ROM-041 — Thank You Dog Novelty Box 300g
-
-- Black Sheep slug: `rom-041-thank-you-dog-novelty-box-300g`
-- Official product: 300g Thank You Dog Novelty Box
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/300g-thank-you-dog-novelty-box
-- Black Sheep price preserved: £7.95
-- Verified: 2026-09-23
-
-### ROM-042 — Thank 'Ewe' Novelty Box 300g
-
-- Black Sheep slug: `rom-042-thank-ewe-novelty-box-300g`
-- Official product: 300g Thank 'Ewe' Novelty Box
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/300g-thank-ewe-novelty-box
-- Black Sheep price preserved: £7.95
-- Verified: 2026-09-23
-
-### ROM-047 — Cinder Toffee Bag 150g
-
-- Black Sheep slug: `rom-047-cinder-toffee-bag-150g`
-- Official product: 150g Cinder Toffee Bag
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/150g-cinder-toffee-bag
-- Official SKU: `5022259601581`
-- Black Sheep price preserved: £3.55
-- Verified: 2026-09-23
-
-### ROM-048 — Chocolate Coated Cinder Toffee 150g
-
-- Black Sheep slug: `rom-048-chocolate-coated-cinder-toffee-150g`
-- Official product: 150g Chocolate Coated Cinder Toffee
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/150g-chocolate-coated-cinder-toffee
-- Official SKU: `5022259601598`
-- Black Sheep price preserved: £4.00
-- Verified: 2026-09-23
-
-### ROM-049 — Peanut Brittle Bar 100g
-
-- Black Sheep slug: `rom-049-peanut-brittle-bar-100g`
-- Official product: 100g Peanut Brittle Bar
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/100g-peanut-brittle-bar
-- Official SKU: `5022259601529`
-- Black Sheep price preserved: £2.50
-- Verified: 2026-09-23
-
-### ROM-050 — Pink & White Nougat Bar 120g
-
-- Black Sheep slug: `rom-050-pink-and-white-nougat-bar-120g`
-- Official product: 120g Pink & White Nougat Bar
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/120g-pink-white-nougat-bar
-- Official SKU: `5022259601512`
-- Black Sheep price preserved: £2.50
-- Verified: 2026-09-23
-
-### ROM-051 — Cumberland Sausage 85G
-
-- Black Sheep slug: `rom-051-cumberland-sausage-85g`
-- Official product: 85g Cumberland Swirl
-- Manufacturer: George Romney Limited
-- Official URL: https://mintcake.co.uk/products/85g-mallow-cumberland-sausages
-- Official SKU: `5022259601574`
-- Black Sheep price preserved: £2.60
-- Verified: 2026-09-23
-
-### ROM-054 — Walkers Original Dreamy Creamy Toffee 50g
-
-- Black Sheep slug: `rom-054-walkers-original-dreamy-creamy-toffee-50g`
-- Official product: Dreamy Creamy Toffee Bars (50g)
-- Manufacturer: Walker's Nonsuch Limited
-- Official URL: https://walkers-nonsuch.co.uk/product/dreamy-creamy-toffee-bars-50g/
-- Black Sheep price preserved: £1.00
-- Verified: 2026-09-23
-
-### ROM-055 — Lovely Liquorice - Walker's Nonsuch Toffee Bar 50g
-
-- Black Sheep slug: `rom-055-lovely-liquorice-walker-s-nonsuch-toffee-bar-50g`
-- Official product: Lovely Liquorice Toffee Bars (50g)
-- Manufacturer: Walker's Nonsuch Limited
-- Official URL: https://walkers-nonsuch.co.uk/product/lovely-liquorice-toffee-bars-50g/
-- Black Sheep price preserved: £1.00
-- Verified: 2026-09-23
-
-## Current unmatched Romney's-section products
-
-The remaining 20 catalogue records do not currently have an exact official product-page match verified. Leave their source metadata unset until the exact manufacturer/current page is confirmed.
-
-- ROM-001 — Lakeland Rock
-- ROM-002 — Dubai Chocolate
-- ROM-003 — Giant Shortbread Cookies
-- ROM-004 — Giant Choc Chip Cookie 250G
-- ROM-005 — Giant Ginger & Lemon Cookie 250G
-- ROM-006 — Ginger Biscuits 200G
-- ROM-007 — Golden Crunch Biscuits 200G
-- ROM-008 — Choc Chip & Orange Biscuits 200G
-- ROM-009 — Chocolate Chip Biscuits 200G
-- ROM-010 — Farmhouse Oaties Biscuits 200G
-- ROM-011 — Shortcake Biscuits 200G
-- ROM-012 — Cherry & Almond Biscuits 200G
-- ROM-029 — Vanilla Fudge Bar 110g
-- ROM-039 — ROMNEY'S Sweet Bag
-- ROM-043 — Gift Box Assorted Toffee 200G
-- ROM-044 — Gift Box Mint Cake 200G
-- ROM-045 — Gift Box Assorted Fudge 200G
-- ROM-046 — Gift Box Clotted Cream Fudge 200G
-- ROM-052 — Romney’s Sherbet Flyer 75g
-- ROM-053 — Fun Kandy Mallow Sheep 35g
+# Romney's / confectionery — internal source map
+
+Verified: 24 September 2026
+
+**Internal provenance only.** Manufacturer/supplier URLs in this document must not be exposed on customer-facing product pages, product names, product images or Product JSON-LD. Black Sheep owner pricing is authoritative and supplier retail prices must never be imported.
+
+## Status legend
+
+- **VERIFIED EXACT** — exact current official manufacturer/product page identified.
+- **VERIFIED THIRD-PARTY** — exact product identified and the true manufacturer is not Romney's.
+- **PARTIAL MATCH** — a related official listing exists but is not safe to merge.
+- **NO CURRENT OFFICIAL MATCH** — no exact current official page verified.
+- **NEEDS OWNER CONFIRMATION** — identity/size/format is ambiguous and must not be guessed.
+
+## Current confectionery catalogue
+
+| Black Sheep ID | Product | Slug | Black Sheep price | Actual brand | Official product | Official source URL | Official image source | Local image | Weight / format | Facts verified | Source status | Notes |
+|---|---|---|---:|---|---|---|---|---|---|---|---|---|
+| ROM-001 | Lakeland Rock | `rom-001-lakeland-rock` | £1.50 | Romney’s of Kendal | — | — | — | `romneys/lakelandr.png` | — | Black Sheep catalogue information only | **NEEDS OWNER CONFIRMATION** | Current record does not identify Small vs Large rock. £1.50 retained for the existing record; £2.80 Large Rock must wait for an exact size/pack mapping. |
+| ROM-002 | Dubai Chocolate | `rom-002-dubai-chocolate` | £2.60 | Elit | Elit The Taste of Dubai Milk Chocolate Filled Pistachio Cream with Kadayif 30g Bar | https://www.elit-chocolate.com/the-taste-of-dubai/ | — | `romneys/dubai.png` | 30g | identity, weight/format | **VERIFIED THIRD-PARTY** | — |
+| ROM-003 | Giant Shortbread Cookies | `rom-003-giant-shortbread-cookies` | £4.50 | Romney’s of Kendal | — | — | — | `romneys/buttershort.png` | — | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-004 | Giant Choc Chip Cookie 250G | `rom-004-giant-choc-chip-cookie-250g` | £4.50 | Romney’s of Kendal | — | — | — | `romneys/Giant-Choc.png` | 250G | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-005 | Giant Ginger & Lemon Cookie 250G | `rom-005-giant-ginger-and-lemon-cookie-250g` | £4.50 | Romney’s of Kendal | — | — | — | `romneys/Giant-ging.png` | 250G | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-006 | Ginger Biscuits 200G | `rom-006-ginger-biscuits-200g` | £2.99 | Romney’s of Kendal | — | — | — | `romneys/gingerb.png` | 200G | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-007 | Golden Crunch Biscuits 200G | `rom-007-golden-crunch-biscuits-200g` | £2.99 | Romney’s of Kendal | — | — | — | `romneys/goldenc.png` | 200G | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-008 | Choc Chip & Orange Biscuits 200G | `rom-008-choc-chip-and-orange-biscuits-200g` | £2.99 | Romney’s of Kendal | — | — | — | `romneys/Chocorangeb.png` | 200G | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-009 | Chocolate Chip Biscuits 200G | `rom-009-chocolate-chip-biscuits-200g` | £2.99 | Romney’s of Kendal | — | — | — | `romneys/Chocchip.png` | 200G | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-010 | Farmhouse Oaties Biscuits 200G | `rom-010-farmhouse-oaties-biscuits-200g` | £2.99 | Romney’s of Kendal | — | — | — | `romneys/Farmh.png` | 200G | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-011 | Shortcake Biscuits 200G | `rom-011-shortcake-biscuits-200g` | £2.99 | Romney’s of Kendal | — | — | — | `romneys/Shortcake.png` | 200G | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-012 | Cherry & Almond Biscuits 200G | `rom-012-cherry-and-almond-biscuits-200g` | £2.99 | Romney’s of Kendal | — | — | — | `romneys/Cherryb.png` | 200G | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-013 | After Dinner Mint Fudge 150G | `rom-013-after-dinner-mint-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade After Dinner Mint Fudge Bag | https://mintcake.co.uk/products/hand-made-after-dinner-mint-butter-fudge-150g-bag | https://mintcake.co.uk/cdn/shop/files/After_Dinner_Mint_Fudge_Bag_1024x1024.png?v=1741793635 | `romneys/official/rom-013-after-dinner-mint-fudge-150g.webp` | 150g | identity, weight/format, SKU, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-014 | Triple Choc Fudge 150G | `rom-014-triple-choc-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Triple Chocolate Fudge Bag | https://mintcake.co.uk/products/hand-made-triple-chocolate-butter-fudge-150g-bag | https://mintcake.co.uk/cdn/shop/files/Triple_Chocolate_Fudge_Bag_1024x1024.png?v=1741792715 | `romneys/official/rom-014-triple-choc-fudge-150g.webp` | 150g | identity, weight/format, SKU, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-015 | Honey Fudge 150G | `rom-015-honey-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Honey Fudge Bag | https://mintcake.co.uk/products/hand-made-honey-butter-fudge-150g-bag | https://mintcake.co.uk/cdn/shop/files/Honey_Fudge_Bag_1024x1024.png?v=1741793797 | `romneys/official/rom-015-honey-fudge-150g.webp` | 150g | identity, weight/format, SKU, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-016 | Ginger Fudge 150G | `rom-016-ginger-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Ginger Fudge Bag | https://mintcake.co.uk/products/hand-made-ginger-fudge-150g-bag-3-pack | https://mintcake.co.uk/cdn/shop/products/GingerFudgeBagWEBP_1024x1024.webp?v=1676300526 | `romneys/official/rom-016-ginger-fudge-150g.webp` | 150g | identity, weight/format, SKU | **VERIFIED EXACT** | — |
+| ROM-017 | Butter Fudge 150g | `rom-017-butter-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Crumbly Butter Fudge Bag | https://mintcake.co.uk/products/150g-hand-made-butter-fudge | https://mintcake.co.uk/cdn/shop/files/Butter_Fudge_Bag_1024x1024.png?v=1741690584 | `romneys/official/rom-017-butter-fudge-150g.webp` | 150g | identity, weight/format, SKU, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-018 | Cointreau & Orange FUDGE 150G | `rom-018-cointreau-and-orange-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Cointreau & Orange Fudge Bag | https://mintcake.co.uk/products/hand-made-cointreau-orange-butter-fudge-150g-bag | https://mintcake.co.uk/cdn/shop/files/Cointreau_Orange_Fudge_Bag_1024x1024.png?v=1741794986 | `romneys/official/rom-018-cointreau-and-orange-fudge-150g.webp` | 150g | identity, weight/format, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-019 | CHOCOLATE ORANGE FUDGE 150G | `rom-019-chocolate-orange-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Milk Chocolate Orange Fudge Bag | https://mintcake.co.uk/products/hand-made-milk-chocolate-orange-fudge-150g-bag-3-pack | https://mintcake.co.uk/cdn/shop/files/Milk_Chocolate_Orange_Fudge_Bag_1024x1024.png?v=1741794767 | `romneys/official/rom-019-chocolate-orange-fudge-150g.webp` | 150g | identity, weight/format, ingredients, nutrition | **VERIFIED EXACT** | — |
+| ROM-020 | CHOCOLATE FUDGE 150G | `rom-020-chocolate-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Chocolate Fudge Bag | https://mintcake.co.uk/products/hand-made-chocolate-butter-fudge-150g-bag | https://mintcake.co.uk/cdn/shop/files/Milk_Chocolate_Fudge_Bag_1024x1024.png?v=1741792587 | `romneys/official/rom-020-chocolate-fudge-150g.webp` | 150g | identity, weight/format, SKU, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-021 | CAPPUCCINO FUDGE 150G | `rom-021-cappuccino-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Cappuccino Fudge Bag | https://mintcake.co.uk/products/hand-made-cappuccino-fudge-150g-bag-3-pack | https://mintcake.co.uk/cdn/shop/products/CappuccinoFudgeBagWEBP_1024x1024.webp?v=1676300170 | `romneys/official/rom-021-cappuccino-fudge-150g.webp` | 150g | identity, weight/format, SKU | **VERIFIED EXACT** | — |
+| ROM-022 | BANOFFEE FUDGE 150G | `rom-022-banoffee-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Banoffee Fudge Bag | https://mintcake.co.uk/products/hand-made-banoffee-butter-fudge-150g-bag | https://mintcake.co.uk/cdn/shop/files/Banoffee_Fudge_Bag_1024x1024.png?v=1741794638 | `romneys/official/rom-022-banoffee-fudge-150g.webp` | 150g | identity, weight/format, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-023 | RUM & RAISIN FUDGE 150G | `rom-023-rum-and-raisin-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Cumbrian Rum & Raisin Butter Fudge Bag | https://mintcake.co.uk/products/hand-made-cumbrian-rum-raisin-butter-fudge-150g-bag | https://mintcake.co.uk/cdn/shop/files/Rum_Raisin_Fudge_Bag_1024x1024.png?v=1741794353 | `romneys/official/rom-023-rum-and-raisin-fudge-150g.webp` | 150g | identity, weight/format, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-024 | WHITE CHOC FUDGE 150G | `rom-024-white-choc-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Belgian White Chocolate Fudge Bag | https://mintcake.co.uk/products/hand-made-belgian-white-chocolate-butter-fudge-150g-bag | https://mintcake.co.uk/cdn/shop/files/White_Chocolate_Fudge_Bag_1024x1024.png?v=1741792027 | `romneys/official/rom-024-white-choc-fudge-150g.webp` | 150g | identity, weight/format, SKU, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-025 | SALTED CARAMEL FUDGE 150G | `rom-025-salted-caramel-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Sea Salted Caramel Fudge Bag | https://mintcake.co.uk/products/hand-made-sea-salted-caramel-butter-fudge-150g-bag | https://mintcake.co.uk/cdn/shop/files/Sea_Salted_Caramel_Fudge_Bag_1024x1024.png?v=1741791863 | `romneys/official/rom-025-salted-caramel-fudge-150g.webp` | 150g | identity, weight/format, SKU, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-026 | VANILLA FUDGE 150G | `rom-026-vanilla-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Vanilla Fudge Bag | https://mintcake.co.uk/products/hand-made-vanilla-fudge-150g-bag-3-pack | https://mintcake.co.uk/cdn/shop/files/Vanilla_Fudge_Bag_1024x1024.png?v=1741795189 | `romneys/official/rom-026-vanilla-fudge-150g.webp` | 150g | identity, weight/format, SKU | **VERIFIED EXACT** | — |
+| ROM-027 | Cherry Bakewell Fudge 150G | `rom-027-cherry-bakewell-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Cherry Bakewell Fudge Bag | https://mintcake.co.uk/products/hand-made-cherry-bakewell-butter-fudge-150g-bag | https://mintcake.co.uk/cdn/shop/files/Cherry_Bakewell_Fudge_Bag_1024x1024.png?v=1741794494 | `romneys/official/rom-027-cherry-bakewell-fudge-150g.webp` | 150g | identity, weight/format, SKU, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-028 | CLOTTED CREAM FUDGE 150G | `rom-028-clotted-cream-fudge-150g` | £3.85 | Romney’s of Kendal | Handmade Clotted Cream Butter Fudge Bag | https://mintcake.co.uk/products/hand-made-clotted-cream-butter-fudge-150g-bag | https://mintcake.co.uk/cdn/shop/files/Clotted_Cream_Fudge_Bag_1024x1024.png?v=1741791621 | `romneys/official/rom-028-clotted-cream-fudge-150g.webp` | 150g | identity, weight/format, SKU, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-029 | Vanilla Fudge Bar 110g | `rom-029-vanilla-fudge-bar-110g` | £2.40 | Romney’s of Kendal | — | — | — | `romneys/VF.PNG` | 110g | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-030 | Romney's Kendal Mint Cake 85g Bar | `rom-030-romney-s-kendal-mint-cake-85g-bar` | £1.50 | Romney’s of Kendal | 85g White Kendal Mint Cake | https://mintcake.co.uk/products/85g-white-kendal-mint-cake | https://mintcake.co.uk/cdn/shop/products/85gWhiteKendalMintCakeWEBP_b439f7a9-4221-4473-89cc-814f2e21feed_1024x1024.webp?v=1676299185 | `romneys/official/rom-030-romney-s-kendal-mint-cake-85g-bar.webp` | 85g | identity, weight/format, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-031 | Brown Kendal Mint Cake 85g | `rom-031-brown-kendal-mint-cake-85g` | £1.50 | Romney’s of Kendal | 85g Brown Kendal Mint Cake | https://mintcake.co.uk/products/85g-brown-kendal-mint-cake | https://mintcake.co.uk/cdn/shop/products/85gBrownKendalMintCakeWEBP_14c1cb69-3608-4e8f-ad7a-7834752b898f_1024x1024.webp?v=1676299062 | `romneys/official/rom-031-brown-kendal-mint-cake-85g.webp` | 85g | identity, weight/format, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-032 | Kendal Mint Cake 170g | `rom-032-kendal-mint-cake-170g` | £2.50 | Romney’s of Kendal | 170g White Kendal Mint Cake | https://mintcake.co.uk/products/170g-white-kendal-mint-cake | https://mintcake.co.uk/cdn/shop/products/170gWhiteKendalMintCakeWEBP_9e5ed190-4950-417f-bb0f-8ea12f31ba53_1024x1024.webp?v=1676296221 | `romneys/official/rom-032-kendal-mint-cake-170g.webp` | 170g | identity, weight/format, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-033 | Brown Kendal Mint Cake 170g | `rom-033-brown-kendal-mint-cake-170g` | £2.50 | Romney’s of Kendal | 170g Brown Kendal Mint Cake | https://mintcake.co.uk/products/170g-brown-kendal-mint-cake | https://mintcake.co.uk/cdn/shop/products/170gBrownKendalMintCakeWEBP_1024x1024.webp?v=1676291992 | `romneys/official/rom-033-brown-kendal-mint-cake-170g.webp` | 170g | identity, weight/format, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-034 | Extra Strong White Kendal Mint Cake 170g | `rom-034-extra-strong-white-kendal-mint-cake-170g` | £2.50 | Romney’s of Kendal | 170g Extra Strong White Kendal Mint Cake | https://mintcake.co.uk/products/170g-extra-strong-white-kendal-mint-cake | https://mintcake.co.uk/cdn/shop/products/ExtraStrongWEBP_1024x1024.webp?v=1676295204 | `romneys/official/rom-034-extra-strong-white-kendal-mint-cake-170g.webp` | 170g | identity, weight/format, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-035 | Romneys Kendal Mint Cake Giant White 480g | `rom-035-romneys-kendal-mint-cake-giant-white-480g` | £2.70 | Romney’s of Kendal | 480g Giant White Kendal Mint Cake | https://mintcake.co.uk/products/480g-giant-white-kendal-mint-cake | https://mintcake.co.uk/cdn/shop/files/480ggiantwhite_1024x1024.jpg?v=1732098668 | `romneys/official/rom-035-romneys-kendal-mint-cake-giant-white-480g.webp` | 480g | identity, weight/format, SKU, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-036 | Triple Pack Kendal Mint Cake 227g | `rom-036-triple-pack-kendal-mint-cake-227g` | £4.90 | Romney’s of Kendal | 227g Triple Pack Kendal Mint Cake | https://mintcake.co.uk/products/227g-triple-pack-kendal-mint-cake | https://mintcake.co.uk/cdn/shop/files/227g_Triple_Pack_Kendal_Mint_Cake_1024x1024.png?v=1741347455 | `romneys/official/rom-036-triple-pack-kendal-mint-cake-227g.webp` | 227g | identity, weight/format, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | — |
+| ROM-037 | Chocolate Covered Kendal Mint Cake 113g | `rom-037-chocolate-covered-kendal-mint-cake-113g` | £2.65 | Romney’s of Kendal | 113g Chocolate Covered Kendal Mint Cake | https://mintcake.co.uk/products/113g-chocolate-covered-kendal-mint-cake | https://mintcake.co.uk/cdn/shop/products/113gChocKendalMintCakeWEBP_1024x1024.webp?v=1676290793 | `romneys/official/rom-037-chocolate-covered-kendal-mint-cake-113g.webp` | 113g | identity, weight/format, ingredients, allergens, dietary, nutrition | **VERIFIED EXACT** | Exact 113g chocolate-covered product is verified, but owner labels Small / Medium / Large are not yet mapped to exact weights. Existing Black Sheep price is retained until the size mapping is confirmed. |
+| ROM-038 | Romney's Strawberry Bon Bons | `rom-038-romney-s-strawberry-bon-bons` | £2.90 | Romney’s of Kendal | Strawberry Bon Bons | https://mintcake.co.uk/products/strawberry-bon-bons | https://cdn.shopify.com/s/files/1/0249/2091/6022/files/698F545C-C687-42C2-BFA8-CD7A4E25498B.png?v=1587674960 | `romneys/official/rom-038-romney-s-strawberry-bon-bons.webp` | 160g | identity, weight/format, SKU | **VERIFIED EXACT** | — |
+| ROM-039 | ROMNEY'S Sweet Bag | `rom-039-romney-s-sweet-bag` | £2.70 | Romney’s of Kendal | — | — | — | `romneys/Sweetbags.jpeg` | — | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-040 | Thank You Cat Novelty Box 300g | `rom-040-thank-you-cat-novelty-box-300g` | £7.85 | Romney’s of Kendal | 300g Thank You Cat Novelty Box | https://mintcake.co.uk/products/300g-thank-you-cat-novelty-box | https://cdn.shopify.com/s/files/1/0249/2091/6022/files/698F545C-C687-42C2-BFA8-CD7A4E25498B.png?v=1587674960 | `romneys/official/rom-040-thank-you-cat-novelty-box-300g.webp` | 300g | identity, weight/format, SKU | **VERIFIED EXACT** | — |
+| ROM-041 | Thank You Dog Novelty Box 300g | `rom-041-thank-you-dog-novelty-box-300g` | £7.95 | Romney’s of Kendal | 300g Thank You Dog Novelty Box | https://mintcake.co.uk/products/300g-thank-you-dog-novelty-box | https://cdn.shopify.com/s/files/1/0249/2091/6022/files/698F545C-C687-42C2-BFA8-CD7A4E25498B.png?v=1587674960 | `romneys/official/rom-041-thank-you-dog-novelty-box-300g.webp` | 300g | identity, weight/format | **VERIFIED EXACT** | — |
+| ROM-042 | Thank 'Ewe' Novelty Box 300g | `rom-042-thank-ewe-novelty-box-300g` | £7.95 | Romney’s of Kendal | 300g Thank 'Ewe' Novelty Box | https://mintcake.co.uk/products/300g-thank-ewe-novelty-box | https://cdn.shopify.com/s/files/1/0249/2091/6022/files/698F545C-C687-42C2-BFA8-CD7A4E25498B.png?v=1587674960 | `romneys/official/rom-042-thank-ewe-novelty-box-300g.webp` | 300g | identity, weight/format | **VERIFIED EXACT** | — |
+| ROM-043 | Gift Box Assorted Toffee 200G | `rom-043-gift-box-assorted-toffee-200g` | £5.60 | Romney’s of Kendal | — | — | — | `romneys/AT.PNG` | 200G | Black Sheep catalogue information only | **NEEDS OWNER CONFIRMATION** | Owner confirmed Postcard Boxes at £4.95, but this older 200g gift-box record has no current exact official match proving it is the intended Postcard Box. Existing Black Sheep price retained. |
+| ROM-044 | Gift Box Mint Cake 200G | `rom-044-gift-box-mint-cake-200g` | £5.00 | Romney’s of Kendal | — | — | — | `romneys/MP.PNG` | 200G | Black Sheep catalogue information only | **NEEDS OWNER CONFIRMATION** | Owner confirmed Postcard Boxes at £4.95, but this older 200g gift-box record has no current exact official match proving it is the intended Postcard Box. Existing Black Sheep price retained. |
+| ROM-045 | Gift Box Assorted Fudge 200G | `rom-045-gift-box-assorted-fudge-200g` | £5.60 | Romney’s of Kendal | — | — | — | `romneys/AF.PNG` | 200G | Black Sheep catalogue information only | **NEEDS OWNER CONFIRMATION** | Owner confirmed Postcard Boxes at £4.95, but this older 200g gift-box record has no current exact official match proving it is the intended Postcard Box. Existing Black Sheep price retained. |
+| ROM-046 | Gift Box Clotted Cream Fudge 200G | `rom-046-gift-box-clotted-cream-fudge-200g` | £5.60 | Romney’s of Kendal | — | — | — | `romneys/CC.PNG` | 200G | Black Sheep catalogue information only | **NEEDS OWNER CONFIRMATION** | Owner confirmed Postcard Boxes at £4.95, but this older 200g gift-box record has no current exact official match proving it is the intended Postcard Box. Existing Black Sheep price retained. |
+| ROM-047 | Cinder Toffee Bag 150g | `rom-047-cinder-toffee-bag-150g` | £3.30 | Romney’s of Kendal | 150g Cinder Toffee Bag | https://mintcake.co.uk/products/150g-cinder-toffee-bag | https://cdn.shopify.com/s/files/1/0249/2091/6022/files/698F545C-C687-42C2-BFA8-CD7A4E25498B.png?v=1587674960 | `romneys/official/rom-047-cinder-toffee-bag-150g.webp` | 150g | identity, weight/format, SKU | **VERIFIED EXACT** | — |
+| ROM-048 | Chocolate Coated Cinder Toffee 150g | `rom-048-chocolate-coated-cinder-toffee-150g` | £3.50 | Romney’s of Kendal | 150g Chocolate Coated Cinder Toffee | https://mintcake.co.uk/products/150g-chocolate-coated-cinder-toffee | https://cdn.shopify.com/s/files/1/0249/2091/6022/files/698F545C-C687-42C2-BFA8-CD7A4E25498B.png?v=1587674960 | `romneys/official/rom-048-chocolate-coated-cinder-toffee-150g.webp` | 150g | identity, weight/format, SKU | **VERIFIED EXACT** | — |
+| ROM-049 | Peanut Brittle Bar 100g | `rom-049-peanut-brittle-bar-100g` | £2.10 | Romney’s of Kendal | 100g Peanut Brittle Bar | https://mintcake.co.uk/products/100g-peanut-brittle-bar | https://cdn.shopify.com/s/files/1/0249/2091/6022/files/698F545C-C687-42C2-BFA8-CD7A4E25498B.png?v=1587674960 | `romneys/official/rom-049-peanut-brittle-bar-100g.webp` | 100g | identity, weight/format, SKU | **VERIFIED EXACT** | — |
+| ROM-050 | Pink & White Nougat Bar 120g | `rom-050-pink-and-white-nougat-bar-120g` | £2.70 | Romney’s of Kendal | 120g Pink & White Nougat Bar | https://mintcake.co.uk/products/120g-pink-white-nougat-bar | https://cdn.shopify.com/s/files/1/0249/2091/6022/files/698F545C-C687-42C2-BFA8-CD7A4E25498B.png?v=1587674960 | `romneys/official/rom-050-pink-and-white-nougat-bar-120g.webp` | 120g | identity, weight/format, SKU | **VERIFIED EXACT** | — |
+| ROM-051 | Cumberland Sausage 85G | `rom-051-cumberland-sausage-85g` | £2.60 | Romney’s of Kendal | 85g Cumberland Swirl | https://mintcake.co.uk/products/85g-mallow-cumberland-sausages | https://cdn.shopify.com/s/files/1/0249/2091/6022/files/698F545C-C687-42C2-BFA8-CD7A4E25498B.png?v=1587674960 | `romneys/official/rom-051-cumberland-sausage-85g.webp` | 85g | identity, weight/format, SKU | **VERIFIED EXACT** | — |
+| ROM-052 | Romney’s Sherbet Flyer 75g | `rom-052-romney-s-sherbet-flyer-75g` | £3.40 | Romney’s of Kendal | — | — | — | `romneys/Fryer.png` | 75g | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-053 | Fun Kandy Mallow Sheep 35g | `rom-053-fun-kandy-mallow-sheep-35g` | £2.20 | Romney’s of Kendal | — | — | — | `romneys/fun-kandy-mallow-sheep-35g.webp` | 35g | Black Sheep catalogue information only | **NO CURRENT OFFICIAL MATCH** | — |
+| ROM-054 | Walkers Original Dreamy Creamy Toffee 50g | `rom-054-walkers-original-dreamy-creamy-toffee-50g` | £1.00 | Walker's Nonsuch | Dreamy Creamy Toffee Bars (50g) | https://walkers-nonsuch.co.uk/product/dreamy-creamy-toffee-bars-50g/ | https://walkers-nonsuch.co.uk/wp-content/uploads/2016/04/Dreamy-Creamy-Bar-2.jpg | `romneys/official/rom-054-walkers-original-dreamy-creamy-toffee-50g.webp` | 50g | identity, weight/format, ingredients, allergens, dietary, nutrition | **VERIFIED THIRD-PARTY** | — |
+| ROM-055 | Lovely Liquorice - Walker's Nonsuch Toffee Bar 50g | `rom-055-lovely-liquorice-walker-s-nonsuch-toffee-bar-50g` | £1.00 | Walker's Nonsuch | Lovely Liquorice Toffee Bars (50g) | https://walkers-nonsuch.co.uk/product/lovely-liquorice-toffee-bars-50g/ | https://walkers-nonsuch.co.uk/wp-content/uploads/2016/05/Lovely-Liquorice-Bar-1.jpg | `romneys/official/rom-055-lovely-liquorice-walker-s-nonsuch-toffee-bar-50g.webp` | 50g | identity, weight/format, ingredients, allergens, dietary, nutrition | **VERIFIED THIRD-PARTY** | — |
+| ROM-056 | Shortbread Selection 300g | `rom-056-shortbread-selection-300g` | £7.50 | Romney’s of Kendal | 300G BUTTER SHORTBREAD SELECTION | https://mintcake.co.uk/collections/biscuits/products/300g-butter-shortbread-selection-1 | https://cdn.shopify.com/s/files/1/0249/2091/6022/files/698F545C-C687-42C2-BFA8-CD7A4E25498B.png?v=1587674960 | `romneys/official/rom-056-shortbread-selection-300g.webp` | 300g | identity, weight/format, SKU | **VERIFIED EXACT** | — |
+
+## Owner-confirmed products still pending exact identity
+
+### Twin Biscuit Sachets — £6.90
+**NEEDS OWNER CONFIRMATION.** The current official Romney's biscuit range contains a **400g Biscuit Selection** (SKU 5022259601642), but its official page does not identify the product as “Twin” or “Sachets”. The matching £6.90 manufacturer price is not identity evidence and is deliberately ignored for Black Sheep pricing.
+
+Candidate: https://mintcake.co.uk/products/400g-biscuit-selection
+
+### Boxed Fudge 150g — £4.90
+**NEEDS OWNER CONFIRMATION.** Current official Romney's listings include multiple distinct 150g boxed fudge products/flavours. The owner description does not identify which exact box is stocked, so no new catalogue record has been invented.
+
+### Chocolate Covered Kendal Mint Cake — Small / Medium / Large
+**NEEDS OWNER CONFIRMATION for the size labels.** Current Black Sheep catalogue has an exact 113g chocolate-covered product. Current official Romney's listings also include other chocolate-covered formats (including 55g and pocket-tin formats). The owner labels Small / Medium / Large must be mapped from the actual Black Sheep packaging/weight before applying £1.40 / £2.50 / £4.70. Triple Pack is independently identified and set to £4.90.
+
+### Rock — Small / Large
+**NEEDS OWNER CONFIRMATION.** Current ROM-001 does not state a weight/size. It remains £1.50. Do not create or price a Large Rock at £2.80 without an exact product record or packaging match.
+
+### Postcard Boxes — £4.95
+**NEEDS OWNER CONFIRMATION.** The four older 200g gift-box records (ROM-043–ROM-046) currently lack exact official matches proving that they are the owner-described “Postcard Boxes”. Their existing Black Sheep prices remain unchanged until exact packaging is confirmed.
+
+## Customer-page source-link rule
+
+The public site must not contain:
+- “Manufacturer source”
+- “Buy from manufacturer”
+- manufacturer/supplier product URLs
+- supplier-shop links from product images or product names
+- supplier retail prices
+
+The actual brand/manufacturer name may be shown as factual product information.
