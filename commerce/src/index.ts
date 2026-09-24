@@ -89,6 +89,12 @@ async function route(request: Request, env: Env): Promise<Response> {
         provider: env.RESEND_API_KEY ? "resend" : "unconfigured",
         fromConfigured: Boolean(env.ORDER_EMAIL_FROM),
         ownerConfigured: Boolean(env.ORDER_OWNER_EMAIL),
+        keyFormatValid: env.RESEND_API_KEY
+          ? /^re_[A-Za-z0-9_-]+$/.test(env.RESEND_API_KEY.trim())
+          : false,
+        keyWhitespaceNormalized: env.RESEND_API_KEY
+          ? env.RESEND_API_KEY === env.RESEND_API_KEY.trim()
+          : false,
       },
     });
   }
