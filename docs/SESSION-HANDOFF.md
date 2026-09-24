@@ -1,5 +1,8 @@
 # Black Sheep — Session Handoff
 
+> **COMMERCE UI WORK IN PROGRESS — DO NOT MERGE YET**  
+> Customer-facing Phases 6–9 are implemented on branch `commerce-v1` and tracked in draft PR #7. The branch contains the Mini Basket, `basket.html`, checkout delivery/collection flow, Turnstile, API submission/idempotent retry, and `order-requested.html`. Latest branch Commerce CI is green. Keep the live `main` storefront unchanged until one real staging Turnstile/order submission is verified and the remaining launch/operations/legal phases are ready.
+
 > **COMMERCE PHASE 4 — CURRENT STATE**  
 > Secure order API is merged to `main` at `10c523439d18464ea4a668ac460c05727d065c65`. `POST /v1/orders` now has strict validation, server-authoritative pricing, UUID idempotency, readable order references, Turnstile Siteverify integration, rate limiting and atomic D1 persistence. Commerce CI passed with 32 tests. Live staging submission is intentionally blocked until the staging Worker secret `TURNSTILE_SECRET_KEY` is configured, then one real staging order + idempotent retry must be verified before Phase 5.
 
