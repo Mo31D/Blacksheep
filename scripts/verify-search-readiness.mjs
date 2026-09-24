@@ -163,7 +163,9 @@ for(const [p,n] of Object.entries(expectedRawLinks)){
   if(!h.includes('"@type":"ItemList"')) fail.push('Missing ItemList graph: '+p);
   if(p==='romneys.html' && (h.match(/<article class="product-card\b[^"]*"/g)||[]).length!==catalog.romneys.length) fail.push('Romney card count drift');
   if(p==='hawkshead-relish.html' && (h.match(/<article class="product-card\b[^"]*"/g)||[]).length!==catalog.hawkshead.length) fail.push('Hawkshead card count drift');
-  if(p==='hawkshead-relish.html' && !h.includes('class="catalog romneys-catalog"')) fail.push('Hawkshead must use Romney compact product grid');
+  if((p==='romneys.html'||p==='hawkshead-relish.html'||p==='all-products.html') && !h.includes('shopping-catalog')) fail.push('Product-first shopping grid missing: '+p);
+  if((p==='romneys.html'||p==='hawkshead-relish.html'||p==='all-products.html') && /View →|Choose a type|Filter the range by product type\.|The full curated range\.|Everything we currently show online\./.test(h)) fail.push('Legacy catalogue friction copy/action returned: '+p);
+  if((p==='romneys.html'||p==='hawkshead-relish.html'||p==='all-products.html') && !h.includes('class="catalog-intro"')) fail.push('Compact catalogue intro missing: '+p);
   if(p==='all-products.html' && (h.match(/<article class="product-card\b[^"]*"/g)||[]).length!==rows.length) fail.push('Full-range card count drift');
 }
 

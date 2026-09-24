@@ -82,3 +82,62 @@ section{padding:78px 0}.section-head{display:flex;justify-content:space-between;
 
 /* Stock status */
 .stock-card-label,.stock-badge.out-of-stock{display:inline-flex;align-items:center;width:max-content;border-radius:999px;background:#f2e6e2;color:#8b3528;font-size:11px;font-weight:800;letter-spacing:.02em}.stock-card-label{padding:5px 8px;margin-top:4px}.stock-badge.out-of-stock{padding:7px 11px;margin:0 0 14px}.stock-row span{font-weight:800;color:#8b3528}.is-out-of-stock .product-img img{opacity:.72}
+
+
+/* Product-first catalogue system — compact discovery before editorial content */
+.catalog-shell{padding:30px 0 72px}
+.catalog-intro{margin:0 0 14px}
+.catalog-intro .eyebrow{margin-bottom:5px}
+.catalog-title-row{display:flex;align-items:baseline;justify-content:space-between;gap:20px}
+.catalog-title-row h1{font-size:clamp(44px,5vw,66px);line-height:.96;letter-spacing:-.025em;margin:0}
+.catalog-count{font:800 12px Inter,Arial,sans-serif;color:var(--muted);white-space:nowrap}
+.catalog-summary{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.45}
+.catalog-controls{display:flex;align-items:center;gap:12px;margin:0 0 15px;min-width:0}
+.catalog-controls.has-search .search{flex:1 1 320px;min-width:220px}
+.catalog-controls .search input{height:41px}
+.catalog-filter-strip{display:flex;gap:7px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:none;padding:2px 1px}
+.catalog-filter-strip::-webkit-scrollbar{display:none}
+.catalog-filter-strip .chip{flex:0 0 auto;padding:8px 12px}
+.shopping-catalog{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.shopping-catalog .product-card{cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+.shopping-catalog .product-card:hover{transform:translateY(-2px);border-color:rgba(125,109,75,.3);box-shadow:0 10px 28px rgba(25,23,18,.06)}
+.shopping-catalog .product-card:focus-visible{outline:3px solid var(--gold2);outline-offset:3px}
+.shopping-catalog .product-info{padding:12px;gap:4px}
+.shopping-catalog .product-title{font-size:21px;line-height:1.06}
+.shopping-catalog .product-desc{display:none}
+.shopping-catalog .brand-line{font-size:9px;margin-top:1px}
+.shopping-catalog.catalog-brand .kicker,.shopping-catalog.catalog-brand .brand-line{display:none}
+.product-buyline{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:25px;margin-top:7px}
+.shopping-catalog .product-price{font:800 18px/1 Inter,Arial,sans-serif;letter-spacing:-.02em;color:var(--ink)}
+.shopping-catalog .product-price--ask{font-size:11px;color:var(--muted);letter-spacing:0}
+.shopping-catalog .stock-card-label{margin:0;padding:5px 8px;font-size:9px}
+.shopping-catalog .card-actions{margin-top:auto;padding-top:5px}
+.shopping-catalog .list-add{font-size:10px}
+.card-link{display:none!important}
+.romneys-price{font:800 28px/1 Inter,Arial,sans-serif;letter-spacing:-.025em;margin:17px 0 15px}
+.romneys-detail .price-row,.romneys-verified-note{display:none!important}
+@media(max-width:1080px){.shopping-catalog{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){
+ .catalog-body .topbar{display:none}
+ .catalog-shell{padding:18px 0 48px}
+ .catalog-intro{margin-bottom:11px}
+ .catalog-intro .eyebrow{font-size:9px}
+ .catalog-title-row{align-items:flex-end;gap:10px}
+ .catalog-title-row h1{font-size:42px;line-height:.94}
+ .catalog-count{font-size:10px;padding-bottom:3px}
+ .catalog-summary{font-size:11px;line-height:1.35;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .catalog-controls,.catalog-controls.has-search{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:11px}
+ .catalog-controls.has-search .search{min-width:0}
+ .catalog-controls .search input{height:39px;padding:0 14px;font-size:12px}
+ .catalog-filter-strip{width:calc(100vw - 24px);margin-right:-12px;padding-right:12px}
+ .catalog-filter-strip .chip{padding:7px 11px;font-size:10px}
+ .shopping-catalog{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .shopping-catalog .product-info{padding:10px 9px;gap:3px}
+ .shopping-catalog .product-title{font-size:17px;line-height:1.06}
+ .shopping-catalog .kicker{font-size:8px}
+ .shopping-catalog .product-price{font-size:16px}
+ .shopping-catalog .product-buyline{margin-top:6px;min-height:22px;align-items:center}
+ .shopping-catalog .card-actions{width:100%;padding-top:4px}
+ .shopping-catalog .list-add{font-size:9px}
+ .romneys-price{font-size:25px;margin:13px 0}
+}

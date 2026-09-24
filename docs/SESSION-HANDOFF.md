@@ -320,3 +320,12 @@ Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` b
 ### Hawkshead imagery completion — 24 September 2026
 - Owner uploaded exact images for HR-013 Bloody Mary Chutney, HR-014 Honeycomb Honey, HR-015 Cumberland Sauce and HR-016 Cheeseboard Chutney.
 - All 15 active Hawkshead products now use exact owner-supplied product imagery; none relies on the shared range image for its main card/product image.
+
+### Product-first catalogue UX — 24 September 2026
+- Romney's, Hawkshead Relish and Full range now use one compact catalogue architecture: short title/count, minimal filters, then products immediately.
+- Removed the large catalogue hero/range-note/instructional layers from these three routes.
+- Full range keeps search; brand pages use compact horizontal filter chips.
+- Product cards are whole-card clickable, the redundant View action is removed/hidden, and price/stock hierarchy is standardized.
+- Brand repetition is suppressed on brand-specific catalogue grids; Full range retains category context.
+- Product detail runtime cleanup removes duplicate price rows, duplicate manufacturer=brand rows, internal verification copy, and shortens availability to Check in store / Out of stock.
+- Romney builder and search-readiness checks were updated so future rebuilds preserve this architecture.

@@ -192,3 +192,13 @@ Search-readiness QA passed for implementation commit `bba82641f56c160e0d48f563b6
 
 - [x] Mark Bloody Mary Ketchup (£4.70) and Hot Garlic Pickle (£5.30) out of stock.
 - [x] Remove Five Fruit Marmalade from the active catalogue and product routes.
+
+## Product-first catalogue UX — completed 2026-09-24
+- [x] Replace large Romney's, Hawkshead and Full range intros with compact catalogue headers.
+- [x] Remove redundant browse instructions and range-note/Visit-us blocks before products.
+- [x] Keep Full range search and make filter chips horizontally scrollable on mobile.
+- [x] Standardize all three catalogue grids to 4 desktop / 3 tablet / 2 mobile columns.
+- [x] Make the whole product card clickable while preserving My List as a separate action.
+- [x] Remove/hide redundant View links and improve price/stock hierarchy.
+- [x] Remove duplicate price/manufacturer rows and internal verification prose from product-detail flow.
+- [x] Update Romney builder and QA guards to preserve the new system.
