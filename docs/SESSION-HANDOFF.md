@@ -2,7 +2,7 @@
 
 Updated: 24 September 2026
 
-Latest verified implementation milestone: `a5ebfc2d57d36d079414260ae320b27377e68ce3` (owner-confirmed Romney pricing + cross-builder QA; documentation commits may be newer)
+Latest verified implementation milestone: `80f88e98bb07b318422f7faf011e165a738dc9fa` (12-product Hawkshead Relish catalogue + static pages + search QA; documentation commits may be newer)
 
 This is the short handoff file for ChatGPT, Work/Sites, Codex, or any future session. Read this before making changes.
 
@@ -44,6 +44,30 @@ At the end:
 2. Replace the “Latest completed work” and “Exact next action” sections below.
 3. Record the final commit SHA.
 4. State any unresolved blockers explicitly.
+
+## CRITICAL LATEST HANDOFF — Hawkshead Relish catalogue, 24 September 2026
+
+**This section supersedes older catalogue-count and Hawkshead-status notes below.**
+
+- GitHub `main` remains authoritative.
+- Verified implementation commit: `80f88e98bb07b318422f7faf011e165a738dc9fa`.
+- Current catalogue: **120 products total** = 41 Gifts + 12 Luxury Lakes Ice Cream + 55 Romney's/confectionery + **12 Hawkshead Relish**.
+- Current sitemap: **137 URLs** = 17 active non-product pages + 120 canonical static product pages.
+- Hawkshead Relish now has 12 canonical static pages under `products/hr-*.html`, plus 12 prerendered cards in `hawkshead-relish.html` and 120 cards in Full range.
+- Exact manufacturer names, pack sizes and available factual product information were checked against the current Hawkshead Relish website. Internal provenance is recorded in `docs/HAWKSHEAD-RELISH-SOURCE-MAP.md`.
+- Public pages do **not** expose the supplier-shop URLs or manufacturer retail prices. No numeric Black Sheep price was invented; the 12 products currently display as an **in-store range** until owner pricing is supplied.
+- Ingredients, allergens, dietary facts, nutrition, storage and relevant warnings are included where the current official product page exposed them. For Five Fruit Marmalade, incomplete regular-jar ingredient/nutrition data was intentionally not invented.
+- Initial Hawkshead product imagery uses the existing genuine range photograph `images/49.png`; it is explicitly treated as range imagery, not an individual pack-shot.
+- `scripts/verify-search-readiness.mjs` now treats Hawkshead Relish as a first-class prerendered collection and checks source provenance plus the rule against inferred supplier pricing.
+- GitHub Actions **Search readiness** passed for the implementation commit.
+
+### Exact next action
+1. Keep newest GitHub `main` as source of truth; do not restore an older Work/Sites copy.
+2. If the owner supplies Black Sheep prices for these 12 Hawkshead products, add those prices only from owner confirmation.
+3. Individual product pack-shots can replace the shared genuine range image when exact images are available; do not substitute unrelated or generated product imagery.
+4. Sync/publish to the **same existing Black Sheep Sites project** only when its exact identity/URL is available; do not create a duplicate.
+5. Perform live mobile + desktop QA after deployment, including Hawkshead collection filters, product pages, My List, Full range and sitemap/canonical behavior.
+6. Resolve remaining Romney's identity/weight questions only from exact evidence. Search Console/live indexing remains separate from repository QA.
 
 ## CRITICAL LATEST HANDOFF — Romney's rebuild, 24 September 2026
 
@@ -138,38 +162,14 @@ Do not reproduce the previous regex/meta transformation that dropped the opening
 
 ## Latest completed work
 
-- Fixed a product detail page runtime bug: `product.html` previously referenced `renderDetail` before `assets/site.js` loaded, which could leave the detail area blank. The scripts now load first and the renderer is registered afterwards (commit `87e901d1fb3883eff924691756538fbd4aecc397`).
-- Post-fix QA confirms all 41 completed detail records (12 Highland Cow + 29 Peter Rabbit) have valid slugs, labels and image paths; gallery paths also resolve.
-
-- Full repository QA audit completed and saved in `docs/QA-AUDIT-2026-09-23.md`: 173 gift records checked; 0 duplicate IDs, slugs or SKUs; 0 missing referenced gift images; catalogue parses and site JS compiles.
-- Both six-image Highland Cow upload batches are present in `images/highland-cows/`; all 12 exact Highland Cow detail records resolve to those images.
-
-- Synced internal-page product facts for 29 exact Peter Rabbit products shared with `Mo31D/Lakesidepinicnew`, using `src/catalogue.json` as the factual source while preserving Black Sheep prices, product URLs and images.
-- Peter Rabbit pages now selectively show useful structured details such as dimensions, material, packaging, suitability and care where verified.
-- Added renderer support for `Suitable for` and `Care` rows.
-- Peter Rabbit QA passed: all 29 shared product image paths exist; no duplicate IDs, slugs or SKUs were introduced.
-- Owner later narrowed the catalogue scope: the 40 generic/store-photo Peter Rabbit records were removed. Keep only the 29 exact Peter Rabbit products matched to Lakeside Picnic unless the owner explicitly requests more.
-
-- Completed internal product-detail content for 12 exact Highland Cow products. Each page now uses concise customer-facing copy and only useful fields: Brand, owner-confirmed Price, Product code, Range, verified Dimensions, Material and Availability.
-- Added exact catalogue entries for LP76232 Ear Moofs, LP76228 Beer Cheers, LP75983 Hairdo and LP75341 With Thistle.
-- Upgraded existing HC-004 and HC-005 in place to LP75454 Soaking and LP75453 Loo-Time, preserving their existing product URLs.
-- Loo-Time and Soaking remain intentionally without a published price until the owner confirms their shop prices.
-- Product-detail UI was simplified so Range replaces the redundant Collection row when a specific range is present.
-
-- First exact Highland Cow image/product batch prepared: LP73651, LP73652, LP74354, LP74355, LP74358 and LP75455.
-- Six user-supplied 800×800 product photos were converted to WebP with stable descriptive filenames and uploaded to `images/highland-cows/` on `main` in commit `432927584c2ff0ea1c34ab9e2e63211b535328c3`.
-- Repository QA confirms all six catalogue image references resolve to existing files, with no duplicate IDs, slugs or SKUs in this batch.
-- Catalogue/product pages are prepared on `main`: five new exact entries were added and existing HC-003 was upgraded in place to LP75455 Highland Cow Trio.
-- Product detail rendering now shows optional Range and Dimensions fields.
-- Latest Peter Rabbit and full Romney’s catalogue work was preserved from earlier GitHub updates.
-- Owner evidence from `Blacksheep.zip` was extracted and recorded.
-- The 19 supplied Highland Cow product screenshots were audited: 18 distinct products plus one duplicate.
-- All 18 distinct supplied Highland Cow product images were mapped to official Lesser & Pavey / Leonardo stock codes.
-- Christmas products from the owner screenshots were mapped to product codes and owner prices.
-- The Christmas Highland Cow family with Merry Christmas sign/tree was corrected to `LP54679`.
-- Existing GitHub Highland Cow image slots `images/157.png`–`images/179.png` were confirmed to be duplicate placeholder blobs rather than real product photos.
-- A detailed source map exists at `docs/HIGHLAND-COW-SOURCE-MAP.md`.
-- A previous recovery branch exists only as safety/history: `recovery/black-sheep-work-2026-09-23`. It is no longer the primary workflow.
+- Added 12 exact Hawkshead Relish products from the owner-supplied range: The Original Black Garlic Ketchup, Bloody Mary Ketchup, Traditional English Mustard, Raspberry & Vanilla Jam, Strawberry & Black Pepper Jam, Damson Extra Jam, Red Onion Marmalade, Five Fruit Marmalade, Beetroot & Horseradish Chutney, Hot Garlic Pickle, Piccalilli and Westmorland Chutney.
+- Added canonical static product pages under `products/hr-*.html`, with Product/Breadcrumb/WebPage/Store schema, open product-information sections, My List support and in-store availability language.
+- Rebuilt `hawkshead-relish.html` as a real 12-product collection with category filters and ItemList schema.
+- Added Hawkshead Relish to Full range and updated Full range to 120 product cards.
+- Updated `sitemap.xml` to 137 URLs and extended search-readiness checks for Hawkshead collection counts, internal source mapping and no inferred supplier pricing.
+- Added `docs/HAWKSHEAD-RELISH-SOURCE-MAP.md` with all 12 exact official source URLs.
+- Did not import manufacturer retail prices as Black Sheep prices.
+- Search readiness passed on implementation commit `80f88e98bb07b318422f7faf011e165a738dc9fa`.
 
 ## Important owner pricing already recorded
 
@@ -274,10 +274,10 @@ Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` b
 - Final main QA passed on `08817788b722cbb6ad675f331ff4f8532e2a0c74`: **109 products, 17 active pages, 126 sitemap URLs**; search-readiness, Ice Cream builder `--check`, and Romney builder `--check` all passed. GitHub Pages deployment also succeeded.
 - Exact existing Black Sheep Sites project is still unresolved; **no duplicate Sites project was created**.
 
-### Exact next action after this rebuild
+### Exact next action
 
-1. Continue only from newest GitHub `main`.
-2. Preserve the 109-product static/search architecture and the current Romney builder/verifier.
-3. If working in Sites, sync the **same existing Black Sheep project** from GitHub; never create a duplicate or restore an older Sites version over `main`.
-4. Resolve remaining size/pack questions from actual Black Sheep packaging/photos before applying unassigned owner prices.
-5. GitHub Pages deployment succeeded; perform browser-level live mobile/desktop visual QA next. When available, verify real indexing/search performance in Search Console rather than inferring ranking from repository structure alone.
+1. Continue from newest GitHub `main`; preserve the 120-product static architecture.
+2. Add Hawkshead Black Sheep prices only when owner-confirmed.
+3. Replace shared Hawkshead range imagery with exact individual pack-shots when available.
+4. Sync the same existing Black Sheep Sites project when its exact identity is available, then run live mobile/desktop QA.
+5. Keep remaining Romney identity/weight questions evidence-only; do not guess.

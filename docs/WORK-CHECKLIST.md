@@ -1,7 +1,7 @@
 # Black Sheep — resumable work checklist
 
 Updated 2026-09-24. Repository: https://github.com/Mo31D/Blacksheep — branch main.
-GitHub `main` is authoritative. Latest verified search/QA implementation milestone: `a5ebfc2d57d36d079414260ae320b27377e68ce3` (owner-confirmed Romney pricing + cross-builder QA; documentation commits may be newer).
+GitHub `main` is authoritative. Latest verified search/QA implementation milestone: `80f88e98bb07b318422f7faf011e165a738dc9fa` (12 Hawkshead Relish products + static pages + search-readiness PASS; documentation commits may be newer).
 
 ## Resume rules
 1. Read this file, docs/OWNER-REQUESTS.md, docs/HIGHLAND-COW-SOURCE-MAP.md and docs/SESSION-HANDOFF.md before editing.
@@ -12,6 +12,22 @@ GitHub `main` is authoritative. Latest verified search/QA implementation milesto
 6. The user can assist with manual asset acquisition when useful: provide exact source link, exact filename, target repository folder and any conversion/cropping requirement.
 7. Synchronize the SAME Sites project when its identity becomes available. Do not invent a Sites ID or create a duplicate.
 8. The uploaded source evidence is Blacksheep.zip, Library ID libfile_aea3ba2b6374819189c3a1ca92c93517. Contains 10 owner-message screenshots + 19 product screenshots (one duplicate).
+
+## Hawkshead Relish catalogue — completed 2026-09-24
+
+- [x] Add the 12 photographed Hawkshead Relish products using their current official product names.
+- [x] Verify manufacturer source URLs and pack sizes; retain provenance in `docs/HAWKSHEAD-RELISH-SOURCE-MAP.md`.
+- [x] Add concise customer-facing descriptions plus available official ingredients, allergens, dietary information, nutrition, storage and warnings.
+- [x] Do not copy manufacturer retail prices into Black Sheep pricing.
+- [x] Create 12 canonical static `products/hr-*.html` pages with schema and My List integration.
+- [x] Turn `hawkshead-relish.html` into a 12-product prerendered collection with filters and ItemList schema.
+- [x] Add Hawkshead Relish to Full range: **120 total product cards**.
+- [x] Reconcile sitemap to **137 URLs**: 17 active non-product pages + 120 product pages.
+- [x] Extend search-readiness verification for Hawkshead source mapping, collection count and no inferred supplier price.
+- [x] GitHub Actions Search readiness passed for implementation commit `80f88e98bb07b318422f7faf011e165a738dc9fa`.
+- [ ] Replace the shared genuine Hawkshead range photo with exact individual pack-shots when suitable source images are available.
+- [ ] Add Black Sheep shop prices only after owner confirmation.
+
 
 ## Phase 1 — restore and compare
 - [x] Fetch current GitHub main and inspect recent commits.
@@ -71,17 +87,18 @@ GitHub `main` is authoritative. Latest verified search/QA implementation milesto
 
 ## Current next action
 
-GitHub `main` is the source of truth after the 24 September Romney's rebuild.
+GitHub `main` is the source of truth after the 24 September Hawkshead Relish addition.
 
-1. Sync the **same existing Black Sheep Sites project** from newest `main` when its exact identity/URL is available; do not create a duplicate.
-2. After publish, perform live mobile + desktop QA.
-3. Preserve **109** canonical static `/products/<slug>.html` pages: 41 Gifts + 12 Ice Cream + 56 Romney's/confectionery.
-4. Keep manufacturer/supplier URLs private in `docs/ROMNEYS-SOURCE-MAP.md`; do not restore public supplier links or supplier `sameAs`.
-5. Resolve pending Romney's identities only with exact evidence: Twin Biscuit Sachets, Boxed Fudge 150g, Chocolate Covered size mapping, Large Rock and Postcard Boxes.
-6. Keep Loo-Time and Soaking prices unpublished until owner-confirmed.
-7. Remaining external work: Sites synchronization, live deployment QA, Google Maps/360 imagery review and Black Sheep Search Console analysis when access is available.
+1. Preserve **120** canonical static `/products/<slug>.html` pages: 41 Gifts + 12 Ice Cream + 55 Romney's/confectionery + 12 Hawkshead Relish.
+2. Add numeric Hawkshead Black Sheep prices only when the owner confirms them; manufacturer retail prices are not a pricing source.
+3. Replace the shared Hawkshead range image with exact individual pack-shots when available.
+4. Sync the **same existing Black Sheep Sites project** from newest `main` when its exact identity/URL is available; do not create a duplicate.
+5. After publish, perform live mobile + desktop QA, especially Hawkshead filters, product pages, Full range, My List, schema/canonicals and sitemap.
+6. Keep manufacturer/supplier source URLs private in the internal source maps; do not restore public supplier-shop links.
+7. Resolve pending Romney's identities only with exact evidence; keep unconfirmed prices unpublished.
+8. Search Console/live indexing, Google Maps/360 imagery and Sites synchronization remain external follow-up work.
 
-Repository QA has no known blocking issue. Final Romney/ice-cream cross-builder QA and owner-price reconciliation passed at `a5ebfc2d57d36d079414260ae320b27377e68ce3`; hosting/deployment state still needs confirmation after newest `main` publishes.
+Repository search-readiness QA passed for Hawkshead implementation commit `80f88e98bb07b318422f7faf011e165a738dc9fa`.
 
 ## Navigation decision — completed
 
@@ -93,9 +110,9 @@ Repository QA has no known blocking issue. Final Romney/ice-cream cross-builder 
 
 - [x] Remove every unmodified/placeholder product record.
 - [x] Keep only products with real images and proper descriptions from completed work.
-- [x] Final retained catalogue: 41 Gifts, 12 Ice Cream, 56 Romney's; Hawkshead and Lakeland Fragrances currently have no product records.
+- [x] Current retained catalogue: 41 Gifts, 12 Ice Cream, 55 Romney's/confectionery and 12 Hawkshead Relish; Lakeland Fragrances has no product records.
 - [x] Remove empty gift categories from the current Gifts-page selector/navigation.
-- [x] QA: all 109 retained records have valid real images and descriptions; no duplicate IDs/slugs/SKUs.
+- [x] Current catalogue QA: 120 records are wired into canonical static pages; Hawkshead products currently use the genuine shared range image until individual pack-shots are supplied.
 
 ## Deep repository audit — completed
 
