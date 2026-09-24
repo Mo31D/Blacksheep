@@ -86,6 +86,21 @@ describe("admin routes", () => {
     expect(await response.text()).toContain("Admin sign in");
   });
 
+  it("rejects cross-origin admin POST requests before auth logic runs", async () => {
+    const response = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/auth/request", {
+        method: "POST",
+        headers: { origin: "https://evil.example" },
+      }),
+      { DB: new Db() },
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "admin_origin_forbidden" },
+    });
+  });
+
   it("fails closed for unauthenticated admin API requests", async () => {
     const response = await handleAdminRequest(
       new Request("https://admin.example.com/admin/api/orders"),
