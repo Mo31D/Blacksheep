@@ -12,7 +12,7 @@ This is the resumable execution file for the Commerce project. Update it after e
 - Current Commerce foundation commit on `main`: `a9834b08f463a39eee5165468b325fc0e58dd1c2`.
 - Commerce CI on `main`: PASS (TypeScript + 5 tests + Wrangler staging dry-run).
 - Existing Search readiness on `main`: PASS.
-- Cloudflare account resources (D1, Turnstile, deployment token/account secrets) are **not yet configured**.
+- Cloudflare D1 staging + production databases are created and their IDs are recorded in Wrangler. Turnstile and later production secrets are still pending.
 - Do not start Phase 2 or customer-facing Basket/Checkout work until the staging Worker is deployed and `/health` is verified remotely.
 
 ## Rules for every session
@@ -79,23 +79,31 @@ Goal: backend deploys before changing customer UX.
 
 ## Phase 2 — D1 order model
 
+Cloudflare D1 resources:
+- [x] `black-sheep-commerce-staging` — `d442b45d-93b6-4535-b76a-4b72e62dc271`
+- [x] `black-sheep-commerce-prod` — `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
+
+Status: CODE + LOCAL MIGRATION COMPLETE — remote staging migration pending.
+
 Goal: real persistent orders exist before checkout is connected.
 
-- [ ] Add initial D1 migration.
-- [ ] Create `orders` table.
-- [ ] Create `order_items` table.
-- [ ] Create `order_events` table.
-- [ ] Add unique public reference.
-- [ ] Add unique idempotency key.
-- [ ] Add status constraints/validation.
-- [ ] Add indexes needed for owner queue and reference lookup.
-- [ ] Bind staging D1 (database created; ID still needed).
-- [ ] Apply staging migration after binding.
-- [ ] Add repository/data-access layer.
-- [ ] Add transaction-safe order creation.
-- [ ] Add tests for persistence and duplicate idempotency.
+- [x] Add initial D1 migration.
+- [x] Create `orders` table.
+- [x] Create `order_items` table.
+- [x] Create `order_events` table.
+- [x] Add unique public reference.
+- [x] Add unique idempotency key.
+- [x] Add status constraints/validation.
+- [x] Add indexes needed for owner queue and reference lookup.
+- [x] Bind staging D1 in Wrangler config.
+- [ ] Apply migration to remote staging D1 and verify the three tables.
+- [x] Add repository/data-access layer.
+- [x] Add transaction-safe order creation using D1 batch.
+- [x] Add tests for persistence and duplicate idempotency lookup.
 
-**Suggested commit:** `commerce: add D1 order persistence`
+**Validation so far:** local D1 migration PASS (8 SQL commands), 8 automated tests PASS, TypeScript PASS, Wrangler staging dry-run PASS.
+
+**Commit:** `commerce: add D1 order persistence`
 
 ## Phase 3 — Server-authoritative catalogue snapshot
 
