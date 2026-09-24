@@ -357,3 +357,9 @@ Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` b
 - Replaced the temporary £9.50 blanket price on all 23 newly added Christmas/Halloween Highland Cow placeholders with exact per-SKU owner prices.
 - Arrival state remains unchanged: 9 available/no badge, 14 Arriving soon.
 - LP55906 is clarified as the couple with presents in red pyjamas (£13.99); no duplicate product was created.
+
+### Highland Cow Phase 1 — arrived products completed, 24 September 2026
+- 9 on-shelf Christmas Highland Cow records are upgraded from arrival placeholders to canonical indexable product pages with verified supplier facts and open-by-default Product Information.
+- The 14 products still awaiting delivery remain the only Highland placeholders and continue to display Arriving soon.
+- No supplier image was hotlinked or replaced with a screenshot. The 9 completed records use imagePending until a clean local source image can be added.
+- Sitemap now indexes the 9 completed product URLs; image-pending products do not claim fabricated image metadata.

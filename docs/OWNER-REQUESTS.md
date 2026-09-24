@@ -77,3 +77,7 @@ Customer wording rule: awaiting-delivery items are **Arriving soon**, never **Ou
 - LP55729 — Xmas Tree Highland Cow LED — £10.00
 
 LP55906 (“Xmas Highland Cows Presents”) is the couple with presents in red pyjamas; price £13.99. This is a clarification of the existing SKU, not an additional product.
+
+## Highland Cow Phase 1 product-detail completion — 24 September 2026
+
+The nine arrived/on-shelf SKUs LP55737, LP55899, LP55203, LP55906, LP55733, LP55394, LP55397, LP55400 and LP55729 are confirmed as active in-store products, not arriving/out-of-stock placeholders. Their owner retail prices remain authoritative. Supplier facts may be used, but supplier/trade pricing must never replace Black Sheep pricing.

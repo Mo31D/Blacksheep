@@ -75,11 +75,14 @@ for(const item of (catalog.hawkshead||[])){
 
 const expectedHighlandPlaceholderPrices={"LP55737":8.5,"LP55899":10,"LP55203":9.9,"LP55906":13.99,"LP55733":21.95,"LP55394":10,"LP55397":24.95,"LP55400":24.85,"LP55729":10,"LP55590":7.5,"LP55595":9.5,"LP55596":10,"LP55599":9.5,"LP55579":12.85,"LP55580":13.5,"LP55571":9.5,"LP55572":9.5,"LP55573":9.5,"LP55574":12.85,"LP55577":9.5,"LP55570":12.5,"LP55734":29.99,"LP55904":13.99};
 const highlandPlaceholders=(catalog.gifts||[]).filter(x=>x.placeholder===true&&/^HC-(?:03[3-9]|04[0-9]|05[0-5])$/.test(x.id||''));
-if(highlandPlaceholders.length!==23) fail.push('Unexpected Highland placeholder count');
+if(highlandPlaceholders.length!==14) fail.push('Unexpected Highland placeholder count');
 for(const item of highlandPlaceholders){if(expectedHighlandPlaceholderPrices[item.sku]!==item.price)fail.push('Highland placeholder owner price drift: '+item.sku)}
-if(highlandPlaceholders.filter(x=>x.availabilityStatus==='in-store').length!==9||highlandPlaceholders.filter(x=>x.availabilityStatus==='arriving-soon').length!==14) fail.push('Unexpected Highland placeholder arrival partition');
+if(highlandPlaceholders.filter(x=>x.availabilityStatus==='in-store').length!==0||highlandPlaceholders.filter(x=>x.availabilityStatus==='arriving-soon').length!==14) fail.push('Unexpected Highland placeholder arrival partition');
 
 for(const file of ['gifts.html','gifts-highland-cows.html','gifts-seasonal.html','gifts-home-art.html','all-products.html']){const h=read(file);for(const item of highlandPlaceholders){const pos=h.indexOf('data-url="/products/'+item.slug+'.html"');if(pos<0){fail.push('Missing Highland placeholder card: '+file+' '+item.id);continue}const card=h.slice(pos,h.indexOf('</article>',pos));if(!card.includes(money(item.price)))fail.push('Highland placeholder card pricing/status mismatch: '+file+' '+item.id);if(item.availabilityStatus==='arriving-soon'&&!card.includes('Arriving soon'))fail.push('Highland arriving-soon card badge missing: '+file+' '+item.id);if(item.availabilityStatus==='in-store'&&/In store|Available in store/.test(card))fail.push('Highland available card should have no stock badge: '+file+' '+item.id)}}
+
+const phaseOneHighlandCodes=["LP55737","LP55899","LP55203","LP55906","LP55733","LP55394","LP55397","LP55400","LP55729"];
+for(const code of phaseOneHighlandCodes){const item=(catalog.gifts||[]).find(x=>x.sku===code);if(!item){fail.push('Missing phase-1 Highland product: '+code);continue}if(item.placeholder)fail.push('Arrived Highland product must not remain a stock placeholder: '+code);if(item.availabilityStatus)fail.push('Arrived Highland product must not carry arrival-state UI: '+code);if(!item.imagePending&&!item.img)fail.push('Phase-1 Highland product image state invalid: '+code);const p='products/'+item.slug+'.html';const h=read(p);if(!h.includes('aria-label="Product information"'))fail.push('Phase-1 Highland Product Information missing: '+p);if(!h.includes('<details open>'))fail.push('Phase-1 Highland Product Information must open by default: '+p);if(!h.includes(item.sku))fail.push('Phase-1 Highland code missing from page: '+p);if(!h.includes(money(item.price)))fail.push('Phase-1 Highland owner price missing: '+p);if(/Arriving soon|Out of stock|Awaiting delivery/.test(h))fail.push('Arrived Highland page has incorrect stock wording: '+p)}
 
 const romneyImageSources=new Map();
 for(const item of (catalog.romneys||[])){
@@ -110,8 +113,13 @@ for(const {type,item} of rows){
   }else{
     if(!h.includes('name="robots" content="index,follow,max-image-preview:large"')) fail.push('Missing product robots policy: '+p);
     if(!sitemap.includes('<loc>'+canonical+'</loc>')) fail.push('Product absent from sitemap: '+p);
-    if(!h.includes('../images/'+item.img)) fail.push('Primary image absent from static HTML: '+p);
-    if(!exists('images/'+item.img)) fail.push('Missing primary image file: images/'+item.img);
+    if(item.imagePending){
+      if(item.img) fail.push('Image-pending product should not claim a local product image: '+item.id);
+      if(!h.includes('Product image being added')||!h.includes(item.sku||'')) fail.push('Image-pending product UI incomplete: '+p);
+    }else{
+      if(!h.includes('../images/'+item.img)) fail.push('Primary image absent from static HTML: '+p);
+      if(!exists('images/'+item.img)) fail.push('Missing primary image file: images/'+item.img);
+    }
   }
   const detailTags=h.match(/<details\b[^>]*>/gi)||[];
   const closedDetails=detailTags.filter(tag=>!/\sopen(?:\s|=|>)/i.test(tag));
@@ -119,7 +127,7 @@ for(const {type,item} of rows){
   for(const image of (item.gallery||[])) if(!exists('images/'+image.src)) fail.push('Missing gallery image file: images/'+image.src);
   const productJson=[...h.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
   for(const block of productJson){try{JSON.parse(block[1])}catch(e){fail.push('Invalid product JSON-LD in '+p+': '+e.message)}}
-  if(item.placeholder){if((h.match(/<meta\b[^>]*property=["']og:image["'][^>]*>/gi)||[]).length!==0) fail.push('Placeholder product must not claim an og:image: '+p)}else if((h.match(/<meta\b[^>]*property=["']og:image["'][^>]*>/gi)||[]).length!==1) fail.push('Product must have exactly one og:image meta tag: '+p);
+  if(item.placeholder||item.imagePending){if((h.match(/<meta\b[^>]*property=["']og:image["'][^>]*>/gi)||[]).length!==0) fail.push('Product without a local image must not claim an og:image: '+p)}else if((h.match(/<meta\b[^>]*property=["']og:image["'][^>]*>/gi)||[]).length!==1) fail.push('Product must have exactly one og:image meta tag: '+p);
   if((h.match(/<meta\b[^>]*name=["']twitter:card["'][^>]*>/gi)||[]).length!==1) fail.push('Product must have exactly one twitter:card meta tag: '+p);
   if(type==='romneys'){
     const supplier=/mintcake\.co\.uk|walkers-nonsuch\.co\.uk|elit-chocolate\.com/i;
@@ -208,7 +216,7 @@ for(const p of ['gifts-lake-district.html','lakeland-fragrances.html','gifts-loc
 if(!/noindex,follow/.test(read('404.html'))) fail.push('404 page must be noindex,follow');
 
 const highlandPlaceholderAudit=(catalog.gifts||[]).filter(x=>x.placeholder&&x.category==='highland-cows');
-if(highlandPlaceholderAudit.length!==23) fail.push('Expected 23 Highland Cow placeholders, found '+highlandPlaceholderAudit.length);
+if(highlandPlaceholderAudit.length!==14) fail.push('Expected 14 Highland Cow placeholders, found '+highlandPlaceholderAudit.length);
 for(const item of highlandPlaceholderAudit){
   if(!/^LP\d+$/.test(item.sku||'')) fail.push('Bad Highland placeholder SKU: '+item.id);
   if(item.img) fail.push('Highland placeholder must not use an inferred image: '+item.id);

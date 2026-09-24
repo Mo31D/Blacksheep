@@ -218,3 +218,12 @@ Search-readiness QA passed for implementation commit `bba82641f56c160e0d48f563b6
 - [x] Separate arrival state from missing image/price/details on cards and product pages.
 - [x] Keep all 23 placeholders noindex and excluded from sitemap until completed.
 - [x] Add QA for the 9/14 partition and customer-facing wording.
+
+## Highland Cow Phase 1 — 9 arrived products — completed 2026-09-24
+- [x] Verify product-code identity against Leonardo/Joe Davies sources.
+- [x] Add concise customer-facing facts to all 9 product records/pages.
+- [x] Preserve owner prices and remove arrival/out-of-stock wording from the 9 on-shelf products.
+- [x] Make Product Information open by default on all 9 pages.
+- [x] Index the 9 canonical static product URLs and preserve direct listing links.
+- [x] Keep image state explicit where a clean local supplier binary could not be obtained; no hotlinks/screenshots/inferred images.
+- [x] Reduce Highland arrival placeholders from 23 to 14 (the products still awaiting delivery).
