@@ -329,3 +329,8 @@ Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` b
 - Brand repetition is suppressed on brand-specific catalogue grids; Full range retains category context.
 - Product detail runtime cleanup removes duplicate price rows, duplicate manufacturer=brand rows, internal verification copy, and shortens availability to Check in store / Out of stock.
 - Romney builder and search-readiness checks were updated so future rebuilds preserve this architecture.
+
+### Compact product grids restored — 24 September 2026
+- Romney's and Hawkshead remain on the shared shopping grid: 4 columns desktop, 3 tablet, 2 mobile.
+- Gifts landing and all active gift-category catalogues now use the same shopping grid and 2-column mobile layout, matching the previously approved visual density.
+- Mobile catalogue pages use the compact catalogue body treatment so at least a 2×2 set of product cards can be reached/seen quickly, depending on card title length and viewport height.

@@ -156,6 +156,9 @@ const expectedRawLinks={
  'hawkshead-relish.html':catalog.hawkshead.length,
  'all-products.html':rows.length
 };
+const compactGiftGridPages=['gifts.html','gifts-peter-rabbit.html','gifts-highland-cows.html','gifts-mugs.html','gifts-soft-toys.html','gifts-cards.html','gifts-seasonal.html','gifts-keyrings-badges.html','gifts-home-art.html','gifts-toys-games.html'];
+for(const p of compactGiftGridPages){const h=read(p);if(!h.includes('class="catalog shopping-catalog gift-grid"')) fail.push('Gift catalogue compact grid missing: '+p);if(!h.includes('class="catalog-body')) fail.push('Gift catalogue mobile body class missing: '+p);}
+
 for(const [p,n] of Object.entries(expectedRawLinks)){
   const h=read(p);
   const got=(h.match(/href=["']\/products\//g)||[]).length;
