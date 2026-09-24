@@ -39,6 +39,32 @@ describe("ResendEmailSender", () => {
     expect(JSON.stringify(body)).not.toContain("re_test_secret");
   });
 
+  it("does not invoke the injected fetch with a class-instance receiver", async () => {
+    let receiver: unknown = Symbol("unset");
+    const fakeFetch = async function (
+      this: unknown,
+      _input: RequestInfo | URL,
+      _init?: RequestInit,
+    ): Promise<Response> {
+      receiver = this;
+      return new Response(JSON.stringify({ id: "email-2" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+
+    const sender = new ResendEmailSender("re_test_secret", fakeFetch);
+    await sender.send({
+      from: "orders@theblacksheepshop.co.uk",
+      to: "customer@example.com",
+      subject: "Order received",
+      text: "Test",
+      html: "<p>Test</p>",
+    });
+
+    expect(receiver).toBeUndefined();
+  });
+
   it("reports HTTP rejections without persisting response text", async () => {
     const sender = new ResendEmailSender(
       "re_test_secret",
