@@ -45,3 +45,16 @@ The current catalogue imagery uses the existing genuine Hawkshead Relish range p
 - All product-information disclosure elements generated for Hawkshead pages use `<details open>`.
 - Product recipes and packaging can change; customer pages direct allergy/intolerance queries to the current pack and staff.
 - Five Fruit Marmalade still omits ingredient/nutrition detail that was not reliably available from the current regular-jar listing rather than inventing it.
+
+## Two-image product gallery assets — prepared 24 September 2026
+
+The following two canonical product pages are now gallery-ready and safely fall back to `images/49.png` until the exact WebP assets are uploaded to these paths:
+
+- The Original Black Garlic Ketchup
+  - `images/hawkshead-relish/hr-001-original-black-garlic-ketchup.webp`
+  - `images/hawkshead-relish/hr-001-original-black-garlic-ketchup-lifestyle.webp`
+- Five Fruit Marmalade
+  - `images/hawkshead-relish/hr-008-five-fruit-marmalade.webp`
+  - `images/hawkshead-relish/hr-008-five-fruit-marmalade-lifestyle.webp`
+
+Both pages use the existing swipe/scroll product gallery component. The first image is the clean product packshot; the second is the lifestyle image. Once these exact files are uploaded, no further page-layout change is required for the two-image gallery to appear.
