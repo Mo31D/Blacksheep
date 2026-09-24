@@ -402,8 +402,8 @@ Preparation:
 
 Execution:
 - [x] Complete controlled staging Turnstile order + idempotent retry (`BSR-260924-TFUZ9AP5`: 201 create, 200 replay, same reference, `idempotentReplay=true`).
-- [ ] Verify exactly one staging order/item/event snapshot.
-- [ ] Remove the temporary staging verifier page from `main`.
+- [x] Verify exactly one staging order/item/event snapshot (`BSR-260924-TFUZ9AP5`: `orders_count=1`, `items_count=1`, `events_count=1`).
+- [x] Remove the temporary staging verifier page from `main`.
 - [ ] Onboard Cloudflare Email Service and verify owner/customer staging mail.
 - [ ] Configure Cloudflare Access and verify the private staging/admin flow.
 - [ ] Confirm legal proprietor/business identity and working customer-service email.
@@ -449,6 +449,8 @@ Not required for Commerce V1, but architecture must not block:
 
 ## Current exact next action
 
-1. Verify staging D1 for `BSR-260924-TFUZ9AP5`: exactly one order row, one item row, and the initial event row.
-2. Then remove the temporary verifier page from `main`.
-3. Next manual Cloudflare gates are Email Service onboarding and Zero Trust Access configuration; code for notifications/admin/payment is already complete on `commerce-v1`.
+1. Onboard Cloudflare Email Service for `theblacksheepshop.co.uk`.
+2. Configure the Worker `EMAIL` binding plus `ORDER_EMAIL_FROM` and `ORDER_OWNER_EMAIL`.
+3. Send one owner + customer staging email and verify the corresponding `order_events`.
+4. Configure Cloudflare Zero Trust Access for the private admin and verify one complete staging admin workflow.
+5. Confirm the legal proprietor/business identity and the final working customer-service email before production cutover.
