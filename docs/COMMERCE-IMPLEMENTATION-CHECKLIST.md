@@ -462,3 +462,10 @@ Not required for Commerce V1, but architecture must not block:
 - Idempotent retry returned HTTP 200 with the same public reference and `idempotentReplay=true`.
 - Order API path is healthy with Resend configuration present.
 - Final email gate remains pending direct confirmation that both the owner notification and customer acknowledgement were actually received (or confirmed delivered in Resend Logs).
+
+
+### Resend live staging delivery — 24 September 2026
+- Customer acknowledgement email successfully delivered for staging order `BSR-260924-6VU6MDTC`.
+- Root cause fixed: Cloudflare Workers `fetch` was previously invoked with an invalid class-instance receiver, causing transport failure before Resend received the request.
+- Resend API key, sender domain and runtime configuration are healthy.
+- Remaining email gate: confirm owner notification delivery, then remove the temporary staging email verifier from `main`.
