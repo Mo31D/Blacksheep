@@ -40,7 +40,7 @@ Status: IN PROGRESS — waiting only on manual Cloudflare prerequisites / stagin
 - [x] Define Commerce V1 target architecture.
 - [x] Decide on Cloudflare Worker + D1 backend.
 - [x] Define future-ready cart/order/payment/shipping boundaries.
-- [ ] Complete manual Cloudflare prerequisites in `docs/CLOUDFLARE-COMMERCE-SETUP.md` (D1 staging + production created; Turnstile and secrets still pending).
+- [ ] Complete manual Cloudflare prerequisites in `docs/CLOUDFLARE-COMMERCE-SETUP.md` (D1 complete; Turnstile widget created; secret binding still pending).
 - [x] Create `commerce-v1` branch from the newest `main`.
 - [x] Confirm hostname strategy: staging on `workers.dev` first; production later on `api.theblacksheepshop.co.uk`.
 
@@ -83,7 +83,7 @@ Cloudflare D1 resources:
 - [x] `black-sheep-commerce-staging` — `d442b45d-93b6-4535-b76a-4b72e62dc271`
 - [x] `black-sheep-commerce-prod` — `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
 
-Status: CODE + LOCAL MIGRATION COMPLETE — remote staging migration pending.
+Status: COMPLETE — remote staging migration applied and verified.
 
 Goal: real persistent orders exist before checkout is connected.
 
@@ -96,32 +96,42 @@ Goal: real persistent orders exist before checkout is connected.
 - [x] Add status constraints/validation.
 - [x] Add indexes needed for owner queue and reference lookup.
 - [x] Bind staging D1 in Wrangler config.
-- [ ] Apply migration to remote staging D1 and verify the three tables.
+- [x] Apply migration to remote staging D1 and verify `orders`, `order_items`, `order_events`, plus `d1_migrations`.
 - [x] Add repository/data-access layer.
 - [x] Add transaction-safe order creation using D1 batch.
 - [x] Add tests for persistence and duplicate idempotency lookup.
 
-**Validation so far:** local D1 migration PASS (8 SQL commands), 8 automated tests PASS, TypeScript PASS, Wrangler staging dry-run PASS.
+**Validation:** local D1 migration PASS (8 SQL commands), remote staging migration PASS, staging tables verified in Cloudflare Console, 8 automated tests PASS, TypeScript PASS, Wrangler staging dry-run PASS.
 
 **Commit:** `commerce: add D1 order persistence`
 
 ## Phase 3 — Server-authoritative catalogue snapshot
 
+Status: COMPLETE.
+
 Goal: the API never trusts frontend price data.
 
-- [ ] Add `scripts/build-commerce-catalog.mjs`.
-- [ ] Generate minimal backend catalogue from `assets/catalog.js`.
-- [ ] Include product ID/SKU/slug/name/price/status/options only.
-- [ ] Define purchasability rules.
-- [ ] Reject arriving-soon products.
-- [ ] Reject out-of-stock products.
-- [ ] Reject products without confirmed numeric price.
-- [ ] Make generated snapshot deterministic.
-- [ ] Add `--check` drift mode.
-- [ ] Include the check in CI.
-- [ ] Unit-test subtotal calculation.
+- [x] Add `scripts/build-commerce-catalog.mjs`.
+- [x] Generate minimal backend catalogue from `assets/catalog.js`.
+- [x] Include product ID/SKU/slug/name/price/status/options only.
+- [x] Define purchasability rules.
+- [x] Reject arriving-soon products.
+- [x] Reject out-of-stock products.
+- [x] Reject products without confirmed numeric price.
+- [x] Make generated snapshot deterministic.
+- [x] Add `--check` drift mode.
+- [x] Include the check in CI.
+- [x] Unit-test authoritative subtotal calculation.
 
-**Suggested commit:** `commerce: add authoritative catalogue snapshot`
+Current snapshot:
+- 146 catalogue products
+- 116 purchasable
+- prices represented in GBP minor units
+- backend rejects unavailable/unpriced products and invalid/duplicate cart lines
+
+Validation: Commerce CI PASS; Search readiness PASS.
+
+**Commits:** `commerce: add authoritative catalogue snapshot`, `commerce: add authoritative cart pricing`
 
 ## Phase 4 — Secure order creation API
 
