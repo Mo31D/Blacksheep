@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { ResendEmailSender } from "../src/notifications/resend-email";
+import {
+  ResendEmailSender,
+  ResendSendError,
+} from "../src/notifications/resend-email";
 
 describe("ResendEmailSender", () => {
-  it("posts the expected payload without exposing the API key in the body", async () => {
+  it("trims the API key and posts the expected payload", async () => {
     const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
     const sender = new ResendEmailSender(
-      "re_test_secret",
+      "  re_test_secret\n",
       async (input, init) => {
         calls.push({ input, init });
         return new Response(JSON.stringify({ id: "email-1" }), {
@@ -26,8 +29,8 @@ describe("ResendEmailSender", () => {
     expect(calls).toHaveLength(1);
     expect(String(calls[0].input)).toBe("https://api.resend.com/emails");
     expect(calls[0].init?.headers).toMatchObject({
-      authorization: "Bearer re_test_secret",
-      "content-type": "application/json",
+      Authorization: "Bearer re_test_secret",
+      "Content-Type": "application/json",
     });
 
     const body = JSON.parse(String(calls[0].init?.body));
@@ -36,10 +39,39 @@ describe("ResendEmailSender", () => {
     expect(JSON.stringify(body)).not.toContain("re_test_secret");
   });
 
-  it("throws a provider-safe error on non-success responses", async () => {
+  it("reports HTTP rejections without persisting response text", async () => {
     const sender = new ResendEmailSender(
       "re_test_secret",
-      async () => new Response("bad request", { status: 400 }),
+      async () =>
+        new Response(JSON.stringify({ name: "invalid_api_key", message: "secret detail" }), {
+          status: 401,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+
+    try {
+      await sender.send({
+        from: "orders@theblacksheepshop.co.uk",
+        to: "customer@example.com",
+        subject: "Order received",
+        text: "Test",
+        html: "<p>Test</p>",
+      });
+      throw new Error("expected sender to fail");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ResendSendError);
+      expect((error as ResendSendError).status).toBe(401);
+      expect((error as ResendSendError).providerCode).toBe("invalid_api_key");
+      expect(String(error)).not.toContain("secret detail");
+    }
+  });
+
+  it("reports transport failures safely", async () => {
+    const sender = new ResendEmailSender(
+      "re_test_secret",
+      async () => {
+        throw new TypeError("Invalid header value");
+      },
     );
 
     await expect(
@@ -50,6 +82,9 @@ describe("ResendEmailSender", () => {
         text: "Test",
         html: "<p>Test</p>",
       }),
-    ).rejects.toThrow("resend_send_failed");
+    ).rejects.toMatchObject({
+      status: 0,
+      providerCode: "transport_error",
+    });
   });
 });
