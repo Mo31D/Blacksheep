@@ -2,6 +2,15 @@ import type { SendEmailBindingLike } from "./order-notifier";
 
 type Mailbox = string | { email: string; name?: string };
 
+export class ResendSendError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly providerCode: string,
+  ) {
+    super("resend_send_failed");
+  }
+}
+
 function mailbox(value: Mailbox): string {
   if (typeof value === "string") return value;
   const name = value.name?.trim();
@@ -39,7 +48,19 @@ export class ResendEmailSender implements SendEmailBindingLike {
     });
 
     if (!response.ok) {
-      throw new Error("resend_send_failed");
+      let providerCode = "unknown_error";
+      try {
+        const body = (await response.clone().json()) as { name?: unknown };
+        if (
+          typeof body.name === "string" &&
+          /^[a-z0-9_:-]{1,64}$/i.test(body.name)
+        ) {
+          providerCode = body.name;
+        }
+      } catch {
+        // Intentionally do not persist provider response text.
+      }
+      throw new ResendSendError(response.status, providerCode);
     }
 
     return response.json();
