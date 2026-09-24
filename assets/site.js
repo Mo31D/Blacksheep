@@ -356,7 +356,8 @@ function renderBasketPage(){
     attention.hidden=!unavailable.length;
     attention.textContent=unavailable.length?unavailable.length+' '+(unavailable.length===1?'item needs':'items need')+' attention before you can continue.':'';
   }
-  const canContinue=rows.length>0&&blackSheepCart.canCheckout();
+  const checkoutReady=document.documentElement.dataset.checkoutReady==='true';
+  const canContinue=checkoutReady&&rows.length>0&&blackSheepCart.canCheckout();
   if(continueLink){
     continueLink.classList.toggle('is-disabled',!canContinue);
     continueLink.setAttribute('aria-disabled',canContinue?'false':'true');
