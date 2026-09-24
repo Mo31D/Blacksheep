@@ -6,7 +6,7 @@
 > - `docs/COMMERCE-IMPLEMENTATION-CHECKLIST.md`
 > - `docs/CLOUDFLARE-COMMERCE-SETUP.md`
 >
-> Commerce Phase 1 foundation is now merged to `main`: `/commerce`, TypeScript Worker, `/health`, CORS, tests, Wrangler staging/production config, Commerce CI and manual deploy workflow. CI and Search readiness pass. Cloudflare D1/Turnstile resources are not created yet. Current rule: deploy the staging Worker and verify `/health`, then complete D1/Turnstile prerequisites before Phase 2/4. Do not start cart/checkout UI yet.
+> Commerce Phase 1 foundation is now merged to `main`: `/commerce`, TypeScript Worker, `/health`, CORS, tests, Wrangler staging/production config, Commerce CI and manual deploy workflow. CI and Search readiness pass. The staging Worker has also deployed successfully at `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev`. Cloudflare D1/Turnstile resources are not created yet. Current rule: verify `/health` in a browser, then create D1 staging + production and proceed to Phase 2. Do not start cart/checkout UI yet.
 
 > **NEXT-PHASE BASELINE — 24 September 2026**  
 > Before relying on older counts/status sections below, read:
