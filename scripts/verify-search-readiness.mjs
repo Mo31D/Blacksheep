@@ -161,8 +161,8 @@ for(const [p,n] of Object.entries(expectedRawLinks)){
   const got=(h.match(/href=["']\/products\//g)||[]).length;
   if(got<n) fail.push('Too few raw product links in '+p+': '+got+' < '+n);
   if(!h.includes('"@type":"ItemList"')) fail.push('Missing ItemList graph: '+p);
-  if(p==='romneys.html' && (h.match(/<article class="product-card"/g)||[]).length!==catalog.romneys.length) fail.push('Romney card count drift');
-  if(p==='hawkshead-relish.html' && (h.match(/<article class="product-card"/g)||[]).length!==catalog.hawkshead.length) fail.push('Hawkshead card count drift');
+  if(p==='romneys.html' && (h.match(/<article class="product-card(?:\\s[^"]*)?"/g)||[]).length!==catalog.romneys.length) fail.push('Romney card count drift');
+  if(p==='hawkshead-relish.html' && (h.match(/<article class="product-card(?:\\s[^"]*)?"/g)||[]).length!==catalog.hawkshead.length) fail.push('Hawkshead card count drift');
   if(p==='hawkshead-relish.html' && !h.includes('class="catalog romneys-catalog"')) fail.push('Hawkshead must use Romney compact product grid');
   if(p==='all-products.html' && (h.match(/<article class="product-card"/g)||[]).length!==rows.length) fail.push('Full-range card count drift');
 }
