@@ -1,7 +1,7 @@
 # Black Sheep — resumable work checklist
 
 Updated 2026-09-24. Repository: https://github.com/Mo31D/Blacksheep — branch main.
-GitHub `main` is authoritative. Latest verified search/QA implementation milestone: `c1dc76ab82795d2453b2a33ed11d40d274b8fb69` (Romney static build + QA; documentation commits may be newer).
+GitHub `main` is authoritative. Latest verified search/QA implementation milestone: `7bac983fcba1a6fcd45d42ddb9ee97b7999e284c` (Romney static build + QA; documentation commits may be newer).
 
 ## Resume rules
 1. Read this file, docs/OWNER-REQUESTS.md, docs/HIGHLAND-COW-SOURCE-MAP.md and docs/SESSION-HANDOFF.md before editing.
@@ -150,30 +150,28 @@ Repository QA has no known blocking issue. Final Romney static-build QA passed a
 - [ ] Sync existing Sites project: owner/editor discovery did not return Black Sheep; do not create another project.
 - [ ] Complete mobile and desktop visual review after deployment.
 
-## Romney's official-source enrichment — completed
+## Romney's / confectionery rebuild — completed 2026-09-24
 
-- [x] Match 37 exact current Romney's/confectionery products to current official manufacturer product pages.
-- [x] Add exact official URL, official product name, manufacturer and verification date to `assets/catalog.js`.
-- [x] Add official SKU only where directly verified.
-- [x] Add verified factual product data while keeping manufacturer source URLs internal to all matched static product pages.
-- [x] Add Product JSON-LD brand/manufacturer relationship without supplier URL leakage to all 35 matched pages.
-- [x] Preserve/apply Black Sheep owner prices only; never import supplier retail prices.
-- [x] Correct ROM-054 and ROM-055 brand to Walker's Nonsuch across catalogue, product pages, Romney's cards, Full Range and schema.
-- [x] Save `docs/ROMNEYS-SOURCE-MAP.md` and dated work report.
-- [x] Extend search-readiness verification to protect the 35 mappings.
-- [ ] Research exact current sources for the remaining 20 Romney's-section products only when a genuine exact match can be confirmed; do not use similar products as substitutes.
-
-
-## Romney's 24 September rebuild — completed
-
-- [x] Start from latest GitHub `main` SHA `99016db84e88e001f26374ed107c2b37a9fd4ccd` and preserve newer work.
-- [x] Reconcile owner pricing and add Shortbread Selection 300g at £7.50.
-- [x] Verify 37 exact current manufacturer mappings; retain 36 exact official local product images.
-- [x] Keep supplier/manufacturer URLs internal only; remove public source links and supplier `sameAs` leakage.
-- [x] Correct Walker's Nonsuch and Elit brand/manufacturer identity where applicable.
-- [x] Rebuild 56 Romney's static product pages, Romney's collection, Full Range, ItemLists and sitemap deterministically.
-- [x] Fix duplicated appended catalogue markup in Romney's and Full Range pages.
-- [x] Add deterministic builder/source-map tooling and CI drift checks.
-- [x] Final QA: 109 products, 56 Romney's cards, 109 Full Range cards, 126 sitemap URLs, zero builder drift.
-- [x] Save `docs/WORK-REPORT-ROMNEYS-REBUILD-2026-09-24.md`.
-- [ ] Pending owner/exact identity evidence: Twin Biscuit Sachets; Boxed Fudge 150g; Chocolate Covered Small/Medium/Large; Large Rock; Postcard Boxes.
+- [x] Fetch newest GitHub `main` and preserve all newer work.
+- [x] Preserve canonical static `/products/<slug>.html` architecture and My List behavior.
+- [x] Remove visible Manufacturer Source / supplier-shop links from customer-facing Romney pages.
+- [x] Keep official source URLs internally in `docs/ROMNEYS-SOURCE-MAP.md`.
+- [x] Enforce Black Sheep owner pricing; do not import supplier retail prices.
+- [x] Keep 170g White/Brown/Extra Strong Kendal Mint Cake at **£2.50**.
+- [x] Keep Giant White 480g separate from the owner’s chocolate-covered Large price; current Black Sheep price **£2.70**.
+- [x] Set Triple Pack to **£4.90**.
+- [x] Confirm standard biscuit records at **£2.99**, standard 150g fudge bags at **£3.85**, Vanilla Fudge Bar at **£2.40**, Cinder Toffee at **£3.30**, Chocolate Cinder at **£3.50**, Peanut Brittle at **£2.10**, Nougat at **£2.70**.
+- [x] Add exact **Shortbread Selection 300g — £7.50** as ROM-056.
+- [x] Do not invent Twin Biscuit Sachets or Boxed Fudge 150g without exact official identity.
+- [x] Correct/confirm third-party brand identity: Dubai Chocolate = **Elit**; ROM-054/055 = **Walker's Nonsuch**.
+- [x] Current exact official/manufacturer mappings: **37**.
+- [x] Current local exact official product images in active catalogue: **27**.
+- [x] Reject nine shared/generic Shopify `og:image` candidates rather than assigning the same image to different products.
+- [x] Add deterministic `scripts/build-romneys.mjs` and internal source-map builder.
+- [x] Extend search-readiness verification for public supplier-link leakage, schema brand/manufacturer, collection counts and duplicate official image provenance.
+- [x] Reconcile all 56 Romney pages, Romney collection, Full Range, ItemLists and sitemap.
+- [x] Final staged QA: **109 products, 126 sitemap URLs, 56 Romney cards, 109 Full Range cards**; search-readiness PASS; Romney builder `--check` PASS.
+- [x] Save authoritative report: `docs/WORK-REPORT-ROMNEYS-2026-09-24.md`.
+- [ ] Owner confirmation still required for Chocolate Covered Small/Medium/Large weight mapping, Small/Large Rock mapping, Twin Biscuit Sachets, Boxed Fudge 150g and Postcard Boxes.
+- [ ] Sync the same existing Black Sheep Sites project when its exact identity is available; do not create a duplicate.
+- [ ] Complete live mobile/desktop verification after newest `main` is deployed.
