@@ -48,7 +48,7 @@ Status: IN PROGRESS — waiting only on manual Cloudflare prerequisites / stagin
 
 ## Phase 1 — Commerce project skeleton
 
-Status: COMPLETE — staging Worker deployed and build verified.
+Status: COMPLETE — staging Worker deployed, build verified, and `/health` confirmed remotely.
 
 Goal: backend deploys before changing customer UX.
 
@@ -65,7 +65,7 @@ Goal: backend deploys before changing customer UX.
 - [x] Add `.github/workflows/commerce-deploy.yml`.
 - [x] Confirm Commerce CI passes on `commerce-v1` (5 tests + TypeScript + Wrangler staging dry-run passed).
 - [x] Deploy staging Worker at `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev`.
-- [ ] Verify `/health` response remotely from a browser/session.
+- [x] Verify `/health` response remotely from a browser/session: `{"service":"black-sheep-commerce-api","status":"ok","environment":"staging"}`.
 
 **Validation:**
 - existing Search readiness PASS
@@ -340,8 +340,8 @@ Not required for Commerce V1, but architecture must not block:
 
 ## Current exact next action
 
-1. Open `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/health` in a browser and confirm the JSON health response.
-2. Create the two D1 databases: `black-sheep-commerce-staging` and `black-sheep-commerce-prod`.
-3. Record both D1 database IDs.
+1. Create the two D1 databases: `black-sheep-commerce-staging` and `black-sheep-commerce-prod`.
+2. Record both D1 database IDs.
+3. Bind staging D1 to the Worker and implement/apply Phase 2 migrations from GitHub.
 4. Create the Turnstile widget after D1 setup.
 5. Do not start Basket/Checkout UI until the D1 foundation is wired and verified.
