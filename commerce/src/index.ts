@@ -12,6 +12,7 @@ interface Env {
   TURNSTILE_ALLOWED_HOSTNAMES?: string;
   TURNSTILE_EXPECTED_ACTION?: string;
   EMAIL?: SendEmailBindingLike;
+  RESEND_API_KEY?: string;
   ORDER_EMAIL_FROM?: string;
   ORDER_OWNER_EMAIL?: string;
   ADMIN_HOSTNAME?: string;
