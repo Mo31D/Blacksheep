@@ -107,3 +107,13 @@ const resolve=(type,slug,productId)=>{
 }
 
 console.log("Cart core tests passed.");
+
+
+const basketPath=path.join(repoRoot,"basket.html");
+const basketHtml=fs.readFileSync(basketPath,"utf8");
+assert.match(basketHtml,/id="basketPage"/);
+assert.match(basketHtml,/id="basketPageItems"/);
+assert.match(basketHtml,/id="basketPageSubtotal"/);
+assert.match(basketHtml,/href="\/checkout\.html"/);
+assert.match(basketHtml,/name="robots" content="noindex,follow"/);
+console.log("Basket page contract checks passed.");
