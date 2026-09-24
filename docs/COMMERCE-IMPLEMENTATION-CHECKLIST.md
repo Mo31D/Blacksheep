@@ -395,8 +395,8 @@ Not required for Commerce V1, but architecture must not block:
 
 ## Current exact next action
 
-1. Create the two D1 databases: `black-sheep-commerce-staging` and `black-sheep-commerce-prod`.
-2. Record both D1 database IDs.
-3. Bind staging D1 to the Worker and implement/apply Phase 2 migrations from GitHub.
-4. Create the Turnstile widget after D1 setup.
-5. Do not start Basket/Checkout UI until the D1 foundation is wired and verified.
+1. Keep draft PR #7 unmerged; the live storefront on `main` remains unchanged.
+2. Implement Phase 10 owner/customer notification adapter without coupling checkout to one provider.
+3. Then implement the protected owner admin flow in Phase 11.
+4. Before any customer-facing merge, perform one real Turnstile-protected staging order, verify D1 persistence/idempotency, and complete the legal/privacy launch checks.
+5. Production D1 remains untouched until Phase 14.
