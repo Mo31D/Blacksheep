@@ -4,6 +4,7 @@ on:
     branches: [romneys-rebuild-2026-09-24]
     paths:
       - .github/workflows/diagnose-romneys-builder.yml
+      - scripts/build-romneys.mjs
 permissions:
   contents: read
 jobs:
@@ -17,6 +18,7 @@ jobs:
         with:
           node-version: '20'
       - run: node scripts/build-romneys.mjs
+      - run: node scripts/build-romneys.mjs --check
       - name: Print generated counts
         run: |
           node - <<'NODE'
