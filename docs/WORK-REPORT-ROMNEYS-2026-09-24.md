@@ -9,7 +9,7 @@ A small pre-staging image-preparation sequence advanced `main` to `99016db84e88e
 
 ## 2. Final GitHub SHA
 
-Final generated implementation before handoff/documentation-only cleanup: `7bac983fcba1a6fcd45d42ddb9ee97b7999e284c`.
+Final generated implementation after owner-price reconciliation: `a5ebfc2d57d36d079414260ae320b27377e68ce3`.
 
 The final `main` head after handoff/documentation commits is reported in the completion chat because a commit cannot self-reference its own SHA.
 
@@ -40,14 +40,15 @@ No existing Romney's/confectionery product was removed in this rebuild.
 
 Relative to the task-start `main`:
 
-- **ROM-035 — Giant White Kendal Mint Cake 480g:** corrected from **£4.70 to £2.70**. The £4.70 owner price belongs to a chocolate-covered Large size and must not be applied to the non-chocolate Giant White 480g product.
+- **ROM-032 / ROM-033 / ROM-034 — 170g Kendal Mint Cake bars (Large):** owner-confirmed Black Sheep price **£2.80**.
+- **ROM-035 — Giant White Kendal Mint Cake 480g:** owner-confirmed Black Sheep Giant price **£4.70**.
 - **ROM-056 — Shortbread Selection 300g:** added at **£7.50**.
 
 Owner-confirmed prices already present at task start were preserved and verified, including:
 - standard 200g biscuit records: **£2.99**
 - standard 150g fudge bags: **£3.85**
 - Vanilla Fudge Bar 110g: **£2.40**
-- White/Brown/Extra Strong 170g Kendal Mint Cake: **£2.50**
+- White/Brown/Extra Strong 170g Kendal Mint Cake: **£2.80**
 - Triple Pack Kendal Mint Cake: **£4.90**
 - Cinder Toffee: **£3.30**
 - Chocolate Coated Cinder Toffee: **£3.50**
@@ -108,7 +109,7 @@ These records keep known Black Sheep information/images and are not force-matche
 
 ## 10. Images replaced
 
-- **27 current Romney's/confectionery records** now use local optimised official product images.
+- Current exact-image coverage is recorded in `docs/ROMNEYS-SOURCE-MAP.md`; only exact product-image matches are accepted.
 - The final source-sync run refreshed **25 exact images**.
 - The two Walker's images remain from previously verified local manufacturer copies because the manufacturer server returned HTTP 403 during the final automated refresh; their existing verified local copies and provenance were retained.
 - **9 shared/generic Shopify `og:image` candidates were rejected** because the same image URL was returned for different products. Those products intentionally retain their existing Black Sheep product images instead of using a misleading "official" image.
