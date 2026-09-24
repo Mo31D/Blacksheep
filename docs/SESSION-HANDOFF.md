@@ -1,5 +1,9 @@
 # Black Sheep — Session Handoff
 
+> **STAGING ORDER + IDEMPOTENCY GATE COMPLETE — 24 SEPTEMBER 2026**  
+> `BSR-260924-TFUZ9AP5` passed the live staging test: first request HTTP 201, retry HTTP 200, same reference, `idempotentReplay=true`. Direct D1 verification confirmed exactly one order row, one order-item row and one initial order-event row. The temporary verifier page has been removed from `main` in commit `40d956b15228d3261a54927b2a22a3c6730bceb9`. Next gates are Cloudflare Email Service and Zero Trust Access.
+>
+
 > **STAGING ORDER GATE PASSED — 24 SEPTEMBER 2026**  
 > Controlled Turnstile submission succeeded for `BSR-260924-TFUZ9AP5`: first request HTTP 201, retry HTTP 200, identical public reference and `idempotentReplay=true`. No payment was taken. Remaining verification: confirm the single order/item/event snapshot directly in staging D1, then remove the temporary verifier from `main`.
 >
