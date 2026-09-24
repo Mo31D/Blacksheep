@@ -171,13 +171,39 @@ describe("POST /v1/orders", () => {
     expect(db.batched).toHaveLength(0);
   });
 
-  it("rejects unavailable catalogue products", async () => {
-    const blocked = COMMERCE_CATALOG.find((item) => !item.purchasable)!;
+  it.each(["arriving_soon", "out_of_stock", "price_unavailable"] as const)(
+    "rejects %s catalogue products",
+    async (reason) => {
+      const blocked = COMMERCE_CATALOG.find(
+        (item) => item.nonPurchasableReason === reason,
+      )!;
+      expect(blocked).toBeTruthy();
+
+      const db = new FakeDb();
+      const response = await handleCreateOrder(
+        request(
+          body({
+            items: [{ productId: blocked.id, quantity: 1 }],
+          }),
+        ),
+        env(db),
+        deps,
+      );
+
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: "product_not_purchasable" },
+      });
+      expect(db.batched).toHaveLength(0);
+    },
+  );
+
+  it("rejects stale or deleted catalogue product IDs", async () => {
     const db = new FakeDb();
     const response = await handleCreateOrder(
       request(
         body({
-          items: [{ productId: blocked.id, quantity: 1 }],
+          items: [{ productId: "DELETED-PRODUCT-ID", quantity: 1 }],
         }),
       ),
       env(db),
@@ -186,7 +212,7 @@ describe("POST /v1/orders", () => {
 
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toMatchObject({
-      error: { code: "product_not_purchasable" },
+      error: { code: "product_not_found" },
     });
     expect(db.batched).toHaveLength(0);
   });
