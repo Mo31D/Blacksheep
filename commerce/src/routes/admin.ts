@@ -3,6 +3,7 @@ import {
   applyAdminOrderUpdate,
   getAdminOrderDetail,
   getAdminOrderState,
+  getPaymentNotificationSnapshot,
   listAdminOrders,
 } from "../data/admin-orders";
 import { validateAdminOrderAction } from "../domain/admin-order";
@@ -12,8 +13,9 @@ import {
   type AdminIdentity,
 } from "../security/admin-access";
 import { adminHtml } from "../admin/ui";
+import { notifyPaymentConfirmed, notifyPaymentRequest, type PaymentNotificationEnv } from "../notifications/payment";
 
-export interface AdminEnv extends AdminAccessEnv {
+export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
   DB?: D1DatabaseLike;
 }
 
@@ -114,6 +116,21 @@ export async function handleAdminRequest(
     try {
       const action = validateAdminOrderAction(order, raw);
       await applyAdminOrderUpdate(env.DB, order, action, identity.email);
+
+      if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+        const actionName = (raw as Record<string, unknown>).action;
+        if (actionName === "send_payment_request" || actionName === "mark_paid") {
+          const snapshot = await getPaymentNotificationSnapshot(env.DB, reference);
+          if (snapshot) {
+            if (actionName === "send_payment_request") {
+              await notifyPaymentRequest(env, snapshot);
+            } else {
+              await notifyPaymentConfirmed(env, snapshot);
+            }
+          }
+        }
+      }
+
       const updated = await getAdminOrderDetail(env.DB, reference);
       return json({ order: updated });
     } catch (cause) {

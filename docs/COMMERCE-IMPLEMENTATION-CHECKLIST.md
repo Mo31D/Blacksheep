@@ -346,22 +346,27 @@ Status: CODE COMPLETE ON `commerce-v1` — Cloudflare Access application/hostnam
 
 ## Phase 12 — Payment V1
 
-Current manual payment model:
+Status: CODE COMPLETE ON `commerce-v1` — payment remains owner-confirmed/manual until a future integrated gateway is added.
 
-- [ ] Owner confirms final total.
-- [ ] Owner creates a secure payment request.
-- [ ] Payment request is associated with the order.
-- [ ] Customer receives payment instructions/link.
-- [ ] Owner verifies receipt.
-- [ ] Owner marks PAID.
+- [x] Owner can confirm the final total in the private admin.
+- [x] Owner can associate a secure payment-request URL/reference with the order.
+- [x] Customer payment-request email uses the order-specific final total and stored secure URL.
+- [x] Payment-request email outcome is recorded in `order_events`.
+- [x] Owner can verify receipt and mark the order PAID.
+- [x] Customer receives payment-recorded acknowledgment when email sending is configured.
+- [x] No reusable payment URL is exposed in the public storefront.
+- [x] No payment-card data is stored.
+- [x] No order can become PAID from client-side/customer input.
+- [x] Payment logic is isolated from the future gateway/webhook architecture.
 
-Rules:
+Manual/live verification still required:
+- [ ] Configure Cloudflare Email Service and sender.
+- [ ] Send one staging payment request from admin and verify the amount/link.
+- [ ] Mark it paid and verify the acknowledgment/event trail.
 
-- [ ] no reusable payment link in public storefront
-- [ ] no payment-card data stored
-- [ ] no order may become PAID from client-side input alone
+Future gateway integration will replace the manual payment-request step with provider sessions + verified server-side webhooks without changing basket/checkout/order identity.
 
-Future provider integration must implement the same payment interface and update orders from verified server-side webhooks.
+**Commit:** `commerce: complete manual payment workflow`
 
 ## Phase 13 — Legal/privacy/customer information
 

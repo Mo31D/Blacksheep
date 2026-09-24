@@ -240,3 +240,34 @@ export async function applyAdminOrderUpdate(
 
   await db.batch([update, event]);
 }
+
+
+export async function getPaymentNotificationSnapshot(
+  db: D1DatabaseLike,
+  reference: string,
+): Promise<{
+  id: string;
+  publicReference: string;
+  customerName: string;
+  customerEmail: string;
+  finalTotalMinor: number | null;
+  paymentRequestUrl: string | null;
+  fulfilmentMethod: string;
+} | null> {
+  return db
+    .prepare(
+      `SELECT
+        id,
+        public_reference AS publicReference,
+        customer_name AS customerName,
+        customer_email AS customerEmail,
+        final_total_minor AS finalTotalMinor,
+        payment_request_url AS paymentRequestUrl,
+        fulfilment_method AS fulfilmentMethod
+      FROM orders
+      WHERE public_reference = ?
+      LIMIT 1`,
+    )
+    .bind(reference)
+    .first();
+}
