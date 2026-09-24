@@ -244,6 +244,7 @@ function addToBlackSheepList(event,type,slug){
   }
   updateBlackSheepListUI();
   renderBlackSheepList();
+  renderBasketPage();
   const btn=event?.currentTarget;
   if(btn){
     const original='Add to basket';
@@ -254,9 +255,9 @@ function addToBlackSheepList(event,type,slug){
   }
   showBlackSheepListToast(result.item.name+' added to basket');
 }
-function changeBlackSheepList(type,slug,delta){blackSheepCart.change(type,slug,delta);updateBlackSheepListUI();renderBlackSheepList()}
-function removeFromBlackSheepList(type,slug){blackSheepCart.remove(type,slug);updateBlackSheepListUI();renderBlackSheepList()}
-function clearBlackSheepList(){if(blackSheepCart.count()&&!confirm('Clear all items from your basket?'))return;blackSheepCart.clear();updateBlackSheepListUI();renderBlackSheepList()}
+function changeBlackSheepList(type,slug,delta){blackSheepCart.change(type,slug,delta);updateBlackSheepListUI();renderBlackSheepList();renderBasketPage()}
+function removeFromBlackSheepList(type,slug){blackSheepCart.remove(type,slug);updateBlackSheepListUI();renderBlackSheepList();renderBasketPage()}
+function clearBlackSheepList(){if(blackSheepCart.count()&&!confirm('Clear all items from your basket?'))return;blackSheepCart.clear();updateBlackSheepListUI();renderBlackSheepList();renderBasketPage()}
 function openBlackSheepList(){window.__bsListReturnFocus=document.activeElement;const backdrop=document.getElementById('bsListBackdrop');backdrop?.classList.add('open');backdrop?.setAttribute('aria-hidden','false');document.body.classList.add('bs-list-open');renderBlackSheepList();setTimeout(()=>document.querySelector('.bs-list-close')?.focus(),0)}
 function closeBlackSheepList(){const backdrop=document.getElementById('bsListBackdrop');backdrop?.classList.remove('open');backdrop?.setAttribute('aria-hidden','true');document.body.classList.remove('bs-list-open');window.__bsListReturnFocus?.focus?.()}
 function updateBlackSheepListUI(){const n=blackSheepListCount();document.querySelectorAll('.header-list-count').forEach(el=>el.textContent=String(n));document.querySelectorAll('.header-list-button').forEach(el=>el.setAttribute('aria-label','Basket, '+n+' '+(n===1?'item':'items')))}
@@ -323,3 +324,48 @@ function initBlackSheepList(){
   document.addEventListener('keydown',trapBlackSheepListFocus);
 }
 document.addEventListener('DOMContentLoaded',initBlackSheepList);
+
+
+function basketPageRow(row){
+  const {type,slug,quantity,item,purchasable,unavailableReason,lineTotal}=row;
+  const state=purchasable?'':'<div class="basket-row-state">'+blackSheepUnavailableMessage(unavailableReason)+'</div>';
+  const unit=typeof item.price==='number'?formatPrice(item.price):'Price not confirmed';
+  const total=purchasable&&lineTotal!==null?formatPrice(lineTotal):'—';
+  return '<article class="basket-page-row">'+
+    '<div class="basket-page-media">'+listImageMarkup(item)+'</div>'+
+    '<div class="basket-page-product"><a href="'+itemUrl(item,type)+'">'+item.name+'</a><span>'+unit+' each</span>'+state+'</div>'+
+    '<div class="basket-page-qty"><button type="button" onclick="changeBlackSheepList(\''+type+'\',\''+slug+'\',-1)" aria-label="Decrease '+item.name+' quantity">−</button><strong>'+quantity+'</strong><button type="button" onclick="changeBlackSheepList(\''+type+'\',\''+slug+'\',1)" aria-label="Increase '+item.name+' quantity">+</button></div>'+
+    '<strong class="basket-page-line-total">'+total+'</strong>'+
+    '<button class="basket-page-remove" type="button" onclick="removeFromBlackSheepList(\''+type+'\',\''+slug+'\')">Remove</button>'+
+  '</article>';
+}
+function renderBasketPage(){
+  const page=document.getElementById('basketPage');
+  if(!page)return;
+  const root=document.getElementById('basketPageItems');
+  const count=document.getElementById('basketPageCount');
+  const subtotal=document.getElementById('basketPageSubtotal');
+  const continueLink=document.getElementById('basketContinue');
+  const attention=document.getElementById('basketAttention');
+  const rows=blackSheepCart.resolvedItems();
+  const itemCount=rows.reduce((sum,row)=>sum+row.quantity,0);
+  if(count)count.textContent=itemCount+' '+(itemCount===1?'item':'items');
+  if(subtotal)subtotal.textContent=formatPrice(blackSheepCart.subtotal());
+  const unavailable=rows.filter(row=>!row.purchasable);
+  if(attention){
+    attention.hidden=!unavailable.length;
+    attention.textContent=unavailable.length?unavailable.length+' '+(unavailable.length===1?'item needs':'items need')+' attention before you can continue.':'';
+  }
+  const canContinue=rows.length>0&&blackSheepCart.canCheckout();
+  if(continueLink){
+    continueLink.classList.toggle('is-disabled',!canContinue);
+    continueLink.setAttribute('aria-disabled',canContinue?'false':'true');
+    continueLink.tabIndex=canContinue?0:-1;
+  }
+  if(!rows.length){
+    root.innerHTML='<div class="basket-page-empty"><div class="eyebrow">Your basket</div><h2>Nothing here yet.</h2><p>Browse the shop and add the products you would like us to prepare.</p><a class="btn primary" href="/all-products.html">Browse products</a></div>';
+    return;
+  }
+  root.innerHTML=rows.map(basketPageRow).join('');
+}
+document.addEventListener('DOMContentLoaded',renderBasketPage);
