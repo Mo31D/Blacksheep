@@ -52,7 +52,7 @@ def safe_fact(s,maxlen=3000):
     return s
 
 def parse_mintcake(lines):
-    """Romney Shopify tabs render labels first, then description/ingredients/nutrition text."""
+    """Parse Romney Shopify factual tabs without importing price/marketing text."""
     out={}
     try:
         n=lines.index("Nutrition")
@@ -65,23 +65,38 @@ def parse_mintcake(lines):
         s=s.strip()
         if s and s not in ("VT","IN STOCK","Quantity"):
             tail.append(s)
-    nutrition=next((x for x in tail if re.search(r"Typical values|Nutritional Info Per",x,re.I)), "")
-    ingredient=next((x for x in tail if x!=nutrition and re.search(r"ALLERGEN ADVICE|For allergens|\bingredients?\b.*\bbold\b|^Sugar,|^White Sugar,|^Wheat flour",x,re.I)), "")
-    if ingredient:
-        out["ingredients"]=safe_fact(ingredient)
-        allergy=re.search(r"(ALLERGEN ADVICE:.*?)(?=Free from|Suitable for|Contains no|$)",ingredient,re.I)
-        if allergy: out["allergens"]=safe_fact(allergy.group(1),1200)
-        dietary=[]
-        for pat in [r"Suitable for [^.]+\.",r"Free from [^.]+\.",r"Contains no [^.]+\."]:
-            dietary += re.findall(pat,ingredient,re.I)
-        if dietary: out["dietary"]=safe_fact(" ".join(dict.fromkeys(dietary)),1200)
-    if nutrition: out["nutrition"]=safe_fact(nutrition)
+    nutrition_i=next((i for i,x in enumerate(tail) if re.search(r"Typical values|Nutritional Info Per|Nutrition:\s*Typical",x,re.I)),None)
+    if nutrition_i is None:
+        return out
+    nutrition=tail[nutrition_i]
+    start_i=next((i for i,x in enumerate(tail[:nutrition_i]) if re.search(r"^(?:White )?Sugar\b|^WHEAT\b|^Wheat flour\b|^For ingredients\b|ALLERGEN ADVICE",x,re.I)),None)
+    if start_i is not None:
+        ingredient=safe_fact(" ".join(tail[start_i:nutrition_i]))
+        if ingredient:
+            out["ingredients"]=ingredient
+            allergy=re.search(r"(ALLERGEN ADVICE:.*?)(?=Free from|Suitable for|Contains no|$)",ingredient,re.I)
+            if allergy: out["allergens"]=safe_fact(allergy.group(1),1600)
+            dietary=[]
+            for pat in [r"Suitable for [^.]+\.",r"Free from [^.]+\.",r"Contains no [^.]+\."]:
+                dietary += re.findall(pat,ingredient,re.I)
+            if dietary: out["dietary"]=safe_fact(" ".join(dict.fromkeys(dietary)),1600)
+    out["nutrition"]=safe_fact(nutrition)
     return {k:v for k,v in out.items() if v}
 
 def parse_walkers(lines):
     out={}
-    ing=next((x for x in lines if x.startswith("Ingredients:")), "")
-    if ing: out["ingredients"]=safe_fact(ing.removeprefix("Ingredients:").strip())
+    try:
+        ing_i=next(i for i,x in enumerate(lines) if x.startswith("Ingredients:"))
+    except StopIteration:
+        ing_i=-1
+    if ing_i>=0:
+        parts=[lines[ing_i].removeprefix("Ingredients:").strip()]
+        for s in lines[ing_i+1:]:
+            if s.startswith("Not suitable for") or s.startswith("MADE IN") or "ALLERGIES & DIETARY INFO" in s:
+                break
+            parts.append(s)
+        ing=safe_fact(" ".join(parts))
+        if ing: out["ingredients"]=ing
     try:
         a=next(i for i,x in enumerate(lines) if "ALLERGIES & DIETARY INFO" in x)
     except StopIteration:
@@ -90,17 +105,11 @@ def parse_walkers(lines):
         facts=[]
         for s in lines[a+1:]:
             if s.startswith("Ingredients:"): break
-            if s and not s.startswith("Typical"):
-                facts.append(s)
-        if facts:
-            joined=safe_fact(". ".join(facts),1400)
-            if joined:
-                out["dietary"]=joined
-                out["allergens"]=joined
-    extra=next((x for x in lines if x.startswith("Not suitable for sufferers")), "")
-    if extra:
-        out["allergens"]=safe_fact(((out.get("allergens","")+" "+extra).strip()),1600)
-    # Store compact pack-level nutrition when the page provides a 50g table.
+            if s: facts.append(s)
+        allergy=[x for x in facts if re.match(r"^(?:Contains|May contain)",x,re.I)]
+        dietary=[x for x in facts if re.match(r"^(?:Suitable for|Gluten free|Gluten-free|Gelatine free)",x,re.I)]
+        if allergy: out["allergens"]=safe_fact(". ".join(allergy),1200)
+        if dietary: out["dietary"]=safe_fact(". ".join(dietary),1200)
     try:
         p=lines.index("Per 50g")
         vals=lines[p+1:p+8]
@@ -142,7 +151,7 @@ def main():
             for k,v in parsed.items():
                 if v: official[k]=v
             if parsed: facts+=1
-            image_url=meta_image(soup,url)
+            image_url=official.get("imageSourcePinned") or meta_image(soup,url)
             if image_url:
                 img_bytes,_=fetch(image_url)
                 target_rel=f"romneys/official/{item['slug']}.webp"
