@@ -50,7 +50,8 @@ if(rows.some(x=>x.item.slug==='rom-002-dubai-chocolate')) fail.push('Dubai Choco
 
 const sitemap=read('sitemap.xml');
 if(/product\.html\?/i.test(sitemap)) fail.push('Legacy query product URLs remain in sitemap');
-if((sitemap.match(/<url>/g)||[]).length!==active.length+rows.length) fail.push('Unexpected sitemap URL count');
+const indexedRows=rows.filter(x=>!x.item.placeholder);
+if((sitemap.match(/<url>/g)||[]).length!==active.length+indexedRows.length) fail.push('Unexpected sitemap URL count');
 const robots=read('robots.txt');
 if(!robots.includes('Sitemap: '+base+'/sitemap.xml')) fail.push('robots.txt does not point at production sitemap');
 
@@ -86,17 +87,23 @@ for(const {type,item} of rows){
   if(!h.includes('<link rel="canonical" href="'+canonical+'">')) fail.push('Wrong canonical: '+p);
   if(!h.includes('<h1>'+esc(item.name)+'</h1>')) fail.push('Missing static H1: '+p);
   if(!h.includes('"@type":"Product"')||!h.includes('"@type":"BreadcrumbList"')) fail.push('Missing product/breadcrumb schema: '+p);
-  if(!h.includes('name="robots" content="index,follow,max-image-preview:large"')) fail.push('Missing product robots policy: '+p);
-  if(!sitemap.includes('<loc>'+canonical+'</loc>')) fail.push('Product absent from sitemap: '+p);
-  if(!h.includes('../images/'+item.img)) fail.push('Primary image absent from static HTML: '+p);
-  if(!exists('images/'+item.img)) fail.push('Missing primary image file: images/'+item.img);
+  if(item.placeholder){
+    if(!h.includes('name="robots" content="noindex,follow"')) fail.push('Placeholder product must be noindex: '+p);
+    if(sitemap.includes('<loc>'+canonical+'</loc>')) fail.push('Placeholder product must stay out of sitemap: '+p);
+    if(!h.includes('Image coming soon')||!h.includes(item.sku||'')) fail.push('Placeholder product UI incomplete: '+p);
+  }else{
+    if(!h.includes('name="robots" content="index,follow,max-image-preview:large"')) fail.push('Missing product robots policy: '+p);
+    if(!sitemap.includes('<loc>'+canonical+'</loc>')) fail.push('Product absent from sitemap: '+p);
+    if(!h.includes('../images/'+item.img)) fail.push('Primary image absent from static HTML: '+p);
+    if(!exists('images/'+item.img)) fail.push('Missing primary image file: images/'+item.img);
+  }
   const detailTags=h.match(/<details\b[^>]*>/gi)||[];
   const closedDetails=detailTags.filter(tag=>!/\sopen(?:\s|=|>)/i.test(tag));
   if(closedDetails.length) fail.push('Product details must be open by default: '+p+' ('+closedDetails.length+' closed)');
   for(const image of (item.gallery||[])) if(!exists('images/'+image.src)) fail.push('Missing gallery image file: images/'+image.src);
   const productJson=[...h.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
   for(const block of productJson){try{JSON.parse(block[1])}catch(e){fail.push('Invalid product JSON-LD in '+p+': '+e.message)}}
-  if((h.match(/<meta\b[^>]*property=["']og:image["'][^>]*>/gi)||[]).length!==1) fail.push('Product must have exactly one og:image meta tag: '+p);
+  if(item.placeholder){if((h.match(/<meta\b[^>]*property=["']og:image["'][^>]*>/gi)||[]).length!==0) fail.push('Placeholder product must not claim an og:image: '+p)}else if((h.match(/<meta\b[^>]*property=["']og:image["'][^>]*>/gi)||[]).length!==1) fail.push('Product must have exactly one og:image meta tag: '+p);
   if((h.match(/<meta\b[^>]*name=["']twitter:card["'][^>]*>/gi)||[]).length!==1) fail.push('Product must have exactly one twitter:card meta tag: '+p);
   if(type==='romneys'){
     const supplier=/mintcake\.co\.uk|walkers-nonsuch\.co\.uk|elit-chocolate\.com/i;
@@ -190,3 +197,7 @@ if(fail.length){
   process.exit(1);
 }
 console.log('Search-readiness verification passed:',{products:rows.length,activePages:active.length,sitemapUrls:active.length+rows.length});
+
+const highlandPlaceholders=(catalog.gifts||[]).filter(x=>x.placeholder&&x.category==='highland-cows');
+if(highlandPlaceholders.length!==23) fail.push('Expected 23 Highland Cow placeholders, found '+highlandPlaceholders.length);
+for(const item of highlandPlaceholders){if(!/^LP\d+$/.test(item.sku||'')) fail.push('Bad Highland placeholder SKU: '+item.id);if(item.img) fail.push('Highland placeholder must not use an inferred image: '+item.id);if(typeof item.price==='number') fail.push('Highland placeholder must not use an inferred price: '+item.id);}

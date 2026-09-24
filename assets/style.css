@@ -141,3 +141,6 @@ section{padding:78px 0}.section-head{display:flex;justify-content:space-between;
  .shopping-catalog .list-add{font-size:9px}
  .romneys-price{font-size:25px;margin:13px 0}
 }
+
+/* Catalogue placeholders for owner-supplied products awaiting verified imagery/details */
+.product-img--placeholder{display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#fbfaf6,#f0ece1)}.product-placeholder-media,.detail-product-placeholder span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;text-align:center;color:var(--muted);padding:20px}.product-placeholder-media strong,.detail-product-placeholder strong{font:700 12px/1.2 Inter,Arial,sans-serif;color:var(--ink)}.product-placeholder-media small,.detail-product-placeholder small{font:700 10px/1 Inter,Arial,sans-serif;letter-spacing:.08em;color:var(--gold2)}.is-placeholder .product-info{opacity:.94}.placeholder-status{display:inline-flex;width:max-content;padding:7px 10px;border-radius:999px;background:#eee8da;color:#75623c;font:800 11px/1 Inter,Arial,sans-serif;margin:10px 0 8px}.detail-product-placeholder{min-height:440px;background:linear-gradient(180deg,#fbfaf6,#f0ece1)}

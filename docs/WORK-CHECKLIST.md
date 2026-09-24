@@ -202,3 +202,11 @@ Search-readiness QA passed for implementation commit `bba82641f56c160e0d48f563b6
 - [x] Remove/hide redundant View links and improve price/stock hierarchy.
 - [x] Remove duplicate price/manufacturer rows and internal verification prose from product-detail flow.
 - [x] Update Romney builder and QA guards to preserve the new system.
+
+## Highland Cow expansion — placeholders 2026-09-24
+- [x] Add 23 owner-supplied product codes/names as HC-033…HC-055 with unique SKU-bearing slugs.
+- [x] Add placeholder cards to Gifts, Highland Cows, Seasonal, Home Gifts and Full range.
+- [x] Add canonical placeholder product pages with product code and verification status.
+- [x] Do not infer product images, prices, dimensions or descriptions.
+- [x] Keep placeholder pages noindex and out of sitemap until completed.
+- [ ] Replace each placeholder with verified image, owner price and factual product details.

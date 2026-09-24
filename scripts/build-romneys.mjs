@@ -131,7 +131,7 @@ const prefix = sitemapSource.slice(0, firstUrl).trimEnd() + '\n';
 const nonProductBlocks = [...sitemapSource.matchAll(/<url>[\s\S]*?<\/url>/g)]
   .map(m => m[0].trim())
   .filter(block => !block.includes(base + '/products/'));
-const productBlocks = all.map(i => {
+const productBlocks = all.filter(i => !i.placeholder).map(i => {
   let entries;
   if (/^HR-/.test(i.id || '') && i.gallery?.length) {
     const seen = new Set();

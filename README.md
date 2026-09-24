@@ -16,7 +16,7 @@ Only products with real product imagery and descriptions are retained:
 - 12 Luxury Lakes Ice Cream flavours.
 - 55 Romney's / confectionery products.
 - 16 Hawkshead Relish products.
-- 124 product records total.
+- 146 product records total.
 - Hawkshead Relish now has canonical individual product pages using verified manufacturer facts; Black Sheep prices are not inferred from manufacturer retail prices.
 - Lakeland Fragrances and other empty legacy gift categories redirect to the current Gifts page.
 
@@ -90,3 +90,8 @@ node scripts/build-romneys.mjs --check
 ```
 
 Supplier retail prices are never a data source for Black Sheep pricing.
+
+
+### Highland Cow placeholders
+
+23 owner-supplied Highland Cow / seasonal product codes and names were added on 24 September 2026 as explicit placeholders. They have no inferred image or price, their product pages are `noindex,follow`, and they are excluded from the sitemap until image, price and verified product details are completed. Mapping: `docs/HIGHLAND-COW-PLACEHOLDERS.md`.

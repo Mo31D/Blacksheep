@@ -339,3 +339,10 @@ Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` b
 - Removed the redundant “Choose a gift type” / “Pick a category to narrow the range” instruction block from Gifts.
 - Replaced “Curated gift range” with the simpler “Gifts” label.
 - Added QA so these instructional phrases do not return.
+
+### Highland Cow placeholder expansion — 24 September 2026
+- Added 23 new owner-supplied Highland Cow product codes/names as HC-033 through HC-055.
+- These are deliberate placeholders only: no guessed image, price, dimensions or detailed description.
+- Placeholder pages are live in the catalogue but use `noindex,follow` and stay out of the sitemap until completed.
+- Gift totals: 64; Highland Cows: 35; Seasonal: 29; Home Gifts: 41; Full range: 146.
+- Seasonal category now covers Christmas + Halloween rather than Christmas-only wording.
