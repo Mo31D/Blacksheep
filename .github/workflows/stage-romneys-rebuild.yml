@@ -1,0 +1,49 @@
+name: Stage Romney rebuild
+on:
+  push:
+    branches: [romneys-rebuild-2026-09-24]
+    paths:
+      - assets/catalog.js
+      - scripts/build-romneys.mjs
+      - scripts/build-romneys-source-map.mjs
+      - scripts/sync-romneys-official-data.py
+      - scripts/verify-search-readiness.mjs
+      - .github/workflows/stage-romneys-rebuild.yml
+permissions:
+  contents: write
+jobs:
+  build-verify-commit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: romneys-rebuild-2026-09-24
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pillow beautifulsoup4
+      - name: Sync official facts and product images
+        run: python scripts/sync-romneys-official-data.py
+      - name: Rebuild internal source map
+        run: node scripts/build-romneys-source-map.mjs
+      - name: Rebuild static Romney outputs
+        run: node scripts/build-romneys.mjs
+      - name: Verify search/static architecture
+        run: |
+          node scripts/verify-search-readiness.mjs
+          node scripts/build-romneys.mjs --check
+      - name: Commit verified generated outputs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/catalog.js images/romneys/official docs/ROMNEYS-SOURCE-MAP.md products/ romneys.html all-products.html sitemap.xml
+          if git diff --cached --quiet; then
+            echo "No generated changes."
+          else
+            git commit -m "romneys: generate verified product catalogue"
+            git push origin HEAD:romneys-rebuild-2026-09-24
+          fi
