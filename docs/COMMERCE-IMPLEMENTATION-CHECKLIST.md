@@ -1,6 +1,6 @@
 # Black Sheep Commerce V1 — Execution Checklist
 
-Updated: 24 September 2026
+Updated: 25 September 2026
 Repository: `Mo31D/Blacksheep`
 Production source of truth: `main`
 
@@ -15,7 +15,8 @@ This is the resumable execution file. It distinguishes code-complete work from l
 - Staging D1: `black-sheep-commerce-staging` — `d442b45d-93b6-4535-b76a-4b72e62dc271`.
 - Production D1: `black-sheep-commerce-prod` — `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`.
 - Staging Worker: `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev`.
-- Current external blocker: GitHub Actions does not currently receive `CLOUDFLARE_API_TOKEN` or `CLOUDFLARE_ACCOUNT_ID`.
+- Staging deploy run `36070794885` completed successfully on 25 September 2026; GitHub Actions deployment credentials are working.
+- Real staging owner-admin and manual-payment lifecycle verified through `COMPLETED` for test order `BSR-260924-2JAYTWT7`.
 
 ## Session rules
 
@@ -38,7 +39,7 @@ Status: COMPLETE for Commerce V1 architecture and staging prerequisites.
 - [x] Configure/verify staging Turnstile.
 - [x] Configure/verify Resend staging email delivery.
 - [x] Reserve production API target `api.theblacksheepshop.co.uk`.
-- [ ] Re-add the GitHub Actions deployment credentials required by Wrangler.
+- [x] Re-add the GitHub Actions deployment credentials required by Wrangler.
 
 ## Phase 1 — Commerce Worker foundation
 
@@ -157,7 +158,7 @@ Status: COMPLETE IN STAGING.
 
 ## Phase 11 — Private owner admin
 
-Status: CODE COMPLETE ON `main`; LIVE STAGING VERIFICATION PENDING.
+Status: COMPLETE AND LIVE-STAGING VERIFIED.
 
 - [x] `/admin` UI.
 - [x] Six-digit owner-email OTP.
@@ -175,14 +176,14 @@ Status: CODE COMPLETE ON `main`; LIVE STAGING VERIFICATION PENDING.
 - [x] Migration `0001_admin_email_auth.sql`.
 - [x] Migration `0002_order_fulfilment_message.sql`.
 - [x] Automated admin/auth/state-machine tests.
-- [ ] Apply `0001` + `0002` to remote staging D1.
-- [ ] Deploy newest `main` Worker to staging.
-- [ ] Verify real owner-code login.
-- [ ] Run one complete staging admin lifecycle.
+- [x] Remote staging D1 is current for `0001` + `0002` (deploy reported no pending migrations).
+- [x] Deploy newest `main` Worker to staging.
+- [x] Verify real owner-code login.
+- [x] Run one complete staging admin lifecycle: `SUBMITTED → UNDER_REVIEW → QUOTED → AWAITING_PAYMENT → PAID → PREPARING → READY_FOR_COLLECTION → COMPLETED`.
 
 ## Phase 12 — Payment V1
 
-Status: CODE COMPLETE; LIVE STAGING ADMIN VERIFICATION PENDING.
+Status: COMPLETE AND LIVE-STAGING VERIFIED.
 
 - [x] Owner confirms final total.
 - [x] Order-specific HTTPS payment request URL/reference.
@@ -193,8 +194,8 @@ Status: CODE COMPLETE; LIVE STAGING ADMIN VERIFICATION PENDING.
 - [x] No reusable public payment link.
 - [x] No card/banking credentials stored.
 - [x] Payment layer remains replaceable by a future gateway/webhook provider.
-- [ ] Send one real staging payment request from admin and verify email/event trail.
-- [ ] Mark that staging order PAID and verify acknowledgment/event trail.
+- [x] Send one real staging payment request from admin and verify customer email/event trail.
+- [x] Mark that staging order PAID and verify payment-received acknowledgment/event trail.
 
 ## Phase 13 — Legal/privacy/customer information
 
@@ -226,8 +227,8 @@ Status: PREPARED, NOT EXECUTED.
 - [x] Production workflow checks Cloudflare credentials.
 - [x] Production workflow requires explicit `DEPLOY-PRODUCTION` confirmation.
 - [x] Production command applies pending D1 migrations before Worker deploy.
-- [ ] Add/re-add GitHub Actions secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
-- [ ] Complete Phase 11/12 live staging verification.
+- [x] Add/re-add GitHub Actions secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+- [x] Complete Phase 11/12 live staging verification.
 - [ ] Confirm Phase 13 business-identity/inbound-email items.
 - [ ] Configure production Worker secrets/variables for Turnstile, Resend and owner email.
 - [ ] Apply production D1 migrations.
@@ -265,25 +266,15 @@ These Phase 15 items require provider/business decisions and should not be silen
 
 ## Current exact next action
 
-### Manual account-side blocker
+Phase 11 and Phase 12 staging gates are now passed.
 
-The staging deploy run `36067998948` passed the application checks but failed before Cloudflare because GitHub Actions received empty deployment credentials.
+1. Confirm the legal proprietor / registered business identity to display if it differs from the trading name `The Black Sheep Shop`.
+2. Confirm whether replies sent to `orders@theblacksheepshop.co.uk` are received by the owner and should be presented as a reply-capable customer-service address.
+3. Configure the production Worker secrets/variables for Turnstile, Resend and owner email.
+4. Attach `api.theblacksheepshop.co.uk` to the production Worker.
+5. Run the guarded production deployment with explicit `DEPLOY-PRODUCTION` confirmation.
+6. Verify production `/health` and `/admin` before enabling customer checkout.
+7. Only after those checks pass, point checkout to `https://api.theblacksheepshop.co.uk` and switch the public feature gates ON.
+8. Run one controlled low-value production lifecycle, then complete the remaining Phase 14 QA gates.
 
-Add/re-add these repository secrets:
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
-
-Path: `GitHub → Mo31D/Blacksheep → Settings → Secrets and variables → Actions → New repository secret`.
-
-Do not paste the API token into chat or source code.
-
-### After the secrets exist
-
-1. Re-run `Commerce Deploy` with `environment = staging`.
-2. The workflow will run the test suite, apply staging migrations `0001` and `0002`, then deploy the Worker.
-3. Open staging `/admin`, request the owner code and sign in.
-4. Run a staging lifecycle: review → quote → payment request → paid → preparing → shipped/ready → complete.
-5. Verify payment-request and paid-confirmation emails/events.
-6. Confirm legal proprietor/business identity and inbound order-email behaviour.
-7. Execute the guarded Phase 14 production cutover.
-8. Only after production API/admin tests pass, enable the public checkout and point it to `https://api.theblacksheepshop.co.uk`.
+Production D1 remains untouched until the Phase 13 owner confirmations are resolved and the production cutover is explicitly started.
