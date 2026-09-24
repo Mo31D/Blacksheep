@@ -199,7 +199,7 @@ Status: COMPLETE AND LIVE-STAGING VERIFIED.
 
 ## Phase 13 — Legal/privacy/customer information
 
-Status: CODE COMPLETE; OWNER IDENTITY/INBOUND-EMAIL CONFIRMATION PENDING.
+Status: COMPLETE, INCLUDING OWNER IDENTITY AND LIVE INBOUND-EMAIL VERIFICATION.
 
 - [x] `privacy.html`.
 - [x] `delivery-returns.html`.
@@ -215,8 +215,8 @@ Status: CODE COMPLETE; OWNER IDENTITY/INBOUND-EMAIL CONFIRMATION PENDING.
 - [x] Legal contract checks in Commerce CI.
 - [x] GOV.UK distance-selling/returns guidance reviewed on 24 September 2026.
 - [x] Current ICO storage/access guidance reviewed.
-- [ ] Confirm legal proprietor / registered business identity if it differs from the trading name shown.
-- [ ] Confirm inbound replies to `orders@theblacksheepshop.co.uk` if customers should be able to reply by email.
+- [x] Legal business identity confirmed for the customer-facing legal pages as `The Black Sheep Shop`.
+- [x] `orders@theblacksheepshop.co.uk` inbound email configured with Cloudflare Email Routing to the verified owner Gmail destination and live forwarding verified.
 
 ## Phase 14 — Production cutover
 
@@ -229,7 +229,7 @@ Status: PREPARED, NOT EXECUTED.
 - [x] Production command applies pending D1 migrations before Worker deploy.
 - [x] Add/re-add GitHub Actions secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 - [x] Complete Phase 11/12 live staging verification.
-- [ ] Confirm Phase 13 business-identity/inbound-email items.
+- [x] Confirm Phase 13 business-identity/inbound-email items.
 - [ ] Configure production Worker secrets/variables for Turnstile, Resend and owner email.
 - [ ] Apply production D1 migrations.
 - [ ] Attach `api.theblacksheepshop.co.uk`.
@@ -266,15 +266,14 @@ These Phase 15 items require provider/business decisions and should not be silen
 
 ## Current exact next action
 
-Phase 11 and Phase 12 staging gates are now passed.
+Phases 11, 12 and 13 staging/customer-information gates are now passed.
 
-1. Confirm the legal proprietor / registered business identity to display if it differs from the trading name `The Black Sheep Shop`.
-2. Confirm whether replies sent to `orders@theblacksheepshop.co.uk` are received by the owner and should be presented as a reply-capable customer-service address.
-3. Configure the production Worker secrets/variables for Turnstile, Resend and owner email.
-4. Attach `api.theblacksheepshop.co.uk` to the production Worker.
-5. Run the guarded production deployment with explicit `DEPLOY-PRODUCTION` confirmation.
-6. Verify production `/health` and `/admin` before enabling customer checkout.
-7. Only after those checks pass, point checkout to `https://api.theblacksheepshop.co.uk` and switch the public feature gates ON.
-8. Run one controlled low-value production lifecycle, then complete the remaining Phase 14 QA gates.
+1. Configure the production Worker secrets/variables for Turnstile, Resend and owner email.
+2. Attach `api.theblacksheepshop.co.uk` to the production Worker.
+3. Run the guarded production deployment with explicit `DEPLOY-PRODUCTION` confirmation.
+4. Verify production `/health` and `/admin` before enabling customer checkout.
+5. Only after those checks pass, point checkout to `https://api.theblacksheepshop.co.uk` and switch the public feature gates ON.
+6. Test production delivery + collection, duplicate protection, API-error cart preservation and notifications.
+7. Run one controlled low-value production lifecycle, then complete the remaining Phase 14 QA gates.
 
-Production D1 remains untouched until the Phase 13 owner confirmations are resolved and the production cutover is explicitly started.
+Production D1 remains untouched until the guarded Phase 14 production cutover is explicitly started.
