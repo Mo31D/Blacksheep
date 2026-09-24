@@ -1,7 +1,7 @@
 # Black Sheep — resumable work checklist
 
 Updated 2026-09-24. Repository: https://github.com/Mo31D/Blacksheep — branch main.
-GitHub `main` is authoritative. Latest verified search/QA implementation milestone: `08817788b722cbb6ad675f331ff4f8532e2a0c74` (Romney static build + QA; documentation commits may be newer).
+GitHub `main` is authoritative. Latest verified search/QA implementation milestone: `a5ebfc2d57d36d079414260ae320b27377e68ce3` (owner-confirmed Romney pricing + cross-builder QA; documentation commits may be newer).
 
 ## Resume rules
 1. Read this file, docs/OWNER-REQUESTS.md, docs/HIGHLAND-COW-SOURCE-MAP.md and docs/SESSION-HANDOFF.md before editing.
@@ -81,7 +81,7 @@ GitHub `main` is the source of truth after the 24 September Romney's rebuild.
 6. Keep Loo-Time and Soaking prices unpublished until owner-confirmed.
 7. Remaining external work: Sites synchronization, live deployment QA, Google Maps/360 imagery review and Black Sheep Search Console analysis when access is available.
 
-Repository QA has no known blocking issue. Final Romney static-build QA passed at `c1dc76ab82795d2453b2a33ed11d40d274b8fb69`; hosting/deployment state still needs confirmation after newest `main` publishes.
+Repository QA has no known blocking issue. Final Romney/ice-cream cross-builder QA and owner-price reconciliation passed at `a5ebfc2d57d36d079414260ae320b27377e68ce3`; hosting/deployment state still needs confirmation after newest `main` publishes.
 
 ## Navigation decision — completed
 
@@ -157,8 +157,8 @@ Repository QA has no known blocking issue. Final Romney static-build QA passed a
 - [x] Remove visible Manufacturer Source / supplier-shop links from customer-facing Romney pages.
 - [x] Keep official source URLs internally in `docs/ROMNEYS-SOURCE-MAP.md`.
 - [x] Enforce Black Sheep owner pricing; do not import supplier retail prices.
-- [x] Keep 170g White/Brown/Extra Strong Kendal Mint Cake at **£2.50**.
-- [x] Keep Giant White 480g separate from the owner’s chocolate-covered Large price; current Black Sheep price **£2.70**.
+- [x] Set 170g White/Brown/Extra Strong Kendal Mint Cake (Large) to owner-confirmed **£2.80**.
+- [x] Set Giant White 480g to owner-confirmed **£4.70**.
 - [x] Set Triple Pack to **£4.90**.
 - [x] Confirm standard biscuit records at **£2.99**, standard 150g fudge bags at **£3.85**, Vanilla Fudge Bar at **£2.40**, Cinder Toffee at **£3.30**, Chocolate Cinder at **£3.50**, Peanut Brittle at **£2.10**, Nougat at **£2.70**.
 - [x] Add exact **Shortbread Selection 300g — £7.50** as ROM-056.
