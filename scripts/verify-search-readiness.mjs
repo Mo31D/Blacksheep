@@ -40,6 +40,14 @@ for(const p of active){
   for(const block of jsonLd){try{JSON.parse(block[1])}catch(e){fail.push('Invalid JSON-LD in '+p+': '+e.message)}}
 }
 
+const giftsPage=read('gifts.html');
+if(/id=["']search["']/i.test(giftsPage)) fail.push('Gifts page must use category filters, not duplicate search UI');
+if(/giftSectionSelect/i.test(giftsPage)) fail.push('Obsolete Gifts section selector remains');
+const romneysPage=read('romneys.html');
+if(/id=["']search["']/i.test(romneysPage)) fail.push("Romney's page must use category filters, not search UI");
+for(const filter of ['biscuits','fudge','mint-cake','sweets','gift-boxes']) if(!romneysPage.includes('data-filter="'+filter+'"')) fail.push("Missing Romney filter: "+filter);
+if(rows.some(x=>x.item.slug==='rom-002-dubai-chocolate')) fail.push('Dubai Chocolate must not be in the active catalogue');
+
 const sitemap=read('sitemap.xml');
 if(/product\.html\?/i.test(sitemap)) fail.push('Legacy query product URLs remain in sitemap');
 if((sitemap.match(/<url>/g)||[]).length!==active.length+rows.length) fail.push('Unexpected sitemap URL count');
