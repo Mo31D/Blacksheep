@@ -2,7 +2,7 @@
 
 Updated: 24 September 2026
 
-Latest verified implementation milestone: `08817788b722cbb6ad675f331ff4f8532e2a0c74` (Romney static build + QA; documentation commits may be newer)
+Latest verified implementation milestone: `a5ebfc2d57d36d079414260ae320b27377e68ce3` (owner-confirmed Romney pricing + cross-builder QA; documentation commits may be newer)
 
 This is the short handoff file for ChatGPT, Work/Sites, Codex, or any future session. Read this before making changes.
 
@@ -57,7 +57,7 @@ At the end:
 - Search-readiness CI now also runs `node scripts/build-romneys.mjs --check`.
 - **37** Romney's-section records are matched to exact current manufacturer pages; **36** exact official local images are retained/generated. Unmatched records remain explicitly unmatched rather than being guessed.
 - Added exact **Shortbread Selection 300g — £7.50**.
-- Owner pricing now includes: 200g biscuit bags £2.99; 150g fudge bags £3.85; fudge bar £2.40; White Kendal Mint Cake 85g £1.50; White 170g/Large £2.80; Giant White 480g £4.70; Triple Pack 227g £4.90; Cinder Toffee £3.30; Chocolate Coated Cinder Toffee £3.50; Peanut Brittle £2.10; Pink & White Nougat £2.70.
+- Owner pricing now includes: 200g biscuit bags £2.99; 150g fudge bags £3.85; fudge bar £2.40; White Kendal Mint Cake 85g £1.50; White/Brown/Extra Strong 170g/Large £2.80; Giant White 480g £4.70; Triple Pack 227g £4.90; Cinder Toffee £3.30; Chocolate Coated Cinder Toffee £3.50; Peanut Brittle £2.10; Pink & White Nougat £2.70.
 - Pending exact identity — do not guess: Twin Biscuit Sachets £6.90; Boxed Fudge 150g £4.90; Chocolate Covered Kendal Mint Cake Small/Medium/Large; Large Rock £2.80; Postcard Boxes £4.95.
 - Full report: `docs/WORK-REPORT-ROMNEYS-REBUILD-2026-09-24.md`.
 - Final staging QA: **109 products, 17 active pages, 126 sitemap URLs; builder drift check passed**.
@@ -123,7 +123,7 @@ Do not reproduce the previous regex/meta transformation that dropped the opening
 1. Fetch newest remote `main` and treat it as source of truth.
 2. Sync **the same existing Black Sheep Sites project** from this GitHub state; never create a duplicate Sites project.
 3. After deployment, perform live mobile + desktop visual QA, specifically confirming there is no metadata text above the top bar on Gifts, Peter Rabbit, Highland Cows, Ice Cream, About and Visit.
-4. Preserve the 108-product static URL architecture, prerendered collection HTML, schema graphs, sitemap and CI checks.
+4. Preserve the 109-product static URL architecture, prerendered collection HTML, schema graphs, sitemap and CI checks.
 5. Do not re-add removed placeholder products/categories or old nested Gifts navigation.
 6. If Search Console access for Black Sheep becomes available, verify sitemap ingestion, indexing/canonical selection and real search performance from GSC. Do not infer ranking from repository checks alone.
 7. Google Maps/360 imagery work and exact Sites synchronization remain separate follow-up tasks.
