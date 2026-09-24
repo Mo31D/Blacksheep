@@ -1,5 +1,6 @@
 import type { D1DatabaseLike } from "./data/d1";
 import { handleCreateOrder, type RateLimiterLike } from "./routes/orders";
+import type { SendEmailBindingLike } from "./notifications/order-notifier";
 
 interface Env {
   ENVIRONMENT?: string;
@@ -9,6 +10,9 @@ interface Env {
   TURNSTILE_SECRET_KEY?: string;
   TURNSTILE_ALLOWED_HOSTNAMES?: string;
   TURNSTILE_EXPECTED_ACTION?: string;
+  EMAIL?: SendEmailBindingLike;
+  ORDER_EMAIL_FROM?: string;
+  ORDER_OWNER_EMAIL?: string;
 }
 
 const SERVICE = "black-sheep-commerce-api";

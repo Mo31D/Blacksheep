@@ -103,6 +103,7 @@ function env(db: FakeDb) {
 }
 
 const deps = {
+  notifyOrderSubmittedFn: async () => {},
   verifyTurnstileFn: vi.fn(async () => ({
     success: true,
     hostname: "theblacksheepshop.co.uk",

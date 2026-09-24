@@ -296,21 +296,26 @@ Validation so far: Commerce CI PASS; order confirmation page contract checks PAS
 
 ## Phase 10 — Owner notifications
 
-Email is a notification channel, not storage.
+Status: CODE COMPLETE ON `commerce-v1` — Cloudflare Email Service domain/binding configuration is still required before emails are enabled.
 
-- [ ] Define `OrderNotifier` interface.
-- [ ] Notify owner for new SUBMITTED order.
-- [ ] Include reference and admin link.
-- [ ] Add customer acknowledgment.
-- [ ] Record notification outcome/event.
-- [ ] Avoid customer PII in unnecessary logs.
-- [ ] Retry transient failures safely.
+Email remains a notification channel, not storage.
 
-Provider decision:
-- [ ] Cloudflare Email Service, or
-- [ ] alternate transactional provider through the same adapter.
+- [x] Define `OrderNotifier` interface.
+- [x] Add Cloudflare Email Service notifier adapter.
+- [x] Compose owner notification for new SUBMITTED orders.
+- [x] Compose customer acknowledgment with explicit “no payment taken” wording.
+- [x] Include reference and order summary without relying on email as storage.
+- [x] Record notification success/failure in `order_events`.
+- [x] Avoid customer PII in notification failure metadata/logging.
+- [x] Retry transient send failures once without failing order creation.
+- [ ] Onboard `theblacksheepshop.co.uk` to Cloudflare Email Service.
+- [ ] Configure the Worker `EMAIL` send binding.
+- [ ] Configure `ORDER_EMAIL_FROM` and `ORDER_OWNER_EMAIL`.
+- [ ] Send one owner + customer staging email and verify delivery.
 
-**Suggested commit:** `commerce: add order notifications`
+Provider: Cloudflare Email Service behind the `OrderNotifier` abstraction, so it can be replaced later without changing checkout/order business logic.
+
+**Commit:** `commerce: add order notification architecture`
 
 ## Phase 11 — Private owner admin
 
