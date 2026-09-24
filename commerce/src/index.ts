@@ -15,10 +15,6 @@ interface Env {
   RESEND_API_KEY?: string;
   ORDER_EMAIL_FROM?: string;
   ORDER_OWNER_EMAIL?: string;
-  ADMIN_HOSTNAME?: string;
-  ADMIN_TEAM_DOMAIN?: string;
-  ADMIN_ACCESS_AUD?: string;
-  ADMIN_ALLOWED_EMAILS?: string;
 }
 
 const SERVICE = "black-sheep-commerce-api";
@@ -77,7 +73,7 @@ function preflight(request: Request, env: Env): Response {
 async function route(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
 
-  if (env.ADMIN_HOSTNAME && url.hostname === env.ADMIN_HOSTNAME) {
+  if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
     return handleAdminRequest(request, env);
   }
 
