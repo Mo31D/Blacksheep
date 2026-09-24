@@ -236,35 +236,52 @@ Validation:
 
 ## Phase 8 — Checkout
 
-- [ ] Create `checkout.html`.
-- [ ] Fulfilment choice: delivery / collection.
-- [ ] Customer name/email/phone.
-- [ ] Delivery address fields when required.
-- [ ] Optional order note.
-- [ ] Client-side validation for UX only.
-- [ ] Persist non-sensitive checkout draft locally.
-- [ ] Review step.
-- [ ] Explain no payment is taken yet.
-- [ ] Privacy notice/link.
-- [ ] Turnstile.
-- [ ] Loading state.
-- [ ] Block duplicate click.
-- [ ] Recover cleanly from API/network failure.
+Status: COMPLETE ON `commerce-v1` — intentionally not live yet.
 
-**Suggested commit:** `commerce: add checkout and review flow`
+- [x] Create `checkout.html`.
+- [x] Fulfilment choice: delivery / collection.
+- [x] Customer name/email/phone.
+- [x] Delivery address fields when required.
+- [x] Optional order note.
+- [x] Client-side validation for UX only.
+- [x] Persist only non-sensitive checkout draft state locally (fulfilment choice; personal fields are not persisted).
+- [x] Review step.
+- [x] Explain no payment is taken yet.
+- [x] Inline checkout privacy notice.
+- [x] Turnstile widget/action integration.
+- [x] Loading state.
+- [x] Block duplicate click.
+- [x] Recover cleanly from API/network failure.
+- [x] Keep basket safe when submission fails.
+- [x] Checkout page is `noindex,follow`.
+
+Validation: Commerce CI PASS; checkout page contract checks PASS; static JS parse PASS.
+
+**Commit boundary:** `commerce: add checkout and review flow`
 
 ## Phase 9 — Order submitted experience
 
-- [ ] Send request to Commerce API.
-- [ ] Clear cart only after confirmed successful creation.
-- [ ] Show public order/request reference.
-- [ ] Show submitted item summary.
-- [ ] Explain next step.
-- [ ] Explain delivery/payment confirmation process.
-- [ ] Handle idempotent retry.
-- [ ] No false “paid” or “confirmed order” wording.
+Status: CODE COMPLETE ON `commerce-v1` — one real staging Turnstile/order test remains before customer UI can be merged.
 
-**Suggested commit:** `commerce: connect checkout to order API`
+- [x] Send request to Commerce API.
+- [x] Send product IDs + quantities only; backend remains authoritative for prices.
+- [x] Use a session idempotency UUID and preserve it across network retries.
+- [x] Clear cart only after confirmed successful creation.
+- [x] Show public order/request reference.
+- [x] Show submitted item summary.
+- [x] Explain next step.
+- [x] Explain delivery/payment confirmation process.
+- [x] Handle idempotent retry.
+- [x] Reset Turnstile after recoverable failures.
+- [x] No false “paid” or “confirmed order” wording.
+- [x] Add `order-requested.html` with `noindex,follow`.
+- [ ] Perform one real staging submission from the production hostname with Turnstile.
+- [ ] Confirm exactly one order + item/event snapshot in staging D1.
+- [ ] Repeat the same request/idempotency key and confirm no duplicate order.
+
+Validation so far: Commerce CI PASS; order confirmation page contract checks PASS.
+
+**Commit boundary:** `commerce: connect checkout to order API`
 
 ## Phase 10 — Owner notifications
 
