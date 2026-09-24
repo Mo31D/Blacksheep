@@ -6,7 +6,7 @@
 > - `docs/COMMERCE-IMPLEMENTATION-CHECKLIST.md`
 > - `docs/CLOUDFLARE-COMMERCE-SETUP.md`
 >
-> Current rule: do not start cart/checkout UI until the staging Worker skeleton, CI and D1 binding are stable. The owner must complete only the manual Cloudflare prerequisites; all remaining implementation should follow the checklist milestone-by-milestone.
+> Commerce Phase 1 foundation is now merged to `main`: `/commerce`, TypeScript Worker, `/health`, CORS, tests, Wrangler staging/production config, Commerce CI and manual deploy workflow. CI and Search readiness pass. Cloudflare D1/Turnstile resources are not created yet. Current rule: deploy the staging Worker and verify `/health`, then complete D1/Turnstile prerequisites before Phase 2/4. Do not start cart/checkout UI yet.
 
 > **NEXT-PHASE BASELINE — 24 September 2026**  
 > Before relying on older counts/status sections below, read:

@@ -7,10 +7,13 @@ This is the resumable execution file for the Commerce project. Update it after e
 
 ## Current implementation anchor
 
-- Commerce branch created from production `main` at `ff8d62bf19a0902b5ed8061cba7e975dc9ffd39c`.
-- Phase 1 code skeleton has been prepared on `commerce-v1`.
+- Commerce work started from production `main` at `ff8d62bf19a0902b5ed8061cba7e975dc9ffd39c`.
+- Phase 1 Worker skeleton was validated on `commerce-v1`, merged to `main`, and revalidated on `main`.
+- Current Commerce foundation commit on `main`: `a9834b08f463a39eee5165468b325fc0e58dd1c2`.
+- Commerce CI on `main`: PASS (TypeScript + 5 tests + Wrangler staging dry-run).
+- Existing Search readiness on `main`: PASS.
 - Cloudflare account resources (D1, Turnstile, deployment token/account secrets) are **not yet configured**.
-- Do not start Phase 2 or customer-facing Basket/Checkout work until Phase 1 CI and staging `/health` are green.
+- Do not start Phase 2 or customer-facing Basket/Checkout work until the staging Worker is deployed and `/health` is verified remotely.
 
 ## Rules for every session
 
