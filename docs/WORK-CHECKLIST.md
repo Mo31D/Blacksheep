@@ -1,7 +1,7 @@
 # Black Sheep — resumable work checklist
 
 Updated 2026-09-24. Repository: https://github.com/Mo31D/Blacksheep — branch main.
-GitHub `main` is authoritative. Latest verified search/QA implementation milestone: `7bac983fcba1a6fcd45d42ddb9ee97b7999e284c` (Romney static build + QA; documentation commits may be newer).
+GitHub `main` is authoritative. Latest verified search/QA implementation milestone: `08817788b722cbb6ad675f331ff4f8532e2a0c74` (Romney static build + QA; documentation commits may be newer).
 
 ## Resume rules
 1. Read this file, docs/OWNER-REQUESTS.md, docs/HIGHLAND-COW-SOURCE-MAP.md and docs/SESSION-HANDOFF.md before editing.
@@ -170,8 +170,9 @@ Repository QA has no known blocking issue. Final Romney static-build QA passed a
 - [x] Add deterministic `scripts/build-romneys.mjs` and internal source-map builder.
 - [x] Extend search-readiness verification for public supplier-link leakage, schema brand/manufacturer, collection counts and duplicate official image provenance.
 - [x] Reconcile all 56 Romney pages, Romney collection, Full Range, ItemLists and sitemap.
-- [x] Final staged QA: **109 products, 126 sitemap URLs, 56 Romney cards, 109 Full Range cards**; search-readiness PASS; Romney builder `--check` PASS.
+- [x] Final main QA on `08817788b722cbb6ad675f331ff4f8532e2a0c74`: **109 products, 126 sitemap URLs, 56 Romney cards, 109 Full Range cards**; search-readiness PASS; Ice Cream builder `--check` PASS; Romney builder `--check` PASS.
 - [x] Save authoritative report: `docs/WORK-REPORT-ROMNEYS-2026-09-24.md`.
 - [ ] Owner confirmation still required for Chocolate Covered Small/Medium/Large weight mapping, Small/Large Rock mapping, Twin Biscuit Sachets, Boxed Fudge 150g and Postcard Boxes.
 - [ ] Sync the same existing Black Sheep Sites project when its exact identity is available; do not create a duplicate.
-- [ ] Complete live mobile/desktop verification after newest `main` is deployed.
+- [x] GitHub Pages build/deployment succeeded for verified main SHA `08817788b722cbb6ad675f331ff4f8532e2a0c74`.
+- [ ] Complete browser-level live mobile/desktop visual verification; external domain fetch was unavailable in this session.

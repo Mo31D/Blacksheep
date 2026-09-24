@@ -177,7 +177,10 @@ The exact existing Black Sheep Work/Sites project was not resolved through the a
 
 ## 16. Live deployment status
 
-At implementation-report creation, the validated source is ready for fast-forward to `main`. Live production verification follows the final `main` push. The completion chat records the observed deployment state.
+Validated work was fast-forwarded to GitHub `main` without force-push. On verified main SHA `08817788b722cbb6ad675f331ff4f8532e2a0c74`:
+- GitHub **Search readiness** completed successfully, including the general verifier, Ice Cream builder `--check`, and Romney builder `--check`.
+- GitHub **Pages build and deployment** completed successfully.
+- The external browsing tool used in this session could not fetch the production domain directly, so a browser-level visual claim is not made here. Mobile/desktop live visual QA remains a separate follow-up check.
 
 ## 17. Unresolved owner questions
 
@@ -189,8 +192,7 @@ At implementation-report creation, the validated source is ready for fast-forwar
 
 ## 18. Exact recommended next action
 
-1. Fast-forward validated staging work to current GitHub `main` only if `main` has not advanced.
-2. Let the normal `search-readiness` workflow pass on `main`.
-3. Verify the live production domain on mobile and desktop for representative Romney, Elit and Walker pages.
-4. Sync the **same existing** Black Sheep Sites project from the newest GitHub `main` when that project is identifiable; do not create a duplicate.
-5. For the unresolved owner questions above, use actual Black Sheep packaging/photos/weights before applying any remaining size-specific prices.
+1. Verify the live production domain visually on mobile and desktop for representative Romney, Elit and Walker pages; GitHub Pages deployment has already succeeded.
+2. Sync the **same existing** Black Sheep Sites project from the newest GitHub `main` when that project is identifiable; do not create a duplicate.
+3. For the unresolved owner questions above, use actual Black Sheep packaging/photos/weights before applying any remaining size-specific prices.
+4. Preserve both deterministic builders independently: Romney must only rewrite Romney cards in Full Range, and Ice Cream must only rewrite Ice Cream cards. Both `--check` commands now pass in the permanent main CI.

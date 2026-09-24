@@ -2,7 +2,7 @@
 
 Updated: 24 September 2026
 
-Latest verified implementation milestone: `7bac983fcba1a6fcd45d42ddb9ee97b7999e284c` (Romney static build + QA; documentation commits may be newer)
+Latest verified implementation milestone: `08817788b722cbb6ad675f331ff4f8532e2a0c74` (Romney static build + QA; documentation commits may be newer)
 
 This is the short handoff file for ChatGPT, Work/Sites, Codex, or any future session. Read this before making changes.
 
@@ -271,7 +271,7 @@ Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` b
 - Dubai Chocolate is **Elit**. ROM-054 and ROM-055 are **Walker's Nonsuch**.
 - 19 current catalogue records remain unmatched to an exact current official page; do not force-match similar products.
 - Twin Biscuit Sachets £6.90, Boxed Fudge 150g £4.90, Postcard Boxes £4.95, Rock size mapping and Chocolate Covered Small/Medium/Large mapping remain owner-confirmation items.
-- Final staged QA passed: **109 products, 17 active pages, 126 sitemap URLs**, and `node scripts/build-romneys.mjs --check` reports all outputs match.
+- Final main QA passed on `08817788b722cbb6ad675f331ff4f8532e2a0c74`: **109 products, 17 active pages, 126 sitemap URLs**; search-readiness, Ice Cream builder `--check`, and Romney builder `--check` all passed. GitHub Pages deployment also succeeded.
 - Exact existing Black Sheep Sites project is still unresolved; **no duplicate Sites project was created**.
 
 ### Exact next action after this rebuild
@@ -280,4 +280,4 @@ Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` b
 2. Preserve the 109-product static/search architecture and the current Romney builder/verifier.
 3. If working in Sites, sync the **same existing Black Sheep project** from GitHub; never create a duplicate or restore an older Sites version over `main`.
 4. Resolve remaining size/pack questions from actual Black Sheep packaging/photos before applying unassigned owner prices.
-5. Perform live mobile/desktop QA after deployment and, when available, verify real indexing/search performance in Search Console rather than inferring ranking from repository structure alone.
+5. GitHub Pages deployment succeeded; perform browser-level live mobile/desktop visual QA next. When available, verify real indexing/search performance in Search Console rather than inferring ranking from repository structure alone.
