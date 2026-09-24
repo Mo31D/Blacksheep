@@ -55,6 +55,13 @@ for(const item of officialRomneys){
   if(!item.official.manufacturer) fail.push('Missing official manufacturer for '+item.id);
   if(romneysSourceMap&&!romneysSourceMap.includes(item.official.url)) fail.push('Romney source map missing '+item.id);
 }
+const romneyImageSources=new Map();
+for(const item of (catalog.romneys||[])){
+  const u=item.official?.imageUrl;
+  if(!u) continue;
+  if(romneyImageSources.has(u)) fail.push('Duplicate Romney official image provenance: '+romneyImageSources.get(u)+' and '+item.id);
+  else romneyImageSources.set(u,item.id);
+}
 
 for(const {type,item} of rows){
   const p='products/'+item.slug+'.html';
