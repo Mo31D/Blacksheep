@@ -77,7 +77,7 @@ for(const {type,item} of rows){
     if(/Manufacturer source|Buy from manufacturer/i.test(h)) fail.push('Public manufacturer-source UI leaked into '+p);
     if(supplier.test(h)) fail.push('Public supplier URL leaked into '+p);
     let parsed=null;
-    try{parsed=JSON.parse([...h.matchAll(/<script[^>]*type=["']application\\/ld\\+json["'][^>]*>([\\s\\S]*?)<\\/script>/gi)][0]?.[1]||'null')}catch{}
+    try{parsed=JSON.parse(productJson[0]?.[1]||'null')}catch{}
     const productNode=parsed?.['@graph']?.find(x=>x['@type']==='Product');
     if(!productNode) fail.push('Product schema missing in '+p);
     if(productNode?.sameAs?.some?.(x=>supplier.test(String(x)))) fail.push('Supplier sameAs leaked into Product schema: '+p);
