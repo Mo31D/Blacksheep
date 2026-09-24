@@ -83,7 +83,7 @@ Cloudflare D1 resources:
 - [x] `black-sheep-commerce-staging` — `d442b45d-93b6-4535-b76a-4b72e62dc271`
 - [x] `black-sheep-commerce-prod` — `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
 
-Status: CODE + LOCAL MIGRATION COMPLETE — remote staging migration pending.
+Status: COMPLETE — remote staging migration applied and verified.
 
 Goal: real persistent orders exist before checkout is connected.
 
@@ -96,12 +96,12 @@ Goal: real persistent orders exist before checkout is connected.
 - [x] Add status constraints/validation.
 - [x] Add indexes needed for owner queue and reference lookup.
 - [x] Bind staging D1 in Wrangler config.
-- [ ] Apply migration to remote staging D1 and verify the three tables.
+- [x] Apply migration to remote staging D1 and verify `orders`, `order_items`, `order_events`, plus `d1_migrations`.
 - [x] Add repository/data-access layer.
 - [x] Add transaction-safe order creation using D1 batch.
 - [x] Add tests for persistence and duplicate idempotency lookup.
 
-**Validation so far:** local D1 migration PASS (8 SQL commands), 8 automated tests PASS, TypeScript PASS, Wrangler staging dry-run PASS.
+**Validation:** local D1 migration PASS (8 SQL commands), remote staging migration PASS, staging tables verified in Cloudflare Console, 8 automated tests PASS, TypeScript PASS, Wrangler staging dry-run PASS.
 
 **Commit:** `commerce: add D1 order persistence`
 
