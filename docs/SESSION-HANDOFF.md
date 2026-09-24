@@ -1,8 +1,8 @@
 # Black Sheep — Session Handoff
 
-Updated: 23 September 2026
+Updated: 24 September 2026
 
-Latest verified implementation milestone: `7ff604b053242b90d23f67d2c655580ef7c91e57`
+Latest verified implementation milestone: `c1dc76ab82795d2453b2a33ed11d40d274b8fb69` (Romney static build + QA; documentation commits may be newer)
 
 This is the short handoff file for ChatGPT, Work/Sites, Codex, or any future session. Read this before making changes.
 
@@ -45,6 +45,31 @@ At the end:
 3. Record the final commit SHA.
 4. State any unresolved blockers explicitly.
 
+## CRITICAL LATEST HANDOFF — Romney's rebuild, 24 September 2026
+
+**This section supersedes older Romney's/source-link notes below.**
+
+- GitHub `main` remains authoritative. The validated rebuild was prepared from authoritative main `99016db84e88e001f26374ed107c2b37a9fd4ccd`.
+- Current curated catalogue: **109 products total** = 41 Gifts + 12 Luxury Lakes Ice Cream + **56 Romney's/confectionery**.
+- Current sitemap target after rebuild: **126 URLs** = 17 active non-product pages + 109 static product pages.
+- Romney's/confectionery provenance is internal in `docs/ROMNEYS-SOURCE-MAP.md`; public product pages must **not** link to supplier/manufacturer shops or expose supplier retail prices.
+- Current static generator: `scripts/build-romneys.mjs`; source-map generator: `scripts/build-romneys-source-map.mjs`; optional factual/image sync tool: `scripts/sync-romneys-official-data.py`.
+- Search-readiness CI now also runs `node scripts/build-romneys.mjs --check`.
+- **37** Romney's-section records are matched to exact current manufacturer pages; **36** exact official local images are retained/generated. Unmatched records remain explicitly unmatched rather than being guessed.
+- Added exact **Shortbread Selection 300g — £7.50**.
+- Owner pricing now includes: 200g biscuit bags £2.99; 150g fudge bags £3.85; fudge bar £2.40; White Kendal Mint Cake 85g £1.50; White 170g/Large £2.80; Giant White 480g £4.70; Triple Pack 227g £4.90; Cinder Toffee £3.30; Chocolate Coated Cinder Toffee £3.50; Peanut Brittle £2.10; Pink & White Nougat £2.70.
+- Pending exact identity — do not guess: Twin Biscuit Sachets £6.90; Boxed Fudge 150g £4.90; Chocolate Covered Kendal Mint Cake Small/Medium/Large; Large Rock £2.80; Postcard Boxes £4.95.
+- Full report: `docs/WORK-REPORT-ROMNEYS-REBUILD-2026-09-24.md`.
+- Final staging QA: **109 products, 17 active pages, 126 sitemap URLs; builder drift check passed**.
+- The malformed appended duplicate catalogue tails in `romneys.html` and `all-products.html` were removed and the builder now prevents their recurrence.
+
+### Exact next action
+1. Use newest GitHub `main`; do not restore older Work/Sites state.
+2. Sync/publish to the **same existing** Black Sheep Sites project only when its exact project identity is available.
+3. Perform live mobile + desktop QA after deployment.
+4. Resolve pending Romney's identities only from exact packaging/photo/weight evidence.
+5. Search Console/live indexing review remains separate from repository QA.
+
 ## CRITICAL LATEST HANDOFF — post-SEO/search rebuild, 23 September 2026
 
 **Work/Sites: fetch the newest GitHub `main` before doing anything. Do not restore an older Work-local copy over GitHub.**
@@ -52,12 +77,12 @@ At the end:
 The repository was substantially upgraded today for Google/Search/AI readability while preserving the Black Sheep design and the current curated catalogue.
 
 ### Search architecture now in production source
-- The canonical product architecture is now **108 static HTML product pages** under `products/<slug>.html`.
+- The canonical product architecture is now **109 static HTML product pages** under `products/<slug>.html`.
 - Do **not** restore `product.html?type=...&slug=...` as the indexable product architecture. That file is legacy-only, has `noindex,follow`, and redirects old visitors to the static URL.
 - Every static product page contains its customer-facing H1, description, primary image, verified product facts, canonical URL and JSON-LD directly in source HTML. Product indexing no longer depends on client-side rendering.
 - Product/collection links now point directly to `/products/<slug>.html`.
 - Active collection pages contain prerendered product cards/links in source HTML. Shared JS enhances filtering and My List but preserves prerendered catalogue content instead of rebuilding it.
-- Current catalogue remains **108 products total: 41 Gifts (29 Peter Rabbit + 12 Highland Cow), 12 Luxury Lakes Ice Cream, 55 Romney's/confectionery**.
+- Current catalogue remains **109 products total: 41 Gifts (29 Peter Rabbit + 12 Highland Cow), 12 Luxury Lakes Ice Cream, 56 Romney's/confectionery**.
 - Hawkshead Relish remains an informational in-store range page with no invented individual products.
 
 ### Structured data / entity layer
@@ -104,8 +129,8 @@ Do not reproduce the previous regex/meta transformation that dropped the opening
 7. Google Maps/360 imagery work and exact Sites synchronization remain separate follow-up tasks.
 
 ### Current repository QA summary
-- Catalogue: 108 records; 0 duplicate IDs, slugs or non-empty SKUs in the current audit.
-- Sitemap: 125 URLs; 108 product URLs; 111 image entries; 0 legacy query product URLs.
+- Catalogue: 109 records; 0 duplicate IDs, slugs or non-empty SKUs in the current audit.
+- Sitemap: 126 URLs; 109 product URLs; 111 image entries; 0 legacy query product URLs.
 - All 17 active core pages: canonical present, index policy present, JSON-LD parses successfully.
 - All active pages: corrected social metadata; no malformed visible `og:image` fragment.
 - Representative Peter Rabbit, Highland Cow, Ice Cream and Romney's product pages: one H1, one canonical, valid JSON-LD graph including Product/BreadcrumbList, one og:image and one Twitter card.
@@ -166,7 +191,7 @@ Do not publish the £26.99 HOME / LOVE / FAMILY price until its exact scope is c
 Continue from the newest GitHub `main`.
 
 Priority:
-1. Do not redesign/restart. Preserve the current Black Sheep visual system and reduced 108-product catalogue.
+1. Do not redesign/restart. Preserve the current Black Sheep visual system and 109-product catalogue.
 2. Sync the exact existing Black Sheep Sites project from GitHub when its identity/URL is available; GitHub is newer and authoritative.
 3. Re-test the deployed domain on mobile and desktop after publish, especially the top of every page after the repaired Open Graph metadata.
 4. Preserve static `/products/<slug>.html` pages and prerendered collection HTML; do not revert to JS-only indexable content.
@@ -187,8 +212,8 @@ Current repository QA status: **no blocking repository issue found after the pos
 
 - Owner instructed that only fully updated products should remain visible.
 - Removed all remaining placeholder/unmodified gift records, all placeholder Hawkshead Relish product records and all placeholder Lakeland Fragrances product records.
-- Retained catalogue totals: 41 Gifts (29 Peter Rabbit + 12 Highland Cow), 12 Ice Cream and 55 Romney's.
-- Post-cleanup QA: 108 retained product records total; every retained record has a real existing image and a description; zero placeholder-image records remain; zero duplicate IDs, slugs or SKUs.
+- Retained catalogue totals: 41 Gifts (29 Peter Rabbit + 12 Highland Cow), 12 Ice Cream and 56 Romney's.
+- Post-cleanup QA: 109 retained product records total; every retained record has a real existing image and a description; zero placeholder-image records remain; zero duplicate IDs, slugs or SKUs.
 - Empty gift-category links were removed from the Gifts browser/runtime navigation. Do not re-add removed placeholder products unless the owner explicitly requests and supplies/approves real images and proper descriptions.
 
 ## Gifts landing compacted — 23 September 2026
@@ -207,7 +232,7 @@ Current repository QA status: **no blocking repository issue found after the pos
 - Product cards and product detail pages now support Add to My list.
 - The list is stored locally in the browser, supports quantity changes/removal/clear, and opens in a Black Sheep-styled side drawer.
 - Added a "Full range" link directly to desktop and mobile source navigation, with shared JS retaining a defensive no-duplicate fallback.
-- Updated Full range to the current curated catalogue only: 108 products total (41 gifts, 12 ice cream, 55 Romney's); removed stale Hawkshead/Fragrances filters and copy.
+- Updated Full range to the current curated catalogue only: 109 products total (41 gifts, 12 ice cream, 56 Romney's); removed stale Hawkshead/Fragrances filters and copy.
 - Preserve this as a lightweight pre-visit feature; do not turn it into checkout unless the owner explicitly asks.
 
 ## Deep technical audit — 23 September 2026
@@ -226,11 +251,11 @@ Read `docs/WORK-REPORT-ICE-CREAM-2026-09-23.md` first for the current checkpoint
 
 ## Romney's official-source enrichment — 23 September 2026
 
-- 35 exact products in the 55-item Romney's/confectionery catalogue now have verified official manufacturer product-page mappings in `assets/catalog.js`.
+- Historical 23 September checkpoint: 35 exact products had verified manufacturer mappings before the 24 September rebuild in `assets/catalog.js`.
 - Source/provenance map: `docs/ROMNEYS-SOURCE-MAP.md`.
 - Work report: `docs/WORK-REPORT-ROMNEYS-OFFICIAL-SOURCES-2026-09-23.md`.
-- All 35 corresponding static product pages visibly show the official product name and a direct official manufacturer link.
-- Their Product JSON-LD now uses `sameAs` for the official product URL and identifies the manufacturer; verified official SKUs were added where directly confirmed.
+- Superseded on 24 September: manufacturer URLs are now internal provenance only and are no longer exposed on customer-facing product pages.
+- Superseded on 24 September: supplier/manufacturer product URLs are no longer emitted through Product JSON-LD; factual brand/manufacturer/SKU data may remain where verified.
 - Black Sheep prices were preserved and were not replaced by manufacturer web prices.
 - The remaining 20 Romney's-section records are intentionally unmatched. Do not link them to merely similar/current products without exact verification.
 - ROM-054 Dreamy Creamy Toffee and ROM-055 Lovely Liquorice are Walker's Nonsuch products; their brand was corrected in catalogue data, product pages, Romney's cards, Full Range cards and Product schema.
