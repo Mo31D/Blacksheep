@@ -455,3 +455,10 @@ Not required for Commerce V1, but architecture must not block:
 4. Send one owner + customer staging email and verify the corresponding `order_events`.
 5. Configure Cloudflare Zero Trust Access for the private admin and verify one complete staging admin workflow.
 6. Confirm the legal proprietor/business identity and the final working customer-service email before production cutover.
+
+
+### Resend staging order test — 24 September 2026
+- Controlled staging order `BSR-260924-DWZVCDYJ` returned HTTP 201.
+- Idempotent retry returned HTTP 200 with the same public reference and `idempotentReplay=true`.
+- Order API path is healthy with Resend configuration present.
+- Final email gate remains pending direct confirmation that both the owner notification and customer acknowledgement were actually received (or confirmed delivered in Resend Logs).
