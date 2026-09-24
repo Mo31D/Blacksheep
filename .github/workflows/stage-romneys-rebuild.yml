@@ -1,3 +1,4 @@
+# staging QA v2 — always validate the latest staging head
 name: Stage Romney rebuild
 on:
   push:
