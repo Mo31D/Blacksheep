@@ -137,7 +137,9 @@ const productBlocks = all.filter(i => !i.placeholder).map(i => {
     const seen = new Set();
     entries = i.gallery.filter(g => g?.src && !seen.has(g.src) && seen.add(g.src)).map(g => ({ src: g.src, title: g.alt || i.name }));
   } else {
-    entries = [{ src: i.img, title: i.name }, ...(i.gallery || []).map(g => ({ src: g.src, title: g.alt || i.name }))].filter(x => x.src);
+    const seen = new Set();
+    entries = [{ src: i.img, title: i.name }, ...(i.gallery || []).map(g => ({ src: g.src, title: g.alt || i.name }))]
+      .filter(x => x.src && !seen.has(x.src) && seen.add(x.src));
   }
   return `<url><loc>${xmlEsc(base + '/products/' + i.slug + '.html')}</loc><lastmod>2026-09-24</lastmod>${entries.map(x => `<image:image><image:loc>${xmlEsc(base + '/images/' + x.src)}</image:loc><image:title>${xmlEsc(x.title)}</image:title></image:image>`).join('')}</url>`;
 });
