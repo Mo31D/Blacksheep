@@ -1,5 +1,9 @@
 # Black Sheep — Session Handoff
 
+> **RESEND DOMAIN VERIFIED — 24 SEPTEMBER 2026**  
+> `theblacksheepshop.co.uk` is verified in Resend. Commerce notification code on `commerce-v1` now supports Resend via Worker runtime secret `RESEND_API_KEY`; the API key must never be committed. Next: create a sending-only key, add it to staging runtime secrets, set `ORDER_EMAIL_FROM` / `ORDER_OWNER_EMAIL`, then run one staging email test.
+>
+
 > **STAGING ORDER + IDEMPOTENCY GATE COMPLETE — 24 SEPTEMBER 2026**  
 > `BSR-260924-TFUZ9AP5` passed the live staging test: first request HTTP 201, retry HTTP 200, same reference, `idempotentReplay=true`. Direct D1 verification confirmed exactly one order row, one order-item row and one initial order-event row. The temporary verifier page has been removed from `main` in commit `40d956b15228d3261a54927b2a22a3c6730bceb9`. Next gates are Cloudflare Email Service and Zero Trust Access.
 >
