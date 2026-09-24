@@ -16,3 +16,9 @@ Source: user-supplied Blacksheep.zip. Do not publish screenshots of private mess
 There are 19 attached product screenshots, including one duplicate of red couple. Tartan Bow appears as two visually distinct variants. Match visual identity, not name alone. Larger bath/toilet and other variants should not automatically inherit single-cow £9.50 if scope is uncertain; maintain a clear confirmation record.
 
 Confirmed development brief: GitHub newest; synchronize Sites; review real Google 360 photos; add verified supplier products; improve layout; persist phases and resume information.
+
+## Hawkshead Relish owner pricing — 24 September 2026
+
+Owner-confirmed Black Sheep prices: Bloody Mary Chutney £5.70; The Original Black Garlic Ketchup £6.80; Honeycomb Honey £7.95; Cumberland Sauce £4.70; Five Fruit Marmalade £4.30; Raspberry & Vanilla Jam £4.30; Strawberry & Black Pepper Jam £4.30; Damson Extra Jam £4.30; Traditional English Mustard £3.60; Westmorland Chutney £5.30; Beetroot & Horseradish Chutney £5.30; Piccalilli £5.30; Cheeseboard Chutney £5.30.
+
+Name normalization follows the current official Hawkshead Relish product names. Do not substitute supplier retail prices. Bloody Mary Ketchup, Red Onion Marmalade and Hot Garlic Pickle were not assigned prices in this owner update and remain unpriced unless separately confirmed.

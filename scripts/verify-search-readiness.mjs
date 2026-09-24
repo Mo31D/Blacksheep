@@ -68,7 +68,7 @@ if(!hawksheadSourceMap) fail.push('Missing docs/HAWKSHEAD-RELISH-SOURCE-MAP.md')
 for(const item of (catalog.hawkshead||[])){
   if(!item.official?.url || !/^https:\/\/www\.hawksheadrelish\.com\//.test(item.official.url)) fail.push('Missing/invalid Hawkshead official source for '+item.id);
   if(item.official?.url && hawksheadSourceMap && !hawksheadSourceMap.includes(item.official.url)) fail.push('Hawkshead source map missing '+item.id);
-  if(typeof item.price==='number') fail.push('Hawkshead Black Sheep price must not be inferred from supplier pricing: '+item.id);
+  if(typeof item.price==='number' && item.priceSource!=='owner-confirmed-2026-09-24') fail.push('Hawkshead price missing owner-confirmed source: '+item.id);
 }
 
 const romneyImageSources=new Map();

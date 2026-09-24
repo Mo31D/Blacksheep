@@ -15,8 +15,8 @@ Only products with real product imagery and descriptions are retained:
 - 41 Gifts: 29 Peter Rabbit + 12 Highland Cow.
 - 12 Luxury Lakes Ice Cream flavours.
 - 55 Romney's / confectionery products.
-- 12 Hawkshead Relish products.
-- 120 product records total.
+- 16 Hawkshead Relish products.
+- 124 product records total.
 - Hawkshead Relish now has canonical individual product pages using verified manufacturer facts; Black Sheep prices are not inferred from manufacturer retail prices.
 - Lakeland Fragrances and other empty legacy gift categories redirect to the current Gifts page.
 
@@ -68,9 +68,9 @@ The builder updates the 12 static flavour pages from `scripts/templates/icecream
 
 ### Verified Hawkshead Relish sources
 
-The 12 current Hawkshead Relish records store their manufacturer URL and verified product facts in `assets/catalog.js`; the internal provenance list is `docs/HAWKSHEAD-RELISH-SOURCE-MAP.md`. The public static pages live under `products/hr-*.html`, are pre-rendered in `hawkshead-relish.html` and `all-products.html`, and are included in `sitemap.xml`.
+The 16 current Hawkshead Relish records store their manufacturer URL and verified product facts in `assets/catalog.js`; the internal provenance list is `docs/HAWKSHEAD-RELISH-SOURCE-MAP.md`. The public static pages live under `products/hr-*.html`, are pre-rendered in `hawkshead-relish.html` and `all-products.html`, and are included in `sitemap.xml`.
 
-Do **not** import Hawkshead Relish manufacturer retail prices as Black Sheep prices. Until the owner confirms shop pricing, these products display as an in-store range without a numeric Black Sheep price.
+Do **not** import Hawkshead Relish manufacturer retail prices as Black Sheep prices. Numeric Hawkshead prices are published only from owner-confirmed Black Sheep pricing; currently 13 Hawkshead products have owner-confirmed prices and 3 remain unpriced.
 
 ### Verified Romney's / confectionery sources
 
