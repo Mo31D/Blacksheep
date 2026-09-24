@@ -81,3 +81,9 @@ LP55906 (“Xmas Highland Cows Presents”) is the couple with presents in red p
 ## Highland Cow Phase 1 product-detail completion — 24 September 2026
 
 The nine arrived/on-shelf SKUs LP55737, LP55899, LP55203, LP55906, LP55733, LP55394, LP55397, LP55400 and LP55729 are confirmed as active in-store products, not arriving/out-of-stock placeholders. Their owner retail prices remain authoritative. Supplier facts may be used, but supplier/trade pricing must never replace Black Sheep pricing.
+
+## CURRENT OVERRIDE — Highland Cow Phase 2 pricing/status — 24 September 2026
+
+- All 14 Phase 2 SKUs are ordered and **not yet arrived**. Customer-facing status: **Arriving soon** (not Out of stock and not available in store).
+- LP55734 Halloween Highland Cow: **£36.00**. This overrides the earlier £29.99 value.
+- LP55904 Xmas Highland Cows Mistletoe: **retail price not confirmed**. Remove the earlier £13.99 value; do not publish a numeric Black Sheep price until owner confirmation.

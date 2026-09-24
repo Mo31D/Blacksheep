@@ -227,3 +227,13 @@ Search-readiness QA passed for implementation commit `bba82641f56c160e0d48f563b6
 - [x] Index the 9 canonical static product URLs and preserve direct listing links.
 - [x] Keep image state explicit where a clean local supplier binary could not be obtained; no hotlinks/screenshots/inferred images.
 - [x] Reduce Highland arrival placeholders from 23 to 14 (the products still awaiting delivery).
+
+## Highland Cow Phase 2 — completed 2026-09-24
+- [x] Verify all 14 exact LP codes against supplier/official sources.
+- [x] Add concise customer-facing facts to all 14 canonical static product pages.
+- [x] Preserve owner prices; set LP55734 to £36.00 and leave LP55904 unpriced.
+- [x] Mark all 14 Arriving soon, never Out of stock or available in store.
+- [x] Keep Product Information open by default.
+- [x] Keep supplier/trade pricing and trade wording off public pages.
+- [x] Record image-source exception rather than hotlinking or using screenshots.
+- [x] Reconcile catalogue cards, sitemap and search-readiness QA.

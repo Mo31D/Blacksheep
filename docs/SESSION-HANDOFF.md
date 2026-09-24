@@ -363,3 +363,11 @@ Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` b
 - The 14 products still awaiting delivery remain the only Highland placeholders and continue to display Arriving soon.
 - No supplier image was hotlinked or replaced with a screenshot. The 9 completed records use imagePending until a clean local source image can be added.
 - Sitemap now indexes the 9 completed product URLs; image-pending products do not claim fabricated image metadata.
+
+### Highland Cow Phase 2 completed — 24 September 2026
+- 14 ordered/not-yet-arrived Highland Cow records were upgraded from minimal placeholders to researched canonical static product pages.
+- All carry Arriving soon status and none use Out of stock wording.
+- LP55734 owner price is £36.00. LP55904 is intentionally unpriced pending owner confirmation.
+- Product facts were verified by exact LP code against Lesser & Pavey/Leonardo and Joe Davies, with reputable retailer support only where needed.
+- No source image binary could be safely stored locally without hotlinking/screenshotting, so all 14 use the honest Product image being added state.
+- Product Information remains open by default; pages are indexable canonical static routes and included in sitemap.
