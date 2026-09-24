@@ -132,8 +132,14 @@ const nonProductBlocks = [...sitemapSource.matchAll(/<url>[\s\S]*?<\/url>/g)]
   .map(m => m[0].trim())
   .filter(block => !block.includes(base + '/products/'));
 const productBlocks = all.map(i => {
-  const imgs = [i.img, ...(i.gallery || []).map(g => g.src)].filter(Boolean);
-  return `<url><loc>${xmlEsc(base + '/products/' + i.slug + '.html')}</loc><lastmod>2026-09-24</lastmod>${imgs.map((src, k) => `<image:image><image:loc>${xmlEsc(base + '/images/' + src)}</image:loc><image:title>${xmlEsc(k === 0 ? i.name : (i.gallery?.[k - 1]?.alt || i.name))}</image:title></image:image>`).join('')}</url>`;
+  let entries;
+  if (/^HR-/.test(i.id || '') && i.gallery?.length) {
+    const seen = new Set();
+    entries = i.gallery.filter(g => g?.src && !seen.has(g.src) && seen.add(g.src)).map(g => ({ src: g.src, title: g.alt || i.name }));
+  } else {
+    entries = [{ src: i.img, title: i.name }, ...(i.gallery || []).map(g => ({ src: g.src, title: g.alt || i.name }))].filter(x => x.src);
+  }
+  return `<url><loc>${xmlEsc(base + '/products/' + i.slug + '.html')}</loc><lastmod>2026-09-24</lastmod>${entries.map(x => `<image:image><image:loc>${xmlEsc(base + '/images/' + x.src)}</image:loc><image:title>${xmlEsc(x.title)}</image:title></image:image>`).join('')}</url>`;
 });
 const s = prefix + [...nonProductBlocks, ...productBlocks].map(block => '  ' + block).join('\n') + '\n' + close + '\n';
 outputs.set('sitemap.xml', s);
