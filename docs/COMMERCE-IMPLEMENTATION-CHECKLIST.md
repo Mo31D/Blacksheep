@@ -401,7 +401,7 @@ Preparation:
 - [x] Keep customer-facing Commerce changes isolated on `commerce-v1` until all gates pass.
 
 Execution:
-- [ ] Complete controlled staging Turnstile order + idempotent retry.
+- [x] Complete controlled staging Turnstile order + idempotent retry (`BSR-260924-TFUZ9AP5`: 201 create, 200 replay, same reference, `idempotentReplay=true`).
 - [ ] Verify exactly one staging order/item/event snapshot.
 - [ ] Remove the temporary staging verifier page from `main`.
 - [ ] Onboard Cloudflare Email Service and verify owner/customer staging mail.
@@ -449,8 +449,6 @@ Not required for Commerce V1, but architecture must not block:
 
 ## Current exact next action
 
-1. Open the temporary production-hostname verifier at `/commerce-stage-check-260924.html`.
-2. Run the controlled staging test once and obtain PASS: first request 201, retry 200, identical public reference, `idempotentReplay=true`.
-3. Verify the single order + expected item/event rows in staging D1.
-4. Then remove the verifier page from `main`.
-5. Next manual Cloudflare gates are Email Service onboarding and Zero Trust Access configuration; code for notifications/admin/payment is already complete on `commerce-v1`.
+1. Verify staging D1 for `BSR-260924-TFUZ9AP5`: exactly one order row, one item row, and the initial event row.
+2. Then remove the temporary verifier page from `main`.
+3. Next manual Cloudflare gates are Email Service onboarding and Zero Trust Access configuration; code for notifications/admin/payment is already complete on `commerce-v1`.
