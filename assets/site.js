@@ -32,20 +32,244 @@ function detailMedia(item){const images=(item.gallery&&item.gallery.length?item.
 function renderDetail(){const root=document.getElementById('detail');if(!root||!window.CATALOG)return;const p=new URLSearchParams(location.search),type=p.get('type')||'gifts',slug=p.get('slug');const item=findItem(type,slug);if(!item){root.innerHTML='<div class="wrap"><div class="notice"><strong>Product not found.</strong> Return to the catalogue.</div></div>';return}document.title=item.name+' | The Black Sheep Shop';const metaDescription=(item.desc||'Product details from The Black Sheep Shop in Ambleside.').replace(/\s+/g,' ').trim().slice(0,160);document.querySelector('meta[name="description"]')?.setAttribute('content',metaDescription);document.querySelector('meta[property="og:title"]')?.setAttribute('content',item.name+' | The Black Sheep Shop');document.querySelector('meta[property="og:description"]')?.setAttribute('content',metaDescription);document.querySelector('meta[property="og:image"]')?.setAttribute('content',new URL('images/'+item.img,location.href).href);let canonical=document.querySelector('link[rel="canonical"]');if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.appendChild(canonical)}canonical.href=location.href.split('#')[0];const rows=[];if(item.brand)rows.push(`<div class="info-row"><strong>Brand</strong><span>${item.brand}</span></div>`);if(typeof item.price==='number')rows.push(`<div class="info-row"><strong>Price</strong><span class="detail-price">${formatPrice(item.price)}</span></div>`);if(item.sku)rows.push(`<div class="info-row"><strong>Product code</strong><span>${item.sku}</span></div>`);if(item.range)rows.push(`<div class="info-row"><strong>Range</strong><span>${item.range}</span></div>`);if(item.dimensions)rows.push(`<div class="info-row"><strong>Dimensions</strong><span>${item.dimensions}</span></div>`);if(item.material)rows.push(`<div class="info-row"><strong>Material</strong><span>${item.material}</span></div>`);if(item.packaging)rows.push(`<div class="info-row"><strong>Packaging</strong><span>${item.packaging}</span></div>`);if(item.suitability)rows.push(`<div class="info-row"><strong>Suitable for</strong><span>${item.suitability}</span></div>`);if(item.care)rows.push(`<div class="info-row"><strong>Care</strong><span>${item.care}</span></div>`);root.innerHTML=`<div class="wrap detail-layout">${detailMedia(item)}<div class="detail-copy"><div class="eyebrow">${item.label}</div><h1>${item.name}</h1><p>${item.desc}</p><div class="info-list">${rows.join('')}<div class="info-row"><strong>Availability</strong><span>In-store stock changes regularly. Please visit or contact us to check availability.</span></div>${item.range?'':`<div class="info-row"><strong>Collection</strong><span>${item.label}</span></div>`}${item.note?'<div class="info-row"><strong>Range note</strong><span>'+item.note+'</span></div>':''}</div>${type==='icecream'?'<div class="notice"><strong>Allergies and intolerances:</strong> recipes and supplier information can change. Please ask us for current product and allergen information before ordering.</div>':''}<div class="actions"><button class="btn primary list-detail-add" type="button" onclick="addToBlackSheepList(event,'${type}','${item.slug}')">Add to my list</button><a class="btn secondary" href="visit.html">Visit the shop</a><a class="btn secondary" href="${backFor(item,type)}">Back to collection</a></div></div></div>`}
 
 
-/* Pre-visit list: a lightweight saved list, not checkout. */
-const blackSheepListKey='black-sheep-previsit-list-v1';
-function getBlackSheepList(){try{const raw=JSON.parse(localStorage.getItem(blackSheepListKey)||'[]');if(!Array.isArray(raw))return[];const clean=raw.filter(x=>x&&x.type&&x.slug&&Number(x.quantity)>0&&findItem(x.type,x.slug)).map(x=>({...x,quantity:Math.max(1,Math.floor(Number(x.quantity)||1))}));if(clean.length!==raw.length)try{localStorage.setItem(blackSheepListKey,JSON.stringify(clean))}catch{}return clean}catch{return[]}}
-function saveBlackSheepList(items){try{localStorage.setItem(blackSheepListKey,JSON.stringify(items))}catch{}updateBlackSheepListUI()}
-function blackSheepListCount(){return getBlackSheepList().reduce((n,x)=>n+Number(x.quantity||0),0)}
-function addToBlackSheepList(event,type,slug){event?.preventDefault?.();event?.stopPropagation?.();const item=findItem(type,slug);if(!item)return;const list=getBlackSheepList();const existing=list.find(x=>x.type===type&&x.slug===slug);if(existing)existing.quantity+=1;else list.push({type,slug,quantity:1});saveBlackSheepList(list);const btn=event?.currentTarget;if(btn?.classList?.contains('list-add')){const original='Add to list';btn.classList.add('is-added');btn.textContent='Added';clearTimeout(btn.__bsAddedTimer);btn.__bsAddedTimer=setTimeout(()=>{btn.classList.remove('is-added');btn.textContent=original},1100)}showBlackSheepListToast(item.name+' added to My list')}
-function changeBlackSheepList(type,slug,delta){const list=getBlackSheepList();const row=list.find(x=>x.type===type&&x.slug===slug);if(!row)return;row.quantity+=delta;saveBlackSheepList(list.filter(x=>x.quantity>0));renderBlackSheepList()}
-function removeFromBlackSheepList(type,slug){saveBlackSheepList(getBlackSheepList().filter(x=>!(x.type===type&&x.slug===slug)));renderBlackSheepList()}
-function clearBlackSheepList(){saveBlackSheepList([]);renderBlackSheepList()}
+/* CART CORE FACTORY START */
+function createBlackSheepCartCore(storage,resolveProduct){
+  const cartKey='black-sheep-cart-v1';
+  const legacyKey='black-sheep-previsit-list-v1';
+  const maxQuantity=99;
+
+  function safeParse(value,fallback){
+    try{return JSON.parse(value)}catch{return fallback}
+  }
+
+  function productState(item){
+    if(!item)return{purchasable:false,reason:'missing-product'};
+    if(item.availabilityStatus==='arriving-soon')return{purchasable:false,reason:'arriving-soon'};
+    if(item.stockStatus==='out-of-stock')return{purchasable:false,reason:'out-of-stock'};
+    if(typeof item.price!=='number'||!Number.isFinite(item.price))return{purchasable:false,reason:'price-unavailable'};
+    return{purchasable:true,reason:null};
+  }
+
+  function normalizeRows(rows){
+    if(!Array.isArray(rows))return[];
+    const merged=new Map();
+    for(const raw of rows){
+      if(!raw||typeof raw!=='object')continue;
+      const type=String(raw.type||'').trim();
+      const slug=String(raw.slug||'').trim();
+      if(!type||!slug)continue;
+      const item=resolveProduct(type,slug,raw.productId);
+      if(!item)continue;
+      const quantity=Math.min(maxQuantity,Math.max(1,Math.floor(Number(raw.quantity)||1)));
+      const key=String(item.id||type+':'+slug);
+      const existing=merged.get(key);
+      if(existing)existing.quantity=Math.min(maxQuantity,existing.quantity+quantity);
+      else merged.set(key,{productId:item.id||null,type,slug,quantity});
+    }
+    return[...merged.values()];
+  }
+
+  function readEnvelope(){
+    const raw=safeParse(storage.getItem(cartKey)||'',null);
+    if(raw&&raw.version===1&&Array.isArray(raw.items)){
+      const clean=normalizeRows(raw.items);
+      if(JSON.stringify(clean)!==JSON.stringify(raw.items))writeItems(clean);
+      return{version:1,items:clean};
+    }
+    return{version:1,items:[]};
+  }
+
+  function writeItems(items){
+    const clean=normalizeRows(items);
+    storage.setItem(cartKey,JSON.stringify({version:1,items:clean}));
+    return clean;
+  }
+
+  function migrateLegacy(){
+    if(storage.getItem(cartKey))return false;
+    const legacy=safeParse(storage.getItem(legacyKey)||'[]',[]);
+    const clean=normalizeRows(legacy);
+    if(!clean.length)return false;
+    writeItems(clean);
+    try{storage.removeItem(legacyKey)}catch{}
+    return true;
+  }
+
+  function getItems(){
+    migrateLegacy();
+    return readEnvelope().items;
+  }
+
+  function resolvedItems(){
+    return getItems().map(row=>{
+      const item=resolveProduct(row.type,row.slug,row.productId);
+      if(!item)return null;
+      const state=productState(item);
+      const unitPrice=typeof item.price==='number'&&Number.isFinite(item.price)?item.price:null;
+      return{...row,item,purchasable:state.purchasable,unavailableReason:state.reason,unitPrice,lineTotal:unitPrice===null?null:unitPrice*row.quantity};
+    }).filter(Boolean);
+  }
+
+  function add(type,slug,quantity=1){
+    const item=resolveProduct(type,slug);
+    const state=productState(item);
+    if(!item||!state.purchasable)return{ok:false,reason:state.reason,item:item||null};
+    const rows=getItems();
+    const key=String(item.id||type+':'+slug);
+    const existing=rows.find(row=>String(row.productId||row.type+':'+row.slug)===key);
+    const addQty=Math.min(maxQuantity,Math.max(1,Math.floor(Number(quantity)||1)));
+    if(existing)existing.quantity=Math.min(maxQuantity,existing.quantity+addQty);
+    else rows.push({productId:item.id||null,type,slug,quantity:addQty});
+    writeItems(rows);
+    return{ok:true,item,quantity:(existing?.quantity)||addQty};
+  }
+
+  function setQuantity(type,slug,quantity){
+    const q=Math.floor(Number(quantity));
+    const rows=getItems();
+    const row=rows.find(x=>x.type===type&&x.slug===slug);
+    if(!row)return false;
+    if(!Number.isFinite(q)||q<=0)return remove(type,slug);
+    row.quantity=Math.min(maxQuantity,Math.max(1,q));
+    writeItems(rows);
+    return true;
+  }
+
+  function change(type,slug,delta){
+    const row=getItems().find(x=>x.type===type&&x.slug===slug);
+    if(!row)return false;
+    return setQuantity(type,slug,row.quantity+Number(delta||0));
+  }
+
+  function remove(type,slug){
+    const before=getItems();
+    const after=before.filter(x=>!(x.type===type&&x.slug===slug));
+    writeItems(after);
+    return after.length!==before.length;
+  }
+
+  function clear(){
+    writeItems([]);
+  }
+
+  function count(){
+    return getItems().reduce((sum,row)=>sum+row.quantity,0);
+  }
+
+  function subtotal(){
+    return resolvedItems().reduce((sum,row)=>sum+(row.purchasable&&row.lineTotal!==null?row.lineTotal:0),0);
+  }
+
+  function canCheckout(){
+    const rows=resolvedItems();
+    return rows.length>0&&rows.every(row=>row.purchasable);
+  }
+
+  return{
+    cartKey,
+    legacyKey,
+    maxQuantity,
+    productState,
+    migrateLegacy,
+    getItems,
+    resolvedItems,
+    add,
+    setQuantity,
+    change,
+    remove,
+    clear,
+    count,
+    subtotal,
+    canCheckout
+  };
+}
+/* CART CORE FACTORY END */
+
+const blackSheepCart=createBlackSheepCartCore(localStorage,(type,slug,productId)=>{
+  const item=findItem(type,slug);
+  if(item&&(!productId||!item.id||item.id===productId))return item;
+  if(productId&&window.CATALOG){
+    for(const list of Object.values(window.CATALOG)){
+      const found=(list||[]).find(x=>x.id===productId);
+      if(found)return found;
+    }
+  }
+  return item||null;
+});
+window.BlackSheepCart=blackSheepCart;
+
+function getBlackSheepList(){return blackSheepCart.getItems()}
+function saveBlackSheepList(items){blackSheepCart.setQuantity&&items;try{localStorage.setItem(blackSheepCart.cartKey,JSON.stringify({version:1,items}));}catch{}updateBlackSheepListUI()}
+function blackSheepListCount(){return blackSheepCart.count()}
+function blackSheepUnavailableMessage(reason){
+  if(reason==='arriving-soon')return'Awaiting delivery';
+  if(reason==='out-of-stock')return'Currently out of stock';
+  if(reason==='price-unavailable')return'Price not confirmed';
+  return'Not available to order';
+}
+function addToBlackSheepList(event,type,slug){
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  const result=blackSheepCart.add(type,slug,1);
+  if(!result.ok){
+    showBlackSheepListToast(blackSheepUnavailableMessage(result.reason));
+    return;
+  }
+  updateBlackSheepListUI();
+  const btn=event?.currentTarget;
+  if(btn?.classList?.contains('list-add')){
+    const original='Add to list';
+    btn.classList.add('is-added');
+    btn.textContent='Added';
+    clearTimeout(btn.__bsAddedTimer);
+    btn.__bsAddedTimer=setTimeout(()=>{btn.classList.remove('is-added');btn.textContent=original},1100);
+  }
+  showBlackSheepListToast(result.item.name+' added to My list');
+}
+function changeBlackSheepList(type,slug,delta){blackSheepCart.change(type,slug,delta);updateBlackSheepListUI();renderBlackSheepList()}
+function removeFromBlackSheepList(type,slug){blackSheepCart.remove(type,slug);updateBlackSheepListUI();renderBlackSheepList()}
+function clearBlackSheepList(){blackSheepCart.clear();updateBlackSheepListUI();renderBlackSheepList()}
 function openBlackSheepList(){window.__bsListReturnFocus=document.activeElement;const backdrop=document.getElementById('bsListBackdrop');backdrop?.classList.add('open');backdrop?.setAttribute('aria-hidden','false');document.body.classList.add('bs-list-open');renderBlackSheepList();setTimeout(()=>document.querySelector('.bs-list-close')?.focus(),0)}
 function closeBlackSheepList(){const backdrop=document.getElementById('bsListBackdrop');backdrop?.classList.remove('open');backdrop?.setAttribute('aria-hidden','true');document.body.classList.remove('bs-list-open');window.__bsListReturnFocus?.focus?.()}
 function updateBlackSheepListUI(){const n=blackSheepListCount();document.querySelectorAll('.header-list-count').forEach(el=>el.textContent=String(n));document.querySelectorAll('.header-list-button').forEach(el=>el.setAttribute('aria-label','My list, '+n+' '+(n===1?'item':'items')))}
-function listRowData(row){const item=findItem(row.type,row.slug);return item?{...row,item}:null}
-function renderBlackSheepList(){const root=document.getElementById('bsListItems');if(!root)return;const rows=getBlackSheepList().map(listRowData).filter(Boolean);const total=document.getElementById('bsListTotal');if(!rows.length){root.innerHTML='<div class="bs-list-empty"><strong>Your list is empty.</strong><span>Add products you want to remember before visiting the shop.</span><a href="/all-products.html">Browse the full range →</a></div>';if(total)total.textContent='0 items';return}root.innerHTML=rows.map(({type,slug,quantity,item})=>`<article class="bs-list-row"><img src="/images/${item.img}" alt=""><div class="bs-list-copy"><a href="${itemUrl(item,type)}">${item.name}</a><span>${typeof item.price==='number'?formatPrice(item.price):'Check in store'}</span><div class="bs-list-qty"><button type="button" onclick="changeBlackSheepList('${type}','${slug}',-1)" aria-label="Decrease quantity">−</button><strong>${quantity}</strong><button type="button" onclick="changeBlackSheepList('${type}','${slug}',1)" aria-label="Increase quantity">+</button><button class="bs-list-remove" type="button" onclick="removeFromBlackSheepList('${type}','${slug}')">Remove</button></div></div></article>`).join('');if(total)total.textContent=rows.reduce((n,x)=>n+x.quantity,0)+' items'}
+function listImageMarkup(item){
+  if(item?.img&&!item.imagePending&&!item.placeholder)return'<img src="/images/'+item.img+'" alt="">';
+  return'<div class="bs-list-image-placeholder" aria-hidden="true"><span>Image coming soon</span></div>';
+}
+function renderBlackSheepList(){
+  const root=document.getElementById('bsListItems');
+  if(!root)return;
+  const rows=blackSheepCart.resolvedItems();
+  const total=document.getElementById('bsListTotal');
+  if(!rows.length){
+    root.innerHTML='<div class="bs-list-empty"><strong>Your list is empty.</strong><span>Add products you want to remember before visiting the shop.</span><a href="/all-products.html">Browse the full range →</a></div>';
+    if(total)total.textContent='0 items';
+    return;
+  }
+  root.innerHTML=rows.map(({type,slug,quantity,item,purchasable,unavailableReason})=>{
+    const price=typeof item.price==='number'?formatPrice(item.price):'Price not confirmed';
+    const state=purchasable?'':'<span class="bs-list-unavailable">'+blackSheepUnavailableMessage(unavailableReason)+'</span>';
+    return'<article class="bs-list-row">'+listImageMarkup(item)+'<div class="bs-list-copy"><a href="'+itemUrl(item,type)+'">'+item.name+'</a><span>'+price+'</span>'+state+'<div class="bs-list-qty"><button type="button" onclick="changeBlackSheepList(\''+type+'\',\''+slug+'\',-1)" aria-label="Decrease quantity">−</button><strong>'+quantity+'</strong><button type="button" onclick="changeBlackSheepList(\''+type+'\',\''+slug+'\',1)" aria-label="Increase quantity">+</button><button class="bs-list-remove" type="button" onclick="removeFromBlackSheepList(\''+type+'\',\''+slug+'\')">Remove</button></div></div></article>';
+  }).join('');
+  if(total)total.textContent=rows.reduce((n,x)=>n+x.quantity,0)+' items';
+}
 function showBlackSheepListToast(message){let toast=document.getElementById('bsListToast');if(!toast){toast=document.createElement('div');toast.id='bsListToast';toast.className='bs-list-toast';document.body.appendChild(toast)}toast.textContent=message;toast.classList.add('show');clearTimeout(window.__bsListToast);window.__bsListToast=setTimeout(()=>toast.classList.remove('show'),1800)}
-function initBlackSheepList(){const nav=document.querySelector('.nav');if(nav&&!nav.querySelector('.header-list-button')){const btn=document.createElement('button');btn.type='button';btn.className='header-list-button';btn.onclick=openBlackSheepList;btn.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Zm3 0V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="header-list-label">My list</span><span class="header-list-count">0</span>';const hamb=nav.querySelector('.hamb');nav.insertBefore(btn,hamb||null)}if(!document.getElementById('bsListBackdrop')){document.body.insertAdjacentHTML('beforeend',`<div class="bs-list-backdrop" id="bsListBackdrop" aria-hidden="true" onclick="if(event.target===this)closeBlackSheepList()"><aside class="bs-list-panel" role="dialog" aria-modal="true" aria-labelledby="bsListTitle"><div class="bs-list-head"><div><div class="eyebrow">For your visit</div><h2 id="bsListTitle">My list</h2><p>Save favourites before you come in. This is a planning list, not an online order.</p></div><button type="button" class="bs-list-close" onclick="closeBlackSheepList()" aria-label="Close My list">×</button></div><div class="bs-list-summary"><strong id="bsListTotal">0 items</strong><a href="/all-products.html">Full range</a></div><div class="bs-list-items" id="bsListItems"></div><div class="bs-list-footer"><a class="btn primary" href="/visit.html">Plan your visit</a><button type="button" class="btn secondary" onclick="clearBlackSheepList()">Clear list</button></div></aside></div>`)}updateBlackSheepListUI();document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBlackSheepList()})}
+function initBlackSheepList(){
+  blackSheepCart.migrateLegacy();
+  const nav=document.querySelector('.nav');
+  if(nav&&!nav.querySelector('.header-list-button')){
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='header-list-button';
+    btn.onclick=openBlackSheepList;
+    btn.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8Zm3 0V6a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="header-list-label">My list</span><span class="header-list-count">0</span>';
+    const hamb=nav.querySelector('.hamb');
+    nav.insertBefore(btn,hamb||null);
+  }
+  if(!document.getElementById('bsListBackdrop')){
+    document.body.insertAdjacentHTML('beforeend',`<div class="bs-list-backdrop" id="bsListBackdrop" aria-hidden="true" onclick="if(event.target===this)closeBlackSheepList()"><aside class="bs-list-panel" role="dialog" aria-modal="true" aria-labelledby="bsListTitle"><div class="bs-list-head"><div><div class="eyebrow">For your visit</div><h2 id="bsListTitle">My list</h2><p>Save favourites before you come in. This is a planning list, not an online order.</p></div><button type="button" class="bs-list-close" onclick="closeBlackSheepList()" aria-label="Close My list">×</button></div><div class="bs-list-summary"><strong id="bsListTotal">0 items</strong><a href="/all-products.html">Full range</a></div><div class="bs-list-items" id="bsListItems"></div><div class="bs-list-footer"><a class="btn primary" href="/visit.html">Plan your visit</a><button type="button" class="btn secondary" onclick="clearBlackSheepList()">Clear list</button></div></aside></div>`);
+  }
+  updateBlackSheepListUI();
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBlackSheepList()});
+}
 document.addEventListener('DOMContentLoaded',initBlackSheepList);
