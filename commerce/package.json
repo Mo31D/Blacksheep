@@ -15,7 +15,7 @@
     "dry-run": "wrangler deploy --env staging --dry-run --outdir .wrangler-dist",
     "dev": "wrangler dev --env staging",
     "preview": "wrangler preview --env staging",
-    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:staging": "npm run db:migrate:staging && wrangler deploy --env staging",
     "deploy:production": "wrangler deploy"
   },
   "devDependencies": {
