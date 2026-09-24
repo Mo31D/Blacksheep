@@ -16,7 +16,7 @@ const getPack = i => i.official?.pack || (/\b\d+\s?(?:g|kg|ml|l)\b/i.exec(i.name
 const supplierRe = /(?:https?:\/\/)?(?:www\.)?(?:mintcake\.co\.uk|walkers-nonsuch\.co\.uk|elit-chocolate\.com)(?:\/[^\\s<]*)?/ig;
 const publicText = v => String(v ?? '').replace(supplierRe, '').replace(/\\s{2,}/g, ' ').trim();
 const row = (label, value, cls = '') => value ? `<div class="info-row${cls ? ' ' + cls : ''}"><strong>${esc(label)}</strong><span>${esc(publicText(value))}</span></div>` : '';
-const detail = (label, body) => body ? `<details><summary>${esc(label)}</summary><p>${esc(publicText(body))}</p></details>` : '';
+const detail = (label, body) => body ? `<details open><summary>${esc(label)}</summary><p>${esc(publicText(body))}</p></details>` : '';
 
 function graphFor(item, url) {
   const o = item.official || {};
