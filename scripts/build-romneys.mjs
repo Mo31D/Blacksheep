@@ -72,6 +72,12 @@ function page(item) {
 
 const card = (i, type) => `<article class="product-card" data-categories="${esc((((i.categories || []).join(' ') + ' ' + type).trim()))}" data-name="${esc((i.name + ' ' + (i.label || '') + ' ' + (i.brand || '')).toLowerCase())}"><a class="product-img contain" href="/products/${i.slug}.html"><img loading="lazy" decoding="async" src="images/${esc(i.img)}" alt="${esc(i.name)}"></a><div class="product-info"><div class="kicker">${esc(i.label || type)}</div><a class="product-title" href="/products/${i.slug}.html">${esc(i.name)}</a>${i.brand ? `<span class="brand-line">${esc(i.brand)}</span>` : ''}<p class="product-desc">${esc(i.desc)}</p><div class="product-meta">${typeof i.price === 'number' ? `<span class="product-price">${money(i.price)}</span>` : '<span>In-store range</span>'}<div class="card-actions"><button class="list-add" type="button" onclick='addToBlackSheepList(event,"${type}","${i.slug}")'>+ My list</button><a class="card-link" href="/products/${i.slug}.html">View →</a></div></div></div></article>`;
 
+function cleanHtmlDocument(html) {
+  const i = html.toLowerCase().indexOf('</html');
+  if (i < 0) return html;
+  return html.slice(0, i) + '</html>';
+}
+
 function replaceDivContentsById(html, id, newInner) {
   const at = html.indexOf(`id="${id}"`);
   if (at < 0) throw Error('Missing #' + id);
@@ -101,9 +107,9 @@ function updateItemList(html, list) {
 }
 
 for (const item of items) outputs.set('products/' + item.slug + '.html', page(item));
-let r = replaceDivContentsById(read('romneys.html'), 'catalog', items.map(i => card(i, 'romneys')).join(''));
+let r = replaceDivContentsById(cleanHtmlDocument(read('romneys.html')), 'catalog', items.map(i => card(i, 'romneys')).join(''));
 r = updateItemList(r, items); outputs.set('romneys.html', r);
-let a = replaceDivContentsById(read('all-products.html'), 'catalog', typed.map(x => card(x.item, x.type)).join(''));
+let a = replaceDivContentsById(cleanHtmlDocument(read('all-products.html')), 'catalog', typed.map(x => card(x.item, x.type)).join(''));
 a = updateItemList(a, all);
 a = a.replace(/\b\d+ products currently listed online\b/g, all.length + ' products currently listed online').replace(/(<span id="giftCount">)\d+ products(<\/span>)/, '$1' + all.length + ' products$2');
 outputs.set('all-products.html', a);
