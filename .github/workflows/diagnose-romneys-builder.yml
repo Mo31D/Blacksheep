@@ -1,0 +1,36 @@
+name: Diagnose Romney builder
+on:
+  push:
+    branches: [romneys-rebuild-2026-09-24]
+    paths:
+      - .github/workflows/diagnose-romneys-builder.yml
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: romneys-rebuild-2026-09-24
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/build-romneys.mjs
+      - name: Print generated counts
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const raw=fs.readFileSync('assets/catalog.js','utf8').split('window.CATALOG=')[1].trim().replace(/;$/,'');
+          const c=JSON.parse(raw);
+          const rows=Object.values(c).flat();
+          for(const p of ['romneys.html','all-products.html']){
+            const h=fs.readFileSync(p,'utf8');
+            console.log(p,{
+              cards:(h.match(/<article class="product-card"/g)||[]).length,
+              romneyCards:(h.match(/data-categories="[^"]*romneys[^"]*"/g)||[]).length,
+              productLinks:(h.match(/href="\/products\//g)||[]).length,
+              expected:p==='romneys.html'?c.romneys.length:rows.length
+            });
+          }
+          NODE
