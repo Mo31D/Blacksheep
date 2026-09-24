@@ -1,0 +1,47 @@
+name: Sync verified Romney images
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/romneys-image-sources.json
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Download verified official images
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, pathlib, urllib.request
+          sources=json.load(open("scripts/romneys-image-sources.json"))
+          for row in sources:
+              target=pathlib.Path(row["target"])
+              target.parent.mkdir(parents=True, exist_ok=True)
+              req=urllib.request.Request(row["url"],headers={"User-Agent":"Mozilla/5.0"})
+              with urllib.request.urlopen(req,timeout=45) as r:
+                  data=r.read()
+              if len(data) < 10000:
+                  raise SystemExit(f"Downloaded image too small: {target} ({len(data)} bytes)")
+              target.write_bytes(data)
+              print(target, len(data))
+          PY
+      - name: Commit image assets if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add images/romneys/
+          if git diff --cached --quiet; then
+            echo "No image changes."
+          else
+            git commit -m "romneys: sync verified official product images"
+            git push origin HEAD:main
+          fi
