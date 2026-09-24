@@ -147,3 +147,8 @@ section{padding:78px 0}.section-head{display:flex;justify-content:space-between;
 
 /* Owner-confirmed arrival states for catalogue placeholders */
 .availability-card-label{display:inline-flex;align-items:center;width:max-content;border-radius:999px;padding:5px 8px;font:800 9px/1 Inter,Arial,sans-serif;letter-spacing:.01em}.availability-card-label.in-store,.placeholder-status.in-store{background:#e8efe5;color:#45613d}.availability-card-label.arriving-soon,.placeholder-status.arriving-soon{background:#f1e9d9;color:#785f2f}.placeholder-status.availability-status{padding:7px 10px}
+
+/* Incoming stock uses the same compact status pill as Out of stock, with a distinct warm colour. */
+.stock-card-label.arriving-soon{background:#efe6cf;color:#725a22;white-space:nowrap}
+
+.product-buyline .product-price{flex:0 0 auto}.product-buyline .stock-card-label{flex:0 0 auto;white-space:nowrap}

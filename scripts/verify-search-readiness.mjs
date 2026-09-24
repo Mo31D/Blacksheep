@@ -76,6 +76,8 @@ const highlandPlaceholders=(catalog.gifts||[]).filter(x=>x.placeholder===true&&/
 if(highlandPlaceholders.length!==23) fail.push('Unexpected Highland placeholder count');
 if(highlandPlaceholders.filter(x=>x.availabilityStatus==='in-store').length!==9||highlandPlaceholders.filter(x=>x.availabilityStatus==='arriving-soon').length!==14) fail.push('Unexpected Highland placeholder arrival partition');
 
+for(const file of ['gifts.html','gifts-highland-cows.html','gifts-seasonal.html','gifts-home-art.html','all-products.html']){const h=read(file);for(const item of highlandPlaceholders){const pos=h.indexOf('data-url="/products/'+item.slug+'.html"');if(pos<0){fail.push('Missing Highland placeholder card: '+file+' '+item.id);continue}const card=h.slice(pos,h.indexOf('</article>',pos));if(!card.includes('£9.50'))fail.push('Highland placeholder card pricing/status mismatch: '+file+' '+item.id);if(item.availabilityStatus==='arriving-soon'&&!card.includes('Arriving soon'))fail.push('Highland arriving-soon card badge missing: '+file+' '+item.id);if(item.availabilityStatus==='in-store'&&/In store|Available in store/.test(card))fail.push('Highland available card should have no stock badge: '+file+' '+item.id)}}
+
 const romneyImageSources=new Map();
 for(const item of (catalog.romneys||[])){
   const u=item.official?.imageUrl;
@@ -94,9 +96,11 @@ for(const {type,item} of rows){
   if(item.placeholder){
     if(!['in-store','arriving-soon'].includes(item.availabilityStatus)) fail.push('Placeholder availability state missing/invalid: '+item.id);
     if(item.availabilitySource!=='owner-confirmed-2026-09-24') fail.push('Placeholder availability source missing: '+item.id);
-    const availabilityLabel=item.availabilityStatus==='in-store'?'Available in store':'Arriving soon';
-    if(!h.includes(availabilityLabel)) fail.push('Placeholder availability UI missing: '+p);
-    if(item.availabilityStatus==='arriving-soon' && /Out of stock/i.test(h)) fail.push('Arriving placeholder must not say Out of stock: '+p);
+    if(item.price!==9.5 || item.priceSource!=='owner-confirmed-2026-09-24') fail.push('Highland placeholder price must be owner-confirmed £9.50: '+item.id);
+    if(!h.includes('<div class="romneys-price">£9.50</div>')) fail.push('Placeholder £9.50 price missing: '+p);
+    if(item.availabilityStatus==='arriving-soon' && !h.includes('Arriving soon')) fail.push('Arriving placeholder badge missing: '+p);
+    if(item.availabilityStatus==='in-store' && /Available in store|>In store</i.test(h)) fail.push('Available placeholder should not show an in-store badge/label: '+p);
+    if(item.availabilityStatus==='arriving-soon' && /Out of stock/i.test(h.replace('out-of-stock arriving-soon','arriving-soon'))) fail.push('Arriving placeholder must not say Out of stock: '+p);
     if(!h.includes('name="robots" content="noindex,follow"')) fail.push('Placeholder product must be noindex: '+p);
     if(sitemap.includes('<loc>'+canonical+'</loc>')) fail.push('Placeholder product must stay out of sitemap: '+p);
     if(!h.includes('Image coming soon')||!h.includes(item.sku||'')) fail.push('Placeholder product UI incomplete: '+p);

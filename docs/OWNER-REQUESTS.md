@@ -42,3 +42,10 @@ Name normalization follows the current official Hawkshead Relish product names. 
 **Arriving soon / awaiting delivery (14):** LP55590, LP55595, LP55596, LP55599, LP55579, LP55580, LP55571, LP55572, LP55573, LP55574, LP55577, LP55570, LP55734, LP55904.
 
 Customer wording rule: awaiting-delivery items are **Arriving soon**, never **Out of stock**. All 23 remain placeholders/noindex until image, price and verified details are completed.
+
+## Highland Cow placeholder card refinement — 24 September 2026
+
+- All 23 newly added Christmas/Halloween Highland Cow products are priced at **£9.50**.
+- Products already on the shelves show the normal £9.50 card with **no “In stock/In store” badge**.
+- Products awaiting delivery show **Arriving soon** using the same compact pill treatment as “Out of stock”, but with a different warm/gold colour.
+- Placeholder image remains until each exact product image is added; the card no longer uses “Details coming soon” as a pseudo-price.
