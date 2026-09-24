@@ -40,7 +40,7 @@ Status: IN PROGRESS — waiting only on manual Cloudflare prerequisites / stagin
 - [x] Define Commerce V1 target architecture.
 - [x] Decide on Cloudflare Worker + D1 backend.
 - [x] Define future-ready cart/order/payment/shipping boundaries.
-- [ ] Complete manual Cloudflare prerequisites in `docs/CLOUDFLARE-COMMERCE-SETUP.md` (D1 staging + production created; Turnstile and secrets still pending).
+- [ ] Complete manual Cloudflare prerequisites in `docs/CLOUDFLARE-COMMERCE-SETUP.md` (D1 complete; Turnstile widget created; secret binding still pending).
 - [x] Create `commerce-v1` branch from the newest `main`.
 - [x] Confirm hostname strategy: staging on `workers.dev` first; production later on `api.theblacksheepshop.co.uk`.
 
@@ -107,21 +107,31 @@ Goal: real persistent orders exist before checkout is connected.
 
 ## Phase 3 — Server-authoritative catalogue snapshot
 
+Status: COMPLETE.
+
 Goal: the API never trusts frontend price data.
 
-- [ ] Add `scripts/build-commerce-catalog.mjs`.
-- [ ] Generate minimal backend catalogue from `assets/catalog.js`.
-- [ ] Include product ID/SKU/slug/name/price/status/options only.
-- [ ] Define purchasability rules.
-- [ ] Reject arriving-soon products.
-- [ ] Reject out-of-stock products.
-- [ ] Reject products without confirmed numeric price.
-- [ ] Make generated snapshot deterministic.
-- [ ] Add `--check` drift mode.
-- [ ] Include the check in CI.
-- [ ] Unit-test subtotal calculation.
+- [x] Add `scripts/build-commerce-catalog.mjs`.
+- [x] Generate minimal backend catalogue from `assets/catalog.js`.
+- [x] Include product ID/SKU/slug/name/price/status/options only.
+- [x] Define purchasability rules.
+- [x] Reject arriving-soon products.
+- [x] Reject out-of-stock products.
+- [x] Reject products without confirmed numeric price.
+- [x] Make generated snapshot deterministic.
+- [x] Add `--check` drift mode.
+- [x] Include the check in CI.
+- [x] Unit-test authoritative subtotal calculation.
 
-**Suggested commit:** `commerce: add authoritative catalogue snapshot`
+Current snapshot:
+- 146 catalogue products
+- 116 purchasable
+- prices represented in GBP minor units
+- backend rejects unavailable/unpriced products and invalid/duplicate cart lines
+
+Validation: Commerce CI PASS; Search readiness PASS.
+
+**Commits:** `commerce: add authoritative catalogue snapshot`, `commerce: add authoritative cart pricing`
 
 ## Phase 4 — Secure order creation API
 
