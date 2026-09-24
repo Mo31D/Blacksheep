@@ -133,42 +133,48 @@ def save_webp(data,target):
 
 def main():
     catalog=load_catalog()
-    synced=0; facts=0; failures=[]; image_candidates=[]
+    synced=0
+    facts=0
+    failures=[]
+    image_candidates=[]
+
     for item in catalog.get("romneys",[]):
         official=item.get("official") or {}
         url=official.get("url")
-        if not url: continue
+        if not url:
+            continue
         try:
             page,_=fetch(url)
             soup=BeautifulSoup(page,"html.parser")
-            lines=[s.strip() for s in soup.stripped_strings if s.strip()]
+            lines=[x.strip() for x in soup.stripped_strings if x.strip()]
             host=urlparse(url).netloc.lower()
             parsed={}
             if "mintcake.co.uk" in host:
                 parsed=parse_mintcake(lines)
             elif "walkers-nonsuch.co.uk" in host:
                 parsed=parse_walkers(lines)
-            # Elit's manufacturer page currently supplies identity/brand imagery, not pack nutrition.
-            for k,v in parsed.items():
-                if v: official[k]=v
-            if parsed: facts+=1
+
+            if parsed:
+                facts+=1
+            if not official.get("factsPinned"):
+                for k,v in parsed.items():
+                    old=official.get(k,"")
+                    if v and (not old or len(v)>=len(old)):
+                        official[k]=v
+
             image_url=official.get("imageSourcePinned") or meta_image(soup,url)
             if image_url:
-                img_bytes,_=fetch(image_url)
-                target_rel=f"romneys/official/{item['slug']}.webp"
-                save_webp(img_bytes,pathlib.Path("images")/target_rel)
-                item["img"]=target_rel
-                official["imageUrl"]=image_url
-                official["imageLocal"]=target_rel
-                synced+=1
+                image_candidates.append((item,official,image_url,bool(official.get("imageSourcePinned"))))
+
             official["sourceSyncedAt"]="2026-09-24"
             item["official"]=official
         except Exception as e:
             failures.append(f"{item.get('id')}: {type(e).__name__}: {e}")
-    image_counts=Counter(url for _,_,url in image_candidates)
+
+    image_counts=Counter(url for _,_,url,_ in image_candidates)
     rejected=[]
-    for item,official,image_url in image_candidates:
-        if image_counts[image_url] != 1:
+    for item,official,image_url,is_pinned in image_candidates:
+        if image_counts[image_url] != 1 and not is_pinned:
             if official.get("imageUrl")==image_url:
                 official.pop("imageUrl",None)
                 official.pop("imageLocal",None)
@@ -184,9 +190,16 @@ def main():
             synced+=1
         except Exception as e:
             failures.append(f"{item.get('id')} image: {type(e).__name__}: {e}")
+
     save_catalog(catalog)
-    print(json.dumps({"officialImagesSynced":synced,"productsWithFacts":facts,"rejectedImages":rejected,"failures":failures},indent=2))
+    print(json.dumps({
+        "officialImagesSynced":synced,
+        "productsWithFacts":facts,
+        "rejectedImages":rejected,
+        "failures":failures
+    },indent=2))
     if synced < 20:
         raise SystemExit("Too few exact official images synced; refusing a likely network/parser regression")
 
-if __name__=="__main__": main()
+if __name__=="__main__":
+    main()
