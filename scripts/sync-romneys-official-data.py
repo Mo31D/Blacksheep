@@ -169,8 +169,9 @@ def main():
     rejected=[]
     for item,official,image_url in image_candidates:
         if image_counts[image_url] != 1:
-            official.pop("imageUrl",None)
-            official.pop("imageLocal",None)
+            if official.get("imageUrl")==image_url:
+                official.pop("imageUrl",None)
+                official.pop("imageLocal",None)
             rejected.append({"id":item.get("id"),"reason":"duplicate/shared og:image","url":image_url})
             continue
         try:
