@@ -62,6 +62,12 @@ Do not commit the secret key.
 
 Server-side Siteverify validation is mandatory; frontend Turnstile alone is not considered protection.
 
+Current widget:
+- name: `Black Sheep Checkout`
+- mode: Managed
+- site key: `0x4AAAAAAFChkRt-LzNQw9bK`
+- secret key: keep only as Worker secret; never commit it
+
 ### 4. Cloudflare API token for GitHub deployment
 
 Create a dedicated CI/CD token, not a Global API Key.
