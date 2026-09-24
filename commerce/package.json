@@ -16,7 +16,7 @@
     "dev": "wrangler dev --env staging",
     "preview": "wrangler preview --env staging",
     "deploy:staging": "npm run db:migrate:staging && wrangler deploy --env staging",
-    "deploy:production": "wrangler deploy",
+    "deploy:production": "npm run db:migrate:production && wrangler deploy",
     "catalog:build": "node ../scripts/build-commerce-catalog.mjs",
     "catalog:check": "node ../scripts/build-commerce-catalog.mjs --check",
     "cart:test": "node ../scripts/test-cart-core.mjs",
