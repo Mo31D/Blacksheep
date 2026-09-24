@@ -131,3 +131,12 @@ assert.match(checkoutHtml,/0x4AAAAAAFChkRt-LzNQw9bK/);
 assert.match(checkoutHtml,/data-order-submit-ready="false"/);
 assert.match(checkoutHtml,/name="robots" content="noindex,follow"/);
 console.log("Checkout page contract checks passed.");
+
+
+const confirmationPath=path.join(repoRoot,"order-requested.html");
+const confirmationHtml=fs.readFileSync(confirmationPath,"utf8");
+assert.match(confirmationHtml,/id="orderRequestedPage"/);
+assert.match(confirmationHtml,/id="orderRequestedReference"/);
+assert.match(confirmationHtml,/No payment has been taken/);
+assert.match(confirmationHtml,/name="robots" content="noindex,follow"/);
+console.log("Order confirmation page contract checks passed.");
