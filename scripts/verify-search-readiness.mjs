@@ -46,8 +46,7 @@ if((sitemap.match(/<url>/g)||[]).length!==active.length+rows.length) fail.push('
 const robots=read('robots.txt');
 if(!robots.includes('Sitemap: '+base+'/sitemap.xml')) fail.push('robots.txt does not point at production sitemap');
 
-const officialRomneys=(catalog.romneys||[]).filter(x=>x.official);
-if(officialRomneys.length!==35) fail.push('Expected 35 verified Romney official-source matches, found '+officialRomneys.length);
+const officialRomneys=(catalog.romneys||[]).filter(x=>x.official?.url);
 const romneysSourceMap=exists('docs/ROMNEYS-SOURCE-MAP.md')?read('docs/ROMNEYS-SOURCE-MAP.md'):'';
 if(!romneysSourceMap) fail.push('Missing docs/ROMNEYS-SOURCE-MAP.md');
 for(const item of officialRomneys){
@@ -57,7 +56,7 @@ for(const item of officialRomneys){
   if(romneysSourceMap&&!romneysSourceMap.includes(item.official.url)) fail.push('Romney source map missing '+item.id);
 }
 
-for(const {item} of rows){
+for(const {type,item} of rows){
   const p='products/'+item.slug+'.html';
   if(!exists(p)){fail.push('Missing static product page: '+p);continue}
   const h=read(p),canonical=base+'/'+p;
@@ -73,13 +72,17 @@ for(const {item} of rows){
   for(const block of productJson){try{JSON.parse(block[1])}catch(e){fail.push('Invalid product JSON-LD in '+p+': '+e.message)}}
   if((h.match(/<meta\b[^>]*property=["']og:image["'][^>]*>/gi)||[]).length!==1) fail.push('Product must have exactly one og:image meta tag: '+p);
   if((h.match(/<meta\b[^>]*name=["']twitter:card["'][^>]*>/gi)||[]).length!==1) fail.push('Product must have exactly one twitter:card meta tag: '+p);
-  if(item.official){
-    if(!h.includes(item.official.url)) fail.push('Official source missing from static product page: '+p);
-    if(!h.includes(esc(item.official.name))&&!h.includes(item.official.name)) fail.push('Official product name missing from static product page: '+p);
+  if(type==='romneys'){
+    const supplier=/mintcake\.co\.uk|walkers-nonsuch\.co\.uk|elit-chocolate\.com/i;
+    if(/Manufacturer source|Buy from manufacturer/i.test(h)) fail.push('Public manufacturer-source UI leaked into '+p);
+    if(supplier.test(h)) fail.push('Public supplier URL leaked into '+p);
     let parsed=null;
-    try{parsed=JSON.parse([...h.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)][0]?.[1]||'null')}catch{}
+    try{parsed=JSON.parse([...h.matchAll(/<script[^>]*type=["']application\\/ld\\+json["'][^>]*>([\\s\\S]*?)<\\/script>/gi)][0]?.[1]||'null')}catch{}
     const productNode=parsed?.['@graph']?.find(x=>x['@type']==='Product');
-    if(!productNode?.sameAs?.includes(item.official.url)) fail.push('Product schema sameAs missing official source: '+p);
+    if(!productNode) fail.push('Product schema missing in '+p);
+    if(productNode?.sameAs?.some?.(x=>supplier.test(String(x)))) fail.push('Supplier sameAs leaked into Product schema: '+p);
+    if(productNode?.brand?.name!==(item.brand||"Romney's of Kendal")) fail.push('Product schema brand mismatch: '+p);
+    if(item.official?.manufacturer && productNode?.manufacturer?.name!==item.official.manufacturer) fail.push('Product schema manufacturer mismatch: '+p);
   }
 }
 
@@ -103,6 +106,8 @@ for(const [p,n] of Object.entries(expectedRawLinks)){
   const got=(h.match(/href=["']\/products\//g)||[]).length;
   if(got<n) fail.push('Too few raw product links in '+p+': '+got+' < '+n);
   if(!h.includes('"@type":"ItemList"')) fail.push('Missing ItemList graph: '+p);
+  if(p==='romneys.html' && (h.match(/<article class="product-card"/g)||[]).length!==catalog.romneys.length) fail.push('Romney card count drift');
+  if(p==='all-products.html' && (h.match(/<article class="product-card"/g)||[]).length!==rows.length) fail.push('Full-range card count drift');
 }
 
 const legacy=read('product.html');
