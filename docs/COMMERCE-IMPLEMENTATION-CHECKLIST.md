@@ -135,7 +135,7 @@ Validation: Commerce CI PASS; Search readiness PASS.
 
 ## Phase 4 — Secure order creation API
 
-Status: CODE + CI COMPLETE — staging Turnstile secret and live endpoint verification pending.
+Status: CODE + CI COMPLETE — staging Turnstile secret configured; live token/order verification deferred until checkout widget is wired.
 
 Goal: `POST /v1/orders` creates a valid real order.
 
@@ -158,7 +158,7 @@ Goal: `POST /v1/orders` creates a valid real order.
 - [x] Test arriving-soon/out-of-stock/unpriced products.
 - [x] Test duplicate submission.
 - [x] Test invalid/expired/replayed Turnstile token.
-- [ ] Add `TURNSTILE_SECRET_KEY` to the staging Worker secret store.
+- [x] Add `TURNSTILE_SECRET_KEY` to the staging Worker secret store.
 - [ ] Verify a real staging Turnstile token against `POST /v1/orders`.
 - [ ] Confirm a test order is written to staging D1 and an idempotent retry does not create a duplicate.
 
@@ -168,22 +168,35 @@ Validation: Commerce CI PASS; 32 automated tests PASS; catalogue drift check PAS
 
 ## Phase 5 — Cart engine refactor
 
+Status: COMPLETE.
+
 Goal: replace My List internals without losing current users.
 
-- [ ] Create cart domain model.
-- [ ] Create storage adapter interface.
-- [ ] Implement `LocalCartStore`.
-- [ ] Implement old My List one-time migration.
-- [ ] Preserve valid saved quantities.
-- [ ] Drop stale/nonexistent catalogue rows safely.
-- [ ] Fix missing-image handling.
-- [ ] Add price/status refresh from current catalogue.
-- [ ] Add quantity bounds.
-- [ ] Prevent non-purchasable products entering checkout.
-- [ ] Add automated cart tests.
-- [ ] Keep UI independent from storage implementation.
+- [x] Create cart domain model.
+- [x] Create storage adapter interface.
+- [x] Implement localStorage-backed cart store.
+- [x] Implement old My List one-time migration.
+- [x] Preserve valid saved quantities.
+- [x] Drop stale/nonexistent catalogue rows safely.
+- [x] Fix missing-image handling with a safe placeholder.
+- [x] Refresh current price/status from the live catalogue on every cart read.
+- [x] Add quantity bounds (1–99).
+- [x] Prevent newly unavailable/unpriced products entering the cart and block checkout when migrated rows are unavailable.
+- [x] Add automated cart-core tests.
+- [x] Keep cart UI independent from storage implementation.
 
-**Suggested commit:** `commerce: replace previsit list with cart core`
+Storage:
+- new key: `black-sheep-cart-v1`
+- legacy key: `black-sheep-previsit-list-v1`
+- successful legacy migration writes the new versioned envelope and removes the old key.
+
+Validation:
+- Commerce CI PASS
+- cart-core migration/quantity/availability/current-price tests PASS
+- existing Commerce API tests PASS
+- Wrangler staging dry-run PASS
+
+**Commits:** `commerce: replace previsit storage with cart core`, storage-adapter/test follow-ups.
 
 ## Phase 6 — Mini basket
 
