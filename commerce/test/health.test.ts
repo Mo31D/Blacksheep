@@ -32,6 +32,8 @@ describe("commerce worker", () => {
         provider: "unconfigured",
         fromConfigured: false,
         ownerConfigured: false,
+        keyFormatValid: false,
+        keyWhitespaceNormalized: false,
       },
     });
   });
