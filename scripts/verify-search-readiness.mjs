@@ -5,6 +5,7 @@ const fail=[];
 const read=p=>fs.readFileSync(p,'utf8');
 const exists=p=>fs.existsSync(p);
 const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const money=n=>'£'+Number(n).toFixed(2);
 
 const catalogSource=read('assets/catalog.js');
 const raw=catalogSource.slice(catalogSource.indexOf('window.CATALOG=')+'window.CATALOG='.length,catalogSource.lastIndexOf(';')).trim();
