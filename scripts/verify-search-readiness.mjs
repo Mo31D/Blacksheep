@@ -52,7 +52,11 @@ if(rows.some(x=>x.item.slug==='rom-002-dubai-chocolate')) fail.push('Dubai Choco
 const sitemap=read('sitemap.xml');
 if(/product\.html\?/i.test(sitemap)) fail.push('Legacy query product URLs remain in sitemap');
 const indexedRows=rows.filter(x=>!x.item.placeholder);
-if((sitemap.match(/<url>/g)||[]).length!==active.length+indexedRows.length) fail.push('Unexpected sitemap URL count');
+const sitemapExtras=['privacy.html','delivery-returns.html','terms.html'];
+for(const page of sitemapExtras){
+  if(!sitemap.includes(base+'/'+page)) fail.push('Missing sitemap URL: '+page);
+}
+if((sitemap.match(/<url>/g)||[]).length!==active.length+indexedRows.length+sitemapExtras.length) fail.push('Unexpected sitemap URL count');
 const robots=read('robots.txt');
 if(!robots.includes('Sitemap: '+base+'/sitemap.xml')) fail.push('robots.txt does not point at production sitemap');
 
