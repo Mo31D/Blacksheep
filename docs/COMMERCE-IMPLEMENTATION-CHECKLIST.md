@@ -1,406 +1,289 @@
 # Black Sheep Commerce V1 — Execution Checklist
 
-Updated: 24 September 2026  
+Updated: 24 September 2026
 Repository: `Mo31D/Blacksheep`
+Production source of truth: `main`
 
-This is the resumable execution file for the Commerce project. Update it after each completed milestone.
+This is the resumable execution file. It distinguishes code-complete work from live account/deployment gates.
 
 ## Current implementation anchor
 
-- Commerce work started from production `main` at `ff8d62bf19a0902b5ed8061cba7e975dc9ffd39c`.
-- Phase 1 Worker skeleton was validated on `commerce-v1`, merged to `main`, and revalidated on `main`.
-- Current Commerce implementation anchor on `main`: `c9ce3bad54a105e14f8877cd7daa8da8a1030a9c`.
-- Commerce CI on `main`: PASS (TypeScript + 5 tests + Wrangler staging dry-run).
-- Existing Search readiness on `main`: PASS.
-- Cloudflare D1 staging + production databases are created and their IDs are recorded in Wrangler. Turnstile and later production secrets are still pending.
-- Do not start Phase 2 or customer-facing Basket/Checkout work until the staging Worker is deployed and `/health` is verified remotely.
+- Latest reconciled Commerce/storefront anchor before this documentation commit: `b24d5cc891fe3dae7558e5e564e6612789711381`.
+- Search Readiness: PASS after legal sitemap reconciliation.
+- Commerce CI: PASS on the current Commerce implementation: cart/page/legal checks, TypeScript, local D1 migrations, 51 Vitest tests, Wrangler staging dry-run.
+- GitHub Pages: customer Commerce UI is deployed but public order submission is deliberately feature-gated OFF.
+- Staging D1: `black-sheep-commerce-staging` — `d442b45d-93b6-4535-b76a-4b72e62dc271`.
+- Production D1: `black-sheep-commerce-prod` — `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`.
+- Staging Worker: `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev`.
+- Current external blocker: GitHub Actions does not currently receive `CLOUDFLARE_API_TOKEN` or `CLOUDFLARE_ACCOUNT_ID`.
 
-## Rules for every session
+## Session rules
 
-- [ ] Fetch/check newest GitHub `main` before relying on any SHA.
-- [ ] Read `docs/NEXT-PHASE-BASELINE-2026-09-24.md`.
-- [ ] Read `docs/COMMERCE-ARCHITECTURE-2026-09-24.md`.
-- [ ] Read this checklist.
-- [ ] Preserve every newer remote commit.
-- [ ] Never force-push.
-- [ ] Keep current canonical static product architecture.
-- [ ] Do not trust browser-submitted prices.
-- [ ] Do not expose secrets in frontend/code.
-- [ ] Keep each implementation commit narrow and reversible.
-- [ ] Run existing search-readiness after any storefront/catalogue change.
-- [ ] Update this checklist before ending a long implementation session.
+- [x] Preserve newest `main`; never force-push.
+- [x] Keep canonical static product pages under `/products/<slug>.html`.
+- [x] Never trust browser-submitted price or payment state.
+- [x] Never commit Cloudflare, Resend, Turnstile or payment secrets.
+- [x] Keep staging and production D1 separate.
+- [x] Run Search Readiness after storefront/catalogue/sitemap changes.
+- [x] Run Commerce CI after Commerce/API/cart/checkout/legal changes.
 
 ## Phase 0 — Architecture and preparation
 
-Status: IN PROGRESS — waiting only on manual Cloudflare prerequisites / staging deployment.
+Status: COMPLETE for Commerce V1 architecture and staging prerequisites.
 
-- [x] Audit current site architecture.
-- [x] Establish 146-product baseline.
-- [x] Identify current My List image-pending bug.
-- [x] Define Commerce V1 target architecture.
-- [x] Decide on Cloudflare Worker + D1 backend.
-- [x] Define future-ready cart/order/payment/shipping boundaries.
-- [ ] Complete manual Cloudflare prerequisites in `docs/CLOUDFLARE-COMMERCE-SETUP.md` (D1 complete; Turnstile widget created; secret binding still pending).
-- [x] Create `commerce-v1` branch from the newest `main`.
-- [x] Confirm hostname strategy: staging on `workers.dev` first; production later on `api.theblacksheepshop.co.uk`.
+- [x] Audit existing static storefront and catalogue architecture.
+- [x] Define Worker + D1 Commerce architecture.
+- [x] Define cart, order, notification, payment and shipping boundaries.
+- [x] Create staging and production D1 resources.
+- [x] Configure/verify staging Turnstile.
+- [x] Configure/verify Resend staging email delivery.
+- [x] Reserve production API target `api.theblacksheepshop.co.uk`.
+- [ ] Re-add the GitHub Actions deployment credentials required by Wrangler.
 
-**Exit condition:** required Cloudflare identifiers/secrets exist and the Commerce branch starts from the current production main.
+## Phase 1 — Commerce Worker foundation
 
-## Phase 1 — Commerce project skeleton
+Status: COMPLETE.
 
-Status: COMPLETE — staging Worker deployed, build verified, and `/health` confirmed remotely.
-
-Goal: backend deploys before changing customer UX.
-
-- [x] Add `commerce/package.json`.
-- [x] Add TypeScript configuration.
-- [x] Add `commerce/wrangler.jsonc`.
-- [x] Add Worker entry point.
-- [x] Add `GET /health`.
-- [x] Configure staging and production environments.
-- [x] Add CORS allowlist for the production/staging storefront.
-- [x] Add structured response/error helpers.
-- [x] Add unit-test runner.
-- [x] Add `.github/workflows/commerce-ci.yml`.
-- [x] Add `.github/workflows/commerce-deploy.yml`.
-- [x] Confirm Commerce CI passes on `commerce-v1` (5 tests + TypeScript + Wrangler staging dry-run passed).
-- [x] Deploy staging Worker at `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev`.
-- [x] Verify `/health` response remotely from a browser/session: `{"service":"black-sheep-commerce-api","status":"ok","environment":"staging"}`.
-
-**Validation:**
-- existing Search readiness PASS
-- Commerce tests PASS
-- TypeScript PASS
-- Worker dry-run PASS
-- Worker deployment PASS
-- no production secrets in repository
-
-**Commit boundary:** `commerce: add worker skeleton and CI`
+- [x] Worker project, TypeScript, Wrangler environments and CI.
+- [x] `/health` endpoint.
+- [x] Staging Worker previously deployed and remotely verified.
+- [x] Exact CORS allowlist and structured API errors.
+- [x] Production secrets kept out of source.
 
 ## Phase 2 — D1 order model
 
-Cloudflare D1 resources:
-- [x] `black-sheep-commerce-staging` — `d442b45d-93b6-4535-b76a-4b72e62dc271`
-- [x] `black-sheep-commerce-prod` — `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
+Status: COMPLETE.
 
-Status: COMPLETE — remote staging migration applied and verified.
+- [x] `orders`, `order_items`, `order_events` schema.
+- [x] Unique public reference and idempotency key.
+- [x] Order/payment/fulfilment constraints and indexes.
+- [x] Transaction-safe D1 persistence.
+- [x] Remote staging initial migration previously verified.
+- [x] Repository/data-access tests.
 
-Goal: real persistent orders exist before checkout is connected.
-
-- [x] Add initial D1 migration.
-- [x] Create `orders` table.
-- [x] Create `order_items` table.
-- [x] Create `order_events` table.
-- [x] Add unique public reference.
-- [x] Add unique idempotency key.
-- [x] Add status constraints/validation.
-- [x] Add indexes needed for owner queue and reference lookup.
-- [x] Bind staging D1 in Wrangler config.
-- [x] Apply migration to remote staging D1 and verify `orders`, `order_items`, `order_events`, plus `d1_migrations`.
-- [x] Add repository/data-access layer.
-- [x] Add transaction-safe order creation using D1 batch.
-- [x] Add tests for persistence and duplicate idempotency lookup.
-
-**Validation:** local D1 migration PASS (8 SQL commands), remote staging migration PASS, staging tables verified in Cloudflare Console, 8 automated tests PASS, TypeScript PASS, Wrangler staging dry-run PASS.
-
-**Commit:** `commerce: add D1 order persistence`
-
-## Phase 3 — Server-authoritative catalogue snapshot
+## Phase 3 — Server-authoritative catalogue
 
 Status: COMPLETE.
 
-Goal: the API never trusts frontend price data.
-
-- [x] Add `scripts/build-commerce-catalog.mjs`.
-- [x] Generate minimal backend catalogue from `assets/catalog.js`.
-- [x] Include product ID/SKU/slug/name/price/status/options only.
-- [x] Define purchasability rules.
-- [x] Reject arriving-soon products.
-- [x] Reject out-of-stock products.
-- [x] Reject products without confirmed numeric price.
-- [x] Make generated snapshot deterministic.
-- [x] Add `--check` drift mode.
-- [x] Include the check in CI.
-- [x] Unit-test authoritative subtotal calculation.
-
-Current snapshot:
-- 146 catalogue products
-- 116 purchasable
-- prices represented in GBP minor units
-- backend rejects unavailable/unpriced products and invalid/duplicate cart lines
-
-Validation: Commerce CI PASS; Search readiness PASS.
-
-**Commits:** `commerce: add authoritative catalogue snapshot`, `commerce: add authoritative cart pricing`
+- [x] Deterministic Commerce catalogue generated from `assets/catalog.js`.
+- [x] Backend owns product identity, price, status and subtotal calculation.
+- [x] Unpriced, arriving-soon and out-of-stock products rejected.
+- [x] Catalogue drift check in CI.
 
 ## Phase 4 — Secure order creation API
 
-Status: CODE + CI COMPLETE — staging Turnstile secret configured; live token/order verification deferred until checkout widget is wired.
+Status: COMPLETE, including prior real staging verification.
 
-Goal: `POST /v1/orders` creates a valid real order.
+- [x] `POST /v1/orders` request/schema validation.
+- [x] UK delivery-address validation.
+- [x] Server-side price/subtotal calculation.
+- [x] Turnstile Siteverify on server.
+- [x] Rate/payload/quantity limits.
+- [x] Atomic order + items + event creation.
+- [x] Idempotent retry protection.
+- [x] Real staging Turnstile order submission verified.
+- [x] Same idempotency key returned the same order without duplication.
 
-- [x] Define request/response schema.
-- [x] Validate customer fields.
-- [x] Validate fulfilment method.
-- [x] Validate UK address fields when delivery is selected.
-- [x] Validate product IDs and quantities.
-- [x] Recalculate price/subtotal server-side.
-- [x] Generate non-guessable internal ID.
-- [x] Generate readable public reference.
-- [x] Enforce idempotency.
-- [x] Integrate mandatory Turnstile server verification in code.
-- [x] Add request-size and quantity limits.
-- [x] Add Worker rate-limit binding and abuse controls.
-- [x] Persist order + items + initial event atomically.
-- [x] Return public reference and safe summary.
-- [x] Test forged price attempt.
-- [x] Test stale/deleted product.
-- [x] Test arriving-soon/out-of-stock/unpriced products.
-- [x] Test duplicate submission.
-- [x] Test invalid/expired/replayed Turnstile token.
-- [x] Add `TURNSTILE_SECRET_KEY` to the staging Worker secret store.
-- [ ] Verify a real staging Turnstile token against `POST /v1/orders`.
-- [ ] Confirm a test order is written to staging D1 and an idempotent retry does not create a duplicate.
-
-Validation: Commerce CI PASS; 32 automated tests PASS; catalogue drift check PASS; local D1 migration PASS; Wrangler staging dry-run PASS.
-
-**Commits:** `commerce: add secure order creation API`, follow-up test coverage.
-
-## Phase 5 — Cart engine refactor
+## Phase 5 — Cart core
 
 Status: COMPLETE.
 
-Goal: replace My List internals without losing current users.
-
-- [x] Create cart domain model.
-- [x] Create storage adapter interface.
-- [x] Implement localStorage-backed cart store.
-- [x] Implement old My List one-time migration.
-- [x] Preserve valid saved quantities.
-- [x] Drop stale/nonexistent catalogue rows safely.
-- [x] Fix missing-image handling with a safe placeholder.
-- [x] Refresh current price/status from the live catalogue on every cart read.
-- [x] Add quantity bounds (1–99).
-- [x] Prevent newly unavailable/unpriced products entering the cart and block checkout when migrated rows are unavailable.
-- [x] Add automated cart-core tests.
-- [x] Keep cart UI independent from storage implementation.
-
-Storage:
-- new key: `black-sheep-cart-v1`
-- legacy key: `black-sheep-previsit-list-v1`
-- successful legacy migration writes the new versioned envelope and removes the old key.
-
-Validation:
-- Commerce CI PASS
-- cart-core migration/quantity/availability/current-price tests PASS
-- existing Commerce API tests PASS
-- Wrangler staging dry-run PASS
-
-**Commits:** `commerce: replace previsit storage with cart core`, storage-adapter/test follow-ups.
+- [x] Versioned `black-sheep-cart-v1` local cart.
+- [x] One-time migration from legacy My List storage.
+- [x] Quantity bounds and stale/unavailable-item handling.
+- [x] Current price/status refresh on read.
+- [x] Missing-image fallback.
+- [x] Automated cart-core tests.
 
 ## Phase 6 — Mini basket
 
-- [ ] Replace header My List treatment with Basket.
-- [ ] Item count.
-- [ ] Item image/placeholder.
-- [ ] Product name.
-- [ ] Unit price.
-- [ ] Quantity controls.
-- [ ] Remove.
-- [ ] Subtotal.
-- [ ] Clear basket with confirmation.
-- [ ] View Basket CTA.
-- [ ] Proper empty state.
-- [ ] Keyboard/focus trap.
-- [ ] Mobile behaviour.
-- [ ] No broken image state.
+Status: COMPLETE ON `main`.
 
-**Suggested commit:** `commerce: add mini basket`
+- [x] Header Basket treatment and item count.
+- [x] Product image/placeholder, name, price and quantities.
+- [x] Remove, clear confirmation and subtotal.
+- [x] View Basket CTA and empty state.
+- [x] Keyboard/focus and mobile behaviour.
+- [x] Unavailable/unpriced products blocked from normal checkout.
 
-## Phase 7 — `basket.html`
+## Phase 7 — Basket page
 
-- [ ] Full responsive basket page.
-- [ ] Product rows.
-- [ ] Quantity updates.
-- [ ] Line totals.
-- [ ] Subtotal.
-- [ ] Delivery/collection explanation.
-- [ ] Continue CTA.
-- [ ] Stale price/status revalidation.
-- [ ] Empty basket route/state.
-- [ ] Accessible announcements for cart changes.
-- [ ] Sticky summary on desktop.
-- [ ] mobile action treatment.
+Status: COMPLETE ON `main`.
 
-**Suggested commit:** `commerce: add basket page`
+- [x] Responsive `basket.html`.
+- [x] Line totals, quantities, subtotal and stale-state revalidation.
+- [x] Empty state and accessible updates.
+- [x] Desktop sticky summary and mobile layout.
+- [x] Checkout CTA exists but is intentionally disabled until Phase 14.
+- [x] `noindex,follow` and automated page-contract tests.
 
 ## Phase 8 — Checkout
 
-- [ ] Create `checkout.html`.
-- [ ] Fulfilment choice: delivery / collection.
-- [ ] Customer name/email/phone.
-- [ ] Delivery address fields when required.
-- [ ] Optional order note.
-- [ ] Client-side validation for UX only.
-- [ ] Persist non-sensitive checkout draft locally.
-- [ ] Review step.
-- [ ] Explain no payment is taken yet.
-- [ ] Privacy notice/link.
-- [ ] Turnstile.
-- [ ] Loading state.
-- [ ] Block duplicate click.
-- [ ] Recover cleanly from API/network failure.
+Status: CODE COMPLETE ON `main`; public submission deliberately OFF.
 
-**Suggested commit:** `commerce: add checkout and review flow`
+- [x] Delivery / collection.
+- [x] Customer/contact and conditional delivery address.
+- [x] Optional note and client-side UX validation.
+- [x] Review step.
+- [x] Explicit no-payment-at-submission wording.
+- [x] Privacy / delivery & returns / terms links.
+- [x] Turnstile integration.
+- [x] Loading/duplicate-click/network-failure handling.
+- [x] Basket retained after failed submission.
+- [x] Feature gate requires `enabled:true` plus a production API base before submission can activate.
 
 ## Phase 9 — Order submitted experience
 
-- [ ] Send request to Commerce API.
-- [ ] Clear cart only after confirmed successful creation.
-- [ ] Show public order/request reference.
-- [ ] Show submitted item summary.
-- [ ] Explain next step.
-- [ ] Explain delivery/payment confirmation process.
-- [ ] Handle idempotent retry.
-- [ ] No false “paid” or “confirmed order” wording.
+Status: COMPLETE IN CODE; prior staging order/idempotency flow verified.
 
-**Suggested commit:** `commerce: connect checkout to order API`
+- [x] API submission sends catalogue IDs + quantities, not trusted prices.
+- [x] Session idempotency key.
+- [x] Cart clears only after confirmed API success.
+- [x] Reference, item summary and next-step explanation.
+- [x] `order-requested.html` with `noindex,follow`.
+- [x] Recoverable failures reset Turnstile without losing basket.
 
-## Phase 10 — Owner notifications
+## Phase 10 — Owner/customer notifications
 
-Status: COMPLETE — Resend staging flow verified end-to-end for both owner notification and customer acknowledgment.
+Status: COMPLETE IN STAGING.
 
-Email is a notification channel, not storage.
-
-- [x] Define provider-neutral notification adapter/interface.
-- [x] Notify owner for new SUBMITTED order.
-- [x] Include order reference in owner notification.
-- [x] Add customer acknowledgment.
-- [x] Record notification outcome/event in D1.
-- [x] Avoid customer PII in unnecessary logs/diagnostics.
-- [x] Retry transient failures safely.
-- [x] Use external transactional provider through the adapter: Resend.
-- [x] Verify real staging customer email delivery.
-- [x] Verify real staging owner email delivery.
-
-Current sender: `orders@theblacksheepshop.co.uk`.
-
-**Validation:** real staging order submission produced both customer and owner emails; safe notification diagnostics and failure events are covered by automated tests.
+- [x] Provider abstraction.
+- [x] Resend owner notification.
+- [x] Resend customer acknowledgment.
+- [x] Retry transient failures.
+- [x] Record send/failure events without unnecessary PII.
+- [x] Real staging customer message received.
+- [x] Real staging owner message received.
 
 ## Phase 11 — Private owner admin
 
-Status: IN PROGRESS — application code + CI complete; staging migration/deploy/live verification remain.
+Status: CODE COMPLETE ON `main`; LIVE STAGING VERIFICATION PENDING.
 
-Current V1 protection does **not** depend on a Cloudflare paid email product. The admin implementation uses a one-time code sent only to the configured owner email, then a secure server-side session cookie. Cloudflare Access remains an optional additional production edge layer rather than a blocker for staging.
-
-- [x] Admin UI.
-- [x] Owner email one-time-code sign-in.
-- [x] Store only hashed login codes/session tokens in D1.
-- [x] HttpOnly + Secure + SameSite=Strict admin session cookie.
-- [x] Same-origin protection for admin POST actions/auth requests.
-- [x] List/filter active orders.
-- [x] Order details.
-- [x] Order timeline.
-- [x] Set delivery charge.
-- [x] Recalculate final total on server.
-- [x] Move to QUOTED/AWAITING_PAYMENT.
-- [x] Record secure payment-request link/reference.
-- [x] Mark payment confirmed.
-- [x] Mark PREPARING.
-- [x] Add tracking.
-- [x] Mark SHIPPED/READY_FOR_COLLECTION.
-- [x] Complete/cancel.
-- [x] Validate allowed state transitions.
-- [x] Never expose admin mutations without server authorization.
-- [x] Commit staging admin-auth D1 migration: `commerce/migrations/0001_admin_email_auth.sql`.
-- [x] Make the manual staging deploy workflow run D1 migrations before deploying the Worker.
-- [ ] Apply/confirm `0001_admin_email_auth.sql` on remote staging D1.
-- [ ] Deploy current `main` to the staging Worker.
-- [ ] Verify owner login code delivery and successful admin session on staging.
-- [ ] Verify a real staging order through review → quote → payment request → paid → preparing → shipped/ready → complete/cancel as applicable.
-- [ ] Decide whether to add Cloudflare Access as an extra production layer before Phase 14; do not require a paid Cloudflare email service.
-
-**Current validation:** Commerce CI PASS and Search Readiness PASS after the Stage 11 security changes. Production remains untouched.
-
-**Suggested commits:** split admin list/detail and admin mutations into separate milestones.
+- [x] `/admin` UI.
+- [x] Six-digit owner-email OTP.
+- [x] Hashed login code/session storage.
+- [x] 10-minute code expiry, attempt cap and request cooldown.
+- [x] Secure HttpOnly SameSite=Strict 12-hour session.
+- [x] Logout/session revocation.
+- [x] Same-origin protection for every admin POST.
+- [x] Order list/filter/detail/timeline.
+- [x] Server-side quote/final total.
+- [x] Payment request, paid, preparing, shipped/ready, completed/cancelled transitions.
+- [x] Tracking fields.
+- [x] Required delivery/collection timing before payment request.
+- [x] Audit events for admin mutations.
+- [x] Migration `0001_admin_email_auth.sql`.
+- [x] Migration `0002_order_fulfilment_message.sql`.
+- [x] Automated admin/auth/state-machine tests.
+- [ ] Apply `0001` + `0002` to remote staging D1.
+- [ ] Deploy newest `main` Worker to staging.
+- [ ] Verify real owner-code login.
+- [ ] Run one complete staging admin lifecycle.
 
 ## Phase 12 — Payment V1
 
-Current manual payment model:
+Status: CODE COMPLETE; LIVE STAGING ADMIN VERIFICATION PENDING.
 
-- [ ] Owner confirms final total.
-- [ ] Owner creates a secure payment request.
-- [ ] Payment request is associated with the order.
-- [ ] Customer receives payment instructions/link.
-- [ ] Owner verifies receipt.
-- [ ] Owner marks PAID.
-
-Rules:
-
-- [ ] no reusable payment link in public storefront
-- [ ] no payment-card data stored
-- [ ] no order may become PAID from client-side input alone
-
-Future provider integration must implement the same payment interface and update orders from verified server-side webhooks.
+- [x] Owner confirms final total.
+- [x] Order-specific HTTPS payment request URL/reference.
+- [x] Required delivery/collection timing before payment request.
+- [x] Payment email includes final total, timing, seller contact details and legal links.
+- [x] Owner-only transition to PAID.
+- [x] Customer payment-received/order-confirmed acknowledgment.
+- [x] No reusable public payment link.
+- [x] No card/banking credentials stored.
+- [x] Payment layer remains replaceable by a future gateway/webhook provider.
+- [ ] Send one real staging payment request from admin and verify email/event trail.
+- [ ] Mark that staging order PAID and verify acknowledgment/event trail.
 
 ## Phase 13 — Legal/privacy/customer information
 
-Before public launch of order collection:
+Status: CODE COMPLETE; OWNER IDENTITY/INBOUND-EMAIL CONFIRMATION PENDING.
 
-- [ ] privacy notice for collected checkout data
-- [ ] delivery information
-- [ ] returns/cancellation information
-- [ ] business/contact information
-- [ ] wording reviewed for distance-sale flow
-- [ ] data-retention policy for abandoned/cancelled/completed orders
-- [ ] cookie/storage disclosure for necessary cart storage where applicable
+- [x] `privacy.html`.
+- [x] `delivery-returns.html`.
+- [x] `terms.html`.
+- [x] Trading address, phone and customer-service email displayed.
+- [x] Cloudflare, Resend, order-data and browser-storage disclosures.
+- [x] 14-day distance cancellation and further 14-day return wording.
+- [x] Refund timing and standard-delivery refund wording.
+- [x] Model cancellation form.
+- [x] Faulty/not-as-described statutory rights preserved.
+- [x] Legal links in checkout/shared footer.
+- [x] Legal pages in sitemap.
+- [x] Legal contract checks in Commerce CI.
+- [x] GOV.UK distance-selling/returns guidance reviewed on 24 September 2026.
+- [x] Current ICO storage/access guidance reviewed.
+- [ ] Confirm legal proprietor / registered business identity if it differs from the trading name shown.
+- [ ] Confirm inbound replies to `orders@theblacksheepshop.co.uk` if customers should be able to reply by email.
 
 ## Phase 14 — Production cutover
 
+Status: PREPARED, NOT EXECUTED.
+
+- [x] Conservative production cutover runbook.
+- [x] Customer Commerce UI on `main` with public ordering OFF.
+- [x] Production workflow checks Cloudflare credentials.
+- [x] Production workflow requires explicit `DEPLOY-PRODUCTION` confirmation.
+- [x] Production command applies pending D1 migrations before Worker deploy.
+- [ ] Add/re-add GitHub Actions secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+- [ ] Complete Phase 11/12 live staging verification.
+- [ ] Confirm Phase 13 business-identity/inbound-email items.
+- [ ] Configure production Worker secrets/variables for Turnstile, Resend and owner email.
 - [ ] Apply production D1 migrations.
-- [ ] Configure production Worker bindings/secrets.
-- [ ] Configure production Turnstile hostnames.
 - [ ] Attach `api.theblacksheepshop.co.uk`.
-- [ ] Protect admin hostname/path with Cloudflare Access.
-- [ ] Test order lifecycle using a real low-value test product/process.
-- [ ] Verify owner notification.
-- [ ] Verify customer acknowledgment.
-- [ ] Verify mobile checkout.
-- [ ] Verify duplicate protection.
-- [ ] Verify API errors do not lose the cart.
-- [ ] Search readiness PASS.
+- [ ] Deploy production Worker.
+- [ ] Verify production `/health` and `/admin`.
+- [ ] Point checkout config to production API and switch public feature gates ON.
+- [ ] Test delivery + collection on mobile/desktop.
+- [ ] Verify duplicate protection and API-error cart preservation.
+- [ ] Verify owner/customer notifications.
+- [ ] Run one controlled low-value production order lifecycle.
+- [ ] Search Readiness PASS.
 - [ ] Commerce CI PASS.
 - [ ] GitHub Pages deployment PASS.
 - [ ] Commerce Worker deployment PASS.
-- [ ] Update handoff with final production SHA and Cloudflare resource names.
+- [ ] Update handoff with final production SHA/resources.
 
 ## Phase 15 — Future full ecommerce
 
-Not required for Commerce V1, but architecture must not block:
+Status: FUTURE PROGRAM; not part of Commerce V1 production cutover.
 
-- [ ] automatic stock/inventory
-- [ ] Stripe/other payment gateway
-- [ ] Apple Pay / Google Pay through supported gateway
-- [ ] payment webhooks
-- [ ] automatic shipping rates
-- [ ] labels and tracking
-- [ ] customer accounts
-- [ ] saved addresses
-- [ ] order-history portal
-- [ ] refunds
-- [ ] discounts/promotions
-- [ ] tax/VAT automation if required
-- [ ] product/admin CMS
-- [ ] analytics
-- [ ] abandoned-cart workflow
-- [ ] inventory reservations
+- [ ] Automatic inventory/stock.
+- [ ] Integrated payment gateway / Apple Pay / Google Pay.
+- [ ] Verified payment webhooks.
+- [ ] Automatic shipping rates/labels/tracking.
+- [ ] Customer accounts/order history.
+- [ ] Refund automation.
+- [ ] Discounts/promotions.
+- [ ] Tax/VAT automation if required.
+- [ ] Product/admin CMS.
+- [ ] Analytics and abandoned-cart workflow.
+- [ ] Inventory reservations.
+
+These Phase 15 items require provider/business decisions and should not be silently enabled as part of the manual-payment Commerce V1 launch.
 
 ## Current exact next action
 
-1. Run the manual **Commerce Deploy** workflow with environment = `staging`. It now runs `npm run deploy:staging`, which applies pending staging D1 migrations before deploying the Worker.
-2. Confirm the workflow applies `0001_admin_email_auth.sql` successfully.
-3. Open the staging admin route: `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/admin`.
-4. Request the one-time login code and verify it arrives at the configured owner email.
-5. Sign in and confirm the existing staging order appears in the admin list/detail view.
-6. Test the Stage 11 lifecycle on staging only.
-7. Do not apply production D1 migrations and do not deploy the production Worker yet.
+### Manual account-side blocker
+
+The staging deploy run `36067998948` passed the application checks but failed before Cloudflare because GitHub Actions received empty deployment credentials.
+
+Add/re-add these repository secrets:
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+
+Path: `GitHub → Mo31D/Blacksheep → Settings → Secrets and variables → Actions → New repository secret`.
+
+Do not paste the API token into chat or source code.
+
+### After the secrets exist
+
+1. Re-run `Commerce Deploy` with `environment = staging`.
+2. The workflow will run the test suite, apply staging migrations `0001` and `0002`, then deploy the Worker.
+3. Open staging `/admin`, request the owner code and sign in.
+4. Run a staging lifecycle: review → quote → payment request → paid → preparing → shipped/ready → complete.
+5. Verify payment-request and paid-confirmation emails/events.
+6. Confirm legal proprietor/business identity and inbound order-email behaviour.
+7. Execute the guarded Phase 14 production cutover.
+8. Only after production API/admin tests pass, enable the public checkout and point it to `https://api.theblacksheepshop.co.uk`.
