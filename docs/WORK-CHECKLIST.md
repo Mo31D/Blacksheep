@@ -1,7 +1,7 @@
 # Black Sheep — resumable work checklist
 
-Updated 2026-09-23. Repository: https://github.com/Mo31D/Blacksheep — branch main.
-GitHub `main` is authoritative. Latest verified search/QA implementation milestone: `7ff604b053242b90d23f67d2c655580ef7c91e57` (documentation commits may be newer).
+Updated 2026-09-24. Repository: https://github.com/Mo31D/Blacksheep — branch main.
+GitHub `main` is authoritative. Latest verified search/QA implementation milestone: `c1dc76ab82795d2453b2a33ed11d40d274b8fb69` (Romney static build + QA; documentation commits may be newer).
 
 ## Resume rules
 1. Read this file, docs/OWNER-REQUESTS.md, docs/HIGHLAND-COW-SOURCE-MAP.md and docs/SESSION-HANDOFF.md before editing.
@@ -71,17 +71,17 @@ GitHub `main` is authoritative. Latest verified search/QA implementation milesto
 
 ## Current next action
 
-GitHub `main` is the current source of truth after the 23 September search/SEO architecture rebuild and metadata repair.
+GitHub `main` is the source of truth after the 24 September Romney's rebuild.
 
-1. Work/Sites must fetch newest `main` before editing and must not restore its older JS-only product architecture.
-2. Sync the **same existing Black Sheep Sites project** from GitHub when its identity/URL is available; do not create a duplicate.
-3. After publish, perform live mobile + desktop QA. Specifically verify that the raw `og:image` text previously visible above the top bar is gone on all pages.
-4. Preserve 108 static `/products/<slug>.html` product pages, prerendered collection product links, canonical URLs, JSON-LD graphs, sitemap and the search-readiness CI workflow.
-5. Keep the intentionally reduced product scope: 29 Peter Rabbit + 12 Highland Cow + 12 Ice Cream + 55 Romney's. Do not re-add placeholders.
+1. Sync the **same existing Black Sheep Sites project** from newest `main` when its exact identity/URL is available; do not create a duplicate.
+2. After publish, perform live mobile + desktop QA.
+3. Preserve **109** canonical static `/products/<slug>.html` pages: 41 Gifts + 12 Ice Cream + 56 Romney's/confectionery.
+4. Keep manufacturer/supplier URLs private in `docs/ROMNEYS-SOURCE-MAP.md`; do not restore public supplier links or supplier `sameAs`.
+5. Resolve pending Romney's identities only with exact evidence: Twin Biscuit Sachets, Boxed Fudge 150g, Chocolate Covered size mapping, Large Rock and Postcard Boxes.
 6. Keep Loo-Time and Soaking prices unpublished until owner-confirmed.
-7. Remaining external work: exact Sites synchronization, live deployment QA, Google Maps/360 imagery review, and Black Sheep Search Console analysis when access is available.
+7. Remaining external work: Sites synchronization, live deployment QA, Google Maps/360 imagery review and Black Sheep Search Console analysis when access is available.
 
-Repository QA currently has no known blocking issue. Hosting/deployment state still needs confirmation after the newest `main` is published.
+Repository QA has no known blocking issue. Final Romney static-build QA passed at `c1dc76ab82795d2453b2a33ed11d40d274b8fb69`; hosting/deployment state still needs confirmation after newest `main` publishes.
 
 ## Navigation decision — completed
 
@@ -93,9 +93,9 @@ Repository QA currently has no known blocking issue. Hosting/deployment state st
 
 - [x] Remove every unmodified/placeholder product record.
 - [x] Keep only products with real images and proper descriptions from completed work.
-- [x] Final retained catalogue: 41 Gifts, 12 Ice Cream, 55 Romney's; Hawkshead and Lakeland Fragrances currently have no product records.
+- [x] Final retained catalogue: 41 Gifts, 12 Ice Cream, 56 Romney's; Hawkshead and Lakeland Fragrances currently have no product records.
 - [x] Remove empty gift categories from the current Gifts-page selector/navigation.
-- [x] QA: all 108 retained records have valid real images and descriptions; no duplicate IDs/slugs/SKUs.
+- [x] QA: all 109 retained records have valid real images and descriptions; no duplicate IDs/slugs/SKUs.
 
 ## Deep repository audit — completed
 
@@ -113,14 +113,14 @@ Repository QA currently has no known blocking issue. Hosting/deployment state st
 
 ## Search engineering rebuild — completed
 
-- [x] Create canonical static HTML product pages for all 108 retained catalogue records under `products/<slug>.html`.
+- [x] Create canonical static HTML product pages for all 109 retained catalogue records under `products/<slug>.html`.
 - [x] Change catalogue/card links to the static product URLs.
 - [x] Prerender product cards/links into source HTML for Gifts, category pages, Ice Cream, Romney's and Full range.
 - [x] Keep JavaScript as enhancement for search/filtering/My List instead of requiring JS to discover/index core product content.
 - [x] Retire `product.html?type=...&slug=...` as an indexable route; legacy route is `noindex,follow` and forwards to static products.
 - [x] Add linked Store/WebSite/WebPage/Product/Breadcrumb JSON-LD to static product pages.
 - [x] Add CollectionPage + ItemList JSON-LD to product collections.
-- [x] Build production sitemap with 125 URLs: 17 active pages + 108 products, plus 111 product image entries.
+- [x] Build production sitemap with 126 URLs: 17 active pages + 109 products, plus 111 product image entries.
 - [x] Confirm sitemap contains zero legacy query product URLs.
 - [x] Keep `robots.txt` pointed to the production sitemap and 404 page `noindex,follow`.
 - [x] Add `scripts/verify-search-readiness.mjs` and GitHub Actions search-readiness workflow.
@@ -152,13 +152,28 @@ Repository QA currently has no known blocking issue. Hosting/deployment state st
 
 ## Romney's official-source enrichment — completed
 
-- [x] Match 35 exact current Romney's/confectionery products to current official manufacturer product pages.
+- [x] Match 37 exact current Romney's/confectionery products to current official manufacturer product pages.
 - [x] Add exact official URL, official product name, manufacturer and verification date to `assets/catalog.js`.
 - [x] Add official SKU only where directly verified.
-- [x] Add visible official product name + manufacturer source link to all 35 static product pages.
-- [x] Add Product JSON-LD `sameAs` + manufacturer relationship to all 35 matched pages.
-- [x] Preserve all Black Sheep shop prices.
+- [x] Add verified factual product data while keeping manufacturer source URLs internal to all matched static product pages.
+- [x] Add Product JSON-LD brand/manufacturer relationship without supplier URL leakage to all 35 matched pages.
+- [x] Preserve/apply Black Sheep owner prices only; never import supplier retail prices.
 - [x] Correct ROM-054 and ROM-055 brand to Walker's Nonsuch across catalogue, product pages, Romney's cards, Full Range and schema.
 - [x] Save `docs/ROMNEYS-SOURCE-MAP.md` and dated work report.
 - [x] Extend search-readiness verification to protect the 35 mappings.
 - [ ] Research exact current sources for the remaining 20 Romney's-section products only when a genuine exact match can be confirmed; do not use similar products as substitutes.
+
+
+## Romney's 24 September rebuild — completed
+
+- [x] Start from latest GitHub `main` SHA `99016db84e88e001f26374ed107c2b37a9fd4ccd` and preserve newer work.
+- [x] Reconcile owner pricing and add Shortbread Selection 300g at £7.50.
+- [x] Verify 37 exact current manufacturer mappings; retain 36 exact official local product images.
+- [x] Keep supplier/manufacturer URLs internal only; remove public source links and supplier `sameAs` leakage.
+- [x] Correct Walker's Nonsuch and Elit brand/manufacturer identity where applicable.
+- [x] Rebuild 56 Romney's static product pages, Romney's collection, Full Range, ItemLists and sitemap deterministically.
+- [x] Fix duplicated appended catalogue markup in Romney's and Full Range pages.
+- [x] Add deterministic builder/source-map tooling and CI drift checks.
+- [x] Final QA: 109 products, 56 Romney's cards, 109 Full Range cards, 126 sitemap URLs, zero builder drift.
+- [x] Save `docs/WORK-REPORT-ROMNEYS-REBUILD-2026-09-24.md`.
+- [ ] Pending owner/exact identity evidence: Twin Biscuit Sachets; Boxed Fudge 150g; Chocolate Covered Small/Medium/Large; Large Rock; Postcard Boxes.
