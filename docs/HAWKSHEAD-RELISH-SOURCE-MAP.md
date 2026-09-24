@@ -6,7 +6,7 @@ These URLs are internal provenance for the Black Sheep catalogue. Manufacturer r
 
 The catalogue currently retains the original 12 products and adds four further owner-priced products: Bloody Mary Chutney, Honeycomb Honey, Cumberland Sauce and Cheeseboard Chutney. Existing Bloody Mary Ketchup, Red Onion Marmalade and Hot Garlic Pickle remain listed but without a numeric Black Sheep price because none was supplied in this price update.
 
-The current catalogue imagery uses the existing genuine Hawkshead Relish range photograph at `images/49.png`; it is not represented as an individual pack-shot.
+Exact owner-supplied product imagery is now wired for HR-001 through HR-012 under `images/hawkshead-relish/`. HR-001 (The Original Black Garlic Ketchup) and HR-008 (Five Fruit Marmalade) each use a two-image gallery: a clean pack-shot plus a lifestyle image. HR-013 through HR-016 still use the genuine shared range photograph `images/49.png` because no exact individual image has been supplied for those four products.
 
 | ID | Product | Pack | Black Sheep price | Official source |
 |---|---|---:|---:|---|

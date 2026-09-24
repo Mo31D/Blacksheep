@@ -72,6 +72,8 @@ The 16 current Hawkshead Relish records store their manufacturer URL and verifie
 
 Do **not** import Hawkshead Relish manufacturer retail prices as Black Sheep prices. Numeric Hawkshead prices are published only from owner-confirmed Black Sheep pricing; currently 13 Hawkshead products have owner-confirmed prices and 3 remain unpriced.
 
+Exact owner-supplied images are wired for HR-001 through HR-012 in `images/hawkshead-relish/`. HR-001 and HR-008 each have a two-image gallery (pack-shot + lifestyle). HR-013 through HR-016 intentionally retain the genuine shared range image until exact product imagery is supplied.
+
 ### Verified Romney's / confectionery sources
 
 Romney's/confectionery product provenance is stored internally in `docs/ROMNEYS-SOURCE-MAP.md`. Manufacturer URLs are verification metadata only and must **not** appear on customer-facing product pages, product images/names, or Product JSON-LD.

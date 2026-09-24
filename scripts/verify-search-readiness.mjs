@@ -116,6 +116,23 @@ for(const {type,item} of rows){
     const productNode=parsed?.['@graph']?.find(x=>x['@type']==='Product');
     if(productNode?.brand?.name!==(item.brand||'Hawkshead Relish Company')) fail.push('Hawkshead Product schema brand mismatch: '+p);
     if(item.official?.manufacturer && productNode?.manufacturer?.name!==item.official.manufacturer) fail.push('Hawkshead Product schema manufacturer mismatch: '+p);
+    const exactImage=/^HR-(?:00[1-9]|01[0-2])$/.test(item.id||'');
+    if(exactImage){
+      if(!String(item.img||'').startsWith('hawkshead-relish/')) fail.push('Hawkshead exact product image not wired: '+item.id);
+      if(!h.includes('<meta property="og:image" content="'+base+'/images/'+item.img+'">')) fail.push('Hawkshead og:image mismatch: '+p);
+      if(!productNode?.image?.includes?.(base+'/images/'+item.img)) fail.push('Hawkshead Product image schema mismatch: '+p);
+      if(!read('hawkshead-relish.html').includes('src="images/'+item.img+'"')) fail.push('Hawkshead collection image mismatch: '+item.id);
+      if(!read('all-products.html').includes('src="images/'+item.img+'"')) fail.push('Full range Hawkshead image mismatch: '+item.id);
+    }
+    if(item.id==='HR-001'||item.id==='HR-008'){
+      if((item.gallery||[]).length!==2) fail.push('Hawkshead two-image gallery count mismatch: '+item.id);
+      for(const g of (item.gallery||[])){
+        if(!exists('images/'+g.src)) fail.push('Missing Hawkshead gallery image: images/'+g.src);
+        if(!h.includes('../images/'+g.src)) fail.push('Hawkshead gallery image absent from page: '+g.src);
+        if(!productNode?.image?.includes?.(base+'/images/'+g.src)) fail.push('Hawkshead gallery schema mismatch: '+g.src);
+      }
+      if(!h.includes('detail-gallery-track')) fail.push('Hawkshead gallery markup missing: '+p);
+    }
   }
 }
 

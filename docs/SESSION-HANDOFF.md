@@ -2,7 +2,7 @@
 
 Updated: 24 September 2026
 
-Latest verified implementation milestone: `bba82641f56c160e0d48f563b64f12b924fa078d` (Hawkshead owner pricing + four new verified products; documentation commits may be newer)
+Latest verified implementation milestone: `70100a0a8e1ed8053c9708f0e640ac3e530dfc4b` plus current image reconciliation (12 exact Hawkshead product images, two dual-image galleries; documentation commit may be newer)
 
 This is the short handoff file for ChatGPT, Work/Sites, Codex, or any future session. Read this before making changes.
 
@@ -44,6 +44,16 @@ At the end:
 2. Replace the “Latest completed work” and “Exact next action” sections below.
 3. Record the final commit SHA.
 4. State any unresolved blockers explicitly.
+
+## CRITICAL LATEST HANDOFF — Hawkshead exact imagery, 24 September 2026
+
+- Exact owner-supplied WebP imagery is wired for **HR-001 through HR-012**.
+- HR-001 The Original Black Garlic Ketchup and HR-008 Five Fruit Marmalade each have a **two-image gallery**: pack-shot + lifestyle.
+- Their Open Graph image, Product JSON-LD image list, WebPage primary image, collection cards, Full range cards and sitemap image entries all use the exact files.
+- HR-013 Bloody Mary Chutney, HR-014 Honeycomb Honey, HR-015 Cumberland Sauce and HR-016 Cheeseboard Chutney still use `images/49.png` because no exact product image has been supplied.
+- All Product Information disclosures remain open by default.
+- Search-readiness now rejects image/schema/card/gallery drift for these Hawkshead products.
+- The accidental two-byte upload `images/hawkshead-relish/1` is removed in this reconciliation.
 
 ## CRITICAL LATEST HANDOFF — Hawkshead owner pricing update, 24 September 2026
 
