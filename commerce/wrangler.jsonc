@@ -4,6 +4,16 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-24",
   "workers_dev": true,
+  "preview_urls": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "black-sheep-commerce-prod",
+      "database_id": "c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52",
+      "preview_database_id": "d442b45d-93b6-4535-b76a-4b72e62dc271",
+      "migrations_dir": "migrations"
+    }
+  ],
   "vars": {
     "ENVIRONMENT": "production",
     "ALLOWED_ORIGINS": "https://theblacksheepshop.co.uk,https://www.theblacksheepshop.co.uk"
@@ -17,6 +27,15 @@
   "env": {
     "staging": {
       "workers_dev": true,
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "black-sheep-commerce-staging",
+          "database_id": "d442b45d-93b6-4535-b76a-4b72e62dc271",
+          "preview_database_id": "d442b45d-93b6-4535-b76a-4b72e62dc271",
+          "migrations_dir": "migrations"
+        }
+      ],
       "vars": {
         "ENVIRONMENT": "staging",
         "ALLOWED_ORIGINS": "https://theblacksheepshop.co.uk,https://www.theblacksheepshop.co.uk,http://localhost:8787,http://127.0.0.1:8787"

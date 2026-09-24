@@ -1,6 +1,9 @@
+import type { D1DatabaseLike } from "./data/d1";
+
 interface Env {
   ENVIRONMENT?: string;
   ALLOWED_ORIGINS?: string;
+  DB?: D1DatabaseLike;
 }
 
 const SERVICE = "black-sheep-commerce-api";
@@ -73,6 +76,7 @@ async function route(request: Request, env: Env): Promise<Response> {
       service: SERVICE,
       status: "ok",
       environment: env.ENVIRONMENT ?? "unknown",
+      database: env.DB ? "bound" : "unbound",
     });
   }
 

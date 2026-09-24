@@ -4,10 +4,18 @@ import worker from "../src/index";
 const env = {
   ENVIRONMENT: "test",
   ALLOWED_ORIGINS: "https://theblacksheepshop.co.uk,http://localhost:8787",
+  DB: {
+    prepare() {
+      throw new Error("Health route must not query D1.");
+    },
+    batch() {
+      throw new Error("Health route must not query D1.");
+    },
+  },
 };
 
 describe("commerce worker", () => {
-  it("returns a healthy service response", async () => {
+  it("returns a healthy service response and reports the D1 binding", async () => {
     const response = await worker.fetch(
       new Request("https://api.example.test/health"),
       env,
@@ -19,6 +27,7 @@ describe("commerce worker", () => {
       service: "black-sheep-commerce-api",
       status: "ok",
       environment: "test",
+      database: "bound",
     });
   });
 
