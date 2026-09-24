@@ -43,3 +43,31 @@ section{padding:78px 0}.section-head{display:flex;justify-content:space-between;
 
 /* Manufacturer detail panels retain the existing shop typography and palette. */
 .icecream-information{padding-top:16px;padding-bottom:48px;max-width:1000px}.icecream-information details{border-bottom:1px solid #d9d2c7;padding:18px 0}.icecream-information summary{cursor:pointer;font-weight:700;padding:4px 0}.icecream-information p{line-height:1.7}.icecream-information table{width:100%;max-width:620px;border-collapse:collapse;margin:18px 0}.icecream-information caption{text-align:left;margin-bottom:12px}.icecream-information th,.icecream-information td{text-align:left;padding:9px 12px;border-bottom:1px solid #e4ded4}.icecream-information .small{font-size:.9rem}.product-static .detail-media img{height:auto;object-fit:contain}
+
+/* Romney's / confectionery product-detail refresh */
+.romneys-detail{padding-top:38px;gap:56px}
+.romneys-product-media{background:#fff;border:1px solid rgba(125,109,75,.16);box-shadow:0 18px 45px rgba(25,23,18,.06)}
+.romneys-product-media img{object-fit:contain;padding:26px}
+.romneys-product-copy{padding-top:8px}
+.romneys-product-copy h1{font-size:clamp(40px,5.3vw,66px);max-width:760px}
+.romneys-price{font-family:"Cormorant Garamond",Georgia,serif;font-size:38px;font-weight:700;line-height:1;color:var(--ink);margin:18px 0 16px}
+.romneys-intro{max-width:680px;font-size:16px!important;line-height:1.7}
+.romneys-detail .info-list{margin:24px 0 16px}
+.romneys-detail .price-row span{font-weight:800;color:var(--ink)}
+.romneys-verified-note{font-size:12px!important;line-height:1.55;border-left:3px solid var(--gold2);padding:10px 0 10px 14px;margin:18px 0 22px!important}
+.romneys-product-info{padding-top:0;padding-bottom:76px}
+.romneys-product-info.compact{padding-top:0}
+.romneys-info-heading{max-width:720px;margin-bottom:18px}
+.romneys-info-heading h2{font-size:clamp(32px,4vw,48px);margin-top:5px}
+.romneys-details{display:grid;gap:10px;max-width:900px}
+.romneys-details details{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:0 18px}
+.romneys-details summary{cursor:pointer;font-weight:800;font-size:13px;padding:17px 0}
+.romneys-details details p{color:var(--muted);font-size:13px;line-height:1.65;margin:0 0 16px}
+@media(max-width:760px){
+ .romneys-detail{padding-top:24px;gap:28px}
+ .romneys-product-media img{padding:18px}
+ .romneys-product-copy h1{font-size:40px}
+ .romneys-price{font-size:32px;margin:14px 0}
+ .romneys-intro{font-size:14px!important}
+ .romneys-product-info{padding-bottom:52px}
+}
