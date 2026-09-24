@@ -1911,6 +1911,7 @@ export const COMMERCE_CATALOG = [
     "sku": "5022259602779",
     "slug": "rom-056-shortbread-selection-300g",
     "name": "Shortbread Selection 300g",
+    "type": "romneys",
     "priceMinor": 750,
     "currency": "GBP",
     "status": "available",
