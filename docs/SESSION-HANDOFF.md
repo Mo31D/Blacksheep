@@ -1,7 +1,7 @@
 # Black Sheep — Session Handoff
 
-> **COMMERCE PHASE 13 — CODE COMPLETE, 24 SEPTEMBER 2026**  
-> `commerce-v1` now also contains customer-facing Privacy, Delivery & returns and Terms pages, checkout/footer legal links, storage/Turnstile disclosures and automated legal-page checks. Two owner confirmations remain before launch: activate/verify `orders@theblacksheepshop.co.uk` (or replace it with the chosen working email) and confirm the legal proprietor/registered business identity to display with the trading name. Phase 14 production cutover remains blocked on the controlled staging order test plus Cloudflare Email Service and Access setup.
+> **COMMERCE PHASE 14 — CUTOVER PREPARED, NOT EXECUTED**  
+> Production remains untouched by the Commerce branch. The exact cutover sequence is now in `docs/CLOUDFLARE-PRODUCTION-CUTOVER.md`. The only immediate gate is the controlled staging order/idempotency test using the temporary verifier already deployed from `main`. After that: Email Service, Cloudflare Access, legal identity/email confirmation, then production D1/domains/deploy. Do not skip those gates.
 >
 > **NEXT-PHASE BASELINE — 24 September 2026**  
 > Before relying on older counts/status sections below, read:

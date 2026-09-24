@@ -391,11 +391,28 @@ Implementation basis reviewed against current GOV.UK distance-selling/returns gu
 
 ## Phase 14 — Production cutover
 
+Status: PREPARED, NOT EXECUTED. Production D1, production domains and the live storefront remain untouched by Commerce V1.
+
+Preparation:
+- [x] Add conservative production cutover runbook: `docs/CLOUDFLARE-PRODUCTION-CUTOVER.md`.
+- [x] Record staging-order, Email Service, Access, legal-identity and production-deploy gates.
+- [x] Keep production API target reserved as `api.theblacksheepshop.co.uk`.
+- [x] Keep private admin target reserved as `admin.theblacksheepshop.co.uk`.
+- [x] Keep customer-facing Commerce changes isolated on `commerce-v1` until all gates pass.
+
+Execution:
+- [ ] Complete controlled staging Turnstile order + idempotent retry.
+- [ ] Verify exactly one staging order/item/event snapshot.
+- [ ] Remove the temporary staging verifier page from `main`.
+- [ ] Onboard Cloudflare Email Service and verify owner/customer staging mail.
+- [ ] Configure Cloudflare Access and verify the private staging/admin flow.
+- [ ] Confirm legal proprietor/business identity and working customer-service email.
 - [ ] Apply production D1 migrations.
 - [ ] Configure production Worker bindings/secrets.
-- [ ] Configure production Turnstile hostnames.
+- [ ] Configure production Turnstile hostnames/secret.
 - [ ] Attach `api.theblacksheepshop.co.uk`.
-- [ ] Protect admin hostname/path with Cloudflare Access.
+- [ ] Attach and protect `admin.theblacksheepshop.co.uk` with Cloudflare Access.
+- [ ] Point checkout API base to the production API custom domain.
 - [ ] Test order lifecycle using a real low-value test product/process.
 - [ ] Verify owner notification.
 - [ ] Verify customer acknowledgment.
@@ -407,6 +424,7 @@ Implementation basis reviewed against current GOV.UK distance-selling/returns gu
 - [ ] GitHub Pages deployment PASS.
 - [ ] Commerce Worker deployment PASS.
 - [ ] Update handoff with final production SHA and Cloudflare resource names.
+
 
 ## Phase 15 — Future full ecommerce
 
@@ -431,8 +449,8 @@ Not required for Commerce V1, but architecture must not block:
 
 ## Current exact next action
 
-1. Keep customer-facing Commerce work on `commerce-v1`; do not merge it to the live storefront yet.
-2. Deploy/serve the checkout flow on an allowed Turnstile hostname for one controlled staging order.
-3. Confirm exactly one row in `orders`, the expected `order_items`, and the initial `order_events` entry in staging D1.
-4. Retry the same submission/idempotency key and confirm no duplicate order is created.
-5. Only after that verification, move to Phase 10 notifications and prepare the production cutover path.
+1. Open the temporary production-hostname verifier at `/commerce-stage-check-260924.html`.
+2. Run the controlled staging test once and obtain PASS: first request 201, retry 200, identical public reference, `idempotentReplay=true`.
+3. Verify the single order + expected item/event rows in staging D1.
+4. Then remove the verifier page from `main`.
+5. Next manual Cloudflare gates are Email Service onboarding and Zero Trust Access configuration; code for notifications/admin/payment is already complete on `commerce-v1`.
