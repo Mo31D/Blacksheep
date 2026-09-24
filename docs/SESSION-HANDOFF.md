@@ -1,5 +1,9 @@
 # Black Sheep — Session Handoff
 
+> **RESEND CUSTOMER EMAIL DELIVERED — 24 SEPTEMBER 2026**  
+> Customer acknowledgement successfully arrived for staging order `BSR-260924-6VU6MDTC`. Root cause was an invalid receiver when invoking `fetch` inside the Resend sender under Cloudflare Workers; this has been fixed and regression-tested. Confirm owner notification delivery next, then remove the temporary staging email verifier.
+>
+
 > **RESEND STAGING ORDER TEST PASSED — 24 SEPTEMBER 2026**  
 > Order `BSR-260924-DWZVCDYJ` returned 201; the retry returned 200 with the same reference and `idempotentReplay=true`. The final email gate is still pending direct confirmation that the owner notification and customer acknowledgement were delivered.
 >
