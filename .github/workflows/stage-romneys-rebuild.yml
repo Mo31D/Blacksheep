@@ -10,6 +10,9 @@ on:
       - scripts/sync-romneys-official-data.py
       - scripts/verify-search-readiness.mjs
       - .github/workflows/stage-romneys-rebuild.yml
+concurrency:
+  group: romneys-rebuild-2026-09-24
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
