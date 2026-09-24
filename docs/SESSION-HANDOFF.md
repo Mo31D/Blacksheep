@@ -1,5 +1,9 @@
 # Black Sheep — Session Handoff
 
+> **STAGING ORDER GATE PASSED — 24 SEPTEMBER 2026**  
+> Controlled Turnstile submission succeeded for `BSR-260924-TFUZ9AP5`: first request HTTP 201, retry HTTP 200, identical public reference and `idempotentReplay=true`. No payment was taken. Remaining verification: confirm the single order/item/event snapshot directly in staging D1, then remove the temporary verifier from `main`.
+>
+
 > **COMMERCE PHASE 14 — CUTOVER PREPARED, NOT EXECUTED**  
 > Production remains untouched by the Commerce branch. The exact cutover sequence is now in `docs/CLOUDFLARE-PRODUCTION-CUTOVER.md`. The only immediate gate is the controlled staging order/idempotency test using the temporary verifier already deployed from `main`. After that: Email Service, Cloudflare Access, legal identity/email confirmation, then production D1/domains/deploy. Do not skip those gates.
 >
