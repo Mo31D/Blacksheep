@@ -116,7 +116,7 @@ for(const {type,item} of rows){
     const productNode=parsed?.['@graph']?.find(x=>x['@type']==='Product');
     if(productNode?.brand?.name!==(item.brand||'Hawkshead Relish Company')) fail.push('Hawkshead Product schema brand mismatch: '+p);
     if(item.official?.manufacturer && productNode?.manufacturer?.name!==item.official.manufacturer) fail.push('Hawkshead Product schema manufacturer mismatch: '+p);
-    const exactImage=/^HR-(?:00[1-9]|01[0-2])$/.test(item.id||'');
+    const exactImage=/^HR-(?:00[1-7]|009|01[0-6])$/.test(item.id||'');
     if(exactImage){
       if(!String(item.img||'').startsWith('hawkshead-relish/')) fail.push('Hawkshead exact product image not wired: '+item.id);
       if(!h.includes('<meta property="og:image" content="'+base+'/images/'+item.img+'">')) fail.push('Hawkshead og:image mismatch: '+p);

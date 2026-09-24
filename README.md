@@ -72,7 +72,7 @@ The 15 current Hawkshead Relish records store their manufacturer URL and verifie
 
 Do **not** import Hawkshead Relish manufacturer retail prices as Black Sheep prices. Numeric Hawkshead prices are published only from owner-confirmed Black Sheep pricing; currently 14 Hawkshead products have owner-confirmed prices and 1 remains unpriced.
 
-Exact owner-supplied images are wired for HR-001 through HR-012 in `images/hawkshead-relish/`. HR-001 has a two-image gallery (pack-shot + lifestyle). Five Fruit Marmalade (former HR-008) has been removed from the active catalogue at the owner's request. HR-013 through HR-016 intentionally retain the genuine shared range image until exact product imagery is supplied.
+Exact owner-supplied images are wired for every active Hawkshead Relish product in `images/hawkshead-relish/`. HR-001 has a two-image gallery (pack-shot + lifestyle). Five Fruit Marmalade (former HR-008) remains removed from the active catalogue at the owner's request.
 
 ### Verified Romney's / confectionery sources
 

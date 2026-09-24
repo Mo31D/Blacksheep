@@ -24,7 +24,7 @@ GitHub `main` is authoritative. Latest verified search/QA implementation milesto
 - [x] Search readiness passed on implementation commit `bba82641f56c160e0d48f563b64f12b924fa078d`.
 - [x] Wire exact owner-supplied product images for HR-001 through HR-012.
 - [x] Configure two-image galleries for HR-001 Black Garlic Ketchup and HR-008 Five Fruit Marmalade.
-- [ ] Add exact individual images for HR-013 through HR-016 when supplied; until then retain the genuine shared range image.
+- [x] Add exact individual images for HR-013 through HR-016. All 15 active Hawkshead products now have exact owner-supplied primary imagery.
 - [ ] Add prices to the three remaining unpriced Hawkshead products only after owner confirmation.
 
 

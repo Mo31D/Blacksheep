@@ -62,3 +62,9 @@ Both pages use the existing swipe/scroll product gallery component. The first im
 - Bloody Mary Ketchup — £4.70 — out of stock.
 - Hot Garlic Pickle — £5.30 — out of stock.
 - Five Fruit Marmalade — removed from the active Black Sheep catalogue because it is not stocked.
+
+## Image completion — 24 September 2026
+- Bloody Mary Chutney → `images/hawkshead-relish/hr-013-bloody-mary-chutney.webp`
+- Honeycomb Honey → `images/hawkshead-relish/hr-014-honeycomb-honey.webp`
+- Cumberland Sauce → `images/hawkshead-relish/hr-015-cumberland-sauce.webp`
+- Cheeseboard Chutney → `images/hawkshead-relish/hr-016-cheeseboard-chutney.webp`
