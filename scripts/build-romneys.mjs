@@ -120,13 +120,13 @@ a = updateItemList(a, all);
 a = a.replace(/\b\d+ products currently listed online\b/g, all.length + ' products currently listed online').replace(/(<span id="giftCount">)\d+ products(<\/span>)/, '$1' + all.length + ' products$2');
 outputs.set('all-products.html', a);
 
-let s = read('sitemap.xml').replace(/<url><loc>https:\/\/theblacksheepshop\.co\.uk\/products\/[\s\S]*?<\/url>\s*/g, '');
+let s = read('sitemap.xml').replace(/\n\s*<url><loc>https:\/\/theblacksheepshop\.co\.uk\/products\/[\s\S]*?<\/url>/g, '');
 const close = '</urlset>', ix = s.indexOf(close); if (ix < 0) throw Error('Bad sitemap');
 const blocks = all.map(i => {
   const imgs = [i.img, ...(i.gallery || []).map(g => g.src)].filter(Boolean);
   return `  <url><loc>${xmlEsc(base + '/products/' + i.slug + '.html')}</loc><lastmod>2026-09-24</lastmod>${imgs.map((src, k) => `<image:image><image:loc>${xmlEsc(base + '/images/' + src)}</image:loc><image:title>${xmlEsc(k === 0 ? i.name : (i.gallery?.[k - 1]?.alt || i.name))}</image:title></image:image>`).join('')}</url>`;
-}).join('\n') + '\n';
-s = s.slice(0, ix) + blocks + s.slice(ix); outputs.set('sitemap.xml', s);
+}).join('\n');
+s = s.slice(0, ix).trimEnd() + '\n' + blocks + '\n' + s.slice(ix); outputs.set('sitemap.xml', s);
 
 const changed = [];
 for (const [p, h] of outputs) if (!fs.existsSync(p) || read(p) !== h) {
