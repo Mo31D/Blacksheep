@@ -11,12 +11,13 @@ import {
   validateIdempotencyKey,
 } from "../http/order-request";
 import { verifyTurnstile } from "../security/turnstile";
+import { notifyOrderSubmitted, type NotificationEnv } from "../notifications/service";
 
 export interface RateLimiterLike {
   limit(input: { key: string }): Promise<{ success: boolean }>;
 }
 
-export interface OrdersEnv {
+export interface OrdersEnv extends NotificationEnv {
   DB?: D1DatabaseLike;
   ORDER_RATE_LIMITER?: RateLimiterLike;
   TURNSTILE_SECRET_KEY?: string;
@@ -26,12 +27,14 @@ export interface OrdersEnv {
 
 interface RouteDependencies {
   verifyTurnstileFn: typeof verifyTurnstile;
+  notifyOrderSubmittedFn: typeof notifyOrderSubmitted;
   randomUUID: () => string;
   createReference: () => string;
 }
 
 const defaultDependencies: RouteDependencies = {
   verifyTurnstileFn: verifyTurnstile,
+  notifyOrderSubmittedFn: notifyOrderSubmitted,
   randomUUID: () => crypto.randomUUID(),
   createReference: () => createPublicOrderReference(),
 };
@@ -205,6 +208,7 @@ export async function handleCreateOrder(
 
   try {
     const created = await createSubmittedOrder(env.DB, orderInput);
+    await deps.notifyOrderSubmittedFn(env, orderInput, created);
     return json(
       {
         order: {
