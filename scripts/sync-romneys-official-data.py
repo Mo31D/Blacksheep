@@ -9,6 +9,7 @@ Safety:
 """
 from __future__ import annotations
 import io, json, re, html as htmlmod, pathlib, urllib.request
+from collections import Counter
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 from PIL import Image
@@ -132,7 +133,7 @@ def save_webp(data,target):
 
 def main():
     catalog=load_catalog()
-    synced=0; facts=0; failures=[]
+    synced=0; facts=0; failures=[]; image_candidates=[]
     for item in catalog.get("romneys",[]):
         official=item.get("official") or {}
         url=official.get("url")
@@ -164,9 +165,27 @@ def main():
             item["official"]=official
         except Exception as e:
             failures.append(f"{item.get('id')}: {type(e).__name__}: {e}")
+    image_counts=Counter(url for _,_,url in image_candidates)
+    rejected=[]
+    for item,official,image_url in image_candidates:
+        if image_counts[image_url] != 1:
+            official.pop("imageUrl",None)
+            official.pop("imageLocal",None)
+            rejected.append({"id":item.get("id"),"reason":"duplicate/shared og:image","url":image_url})
+            continue
+        try:
+            img_bytes,_=fetch(image_url)
+            target_rel=f"romneys/official/{item['slug']}.webp"
+            save_webp(img_bytes,pathlib.Path("images")/target_rel)
+            item["img"]=target_rel
+            official["imageUrl"]=image_url
+            official["imageLocal"]=target_rel
+            synced+=1
+        except Exception as e:
+            failures.append(f"{item.get('id')} image: {type(e).__name__}: {e}")
     save_catalog(catalog)
-    print(json.dumps({"officialImagesSynced":synced,"productsWithFacts":facts,"failures":failures},indent=2))
+    print(json.dumps({"officialImagesSynced":synced,"productsWithFacts":facts,"rejectedImages":rejected,"failures":failures},indent=2))
     if synced < 20:
-        raise SystemExit("Too few official images synced; refusing a likely network/parser regression")
+        raise SystemExit("Too few exact official images synced; refusing a likely network/parser regression")
 
 if __name__=="__main__": main()
