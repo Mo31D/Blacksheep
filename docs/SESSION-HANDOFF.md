@@ -2,7 +2,7 @@
 
 Updated: 24 September 2026
 
-Latest verified implementation milestone: `c1dc76ab82795d2453b2a33ed11d40d274b8fb69` (Romney static build + QA; documentation commits may be newer)
+Latest verified implementation milestone: `7bac983fcba1a6fcd45d42ddb9ee97b7999e284c` (Romney static build + QA; documentation commits may be newer)
 
 This is the short handoff file for ChatGPT, Work/Sites, Codex, or any future session. Read this before making changes.
 
@@ -93,8 +93,8 @@ The repository was substantially upgraded today for Google/Search/AI readability
 - Do not add ecommerce `Offer`/checkout claims unless the site actually gains a genuine online purchase flow. Current availability language intentionally describes in-store stock truthfully.
 
 ### Indexing / discovery
-- `sitemap.xml` now contains **125 URLs**: 17 active non-product pages + 108 static product URLs.
-- The sitemap currently contains **111 image entries** and **zero legacy query product URLs**.
+- `sitemap.xml` now contains **126 URLs**: 17 active non-product pages + 109 static product URLs.
+- The sitemap currently contains **115 image entries** and **zero legacy query product URLs**.
 - `robots.txt` points to the production sitemap.
 - Active pages use self-referencing canonicals and `index,follow,max-image-preview:large`.
 - `404.html` is `noindex,follow`.
@@ -249,14 +249,35 @@ Current repository QA status: **no blocking repository issue found after the pos
 
 Read `docs/WORK-REPORT-ICE-CREAM-2026-09-23.md` first for the current checkpoint and unresolved work, and `docs/LAKES-ICE-CREAM-SOURCE-MAP.md` for all manufacturer/image provenance. GitHub main remains authoritative. The rebuilt range has Plum & Damson instead of Pistachio, 12 exact official photos, verified factual details, static pages and deterministic reconciliation. Run `node scripts/build-icecream.mjs --check` as well as the existing search-readiness verifier. No duplicate Sites project was created; Black Sheep was not returned by owner/editor discovery. Older dirty Work edits must not be restored over main.
 
-## Romney's official-source enrichment — 23 September 2026
+## Romney's product-page rebuild — 24 September 2026
 
-- Historical 23 September checkpoint: 35 exact products had verified manufacturer mappings before the 24 September rebuild in `assets/catalog.js`.
-- Source/provenance map: `docs/ROMNEYS-SOURCE-MAP.md`.
-- Work report: `docs/WORK-REPORT-ROMNEYS-OFFICIAL-SOURCES-2026-09-23.md`.
-- Superseded on 24 September: manufacturer URLs are now internal provenance only and are no longer exposed on customer-facing product pages.
-- Superseded on 24 September: supplier/manufacturer product URLs are no longer emitted through Product JSON-LD; factual brand/manufacturer/SKU data may remain where verified.
-- Black Sheep prices were preserved and were not replaced by manufacturer web prices.
-- The remaining 20 Romney's-section records are intentionally unmatched. Do not link them to merely similar/current products without exact verification.
-- ROM-054 Dreamy Creamy Toffee and ROM-055 Lovely Liquorice are Walker's Nonsuch products; their brand was corrected in catalogue data, product pages, Romney's cards, Full Range cards and Product schema.
-- `scripts/verify-search-readiness.mjs` now protects the 35 verified source mappings from drift.
+Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` before changing confectionery data.
+
+- Current Romney's/confectionery catalogue: **56 products**; full catalogue: **109 products**.
+- Static canonical product pages remain under `/products/<slug>.html`; do not return to query-string product pages.
+- All 56 confectionery pages are generated/reconciled by `scripts/build-romneys.mjs`.
+- `scripts/build-romneys-source-map.mjs` regenerates internal provenance documentation.
+- `scripts/verify-search-readiness.mjs` now rejects public supplier-link leakage, brand/schema mismatches, collection-card drift and duplicate official-image provenance.
+- **Manufacturer/supplier URLs are internal provenance only.** Do not show “Manufacturer source”, supplier buttons, supplier image links, or Product JSON-LD `sameAs` supplier URLs on customer pages.
+- Black Sheep owner prices are authoritative. Never import supplier retail prices.
+- Current exact official/manufacturer mappings: **37**.
+- Current catalogue records using local exact official product images: **27**.
+- Nine shared/generic Shopify `og:image` candidates were deliberately rejected; those products keep their existing Black Sheep images rather than using a misleading generic image.
+- New exact product: **ROM-056 Shortbread Selection 300g — £7.50**, SKU `5022259602779`.
+- Owner-confirmed 170g White/Brown/Extra Strong Kendal Mint Cake price remains **£2.50**.
+- **ROM-035 Giant White 480g is not the owner’s chocolate-covered Large size**; it remains **£2.70** rather than £4.70.
+- Triple Pack is **£4.90**.
+- The verified 113g Chocolate Covered Kendal Mint Cake keeps its existing price until the owner maps Small/Medium/Large to exact weights.
+- Dubai Chocolate is **Elit**. ROM-054 and ROM-055 are **Walker's Nonsuch**.
+- 19 current catalogue records remain unmatched to an exact current official page; do not force-match similar products.
+- Twin Biscuit Sachets £6.90, Boxed Fudge 150g £4.90, Postcard Boxes £4.95, Rock size mapping and Chocolate Covered Small/Medium/Large mapping remain owner-confirmation items.
+- Final staged QA passed: **109 products, 17 active pages, 126 sitemap URLs**, and `node scripts/build-romneys.mjs --check` reports all outputs match.
+- Exact existing Black Sheep Sites project is still unresolved; **no duplicate Sites project was created**.
+
+### Exact next action after this rebuild
+
+1. Continue only from newest GitHub `main`.
+2. Preserve the 109-product static/search architecture and the current Romney builder/verifier.
+3. If working in Sites, sync the **same existing Black Sheep project** from GitHub; never create a duplicate or restore an older Sites version over `main`.
+4. Resolve remaining size/pack questions from actual Black Sheep packaging/photos before applying unassigned owner prices.
+5. Perform live mobile/desktop QA after deployment and, when available, verify real indexing/search performance in Search Console rather than inferring ranking from repository structure alone.
