@@ -107,3 +107,36 @@ const resolve=(type,slug,productId)=>{
 }
 
 console.log("Cart core tests passed.");
+
+
+const basketPath=path.join(repoRoot,"basket.html");
+const basketHtml=fs.readFileSync(basketPath,"utf8");
+assert.match(basketHtml,/id="basketPage"/);
+assert.match(basketHtml,/id="basketPageItems"/);
+assert.match(basketHtml,/id="basketPageSubtotal"/);
+assert.match(basketHtml,/href="\/checkout\.html"/);
+assert.match(basketHtml,/name="robots" content="noindex,follow"/);
+console.log("Basket page contract checks passed.");
+
+
+const checkoutPath=path.join(repoRoot,"checkout.html");
+const checkoutHtml=fs.readFileSync(checkoutPath,"utf8");
+assert.match(checkoutHtml,/id="checkoutPage"/);
+assert.match(checkoutHtml,/id="checkoutForm"/);
+assert.match(checkoutHtml,/name="fulfilmentMethod" value="delivery"/);
+assert.match(checkoutHtml,/name="fulfilmentMethod" value="collection"/);
+assert.match(checkoutHtml,/id="checkoutReviewStep"/);
+assert.match(checkoutHtml,/id="checkoutTurnstile"/);
+assert.match(checkoutHtml,/0x4AAAAAAFChkRt-LzNQw9bK/);
+assert.match(checkoutHtml,/data-order-submit-ready="true"/);
+assert.match(checkoutHtml,/name="robots" content="noindex,follow"/);
+console.log("Checkout page contract checks passed.");
+
+
+const confirmationPath=path.join(repoRoot,"order-requested.html");
+const confirmationHtml=fs.readFileSync(confirmationPath,"utf8");
+assert.match(confirmationHtml,/id="orderRequestedPage"/);
+assert.match(confirmationHtml,/id="orderRequestedReference"/);
+assert.match(confirmationHtml,/No payment has been taken/);
+assert.match(confirmationHtml,/name="robots" content="noindex,follow"/);
+console.log("Order confirmation page contract checks passed.");

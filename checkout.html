@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" data-order-submit-ready="true"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkout Details | The Black Sheep Shop</title>
+<meta name="description" content="Choose delivery or collection and review your Black Sheep Shop order request.">
+<meta name="robots" content="noindex,follow"><meta name="theme-color" content="#151512">
+<link href="assets/sheep-icon.png" rel="icon"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link href="assets/style.css" rel="stylesheet">
+</head><body>
+<header class="header"><div class="wrap nav"><a aria-label="The Black Sheep Shop home" class="brand" href="index.html"><img alt="" class="brand-mark" src="assets/sheep-icon.png"/><span class="brand-type"><strong>The Black Sheep</strong><small>Shop · Ambleside</small></span></a><nav class="menu"><a class="active" href="index.html">Home</a><a href="gifts.html">Gifts &amp; Souvenirs</a><a href="icecream.html">Ice Cream</a><a href="romneys.html">Romney's</a><a href="hawkshead-relish.html">Hawkshead Relish</a><a href="all-products.html">Full range</a><a href="about.html">About</a><a href="visit.html">Visit</a></nav><a class="nav-cta" href="gifts.html">Browse gifts</a><button aria-label="Open menu" class="hamb" onclick="toggleMenu()">☰</button></div><nav class="mobile-menu" id="mobileMenu"><a class="active" href="index.html">Home</a><a href="gifts.html">Gifts &amp; Souvenirs</a><a href="icecream.html">Ice Cream</a><a href="romneys.html">Romney's</a><a href="hawkshead-relish.html">Hawkshead Relish</a><a href="all-products.html">Full range</a><a href="about.html">About</a><a href="visit.html">Visit</a></nav></header>
+<main id="checkoutPage"><section class="checkout-shell"><div class="wrap">
+<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Home</a><span>›</span><a href="/basket.html">Basket</a><span>›</span><span aria-current="page">Details</span></nav>
+<div class="checkout-heading"><div class="eyebrow">Order request</div><h1>Delivery or collection.</h1><p>No payment is taken now. We will confirm availability and the final total before you pay.</p></div>
+<div class="checkout-progress" aria-label="Checkout progress"><span class="checkout-progress-step active" data-step="details">1 · Details</span><span class="checkout-progress-step" data-step="review">2 · Review</span><span class="checkout-progress-step">3 · Confirmation</span></div>
+<div id="checkoutGuard" class="checkout-guard" hidden><h2>Your basket needs attention.</h2><p>Please return to your basket and make sure every item can currently be ordered.</p><a class="btn primary" href="/basket.html">Return to basket</a></div>
+<div id="checkoutFlow">
+<section id="checkoutDetailsStep" class="checkout-step">
+<form id="checkoutForm">
+<fieldset class="checkout-card"><legend>How would you like to receive your order?</legend>
+<label class="checkout-choice"><input type="radio" name="fulfilmentMethod" value="delivery" checked><span><strong>Delivery</strong><small>We confirm the delivery cost before payment.</small></span></label>
+<label class="checkout-choice"><input type="radio" name="fulfilmentMethod" value="collection"><span><strong>Collect in Ambleside</strong><small>We confirm when your order is ready to collect.</small></span></label>
+</fieldset>
+<div class="checkout-card"><h2>Your details</h2><div class="checkout-fields">
+<label><span>Full name</span><input name="customerName" autocomplete="name" maxlength="120" required></label>
+<label><span>Email</span><input name="customerEmail" type="email" autocomplete="email" maxlength="254" required></label>
+<label><span>Phone <small>optional</small></span><input name="customerPhone" type="tel" autocomplete="tel" maxlength="40"></label>
+</div></div>
+<div class="checkout-card" id="checkoutDeliveryFields"><h2>Delivery address</h2><div class="checkout-fields">
+<label class="wide"><span>Address line 1</span><input name="line1" autocomplete="address-line1" maxlength="160" data-delivery-required required></label>
+<label class="wide"><span>Address line 2 <small>optional</small></span><input name="line2" autocomplete="address-line2" maxlength="160"></label>
+<label><span>Town / city</span><input name="town" autocomplete="address-level2" maxlength="120" data-delivery-required required></label>
+<label><span>County <small>optional</small></span><input name="county" autocomplete="address-level1" maxlength="120"></label>
+<label><span>Postcode</span><input name="postcode" autocomplete="postal-code" maxlength="16" pattern="[A-Za-z0-9][A-Za-z0-9 ]{1,8}[A-Za-z0-9]" data-delivery-required required></label>
+<label><span>Country</span><input value="United Kingdom" disabled></label>
+</div></div>
+<div class="checkout-card"><h2>Order note <small>optional</small></h2><label><span class="sr-only">Order note</span><textarea name="note" maxlength="1000" rows="4" placeholder="Anything useful for us to know about this order?"></textarea></label></div>
+<p class="checkout-privacy">We use the details you enter only to review and fulfil your order request and to contact you about it. Personal checkout fields are not saved in your browser after you leave this page.</p>
+<p id="checkoutFormError" class="checkout-error" hidden></p>
+<div class="checkout-actions"><a class="btn secondary" href="/basket.html">Back to basket</a><button class="btn primary" type="submit">Review order</button></div>
+</form>
+</section>
+<section id="checkoutReviewStep" class="checkout-step" hidden>
+<div class="checkout-review-grid"><div>
+<div class="checkout-card"><div class="checkout-card-heading"><h2>Your items</h2><button type="button" onclick="location.href='/basket.html'">Edit basket</button></div><div id="checkoutReviewItems"></div><div class="checkout-review-total"><span>Items subtotal</span><strong id="checkoutReviewSubtotal">£0.00</strong></div></div>
+<div class="checkout-card"><div class="checkout-card-heading"><h2>Contact</h2><button type="button" onclick="editCheckout()">Edit</button></div><div class="checkout-review-stack" id="checkoutReviewContact"></div></div>
+<div class="checkout-card"><div class="checkout-card-heading"><h2>Delivery / collection</h2><button type="button" onclick="editCheckout()">Edit</button></div><div class="checkout-review-stack" id="checkoutReviewFulfilment"></div></div>
+<div class="checkout-card checkout-review-note" id="checkoutReviewNote" hidden></div>
+</div>
+<aside class="checkout-submit-card"><div class="eyebrow">Before you send</div><h2>No payment now.</h2><p>We will check availability and, for delivery orders, confirm the delivery cost. You will receive the final total before payment.</p><div id="checkoutTurnstile" data-sitekey="0x4AAAAAAFChkRt-LzNQw9bK"></div><p class="checkout-security-note">Protected by Cloudflare Turnstile.</p><p id="checkoutSubmitError" class="checkout-error" hidden></p><button class="btn primary" id="checkoutSubmitRequest" type="button" disabled>Send order request</button><button class="checkout-edit-link" type="button" onclick="editCheckout()">Edit details</button></aside>
+</div>
+</section>
+</div>
+</div></section></main>
+<footer><div class="wrap"><div class="footer-grid"><div class="footer-brand"><a aria-label="The Black Sheep Shop home" class="footer-wordmark" href="index.html"><img alt="" class="footer-mark" src="assets/sheep-icon.png"/><span><strong>The Black Sheep</strong><small>Shop · Ambleside</small></span></a><p>Independent gift &amp; souvenir shop in Ambleside, Lake District.</p></div><div class="footer-col"><h4>Popular gifts</h4><a href="gifts-peter-rabbit.html">Peter Rabbit</a><a href="gifts-highland-cows.html">Highland Cows</a><a href="gifts-mugs.html">Mugs &amp; Tableware</a><a href="gifts-soft-toys.html">Soft Toys</a><a href="gifts.html">All gifts</a></div><div class="footer-col"><h4>More in store</h4><a href="all-products.html">Full range</a><a href="icecream.html">Ice Cream</a><a href="romneys.html">Romney's</a><a href="hawkshead-relish.html">Hawkshead Relish</a></div><div class="footer-col"><h4>Find us</h4><a href="visit.html">2 Lancaster House<br/>Lake Road, Ambleside<br/>LA22 0AD</a><a href="tel:+447776185647">07776 185647</a><a href="https://www.facebook.com/profile.php?id=61551509207855" rel="noopener" target="_blank">Facebook</a><a href="visit.html">Plan your visit</a></div></div><div class="copyright">© 2026 The Black Sheep Shop. All rights reserved.</div></div></footer>
+<script>window.BLACK_SHEEP_COMMERCE_CONFIG={apiBase:"https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev"};</script><script src="assets/catalog.js"></script><script src="assets/site.js"></script><script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=initCheckoutTurnstile&render=explicit" async defer></script>
+</body></html>

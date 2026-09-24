@@ -1,6 +1,6 @@
 {
   "name": "black-sheep-commerce-api",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,7 +19,7 @@
     "deploy:production": "wrangler deploy",
     "catalog:build": "node ../scripts/build-commerce-catalog.mjs",
     "catalog:check": "node ../scripts/build-commerce-catalog.mjs --check",
-    "cart:test": "node ../scripts/test-cart-core.mjs && node ../scripts/test-basket-ui.mjs"
+    "cart:test": "node ../scripts/test-cart-core.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0",

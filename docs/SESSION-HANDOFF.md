@@ -1,14 +1,8 @@
 # Black Sheep — Session Handoff
 
-> **COMMERCE PHASE 4 — CURRENT STATE**  
-> Secure order API is merged to `main` at `10c523439d18464ea4a668ac460c05727d065c65`. `POST /v1/orders` now has strict validation, server-authoritative pricing, UUID idempotency, readable order references, Turnstile Siteverify integration, rate limiting and atomic D1 persistence. Commerce CI passed with 32 tests. Live staging submission is intentionally blocked until the staging Worker secret `TURNSTILE_SECRET_KEY` is configured, then one real staging order + idempotent retry must be verified before Phase 5.
-
-> **COMMERCE V1 — ACTIVE NEXT PHASE**  
-> Phase 1 Worker foundation is complete and staging health is verified.  
-> Phase 2 D1 order persistence is complete on staging; production D1 remains untouched.  
-> Phase 3 server-authoritative catalogue/pricing is complete and CI passes.  
-> Turnstile widget `Black Sheep Checkout` is created; site key is recorded.  
-> **Next:** store the Turnstile secret directly as a Cloudflare Worker secret, then implement Phase 4 `POST /v1/orders` with server-side Turnstile verification, idempotency and D1 persistence.
+> **COMMERCE V1 — CURRENT STATE, 24 SEPTEMBER 2026**  
+> Production `main` remains safely at Phase 5. The `commerce-v1` branch contains the completed customer-flow implementation through Phase 9: professional mini basket, full `basket.html`, `checkout.html` with delivery/collection + review + Turnstile, submission to `POST /v1/orders`, and `order-requested.html`. Commerce CI passed on this code before the interrupted session. These customer-facing changes are intentionally **not merged to the live site yet**.  
+> **Exact next action:** perform one controlled real Turnstile submission against the staging Worker, verify the order/item/event snapshot in staging D1, then repeat with the same idempotency key and confirm no duplicate. After that proceed to Phase 10 notifications.
 >
 > **NEXT-PHASE BASELINE — 24 September 2026**  
 > Before relying on older counts/status sections below, read:

@@ -200,51 +200,50 @@ Validation:
 
 ## Phase 6 — Mini basket
 
-Status: COMPLETE.
+Status: COMPLETE ON `commerce-v1` — intentionally not merged to live site until the customer flow is complete.
 
 - [x] Replace header My List treatment with Basket.
 - [x] Item count.
 - [x] Item image/placeholder.
 - [x] Product name.
-- [x] Unit price and line total.
+- [x] Unit price.
 - [x] Quantity controls.
 - [x] Remove.
 - [x] Subtotal.
 - [x] Clear basket with confirmation.
 - [x] View Basket CTA.
 - [x] Proper empty state.
-- [x] Keyboard Escape + focus trap.
-- [x] Mobile full-height drawer behaviour.
-- [x] Broken-image fallback.
+- [x] Keyboard/focus trap.
+- [x] Mobile behaviour.
+- [x] No broken image state.
+- [x] Disable normal basket addition for arriving-soon/out-of-stock/unpriced products.
 
-Also added the `/basket.html` page foundation so the View Basket CTA never points to a missing route. Full standalone-basket checkout progression remains Phase 7/8 work.
+Validation: Commerce CI PASS.
 
-Validation:
-- cart-core tests
-- basket UI static checks
-- Commerce CI
-- Search readiness
-
-**Commit:** `commerce: add professional mini basket`
+**Commit boundary:** `commerce: upgrade My List UI to mini basket`
 
 ## Phase 7 — `basket.html`
 
-Status: IN PROGRESS — page foundation, responsive rows and summary are present; checkout progression remains intentionally deferred to Phase 8.
+Status: CODE COMPLETE ON `commerce-v1` — checkout CTA remains gated until Phase 8 exists.
 
-- [ ] Full responsive basket page.
-- [ ] Product rows.
-- [ ] Quantity updates.
-- [ ] Line totals.
-- [ ] Subtotal.
-- [ ] Delivery/collection explanation.
-- [ ] Continue CTA.
-- [ ] Stale price/status revalidation.
-- [ ] Empty basket route/state.
-- [ ] Accessible announcements for cart changes.
-- [ ] Sticky summary on desktop.
-- [ ] mobile action treatment.
+- [x] Full responsive basket page.
+- [x] Product rows.
+- [x] Quantity updates.
+- [x] Line totals.
+- [x] Subtotal.
+- [x] Delivery/collection next-step explanation.
+- [x] Continue CTA present and safely gated until checkout is ready.
+- [x] Stale price/status revalidation from the current catalogue.
+- [x] Empty basket route/state.
+- [x] Accessible live region for basket changes.
+- [x] Sticky summary on desktop.
+- [x] Mobile layout/action treatment.
+- [x] `noindex,follow` metadata.
+- [x] Automated page-contract checks.
 
-**Suggested commit:** `commerce: add basket page`
+Validation: Commerce CI PASS.
+
+**Commit boundary:** `commerce: add basket page`
 
 ## Phase 8 — Checkout
 
@@ -407,8 +406,8 @@ Not required for Commerce V1, but architecture must not block:
 
 ## Current exact next action
 
-1. Keep draft PR #7 unmerged; the live storefront on `main` remains unchanged.
-2. Implement Phase 10 owner/customer notification adapter without coupling checkout to one provider.
-3. Then implement the protected owner admin flow in Phase 11.
-4. Before any customer-facing merge, perform one real Turnstile-protected staging order, verify D1 persistence/idempotency, and complete the legal/privacy launch checks.
-5. Production D1 remains untouched until Phase 14.
+1. Keep customer-facing Commerce work on `commerce-v1`; do not merge it to the live storefront yet.
+2. Deploy/serve the checkout flow on an allowed Turnstile hostname for one controlled staging order.
+3. Confirm exactly one row in `orders`, the expected `order_items`, and the initial `order_events` entry in staging D1.
+4. Retry the same submission/idempotency key and confirm no duplicate order is created.
+5. Only after that verification, move to Phase 10 notifications and prepare the production cutover path.
