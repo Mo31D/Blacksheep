@@ -486,6 +486,80 @@ function initCheckoutTurnstile(){
   });
   root.dataset.rendered='1';
 }
+const blackSheepOrderIdempotencyKey='black-sheep-order-idempotency-v1';
+const blackSheepOrderResultKey='black-sheep-order-result-v1';
+function checkoutIdempotencyKey(){
+  let key='';
+  try{key=sessionStorage.getItem(blackSheepOrderIdempotencyKey)||''}catch{}
+  if(!key){
+    key=crypto.randomUUID();
+    try{sessionStorage.setItem(blackSheepOrderIdempotencyKey,key)}catch{}
+  }
+  return key;
+}
+function resetCheckoutTurnstile(){
+  try{if(window.turnstile)window.turnstile.reset(document.getElementById('checkoutTurnstile'))}catch{}
+  checkoutTurnstileChanged();
+}
+async function submitCheckoutOrder(){
+  const button=document.getElementById('checkoutSubmitRequest');
+  const error=document.getElementById('checkoutSubmitError');
+  const config=window.BLACK_SHEEP_COMMERCE_CONFIG||{};
+  if(!button||button.disabled)return;
+  const data=window.__blackSheepCheckoutData||checkoutFormData();
+  const token=checkoutTurnstileToken();
+  if(!data||!token||!config.apiBase)return;
+  const rows=blackSheepCart.resolvedItems();
+  if(!rows.length||!blackSheepCart.canCheckout())return;
+  const payload={
+    turnstileToken:token,
+    fulfilmentMethod:data.fulfilmentMethod,
+    customer:{name:data.customerName,email:data.customerEmail,phone:data.customerPhone||undefined},
+    deliveryAddress:data.deliveryAddress||undefined,
+    note:data.note||undefined,
+    items:rows.map(row=>({productId:row.item.id,quantity:row.quantity}))
+  };
+  const original=button.textContent;
+  button.disabled=true;
+  button.textContent='Sending…';
+  button.setAttribute('aria-busy','true');
+  if(error){error.hidden=true;error.textContent=''}
+  try{
+    const response=await fetch(String(config.apiBase).replace(/\/$/,'')+'/v1/orders',{
+      method:'POST',
+      headers:{'content-type':'application/json','idempotency-key':checkoutIdempotencyKey()},
+      body:JSON.stringify(payload)
+    });
+    let result={};
+    try{result=await response.json()}catch{}
+    if(!response.ok){
+      const message=result?.error?.message||'We could not send your order request. Please try again.';
+      if(error){error.hidden=false;error.textContent=message}
+      resetCheckoutTurnstile();
+      return;
+    }
+    const snapshot={
+      reference:result?.order?.reference||'',
+      status:result?.order?.status||'SUBMITTED',
+      createdAt:result?.order?.createdAt||new Date().toISOString(),
+      currency:result?.order?.currency||'GBP',
+      itemsSubtotalMinor:result?.order?.itemsSubtotalMinor??Math.round(blackSheepCart.subtotal()*100),
+      fulfilmentMethod:result?.order?.fulfilmentMethod||data.fulfilmentMethod,
+      items:result?.order?.items||rows.map(row=>({productId:row.item.id,name:row.item.name,quantity:row.quantity,unitPriceMinor:Math.round((row.item.price||0)*100),lineTotalMinor:Math.round((row.lineTotal||0)*100)}))
+    };
+    try{sessionStorage.setItem(blackSheepOrderResultKey,JSON.stringify(snapshot));sessionStorage.removeItem(blackSheepOrderIdempotencyKey)}catch{}
+    try{localStorage.removeItem(blackSheepCheckoutDraftKey)}catch{}
+    blackSheepCart.clear();
+    updateBlackSheepListUI();
+    location.href='/order-requested.html?ref='+encodeURIComponent(snapshot.reference);
+  }catch{
+    if(error){error.hidden=false;error.textContent='We could not reach the order service. Your basket is safe — please try again.'}
+    resetCheckoutTurnstile();
+  }finally{
+    button.removeAttribute('aria-busy');
+    if(document.contains(button)){button.textContent=original;checkoutTurnstileChanged()}
+  }
+}
 function initCheckoutPage(){
   const page=document.getElementById('checkoutPage');
   if(!page)return;
@@ -505,6 +579,23 @@ function initCheckoutPage(){
   setCheckoutFulfilment(method);
   document.querySelectorAll('input[name="fulfilmentMethod"]').forEach(el=>el.addEventListener('change',()=>{setCheckoutFulfilment(el.value);saveCheckoutDraft({fulfilmentMethod:el.value})}));
   document.getElementById('checkoutForm')?.addEventListener('submit',reviewCheckout);
+  document.getElementById('checkoutSubmitRequest')?.addEventListener('click',submitCheckoutOrder);
   checkoutTurnstileChanged();
 }
 document.addEventListener('DOMContentLoaded',initCheckoutPage);
+
+function initOrderRequestedPage(){
+  const root=document.getElementById('orderRequestedPage');
+  if(!root)return;
+  let snapshot=null;
+  try{snapshot=JSON.parse(sessionStorage.getItem(blackSheepOrderResultKey)||'null')}catch{}
+  const queryRef=new URLSearchParams(location.search).get('ref')||'';
+  const reference=snapshot?.reference||queryRef;
+  document.getElementById('orderRequestedReference').textContent=reference||'Request received';
+  if(snapshot){
+    document.getElementById('orderRequestedSubtotal').textContent='£'+(Number(snapshot.itemsSubtotalMinor||0)/100).toFixed(2);
+    document.getElementById('orderRequestedMethod').textContent=snapshot.fulfilmentMethod==='collection'?'Collection':'Delivery';
+    document.getElementById('orderRequestedItems').innerHTML=(snapshot.items||[]).map(item=>'<div class="order-requested-item"><span>'+checkoutEscape(item.quantity+' × '+item.name)+'</span><strong>£'+(Number(item.lineTotalMinor||0)/100).toFixed(2)+'</strong></div>').join('');
+  }
+}
+document.addEventListener('DOMContentLoaded',initOrderRequestedPage);
