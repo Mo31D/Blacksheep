@@ -8,6 +8,11 @@ on:
       - "assets/site.js"
       - "assets/style.css"
       - "basket.html"
+      - "scripts/test-commerce-legal.mjs"
+      - "terms.html"
+      - "delivery-returns.html"
+      - "privacy.html"
+      - "checkout.html"
       - "scripts/test-cart-core.mjs"
       - ".github/workflows/commerce-ci.yml"
   pull_request:

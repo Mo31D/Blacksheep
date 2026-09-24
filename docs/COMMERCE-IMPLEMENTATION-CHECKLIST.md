@@ -370,15 +370,24 @@ Future gateway integration will replace the manual payment-request step with pro
 
 ## Phase 13 — Legal/privacy/customer information
 
-Before public launch of order collection:
+Status: CODE COMPLETE ON `commerce-v1` — two owner/business setup items must be confirmed before public launch.
 
-- [ ] privacy notice for collected checkout data
-- [ ] delivery information
-- [ ] returns/cancellation information
-- [ ] business/contact information
-- [ ] wording reviewed for distance-sale flow
-- [ ] data-retention policy for abandoned/cancelled/completed orders
-- [ ] cookie/storage disclosure for necessary cart storage where applicable
+- [x] Add customer-facing privacy notice.
+- [x] Add delivery, cancellation and returns information.
+- [x] Add order terms explaining request → confirmation → payment.
+- [x] Add business address and phone to the legal pages.
+- [x] Add privacy wording for D1 order records, email, delivery carriers, payment-reference data and Cloudflare Turnstile.
+- [x] Add browser-storage disclosure for the persistent basket and short-lived checkout/session state.
+- [x] State that no advertising or analytics storage is currently used by the storefront.
+- [x] Explain 14-day distance-order cancellation/return workflow and common statutory exceptions without limiting faulty-goods rights.
+- [x] Link Privacy / Delivery & returns / Terms from checkout and every shared footer.
+- [x] Add automated legal-page contract checks.
+- [ ] Activate and verify `orders@theblacksheepshop.co.uk` (or replace it with the owner's preferred working customer-service email).
+- [ ] Confirm the legal proprietor / registered business name that must appear with the trading name before production launch.
+
+Implementation basis reviewed against current GOV.UK distance-selling/returns guidance and ICO privacy/storage guidance on 24 September 2026.
+
+**Commit:** `commerce: add legal and customer information pages`
 
 ## Phase 14 — Production cutover
 

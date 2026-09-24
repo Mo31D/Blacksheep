@@ -1,8 +1,7 @@
 # Black Sheep — Session Handoff
 
-> **COMMERCE V1 — CURRENT STATE, 24 SEPTEMBER 2026**  
-> Live `main` remains protected from the unfinished customer flow. `commerce-v1` now contains validated Commerce work through Phase 12: mini basket, basket page, checkout + Turnstile, order submission/confirmation, notification architecture, Access-protected owner admin, and the manual secure-payment workflow. Commerce CI is green through `ae33ccf7329b4fbd76ad14cc581dc3d50c6e67b4`.  
-> A temporary production-hostname staging verifier exists on `main` at `/commerce-stage-check-260924.html`. **Exact next action:** run that page once to create a controlled staging order and automatically retry the same idempotency key. After PASS, verify/remove the test order/page, then configure Email Service + Access before production cutover.
+> **COMMERCE PHASE 13 — CODE COMPLETE, 24 SEPTEMBER 2026**  
+> `commerce-v1` now also contains customer-facing Privacy, Delivery & returns and Terms pages, checkout/footer legal links, storage/Turnstile disclosures and automated legal-page checks. Two owner confirmations remain before launch: activate/verify `orders@theblacksheepshop.co.uk` (or replace it with the chosen working email) and confirm the legal proprietor/registered business identity to display with the trading name. Phase 14 production cutover remains blocked on the controlled staging order test plus Cloudflare Email Service and Access setup.
 >
 > **NEXT-PHASE BASELINE — 24 September 2026**  
 > Before relying on older counts/status sections below, read:

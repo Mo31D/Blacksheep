@@ -599,3 +599,17 @@ function initOrderRequestedPage(){
   }
 }
 document.addEventListener('DOMContentLoaded',initOrderRequestedPage);
+
+
+function initCommerceLegalFooter(){
+  document.querySelectorAll('footer .wrap').forEach(wrap=>{
+    if(wrap.querySelector('.footer-legal'))return;
+    const legal=document.createElement('nav');
+    legal.className='footer-legal';
+    legal.setAttribute('aria-label','Legal and customer information');
+    legal.innerHTML='<a href="/privacy.html">Privacy</a><a href="/delivery-returns.html">Delivery & returns</a><a href="/terms.html">Terms</a>';
+    const copyright=wrap.querySelector('.copyright');
+    wrap.insertBefore(legal,copyright||null);
+  });
+}
+document.addEventListener('DOMContentLoaded',initCommerceLegalFooter);
