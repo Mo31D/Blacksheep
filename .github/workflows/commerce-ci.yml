@@ -2,7 +2,7 @@ name: Commerce CI
 
 on:
   push:
-    branches: [commerce-v1]
+    branches: [main, commerce-v1]
     paths:
       - "commerce/**"
       - ".github/workflows/commerce-ci.yml"
