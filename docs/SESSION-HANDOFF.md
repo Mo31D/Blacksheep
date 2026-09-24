@@ -1,5 +1,12 @@
 # Black Sheep — Session Handoff
 
+> **NEXT-PHASE BASELINE — 24 September 2026**  
+> Before relying on older counts/status sections below, read:
+> - `docs/NEXT-PHASE-BASELINE-2026-09-24.md`
+> - `docs/NEXT-PHASE-EXECUTION-FRAMEWORK-2026-09-24.md`
+>
+> Those files record the verified 146-product baseline and the execution rules for the next major phase. GitHub `main` remains authoritative.
+
 Updated: 24 September 2026
 
 Latest verified implementation milestone: `70100a0a8e1ed8053c9708f0e640ac3e530dfc4b` plus current image reconciliation (12 exact Hawkshead product images, two dual-image galleries; documentation commit may be newer)
