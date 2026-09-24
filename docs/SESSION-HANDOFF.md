@@ -1,5 +1,9 @@
 # Black Sheep — Session Handoff
 
+> **RESEND STAGING ORDER TEST PASSED — 24 SEPTEMBER 2026**  
+> Order `BSR-260924-DWZVCDYJ` returned 201; the retry returned 200 with the same reference and `idempotentReplay=true`. The final email gate is still pending direct confirmation that the owner notification and customer acknowledgement were delivered.
+>
+
 > **RESEND DOMAIN VERIFIED — 24 SEPTEMBER 2026**  
 > `theblacksheepshop.co.uk` is verified in Resend. Commerce notification code on `commerce-v1` now supports Resend via Worker runtime secret `RESEND_API_KEY`; the API key must never be committed. Next: create a sending-only key, add it to staging runtime secrets, set `ORDER_EMAIL_FROM` / `ORDER_OWNER_EMAIL`, then run one staging email test.
 >
