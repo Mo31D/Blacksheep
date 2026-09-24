@@ -185,7 +185,15 @@ function createBlackSheepCartCore(storage,resolveProduct){
 }
 /* CART CORE FACTORY END */
 
-const blackSheepCart=createBlackSheepCartCore(localStorage,(type,slug,productId)=>{
+function createLocalCartStore(storage=localStorage){
+  return{
+    getItem:key=>storage.getItem(key),
+    setItem:(key,value)=>storage.setItem(key,value),
+    removeItem:key=>storage.removeItem(key)
+  };
+}
+const blackSheepLocalCartStore=createLocalCartStore();
+const blackSheepCart=createBlackSheepCartCore(blackSheepLocalCartStore,(type,slug,productId)=>{
   const item=findItem(type,slug);
   if(item&&(!productId||!item.id||item.id===productId))return item;
   if(productId&&window.CATALOG){
@@ -199,7 +207,6 @@ const blackSheepCart=createBlackSheepCartCore(localStorage,(type,slug,productId)
 window.BlackSheepCart=blackSheepCart;
 
 function getBlackSheepList(){return blackSheepCart.getItems()}
-function saveBlackSheepList(items){blackSheepCart.setQuantity&&items;try{localStorage.setItem(blackSheepCart.cartKey,JSON.stringify({version:1,items}));}catch{}updateBlackSheepListUI()}
 function blackSheepListCount(){return blackSheepCart.count()}
 function blackSheepUnavailableMessage(reason){
   if(reason==='arriving-soon')return'Awaiting delivery';
