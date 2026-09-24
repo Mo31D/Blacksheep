@@ -9,7 +9,7 @@ This is the resumable execution file for the Commerce project. Update it after e
 
 - Commerce work started from production `main` at `ff8d62bf19a0902b5ed8061cba7e975dc9ffd39c`.
 - Phase 1 Worker skeleton was validated on `commerce-v1`, merged to `main`, and revalidated on `main`.
-- Current Commerce foundation commit on `main`: `a9834b08f463a39eee5165468b325fc0e58dd1c2`.
+- Current Commerce implementation anchor on `main`: `c9ce3bad54a105e14f8877cd7daa8da8a1030a9c`.
 - Commerce CI on `main`: PASS (TypeScript + 5 tests + Wrangler staging dry-run).
 - Existing Search readiness on `main`: PASS.
 - Cloudflare D1 staging + production databases are created and their IDs are recorded in Wrangler. Turnstile and later production secrets are still pending.
@@ -268,40 +268,59 @@ Validation:
 
 ## Phase 10 — Owner notifications
 
+Status: COMPLETE — Resend staging flow verified end-to-end for both owner notification and customer acknowledgment.
+
 Email is a notification channel, not storage.
 
-- [ ] Define `OrderNotifier` interface.
-- [ ] Notify owner for new SUBMITTED order.
-- [ ] Include reference and admin link.
-- [ ] Add customer acknowledgment.
-- [ ] Record notification outcome/event.
-- [ ] Avoid customer PII in unnecessary logs.
-- [ ] Retry transient failures safely.
+- [x] Define provider-neutral notification adapter/interface.
+- [x] Notify owner for new SUBMITTED order.
+- [x] Include order reference in owner notification.
+- [x] Add customer acknowledgment.
+- [x] Record notification outcome/event in D1.
+- [x] Avoid customer PII in unnecessary logs/diagnostics.
+- [x] Retry transient failures safely.
+- [x] Use external transactional provider through the adapter: Resend.
+- [x] Verify real staging customer email delivery.
+- [x] Verify real staging owner email delivery.
 
-Provider decision:
-- [ ] Cloudflare Email Service, or
-- [ ] alternate transactional provider through the same adapter.
+Current sender: `orders@theblacksheepshop.co.uk`.
 
-**Suggested commit:** `commerce: add order notifications`
+**Validation:** real staging order submission produced both customer and owner emails; safe notification diagnostics and failure events are covered by automated tests.
 
 ## Phase 11 — Private owner admin
 
-- [ ] Admin UI.
-- [ ] Protect with Cloudflare Access.
-- [ ] List/filter active orders.
-- [ ] Order details.
-- [ ] Order timeline.
-- [ ] Set delivery charge.
-- [ ] Recalculate final total on server.
-- [ ] Move to QUOTED/AWAITING_PAYMENT.
-- [ ] Record secure payment-request link/reference.
-- [ ] Mark payment confirmed.
-- [ ] Mark PREPARING.
-- [ ] Add tracking.
-- [ ] Mark SHIPPED/READY_FOR_COLLECTION.
-- [ ] Complete/cancel.
-- [ ] Validate allowed state transitions.
-- [ ] Never expose admin endpoints without Access/server authorization.
+Status: IN PROGRESS — application code + CI complete; staging migration/deploy/live verification remain.
+
+Current V1 protection does **not** depend on a Cloudflare paid email product. The admin implementation uses a one-time code sent only to the configured owner email, then a secure server-side session cookie. Cloudflare Access remains an optional additional production edge layer rather than a blocker for staging.
+
+- [x] Admin UI.
+- [x] Owner email one-time-code sign-in.
+- [x] Store only hashed login codes/session tokens in D1.
+- [x] HttpOnly + Secure + SameSite=Strict admin session cookie.
+- [x] Same-origin protection for admin POST actions/auth requests.
+- [x] List/filter active orders.
+- [x] Order details.
+- [x] Order timeline.
+- [x] Set delivery charge.
+- [x] Recalculate final total on server.
+- [x] Move to QUOTED/AWAITING_PAYMENT.
+- [x] Record secure payment-request link/reference.
+- [x] Mark payment confirmed.
+- [x] Mark PREPARING.
+- [x] Add tracking.
+- [x] Mark SHIPPED/READY_FOR_COLLECTION.
+- [x] Complete/cancel.
+- [x] Validate allowed state transitions.
+- [x] Never expose admin mutations without server authorization.
+- [x] Commit staging admin-auth D1 migration: `commerce/migrations/0001_admin_email_auth.sql`.
+- [x] Make the manual staging deploy workflow run D1 migrations before deploying the Worker.
+- [ ] Apply/confirm `0001_admin_email_auth.sql` on remote staging D1.
+- [ ] Deploy current `main` to the staging Worker.
+- [ ] Verify owner login code delivery and successful admin session on staging.
+- [ ] Verify a real staging order through review → quote → payment request → paid → preparing → shipped/ready → complete/cancel as applicable.
+- [ ] Decide whether to add Cloudflare Access as an extra production layer before Phase 14; do not require a paid Cloudflare email service.
+
+**Current validation:** Commerce CI PASS and Search Readiness PASS after the Stage 11 security changes. Production remains untouched.
 
 **Suggested commits:** split admin list/detail and admin mutations into separate milestones.
 
@@ -378,8 +397,10 @@ Not required for Commerce V1, but architecture must not block:
 
 ## Current exact next action
 
-1. Create the two D1 databases: `black-sheep-commerce-staging` and `black-sheep-commerce-prod`.
-2. Record both D1 database IDs.
-3. Bind staging D1 to the Worker and implement/apply Phase 2 migrations from GitHub.
-4. Create the Turnstile widget after D1 setup.
-5. Do not start Basket/Checkout UI until the D1 foundation is wired and verified.
+1. Run the manual **Commerce Deploy** workflow with environment = `staging`. It now runs `npm run deploy:staging`, which applies pending staging D1 migrations before deploying the Worker.
+2. Confirm the workflow applies `0001_admin_email_auth.sql` successfully.
+3. Open the staging admin route: `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/admin`.
+4. Request the one-time login code and verify it arrives at the configured owner email.
+5. Sign in and confirm the existing staging order appears in the admin list/detail view.
+6. Test the Stage 11 lifecycle on staging only.
+7. Do not apply production D1 migrations and do not deploy the production Worker yet.
