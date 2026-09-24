@@ -5,10 +5,16 @@ on:
     branches: [main, commerce-v1]
     paths:
       - "commerce/**"
+      - "assets/site.js"
+      - "assets/style.css"
+      - "scripts/test-cart-core.mjs"
       - ".github/workflows/commerce-ci.yml"
   pull_request:
     paths:
       - "commerce/**"
+      - "assets/site.js"
+      - "assets/style.css"
+      - "scripts/test-cart-core.mjs"
       - ".github/workflows/commerce-ci.yml"
 
 jobs:
