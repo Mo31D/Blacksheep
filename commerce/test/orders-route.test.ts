@@ -127,8 +127,8 @@ describe("POST /v1/orders", () => {
     const itemInsert = db.batched.find((statement) =>
       statement.sql.includes("INSERT INTO order_items"),
     )!;
-    expect(itemInsert.values).toContain(purchasable.priceMinor);
-    expect(itemInsert.values).not.toContain(1);
+    expect(itemInsert.values[6]).toBe(purchasable.priceMinor);
+    expect(itemInsert.values[6]).not.toBe(1);
   });
 
   it("returns an existing order for an idempotent retry before reusing Turnstile", async () => {
