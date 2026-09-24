@@ -63,6 +63,14 @@ for(const item of officialRomneys){
   if(!item.official.manufacturer) fail.push('Missing official manufacturer for '+item.id);
   if(romneysSourceMap&&!romneysSourceMap.includes(item.official.url)) fail.push('Romney source map missing '+item.id);
 }
+const hawksheadSourceMap=exists('docs/HAWKSHEAD-RELISH-SOURCE-MAP.md')?read('docs/HAWKSHEAD-RELISH-SOURCE-MAP.md'):'';
+if(!hawksheadSourceMap) fail.push('Missing docs/HAWKSHEAD-RELISH-SOURCE-MAP.md');
+for(const item of (catalog.hawkshead||[])){
+  if(!item.official?.url || !/^https:\/\/www\.hawksheadrelish\.com\//.test(item.official.url)) fail.push('Missing/invalid Hawkshead official source for '+item.id);
+  if(item.official?.url && hawksheadSourceMap && !hawksheadSourceMap.includes(item.official.url)) fail.push('Hawkshead source map missing '+item.id);
+  if(typeof item.price==='number') fail.push('Hawkshead Black Sheep price must not be inferred from supplier pricing: '+item.id);
+}
+
 const romneyImageSources=new Map();
 for(const item of (catalog.romneys||[])){
   const u=item.official?.imageUrl;
@@ -101,6 +109,13 @@ for(const {type,item} of rows){
     if(productNode?.brand?.name!==(item.brand||"Romney's of Kendal")) fail.push('Product schema brand mismatch: '+p);
     if(item.official?.manufacturer && productNode?.manufacturer?.name!==item.official.manufacturer) fail.push('Product schema manufacturer mismatch: '+p);
   }
+  if(type==='hawkshead'){
+    if(/hawksheadrelish\.com\/shop\//i.test(h)) fail.push('Public Hawkshead supplier URL leaked into '+p);
+    let parsed=null; try{parsed=JSON.parse(productJson[0]?.[1]||'null')}catch{}
+    const productNode=parsed?.['@graph']?.find(x=>x['@type']==='Product');
+    if(productNode?.brand?.name!==(item.brand||'Hawkshead Relish Company')) fail.push('Hawkshead Product schema brand mismatch: '+p);
+    if(item.official?.manufacturer && productNode?.manufacturer?.name!==item.official.manufacturer) fail.push('Hawkshead Product schema manufacturer mismatch: '+p);
+  }
 }
 
 const expectedRawLinks={
@@ -116,6 +131,7 @@ const expectedRawLinks={
  'gifts-toys-games.html':catalog.gifts.filter(x=>(x.categories||[]).includes('toys-games')).length,
  'icecream.html':catalog.icecream.length,
  'romneys.html':catalog.romneys.length,
+ 'hawkshead-relish.html':catalog.hawkshead.length,
  'all-products.html':rows.length
 };
 for(const [p,n] of Object.entries(expectedRawLinks)){
@@ -124,6 +140,7 @@ for(const [p,n] of Object.entries(expectedRawLinks)){
   if(got<n) fail.push('Too few raw product links in '+p+': '+got+' < '+n);
   if(!h.includes('"@type":"ItemList"')) fail.push('Missing ItemList graph: '+p);
   if(p==='romneys.html' && (h.match(/<article class="product-card"/g)||[]).length!==catalog.romneys.length) fail.push('Romney card count drift');
+  if(p==='hawkshead-relish.html' && (h.match(/<article class="product-card"/g)||[]).length!==catalog.hawkshead.length) fail.push('Hawkshead card count drift');
   if(p==='all-products.html' && (h.match(/<article class="product-card"/g)||[]).length!==rows.length) fail.push('Full-range card count drift');
 }
 

@@ -14,9 +14,10 @@ Production domain: **https://theblacksheepshop.co.uk**
 Only products with real product imagery and descriptions are retained:
 - 41 Gifts: 29 Peter Rabbit + 12 Highland Cow.
 - 12 Luxury Lakes Ice Cream flavours.
-- 56 Romney's / confectionery products.
-- 109 product records total.
-- Hawkshead Relish remains an informational in-store range page; no individual Hawkshead products are currently published.
+- 55 Romney's / confectionery products.
+- 12 Hawkshead Relish products.
+- 120 product records total.
+- Hawkshead Relish now has canonical individual product pages using verified manufacturer facts; Black Sheep prices are not inferred from manufacturer retail prices.
 - Lakeland Fragrances and other empty legacy gift categories redirect to the current Gifts page.
 
 Do not re-add old placeholder catalogue records unless the owner explicitly approves a real image and proper description.
@@ -64,6 +65,12 @@ node scripts/build-icecream.mjs --check
 ```
 
 The builder updates the 12 static flavour pages from `scripts/templates/icecream-product.html`, ice-cream cards in both collections, their ItemLists, sitemap image entries, and the retired Pistachio route. CI rejects drift. It does not regenerate or overwrite unrelated gift/confectionery product pages. To change the flavour-page layout, edit the template/builder, not its generated output. Changing the number of flavours requires deliberately updating the builder's 12-card guard and reviewing shop stock.
+
+### Verified Hawkshead Relish sources
+
+The 12 current Hawkshead Relish records store their manufacturer URL and verified product facts in `assets/catalog.js`; the internal provenance list is `docs/HAWKSHEAD-RELISH-SOURCE-MAP.md`. The public static pages live under `products/hr-*.html`, are pre-rendered in `hawkshead-relish.html` and `all-products.html`, and are included in `sitemap.xml`.
+
+Do **not** import Hawkshead Relish manufacturer retail prices as Black Sheep prices. Until the owner confirms shop pricing, these products display as an in-store range without a numeric Black Sheep price.
 
 ### Verified Romney's / confectionery sources
 
