@@ -206,14 +206,19 @@ for(const p of ['gifts-lake-district.html','lakeland-fragrances.html','gifts-loc
 }
 if(!/noindex,follow/.test(read('404.html'))) fail.push('404 page must be noindex,follow');
 
-const highlandPlaceholders=(catalog.gifts||[]).filter(x=>x.placeholder&&x.category==='highland-cows');
-if(highlandPlaceholders.length!==23) fail.push('Expected 23 Highland Cow placeholders, found '+highlandPlaceholders.length);
-for(const item of highlandPlaceholders){if(!/^LP\d+$/.test(item.sku||'')) fail.push('Bad Highland placeholder SKU: '+item.id);if(item.img) fail.push('Highland placeholder must not use an inferred image: '+item.id);if(typeof item.price==='number') fail.push('Highland placeholder must not use an inferred price: '+item.id);}
+const highlandPlaceholderAudit=(catalog.gifts||[]).filter(x=>x.placeholder&&x.category==='highland-cows');
+if(highlandPlaceholderAudit.length!==23) fail.push('Expected 23 Highland Cow placeholders, found '+highlandPlaceholderAudit.length);
+for(const item of highlandPlaceholderAudit){
+  if(!/^LP\d+$/.test(item.sku||'')) fail.push('Bad Highland placeholder SKU: '+item.id);
+  if(item.img) fail.push('Highland placeholder must not use an inferred image: '+item.id);
+  if(typeof item.price!=='number') fail.push('Highland placeholder owner price missing: '+item.id);
+  if(item.priceSource!=='owner-confirmed-2026-09-24') fail.push('Highland placeholder price source missing: '+item.id);
+}
 
 if(fail.length){
   console.error('Search-readiness verification failed:');
   for(const x of fail) console.error('- '+x);
   process.exit(1);
 }
-console.log('Search-readiness verification passed:',{products:rows.length,activePages:active.length,sitemapUrls:(sitemap.match(/<url>/g)||[]).length,placeholders:highlandPlaceholders.length});
+console.log('Search-readiness verification passed:',{products:rows.length,activePages:active.length,sitemapUrls:(sitemap.match(/<url>/g)||[]).length,placeholders:highlandPlaceholderAudit.length});
 
