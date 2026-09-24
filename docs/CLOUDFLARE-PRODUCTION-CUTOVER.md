@@ -37,25 +37,21 @@ Do not perform this test against production D1.
 
 ## Gate B — customer email
 
-Cloudflare Email Service is the selected adapter.
+Status: **PASSED in staging on 24 September 2026.**
 
-1. Cloudflare dashboard → **Compute → Email Service → Email Sending**.
-2. Onboard `theblacksheepshop.co.uk`.
-3. Allow Cloudflare to create/verify the required SPF, DKIM, DMARC and bounce-domain DNS records.
-4. Activate a working sender:
-   `orders@theblacksheepshop.co.uk`
-5. Configure a Worker `send_email` binding named:
-   `EMAIL`
-6. Set non-secret Worker variables:
-   - `ORDER_EMAIL_FROM=orders@theblacksheepshop.co.uk`
-   - `ORDER_OWNER_EMAIL=<owner receiving address>`
-7. If customers must be able to reply to `orders@`, configure Email Routing/inbound forwarding as well.
-8. From staging, verify one owner notification and one customer acknowledgment.
-9. Verify failure/success events are written to `order_events`.
+Provider: **Resend** using the verified `theblacksheepshop.co.uk` domain.
 
-Cloudflare docs reviewed:
-- https://developers.cloudflare.com/email-service/get-started/send-emails/
-- https://developers.cloudflare.com/email-service/api/send-emails/workers-api/
+Verified:
+- `orders@theblacksheepshop.co.uk` sends successfully.
+- Customer acknowledgment was received.
+- Owner notification was received after correcting `ORDER_OWNER_EMAIL`.
+- The Worker uses `RESEND_API_KEY` as a secret.
+- `ORDER_EMAIL_FROM` and `ORDER_OWNER_EMAIL` are runtime variables.
+- Notification outcomes are recorded in `order_events`.
+- The Cloudflare Workers fetch receiver bug was fixed so Resend requests execute correctly.
+- The temporary staging email verifier has been removed from `main`.
+
+Do not replace the working Resend integration during cutover unless there is a specific migration requirement.
 
 ## Gate C — private owner admin
 
