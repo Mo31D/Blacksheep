@@ -152,3 +152,15 @@ section{padding:78px 0}.section-head{display:flex;justify-content:space-between;
 .stock-card-label.arriving-soon{background:#efe6cf;color:#725a22;white-space:nowrap}
 
 .product-buyline .product-price{flex:0 0 auto}.product-buyline .stock-card-label{flex:0 0 auto;white-space:nowrap}
+
+
+/* Shopping-card secondary action */
+.product-card .card-actions{width:100%;margin-top:auto;padding-top:10px}
+.product-card .list-add{width:100%;min-height:36px;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 12px;border:1px solid rgba(125,109,75,.28);border-radius:999px;background:#fbfaf6;color:var(--ink);font:700 10px/1 Inter,Arial,sans-serif;letter-spacing:.01em;text-decoration:none;transition:background .16s ease,border-color .16s ease,color .16s ease,transform .16s ease,box-shadow .16s ease}
+.product-card .list-add::before{content:"+";display:grid;place-items:center;width:17px;height:17px;border:1px solid rgba(125,109,75,.34);border-radius:50%;font:700 13px/1 Inter,Arial,sans-serif;color:#806b40;transition:inherit}
+.product-card .list-add:hover{background:#f2ecdf;border-color:rgba(128,107,64,.55);text-decoration:none;box-shadow:0 5px 14px rgba(25,23,18,.05)}
+.product-card .list-add:active{transform:translateY(1px)}
+.product-card .list-add.is-added{background:#e8efe5;border-color:#c9d9c3;color:#45613d}
+.product-card .list-add.is-added::before{content:"✓";border-color:#b8ccb0;color:#45613d;font-size:11px}
+@media(max-width:620px){.product-card .card-actions{padding-top:8px}.product-card .list-add{min-height:34px;padding:7px 9px;font-size:9px}.product-card .list-add::before{width:16px;height:16px;font-size:12px}}
+
