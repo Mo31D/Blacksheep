@@ -450,7 +450,7 @@ Not required for Commerce V1, but architecture must not block:
 ## Current exact next action
 
 1. Resend domain `theblacksheepshop.co.uk` is verified.
-2. Create a Resend API key with sending access only; store it only as Worker runtime secret `RESEND_API_KEY`.
+2. [x] Resend API key created with sending access only and stored as staging Worker runtime secret `RESEND_API_KEY`.
 3. Configure `ORDER_EMAIL_FROM` and `ORDER_OWNER_EMAIL` on the staging Worker.
 4. Send one owner + customer staging email and verify the corresponding `order_events`.
 5. Configure Cloudflare Zero Trust Access for the private admin and verify one complete staging admin workflow.
