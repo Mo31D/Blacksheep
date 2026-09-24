@@ -48,8 +48,8 @@ const identity = async () => ({
 describe("admin routes", () => {
   it("serves a noindex dashboard only after access verification", async () => {
     const response = await handleAdminRequest(
-      new Request("https://admin.example.com/"),
-      { DB: new Db(), ADMIN_HOSTNAME: "admin.example.com" },
+      new Request("https://admin.example.com/admin"),
+      { DB: new Db() },
       { verifyAccessFn: identity },
     );
 
@@ -60,8 +60,8 @@ describe("admin routes", () => {
 
   it("returns an authenticated order list", async () => {
     const response = await handleAdminRequest(
-      new Request("https://admin.example.com/api/orders"),
-      { DB: new Db(), ADMIN_HOSTNAME: "admin.example.com" },
+      new Request("https://admin.example.com/admin/api/orders"),
+      { DB: new Db() },
       { verifyAccessFn: identity },
     );
 
@@ -71,8 +71,8 @@ describe("admin routes", () => {
 
   it("fails closed when access is denied", async () => {
     const response = await handleAdminRequest(
-      new Request("https://admin.example.com/"),
-      { DB: new Db(), ADMIN_HOSTNAME: "admin.example.com" },
+      new Request("https://admin.example.com/admin"),
+      { DB: new Db() },
       {
         verifyAccessFn: async () => ({
           ok: false,
