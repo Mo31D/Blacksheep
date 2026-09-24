@@ -200,39 +200,50 @@ Validation:
 
 ## Phase 6 — Mini basket
 
-- [ ] Replace header My List treatment with Basket.
-- [ ] Item count.
-- [ ] Item image/placeholder.
-- [ ] Product name.
-- [ ] Unit price.
-- [ ] Quantity controls.
-- [ ] Remove.
-- [ ] Subtotal.
-- [ ] Clear basket with confirmation.
-- [ ] View Basket CTA.
-- [ ] Proper empty state.
-- [ ] Keyboard/focus trap.
-- [ ] Mobile behaviour.
-- [ ] No broken image state.
+Status: COMPLETE ON `commerce-v1` — intentionally not merged to live site until the customer flow is complete.
 
-**Suggested commit:** `commerce: add mini basket`
+- [x] Replace header My List treatment with Basket.
+- [x] Item count.
+- [x] Item image/placeholder.
+- [x] Product name.
+- [x] Unit price.
+- [x] Quantity controls.
+- [x] Remove.
+- [x] Subtotal.
+- [x] Clear basket with confirmation.
+- [x] View Basket CTA.
+- [x] Proper empty state.
+- [x] Keyboard/focus trap.
+- [x] Mobile behaviour.
+- [x] No broken image state.
+- [x] Disable normal basket addition for arriving-soon/out-of-stock/unpriced products.
+
+Validation: Commerce CI PASS.
+
+**Commit boundary:** `commerce: upgrade My List UI to mini basket`
 
 ## Phase 7 — `basket.html`
 
-- [ ] Full responsive basket page.
-- [ ] Product rows.
-- [ ] Quantity updates.
-- [ ] Line totals.
-- [ ] Subtotal.
-- [ ] Delivery/collection explanation.
-- [ ] Continue CTA.
-- [ ] Stale price/status revalidation.
-- [ ] Empty basket route/state.
-- [ ] Accessible announcements for cart changes.
-- [ ] Sticky summary on desktop.
-- [ ] mobile action treatment.
+Status: CODE COMPLETE ON `commerce-v1` — checkout CTA remains gated until Phase 8 exists.
 
-**Suggested commit:** `commerce: add basket page`
+- [x] Full responsive basket page.
+- [x] Product rows.
+- [x] Quantity updates.
+- [x] Line totals.
+- [x] Subtotal.
+- [x] Delivery/collection next-step explanation.
+- [x] Continue CTA present and safely gated until checkout is ready.
+- [x] Stale price/status revalidation from the current catalogue.
+- [x] Empty basket route/state.
+- [x] Accessible live region for basket changes.
+- [x] Sticky summary on desktop.
+- [x] Mobile layout/action treatment.
+- [x] `noindex,follow` metadata.
+- [x] Automated page-contract checks.
+
+Validation: Commerce CI PASS.
+
+**Commit boundary:** `commerce: add basket page`
 
 ## Phase 8 — Checkout
 
