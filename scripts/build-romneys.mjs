@@ -78,6 +78,12 @@ function cleanHtmlDocument(html) {
   return html.slice(0, i) + '</html>';
 }
 
+function oneDocument(html) {
+  const bodyClose = html.indexOf('</body>');
+  if (bodyClose < 0) return html;
+  return html.slice(0, bodyClose + '</body>'.length) + '</html>';
+}
+
 function replaceDivContentsById(html, id, newInner) {
   const at = html.indexOf(`id="${id}"`);
   if (at < 0) throw Error('Missing #' + id);
