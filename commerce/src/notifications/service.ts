@@ -5,11 +5,10 @@ import type {
   SubmittedOrderInput,
 } from "../domain/order";
 import { CloudflareEmailOrderNotifier } from "./cloudflare-email";
-import type { SendEmailBindingLike } from "./order-notifier";
+import { resolveEmailSender, type EmailProviderEnv } from "./email-provider";
 
-export interface NotificationEnv {
+export interface NotificationEnv extends EmailProviderEnv {
   DB?: D1DatabaseLike;
-  EMAIL?: SendEmailBindingLike;
   ORDER_EMAIL_FROM?: string;
   ORDER_OWNER_EMAIL?: string;
 }
@@ -18,6 +17,7 @@ async function attemptNotification(
   db: D1DatabaseLike,
   orderId: string,
   eventPrefix: string,
+  provider: string,
   send: () => Promise<void>,
 ): Promise<void> {
   const maxAttempts = 2;
@@ -27,7 +27,7 @@ async function attemptNotification(
       await recordOrderEvent(db, {
         orderId,
         eventType: `${eventPrefix}_SENT`,
-        metadata: { provider: "cloudflare-email", attempts: attempt },
+        metadata: { provider, attempts: attempt },
       });
       return;
     } catch {
@@ -36,7 +36,7 @@ async function attemptNotification(
           orderId,
           eventType: `${eventPrefix}_FAILED`,
           metadata: {
-            provider: "cloudflare-email",
+            provider,
             attempts: attempt,
             error: "send_failed",
           },
@@ -51,9 +51,10 @@ export async function notifyOrderSubmitted(
   request: SubmittedOrderInput,
   order: CreatedOrder,
 ): Promise<void> {
+  const resolved = resolveEmailSender(env);
   if (
     !env.DB ||
-    !env.EMAIL ||
+    !resolved ||
     !env.ORDER_EMAIL_FROM ||
     !env.ORDER_OWNER_EMAIL
   ) {
@@ -61,17 +62,17 @@ export async function notifyOrderSubmitted(
   }
 
   const notifier = new CloudflareEmailOrderNotifier(
-    env.EMAIL,
+    resolved.sender,
     env.ORDER_EMAIL_FROM,
     env.ORDER_OWNER_EMAIL,
   );
   const context = { request, order };
 
   await Promise.all([
-    attemptNotification(env.DB, order.id, "OWNER_NOTIFICATION", () =>
+    attemptNotification(env.DB, order.id, "OWNER_NOTIFICATION", resolved.provider, () =>
       notifier.notifyOwner(context),
     ),
-    attemptNotification(env.DB, order.id, "CUSTOMER_ACKNOWLEDGEMENT", () =>
+    attemptNotification(env.DB, order.id, "CUSTOMER_ACKNOWLEDGEMENT", resolved.provider, () =>
       notifier.acknowledgeCustomer(context),
     ),
   ]);
