@@ -334,3 +334,8 @@ Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` b
 - Romney's and Hawkshead remain on the shared shopping grid: 4 columns desktop, 3 tablet, 2 mobile.
 - Gifts landing and all active gift-category catalogues now use the same shopping grid and 2-column mobile layout, matching the previously approved visual density.
 - Mobile catalogue pages use the compact catalogue body treatment so at least a 2×2 set of product cards can be reached/seen quickly, depending on card title length and viewport height.
+
+### Gift catalogue copy cleanup — 24 September 2026
+- Removed the redundant “Choose a gift type” / “Pick a category to narrow the range” instruction block from Gifts.
+- Replaced “Curated gift range” with the simpler “Gifts” label.
+- Added QA so these instructional phrases do not return.
