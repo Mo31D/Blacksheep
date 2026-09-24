@@ -2,7 +2,7 @@
 
 Updated: 24 September 2026
 
-Latest verified implementation milestone: `80f88e98bb07b318422f7faf011e165a738dc9fa` (12-product Hawkshead Relish catalogue + static pages + search QA; documentation commits may be newer)
+Latest verified implementation milestone: `bba82641f56c160e0d48f563b64f12b924fa078d` (Hawkshead owner pricing + four new verified products; documentation commits may be newer)
 
 This is the short handoff file for ChatGPT, Work/Sites, Codex, or any future session. Read this before making changes.
 
@@ -44,6 +44,25 @@ At the end:
 2. Replace the “Latest completed work” and “Exact next action” sections below.
 3. Record the final commit SHA.
 4. State any unresolved blockers explicitly.
+
+## CRITICAL LATEST HANDOFF — Hawkshead owner pricing update, 24 September 2026
+
+- GitHub `main` remains authoritative.
+- Verified implementation commit: `bba82641f56c160e0d48f563b64f12b924fa078d`.
+- Current catalogue: **124 products total** = 41 Gifts + 12 Luxury Lakes Ice Cream + 55 Romney's/confectionery + **16 Hawkshead Relish**.
+- Hawkshead Relish: **13 owner-priced products**, plus Bloody Mary Ketchup, Red Onion Marmalade and Hot Garlic Pickle retained without numeric Black Sheep prices.
+- Added exact products and official detail data: Bloody Mary Chutney (£5.70), Honeycomb Honey (£7.95), Cumberland Sauce (£4.70), Cheeseboard Chutney (£5.30).
+- Owner-confirmed existing prices: The Original Black Garlic Ketchup £6.80; Traditional English Mustard £3.60; Raspberry & Vanilla Jam £4.30; Strawberry & Black Pepper Jam £4.30; Damson Extra Jam £4.30; Five Fruit Marmalade £4.30; Beetroot & Horseradish Chutney £5.30; Piccalilli £5.30; Westmorland Chutney £5.30.
+- Official product names are retained even where the owner's shorthand differs.
+- All Hawkshead Product Information `<details>` remain open by default.
+- Sitemap target: **141 URLs** = 17 active non-product pages + 124 static product pages.
+- Search readiness passed for the implementation commit.
+
+### Exact next action
+1. Preserve the 124-product static architecture and the 16-product Hawkshead collection.
+2. Do not infer prices for Bloody Mary Ketchup, Red Onion Marmalade or Hot Garlic Pickle; wait for owner confirmation.
+3. Replace shared Hawkshead range imagery with exact individual pack-shots when available.
+4. Sync the same existing Black Sheep Sites project only when its exact identity is known, then perform live QA.
 
 ## CRITICAL LATEST HANDOFF — Hawkshead Relish catalogue, 24 September 2026
 
