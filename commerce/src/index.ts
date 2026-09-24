@@ -1,6 +1,7 @@
 import type { D1DatabaseLike } from "./data/d1";
 import { handleCreateOrder, type RateLimiterLike } from "./routes/orders";
 import type { SendEmailBindingLike } from "./notifications/order-notifier";
+import { handleAdminRequest } from "./routes/admin";
 
 interface Env {
   ENVIRONMENT?: string;
@@ -13,6 +14,10 @@ interface Env {
   EMAIL?: SendEmailBindingLike;
   ORDER_EMAIL_FROM?: string;
   ORDER_OWNER_EMAIL?: string;
+  ADMIN_HOSTNAME?: string;
+  ADMIN_TEAM_DOMAIN?: string;
+  ADMIN_ACCESS_AUD?: string;
+  ADMIN_ALLOWED_EMAILS?: string;
 }
 
 const SERVICE = "black-sheep-commerce-api";
@@ -70,6 +75,10 @@ function preflight(request: Request, env: Env): Response {
 
 async function route(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
+
+  if (env.ADMIN_HOSTNAME && url.hostname === env.ADMIN_HOSTNAME) {
+    return handleAdminRequest(request, env);
+  }
 
   if (request.method === "OPTIONS") return preflight(request, env);
 

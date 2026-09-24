@@ -319,24 +319,30 @@ Provider: Cloudflare Email Service behind the `OrderNotifier` abstraction, so it
 
 ## Phase 11 — Private owner admin
 
-- [ ] Admin UI.
-- [ ] Protect with Cloudflare Access.
-- [ ] List/filter active orders.
-- [ ] Order details.
-- [ ] Order timeline.
-- [ ] Set delivery charge.
-- [ ] Recalculate final total on server.
-- [ ] Move to QUOTED/AWAITING_PAYMENT.
-- [ ] Record secure payment-request link/reference.
-- [ ] Mark payment confirmed.
-- [ ] Mark PREPARING.
-- [ ] Add tracking.
-- [ ] Mark SHIPPED/READY_FOR_COLLECTION.
-- [ ] Complete/cancel.
-- [ ] Validate allowed state transitions.
-- [ ] Never expose admin endpoints without Access/server authorization.
+Status: CODE COMPLETE ON `commerce-v1` — Cloudflare Access application/hostname values are required before deployment.
 
-**Suggested commits:** split admin list/detail and admin mutations into separate milestones.
+- [x] Add private admin UI served by the Commerce Worker.
+- [x] Add authenticated order list/filter.
+- [x] Add order detail with customer, fulfilment, items and event timeline.
+- [x] Add delivery charge and server-calculated final total.
+- [x] Add QUOTED / AWAITING_PAYMENT workflow.
+- [x] Record secure payment-request URL/reference.
+- [x] Mark payment confirmed.
+- [x] Mark PREPARING.
+- [x] Add tracking and mark SHIPPED for delivery.
+- [x] Mark READY_FOR_COLLECTION for collection.
+- [x] Complete/cancel permitted orders.
+- [x] Validate allowed state transitions server-side.
+- [x] Record every admin mutation in `order_events`.
+- [x] Validate Cloudflare Access JWT cryptographically using account JWKS + application AUD.
+- [x] Optional admin email allowlist after JWT verification.
+- [x] Fail closed unless the exact configured admin hostname is used.
+- [ ] Enable/configure Cloudflare Zero Trust Access.
+- [ ] Create the protected admin hostname/application.
+- [ ] Configure `ADMIN_HOSTNAME`, `ADMIN_TEAM_DOMAIN`, `ADMIN_ACCESS_AUD`, and `ADMIN_ALLOWED_EMAILS`.
+- [ ] Verify login and one complete staging admin workflow.
+
+**Commit:** `commerce: add Access-protected owner admin`
 
 ## Phase 12 — Payment V1
 
