@@ -1,8 +1,8 @@
 # Black Sheep — Session Handoff
 
 > **COMMERCE V1 — CURRENT STATE, 24 SEPTEMBER 2026**  
-> Production `main` remains safely at Phase 5. The `commerce-v1` branch contains the completed customer-flow implementation through Phase 9: professional mini basket, full `basket.html`, `checkout.html` with delivery/collection + review + Turnstile, submission to `POST /v1/orders`, and `order-requested.html`. Commerce CI passed on this code before the interrupted session. These customer-facing changes are intentionally **not merged to the live site yet**.  
-> **Exact next action:** perform one controlled real Turnstile submission against the staging Worker, verify the order/item/event snapshot in staging D1, then repeat with the same idempotency key and confirm no duplicate. After that proceed to Phase 10 notifications.
+> Live `main` remains protected from the unfinished customer flow. `commerce-v1` now contains validated Commerce work through Phase 12: mini basket, basket page, checkout + Turnstile, order submission/confirmation, notification architecture, Access-protected owner admin, and the manual secure-payment workflow. Commerce CI is green through `ae33ccf7329b4fbd76ad14cc581dc3d50c6e67b4`.  
+> A temporary production-hostname staging verifier exists on `main` at `/commerce-stage-check-260924.html`. **Exact next action:** run that page once to create a controlled staging order and automatically retry the same idempotency key. After PASS, verify/remove the test order/page, then configure Email Service + Access before production cutover.
 >
 > **NEXT-PHASE BASELINE — 24 September 2026**  
 > Before relying on older counts/status sections below, read:
