@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "black-sheep-commerce-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-24",
+  "workers_dev": true,
+  "vars": {
+    "ENVIRONMENT": "production",
+    "ALLOWED_ORIGINS": "https://theblacksheepshop.co.uk,https://www.theblacksheepshop.co.uk"
+  },
+  "previews": {
+    "vars": {
+      "ENVIRONMENT": "preview",
+      "ALLOWED_ORIGINS": "https://theblacksheepshop.co.uk,https://www.theblacksheepshop.co.uk"
+    }
+  },
+  "env": {
+    "staging": {
+      "workers_dev": true,
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "ALLOWED_ORIGINS": "https://theblacksheepshop.co.uk,https://www.theblacksheepshop.co.uk,http://localhost:8787,http://127.0.0.1:8787"
+      }
+    }
+  }
+}

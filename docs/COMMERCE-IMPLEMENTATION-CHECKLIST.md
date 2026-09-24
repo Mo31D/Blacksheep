@@ -5,6 +5,13 @@ Repository: `Mo31D/Blacksheep`
 
 This is the resumable execution file for the Commerce project. Update it after each completed milestone.
 
+## Current implementation anchor
+
+- Commerce branch created from production `main` at `ff8d62bf19a0902b5ed8061cba7e975dc9ffd39c`.
+- Phase 1 code skeleton has been prepared on `commerce-v1`.
+- Cloudflare account resources (D1, Turnstile, deployment token/account secrets) are **not yet configured**.
+- Do not start Phase 2 or customer-facing Basket/Checkout work until Phase 1 CI and staging `/health` are green.
+
 ## Rules for every session
 
 - [ ] Fetch/check newest GitHub `main` before relying on any SHA.
@@ -22,7 +29,7 @@ This is the resumable execution file for the Commerce project. Update it after e
 
 ## Phase 0 — Architecture and preparation
 
-Status: IN PROGRESS
+Status: IN PROGRESS — waiting only on manual Cloudflare prerequisites / staging deployment.
 
 - [x] Audit current site architecture.
 - [x] Establish 146-product baseline.
@@ -31,26 +38,29 @@ Status: IN PROGRESS
 - [x] Decide on Cloudflare Worker + D1 backend.
 - [x] Define future-ready cart/order/payment/shipping boundaries.
 - [ ] Complete manual Cloudflare prerequisites in `docs/CLOUDFLARE-COMMERCE-SETUP.md`.
-- [ ] Create `commerce-v1` branch from the newest `main`.
-- [ ] Confirm staging/production hostname strategy.
+- [x] Create `commerce-v1` branch from the newest `main`.
+- [x] Confirm hostname strategy: staging on `workers.dev` first; production later on `api.theblacksheepshop.co.uk`.
 
 **Exit condition:** required Cloudflare identifiers/secrets exist and the Commerce branch starts from the current production main.
 
 ## Phase 1 — Commerce project skeleton
 
+Status: CODE COMPLETE — CI/deployment verification pending.
+
 Goal: backend deploys before changing customer UX.
 
-- [ ] Add `commerce/package.json`.
-- [ ] Add TypeScript configuration.
-- [ ] Add `commerce/wrangler.jsonc`.
-- [ ] Add Worker entry point.
-- [ ] Add `GET /health`.
-- [ ] Configure staging and production environments.
-- [ ] Add CORS allowlist for the production/staging storefront.
-- [ ] Add structured response/error helpers.
-- [ ] Add unit-test runner.
-- [ ] Add `.github/workflows/commerce-ci.yml`.
-- [ ] Add `.github/workflows/commerce-deploy.yml`.
+- [x] Add `commerce/package.json`.
+- [x] Add TypeScript configuration.
+- [x] Add `commerce/wrangler.jsonc`.
+- [x] Add Worker entry point.
+- [x] Add `GET /health`.
+- [x] Configure staging and production environments.
+- [x] Add CORS allowlist for the production/staging storefront.
+- [x] Add structured response/error helpers.
+- [x] Add unit-test runner.
+- [x] Add `.github/workflows/commerce-ci.yml`.
+- [x] Add `.github/workflows/commerce-deploy.yml`.
+- [ ] Confirm Commerce CI passes on `commerce-v1`.
 - [ ] Deploy staging Worker.
 - [ ] Verify health endpoint remotely.
 
@@ -58,10 +68,11 @@ Goal: backend deploys before changing customer UX.
 - existing Search readiness PASS
 - Commerce tests PASS
 - TypeScript PASS
+- Worker dry-run PASS
 - Worker deployment PASS
 - no production secrets in repository
 
-**Suggested commit boundary:** `commerce: add worker skeleton and CI`
+**Commit boundary:** `commerce: add worker skeleton and CI`
 
 ## Phase 2 — D1 order model
 
@@ -326,7 +337,8 @@ Not required for Commerce V1, but architecture must not block:
 
 ## Current exact next action
 
-1. Owner completes only the manual Cloudflare prerequisites listed in `docs/CLOUDFLARE-COMMERCE-SETUP.md`.
-2. Create `commerce-v1` from the newest `main`.
-3. Execute Phase 1 only.
-4. Do not start cart/checkout UI before Worker staging health + CI are stable.
+1. Confirm Commerce CI passes for the Phase 1 branch.
+2. In Cloudflare Workers Builds, use root `/commerce`, build `npm run check`, deploy `npx wrangler deploy --env staging`, preview `npx wrangler preview --env staging`.
+3. Deploy the staging Worker and verify `/health`.
+4. Then create the two D1 databases and Turnstile resources before Phase 2/4 implementation.
+5. Do not start Basket/Checkout UI until the backend foundation is verified.
