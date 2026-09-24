@@ -32,7 +32,7 @@ This is the resumable execution file for the Commerce project. Update it after e
 
 ## Phase 0 — Architecture and preparation
 
-Status: IN PROGRESS — waiting only on manual Cloudflare prerequisites / staging deployment.
+Status: COMPLETE — staging D1, Turnstile, Worker and Resend prerequisites are configured and verified.
 
 - [x] Audit current site architecture.
 - [x] Establish 146-product baseline.
@@ -40,7 +40,7 @@ Status: IN PROGRESS — waiting only on manual Cloudflare prerequisites / stagin
 - [x] Define Commerce V1 target architecture.
 - [x] Decide on Cloudflare Worker + D1 backend.
 - [x] Define future-ready cart/order/payment/shipping boundaries.
-- [ ] Complete manual Cloudflare prerequisites in `docs/CLOUDFLARE-COMMERCE-SETUP.md` (D1 complete; Turnstile widget created; secret binding still pending).
+- [x] Complete manual Cloudflare prerequisites needed for staging: D1, Turnstile secret, Worker deployment and transactional email.
 - [x] Create `commerce-v1` branch from the newest `main`.
 - [x] Confirm hostname strategy: staging on `workers.dev` first; production later on `api.theblacksheepshop.co.uk`.
 
@@ -135,7 +135,7 @@ Validation: Commerce CI PASS; Search readiness PASS.
 
 ## Phase 4 — Secure order creation API
 
-Status: CODE + CI COMPLETE — staging Turnstile secret configured; live token/order verification deferred until checkout widget is wired.
+Status: COMPLETE — code, CI and real staging Turnstile/order/idempotency verification passed.
 
 Goal: `POST /v1/orders` creates a valid real order.
 
@@ -159,8 +159,8 @@ Goal: `POST /v1/orders` creates a valid real order.
 - [x] Test duplicate submission.
 - [x] Test invalid/expired/replayed Turnstile token.
 - [x] Add `TURNSTILE_SECRET_KEY` to the staging Worker secret store.
-- [ ] Verify a real staging Turnstile token against `POST /v1/orders`.
-- [ ] Confirm a test order is written to staging D1 and an idempotent retry does not create a duplicate.
+- [x] Verify a real staging Turnstile token against `POST /v1/orders`.
+- [x] Confirm a test order is written to staging D1 and an idempotent retry does not create a duplicate.
 
 Validation: Commerce CI PASS; 32 automated tests PASS; catalogue drift check PASS; local D1 migration PASS; Wrangler staging dry-run PASS.
 
@@ -272,7 +272,7 @@ Validation: Commerce CI PASS; checkout page contract checks PASS; static JS pars
 
 ## Phase 9 — Order submitted experience
 
-Status: CODE COMPLETE ON `commerce-v1` — one real staging Turnstile/order test remains before customer UI can be merged.
+Status: COMPLETE IN STAGING — real Turnstile submission, D1 persistence and idempotent replay were verified.
 
 - [x] Send request to Commerce API.
 - [x] Send product IDs + quantities only; backend remains authoritative for prices.
@@ -286,9 +286,9 @@ Status: CODE COMPLETE ON `commerce-v1` — one real staging Turnstile/order test
 - [x] Reset Turnstile after recoverable failures.
 - [x] No false “paid” or “confirmed order” wording.
 - [x] Add `order-requested.html` with `noindex,follow`.
-- [ ] Perform one real staging submission from the production hostname with Turnstile.
-- [ ] Confirm exactly one order + item/event snapshot in staging D1.
-- [ ] Repeat the same request/idempotency key and confirm no duplicate order.
+- [x] Perform one real staging submission from the production hostname with Turnstile.
+- [x] Confirm exactly one order + item/event snapshot in staging D1.
+- [x] Repeat the same request/idempotency key and confirm no duplicate order.
 
 Validation so far: Commerce CI PASS; order confirmation page contract checks PASS.
 
@@ -296,32 +296,34 @@ Validation so far: Commerce CI PASS; order confirmation page contract checks PAS
 
 ## Phase 10 — Owner notifications
 
-Status: CODE COMPLETE ON `commerce-v1` — Cloudflare Email Service domain/binding configuration is still required before emails are enabled.
+Status: COMPLETE IN STAGING — Resend is live and both customer and owner messages were received.
 
 Email remains a notification channel, not storage.
 
 - [x] Define `OrderNotifier` interface.
-- [x] Add Cloudflare Email Service notifier adapter.
+- [x] Keep provider abstraction so transactional email can be replaced later.
 - [x] Compose owner notification for new SUBMITTED orders.
 - [x] Compose customer acknowledgment with explicit “no payment taken” wording.
 - [x] Include reference and order summary without relying on email as storage.
 - [x] Record notification success/failure in `order_events`.
 - [x] Avoid customer PII in notification failure metadata/logging.
 - [x] Retry transient send failures once without failing order creation.
-- [ ] Onboard `theblacksheepshop.co.uk` to Cloudflare Email Service.
-- [ ] Configure the Worker `EMAIL` send binding.
-- [ ] Configure `ORDER_EMAIL_FROM` and `ORDER_OWNER_EMAIL`.
-- [ ] Send one owner + customer staging email and verify delivery.
+- [x] Verify `theblacksheepshop.co.uk` in Resend.
+- [x] Store `RESEND_API_KEY` as a Worker secret.
+- [x] Configure `ORDER_EMAIL_FROM` and `ORDER_OWNER_EMAIL`.
+- [x] Fix the Cloudflare Workers fetch receiver issue that caused pre-Resend transport failures.
+- [x] Receive a real customer acknowledgment email.
+- [x] Receive a real owner notification email.
 
-Provider: Cloudflare Email Service behind the `OrderNotifier` abstraction, so it can be replaced later without changing checkout/order business logic.
+Provider: Resend behind the existing notification abstraction.
 
-**Commit:** `commerce: add order notification architecture`
+**Commit:** notification architecture + Resend staging fixes.
 
 ## Phase 11 — Private owner admin
 
-Status: CODE COMPLETE ON `commerce-v1` — Cloudflare Access application/hostname values are required before deployment.
+Status: CODE COMPLETE ON `commerce-v1` — Cloudflare Access was replaced with owner-email one-time-code authentication so no Zero Trust subscription/card setup is required. Live staging verification remains.
 
-- [x] Add private admin UI served by the Commerce Worker.
+- [x] Add private admin UI served by the Commerce Worker under `/admin`.
 - [x] Add authenticated order list/filter.
 - [x] Add order detail with customer, fulfilment, items and event timeline.
 - [x] Add delivery charge and server-calculated final total.
@@ -334,15 +336,20 @@ Status: CODE COMPLETE ON `commerce-v1` — Cloudflare Access application/hostnam
 - [x] Complete/cancel permitted orders.
 - [x] Validate allowed state transitions server-side.
 - [x] Record every admin mutation in `order_events`.
-- [x] Validate Cloudflare Access JWT cryptographically using account JWKS + application AUD.
-- [x] Optional admin email allowlist after JWT verification.
-- [x] Fail closed unless the exact configured admin hostname is used.
-- [ ] Enable/configure Cloudflare Zero Trust Access.
-- [ ] Create the protected admin hostname/application.
-- [ ] Configure `ADMIN_HOSTNAME`, `ADMIN_TEAM_DOMAIN`, `ADMIN_ACCESS_AUD`, and `ADMIN_ALLOWED_EMAILS`.
-- [ ] Verify login and one complete staging admin workflow.
+- [x] Replace Cloudflare Access dependency with a six-digit one-time login code sent only to `ORDER_OWNER_EMAIL`.
+- [x] Hash login codes and session tokens before D1 storage.
+- [x] Expire login codes after 10 minutes and cap failed attempts.
+- [x] Use secure HttpOnly SameSite session cookies with 12-hour expiry.
+- [x] Add request cooldown and logout/session revocation.
+- [x] Add same-origin protection on admin mutations.
+- [x] Add D1 migration `0001_admin_email_auth.sql`.
+- [x] Add automated tests for login page, email-code sessions and protected admin APIs.
+- [ ] Apply the admin-auth migration to remote staging D1.
+- [ ] Deploy the current `commerce-v1` admin build to the staging Worker.
+- [ ] Verify one real owner-code login.
+- [ ] Verify one complete staging admin order workflow.
 
-**Commit:** `commerce: add Access-protected owner admin`
+**Recent commits:** `commerce: replace Access dependency with owner email-code auth`, `commerce: add owner email-code admin login UI`, admin route/test follow-ups.
 
 ## Phase 12 — Payment V1
 
@@ -360,7 +367,7 @@ Status: CODE COMPLETE ON `commerce-v1` — payment remains owner-confirmed/manua
 - [x] Payment logic is isolated from the future gateway/webhook architecture.
 
 Manual/live verification still required:
-- [ ] Configure Cloudflare Email Service and sender.
+- [x] Configure transactional email through Resend and verify the sender.
 - [ ] Send one staging payment request from admin and verify the amount/link.
 - [ ] Mark it paid and verify the acknowledgment/event trail.
 
@@ -382,7 +389,8 @@ Status: CODE COMPLETE ON `commerce-v1` — two owner/business setup items must b
 - [x] Explain 14-day distance-order cancellation/return workflow and common statutory exceptions without limiting faulty-goods rights.
 - [x] Link Privacy / Delivery & returns / Terms from checkout and every shared footer.
 - [x] Add automated legal-page contract checks.
-- [ ] Activate and verify `orders@theblacksheepshop.co.uk` (or replace it with the owner's preferred working customer-service email).
+- [x] Verify outbound sending from `orders@theblacksheepshop.co.uk` through Resend.
+- [ ] Verify inbound replies to `orders@theblacksheepshop.co.uk` reach the owner if customer replies are expected.
 - [ ] Confirm the legal proprietor / registered business name that must appear with the trading name before production launch.
 
 Implementation basis reviewed against current GOV.UK distance-selling/returns guidance and ICO privacy/storage guidance on 24 September 2026.
@@ -404,14 +412,14 @@ Execution:
 - [x] Complete controlled staging Turnstile order + idempotent retry (`BSR-260924-TFUZ9AP5`: 201 create, 200 replay, same reference, `idempotentReplay=true`).
 - [x] Verify exactly one staging order/item/event snapshot (`BSR-260924-TFUZ9AP5`: `orders_count=1`, `items_count=1`, `events_count=1`).
 - [x] Remove the temporary staging verifier page from `main`.
-- [ ] Onboard Cloudflare Email Service and verify owner/customer staging mail.
-- [ ] Configure Cloudflare Access and verify the private staging/admin flow.
-- [ ] Confirm legal proprietor/business identity and working customer-service email.
+- [x] Verify Resend owner/customer staging mail.
+- [ ] Apply the admin-auth D1 migration, deploy the email-code admin flow to staging, and verify it live.
+- [ ] Confirm legal proprietor/business identity and, if required, inbound replies for the customer-service email.
 - [ ] Apply production D1 migrations.
-- [ ] Configure production Worker bindings/secrets.
+- [ ] Configure production Worker bindings/secrets, including Resend and owner email.
 - [ ] Configure production Turnstile hostnames/secret.
 - [ ] Attach `api.theblacksheepshop.co.uk`.
-- [ ] Attach and protect `admin.theblacksheepshop.co.uk` with Cloudflare Access.
+- [ ] Verify the production `/admin` email-code login on the Commerce Worker; a separate admin hostname is optional, not required.
 - [ ] Point checkout API base to the production API custom domain.
 - [ ] Test order lifecycle using a real low-value test product/process.
 - [ ] Verify owner notification.
@@ -449,12 +457,14 @@ Not required for Commerce V1, but architecture must not block:
 
 ## Current exact next action
 
-1. Resend domain `theblacksheepshop.co.uk` is verified.
-2. [x] Resend API key created with sending access only and stored as staging Worker runtime secret `RESEND_API_KEY`.
-3. Configure `ORDER_EMAIL_FROM` and `ORDER_OWNER_EMAIL` on the staging Worker.
-4. Send one owner + customer staging email and verify the corresponding `order_events`.
-5. Configure Cloudflare Zero Trust Access for the private admin and verify one complete staging admin workflow.
-6. Confirm the legal proprietor/business identity and the final working customer-service email before production cutover.
+1. Apply `0001_admin_email_auth.sql` to the remote staging D1 database.
+2. Deploy the newest `commerce-v1` Worker code to staging.
+3. Open `/admin`, request the six-digit owner login code, sign in, and verify order list/detail.
+4. Run one full staging admin lifecycle: review → quote → payment request → paid → preparing → shipped/ready → complete.
+5. Verify the payment-request email and paid acknowledgment/event trail.
+6. Confirm the legal proprietor / registered business identity and decide whether replies to `orders@theblacksheepshop.co.uk` need inbound forwarding.
+7. Only then execute Phase 14 production migration/domain cutover and merge the customer-facing Commerce UI.
+
 
 
 ### Resend staging order test — 24 September 2026
