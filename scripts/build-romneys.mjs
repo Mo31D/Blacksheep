@@ -115,7 +115,10 @@ function updateItemList(html, list) {
 for (const item of items) outputs.set('products/' + item.slug + '.html', page(item));
 let r = replaceDivContentsById(cleanHtmlDocument(read('romneys.html')), 'catalog', items.map(i => card(i, 'romneys')).join(''));
 r = updateItemList(r, items); outputs.set('romneys.html', r);
-let a = replaceDivContentsById(cleanHtmlDocument(read('all-products.html')), 'catalog', typed.map(x => card(x.item, x.type)).join(''));
+let a = cleanHtmlDocument(read('all-products.html'));
+let romneyCardIndex = 0;
+a = a.replace(/<article class="product-card"[^>]*data-categories="[^"]*\bromneys\b[^"]*"[\s\S]*?<\/article>/g, () => card(items[romneyCardIndex++], 'romneys'));
+if (romneyCardIndex !== items.length) throw Error('Expected ' + items.length + ' Romney cards in all-products.html, found ' + romneyCardIndex);
 a = updateItemList(a, all);
 a = a.replace(/\b\d+ products currently listed online\b/g, all.length + ' products currently listed online').replace(/(<span id="giftCount">)\d+ products(<\/span>)/, '$1' + all.length + ' products$2');
 outputs.set('all-products.html', a);
