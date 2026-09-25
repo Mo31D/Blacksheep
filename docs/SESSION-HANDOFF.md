@@ -4,34 +4,41 @@
 >
 > Repository: `Mo31D/Blacksheep` · branch: `main`.
 >
-> **Live execution tracker:** `docs/ADMIN-V2-CHECKLIST.md`.  
-> Treat GitHub `main` and that checklist as authoritative; the historical material below must not override them.
+> **Live execution tracker:** `docs/ADMIN-V2-CHECKLIST.md`.
 >
 > Current verified state:
-> - Current fixed Admin V2 source is on `main`; generated Admin inline-JavaScript syntax regression has a compile guard.
-> - Latest Commerce CI on the fixed source: **PASS — 106/106 tests**.
-> - Current staging Worker Version ID: `22752fa1-3ef2-459c-9ff4-03172535af7b`.
+> - Current GitHub `main`: `5acdf0f5bfa7467e2f22539c599e0b3f34f31dd4`.
+> - Commerce CI baseline on the fixed Admin source: **PASS — 106/106 tests**.
+> - Staging Worker Version ID: `e84f43fc-c9bc-4f8d-a259-f8d8646f5df7`.
 > - Staging D1: migrations `0000_initial_orders.sql` through `0008_concurrency_guards.sql`.
 > - Core Admin V2 staging E2E: PASS.
 > - Customer-review decline/superseded/current-token/cross-order edge E2E: PASS.
 > - Checkout browser regression: PASS for delivery review UI, CORS, real staging idempotent replay and network-failure basket preservation.
-> - Admin UI browser QA: PASS on Chromium desktop + WebKit mobile, including order list/detail, start review, create revision, adjustment controls, collection↔delivery controls and no horizontal overflow/clipping.
-> - Resend transactional emails: provider-confirmed delivered; key templates were also visually verified on iPhone.
-> - SPF: verified. DKIM: verified.
-> - DMARC: **absent** in live Cloudflare DNS.
-> - Staging Resend webhook exists with delivery events configured but remains disabled.
-> - Staging Worker does **not** yet have `RESEND_WEBHOOK_SECRET`; automated connector-to-connector secret transfer was blocked by the platform safety layer.
-> - Production controlled collection orders were audited read-only and reached `COMPLETED / PAID`.
-> - Production currently has **zero real Delivery orders**, so one real-device Delivery checkout through Turnstile remains unverified.
-> - Production is intentionally frozen: Worker `938f0651-20b5-48df-a8d4-f84defbb263d`; production D1 remains through `0002_order_fulfilment_message.sql`.
+> - Admin UI browser QA: PASS on Chromium desktop + WebKit mobile, including order list/detail, revision controls, adjustment controls and responsive layout.
+> - Real production Delivery/Turnstile path: PASS using order `BSR-260925-2X63954D`; D1 verified `delivery / PAID / COMPLETED`.
+> - Resend transactional delivery: provider-confirmed delivered.
+> - Staging `RESEND_WEBHOOK_SECRET`: present.
+> - Staging Resend webhook: enabled.
+> - Staging `/health`: `notifications.webhookConfigured=true`.
+> - Signed webhook delivery event `msg_3JpG91ewU6zzT5jBiqLe8YvqRvL`: original attempt HTTP 200 with `duplicate=false`.
+> - Exact-event replay: HTTP 200 with `duplicate=true`, `tracked=false`.
+> - Post-replay D1 verification: one webhook persistence row and one `EMAIL_DELIVERED` audit row only; no duplicate rows were created.
+> - Synthetic staging webhook test data: cleaned and verified absent.
+> - SPF: verified.
+> - DKIM: verified.
+> - DMARC: configured at `_dmarc.theblacksheepshop.co.uk` with `v=DMARC1; p=none; pct=100; adkim=r; aspf=r`.
+> - Production remains intentionally unchanged: Worker `938f0651-20b5-48df-a8d4-f84defbb263d`; production D1 remains through `0002_order_fulfilment_message.sql`.
 >
-> Remaining release gates:
-> 1. Securely install the existing staging Resend webhook signing secret as Cloudflare secret `RESEND_WEBHOOK_SECRET`, then enable/replay one real webhook event and verify D1 delivery telemetry + duplicate idempotency.
-> 2. Submit one real-device **Delivery** order through the public checkout/Turnstile path; no automatic payment is taken at order submission.
-> 3. Decide whether to add a DMARC policy before release.
-> 4. After those gates are closed or explicitly accepted, execute the guarded production migration/deployment plan only from the audited source.
+> **All pre-production/staging exit gates are closed. Phase 13 — Guarded Production Release is READY but has not started.**
 >
-> **Do not restart earlier Commerce/Admin implementation phases. Do not migrate or deploy production until the live checklist explicitly moves to Phase 13.**
+> Next session must begin with Phase 13 pre-flight only:
+> 1. compare current `main` with the source that produced the verified staging Worker and confirm later changes are docs/tests/workflows only,
+> 2. pin the exact production release source SHA,
+> 3. record production recovery/bookmark + current Worker/D1 state,
+> 4. review migrations `0003–0008`,
+> 5. only then perform production migrations/deployment.
+>
+> **Do not restart earlier Commerce/Admin phases. Do not mutate production before the Phase 13 pre-flight is complete.**
 
 ---
 
