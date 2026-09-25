@@ -226,7 +226,7 @@ export async function handleAdminRequest(
         "cache-control": "no-store",
         "x-robots-tag": "noindex, nofollow",
         "content-security-policy":
-          "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+          "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data: https://theblacksheepshop.co.uk https://www.theblacksheepshop.co.uk; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
       },
     });
   }
