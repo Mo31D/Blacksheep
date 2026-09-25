@@ -350,20 +350,44 @@ Status: COMPLETE — concurrency/idempotency hardening and clean/upgrade migrati
 
 Must happen before claiming Admin V2 is deployed.
 
-Status evidence so far:
-- `Commerce Deploy` is manual (`workflow_dispatch`) and performs migrations before Worker deploy.
-- No `Commerce Deploy` run was present in the latest 100 GitHub Actions runs inspected on 25 September 2026.
-- Therefore staging/production Worker SHA and remote D1 migration level are **not established from GitHub Actions** and must not be inferred from CI or Pages deployment.
+## Verified GitHub deployment evidence
 
-- [ ] Record staging Worker SHA/version.
-- [ ] Record production Worker SHA/version.
-- [ ] Record staging D1 migration level.
-- [ ] Record production D1 migration level.
-- [ ] Compare deployed environments against audited source SHA.
-- [ ] Create exact migration/deployment delta.
-- [ ] No production migration until staging passes.
+- [x] Last GitHub-recorded staging deployment:
+  - workflow run: `36078688712`
+  - source SHA: `19418b02473e4d8122b0214021cc1196e84daa3d`
+  - Worker Version ID: `95464370-9602-46a8-9509-bfd356d45677`
+  - staging D1 migrations applied/confirmed through `0002_order_fulfilment_message.sql`
+- [x] Last GitHub-recorded production deployment:
+  - workflow run: `36078963186`
+  - source SHA: `19418b02473e4d8122b0214021cc1196e84daa3d`
+  - Worker Version ID: `938f0651-20b5-48df-a8d4-f84defbb263d`
+  - production D1 migrations applied/confirmed through `0002_order_fulfilment_message.sql`
+- [x] Audited GitHub Actions pages 1–6 (up to 600 recent runs) and found no later `Commerce Deploy` run.
+- [x] Existing `Commerce Deploy` workflow is guarded/manual (`workflow_dispatch`) and runs `npm run check` before migrations/deploy.
+- [x] Compare GitHub-recorded deployed source with current main: recorded Workers are at `19418b0…`; current repository at this Phase 9 update is `e1354c4773900e73d7ffa484cfdb4c7b193142e7`.
+- [x] GitHub-recorded migration delta is `0003_order_revisions.sql` through `0008_concurrency_guards.sql`, plus all Worker code after `19418b0…`.
 
-Status: IN PROGRESS — GitHub-side discovery started; remote Cloudflare state still needs direct evidence.
+## Direct-current-state limitation
+
+- [~] Staging Worker/D1 **current Cloudflare state** is not directly queryable from this ChatGPT session. GitHub proves the last recorded deploy above, but cannot exclude a manual Cloudflare-side deployment/migration outside GitHub Actions.
+- [~] Production Worker/D1 **current Cloudflare state** has the same limitation.
+- Public `/health` checks could not be reached from the present tool environment because outbound DNS/network access is unavailable. This is **not** evidence that either Worker is down.
+- No Cloudflare connector/plugin is available in this ChatGPT session.
+
+## Release decision
+
+- [x] Do not infer production currency from GitHub Pages or Commerce CI.
+- [x] Do not deploy or migrate production before staging passes Phase 10.
+- [x] Staging-first deployment delta is understood from GitHub evidence.
+- [ ] Run the guarded `Commerce Deploy` workflow with **environment=staging** from the newest `main`.
+- [ ] Record the resulting staging Worker Version ID.
+- [ ] Record the actual staging migration output; expected GitHub-recorded missing range is `0003–0008`, but trust Wrangler's remote migration table at execution time.
+- [ ] Verify staging `/health`.
+- [ ] Then execute Phase 10 staging E2E.
+
+Status: **GITHUB-SIDE DISCOVERY COMPLETE; STAGING DEPLOYMENT IS THE NEXT RELEASE GATE.**
+
+Do not modify production in Phase 9.
 
 ---
 
@@ -473,32 +497,11 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**Phase 9 — Release-state discovery.**
+Run the existing guarded **Commerce Deploy** workflow for **staging only** from the newest `main`.
 
-Phase 8 is closed at source baseline:
-
-- `1208892221271be6f0dfe320e408aafaef1e18d7`
-- Commerce CI run `36135410328`: PASS
-- Search Readiness run `36135410128`: PASS
-- GitHub Pages run `36135410095`: PASS
-- Clean local migration path through `0008`: PASS
-- Production-equivalent schema upgrade path `0000–0007 → 0008`: PASS
-- Revision/update/add/remove/restore/adjustment race guards: PASS in automated coverage
-- Refund concurrency + idempotent replay: PASS
-- Customer review accept/decline concurrency: PASS
-- Resend duplicate webhook race: PASS
-
-Next session/work must **not** repeat Phase 8.
-
-Proceed with Phase 9 in this order:
-
-1. identify the currently deployed staging Worker/version,
-2. identify the currently deployed production Worker/version,
-3. read staging D1 migration state,
-4. read production D1 migration state,
-5. compare both environments with source baseline `1208892221271be6f0dfe320e408aafaef1e18d7`,
-6. write the exact migration/deployment delta into this checklist,
-7. deploy/migrate **staging only** once the delta is understood,
-8. do not change production until the Phase 10 staging E2E gate passes.
-
-If an environment fact cannot be verified from available credentials/tools, mark it explicitly as **UNVERIFIED** rather than guessing.
+Required gate:
+1. `npm run check` passes inside the deploy workflow.
+2. Wrangler reports the actual missing staging migrations and applies them successfully.
+3. Staging Worker deploy succeeds.
+4. Record the deployed source SHA, Worker Version ID and migration output in this checklist.
+5. Run Phase 10 staging E2E before considering any production migration/deployment.
