@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0011_")) {
+  if (!latestMigration?.startsWith("0012_")) {
     throw new Error(
       `Expected latest migration to be 0011, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0010_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0010.");
+  if (baselineMigrations.at(-1)?.startsWith("0011_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0011.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -123,6 +123,7 @@ try {
     "SELECT expected_quantity, received_quantity, status, version FROM inventory_incoming LIMIT 0",
     "SELECT order_id, revision_id, location_id, state, expires_at, version, mutation_token, idempotency_key FROM inventory_reservations LIMIT 0",
     "SELECT reservation_id, revision_item_id, variant_id, quantity FROM inventory_reservation_items LIMIT 0",
+    "SELECT returned_at FROM inventory_reservations LIMIT 0",
   ];
 
   for (const sql of schemaQueries) {
@@ -230,7 +231,7 @@ try {
   }
 
   console.log(
-    "PASS: migrations 0000–0010 upgraded cleanly to 0011 and Reservation Foundation schema is present.",
+    "PASS: migrations 0000–0011 upgraded cleanly to 0012 and explicit return-to-stock schema is present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
