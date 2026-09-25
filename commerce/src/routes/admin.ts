@@ -68,6 +68,15 @@ import {
   updateAdminProductMedia,
   type R2BucketLike,
 } from "../data/product-media";
+import {
+  adjustInventory,
+  bulkInventoryCount,
+  initialInventoryCount,
+  listAdminInventory,
+  listInventoryHistory,
+  listInventoryLocations,
+  physicalInventoryCount,
+} from "../data/inventory";
 
 export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
   DB?: D1DatabaseLike;
@@ -106,6 +115,13 @@ interface AdminDependencies {
   reorderAdminProductMediaFn: typeof reorderAdminProductMedia;
   replaceAdminProductMediaFn: typeof replaceAdminProductMedia;
   removeAdminProductMediaFn: typeof removeAdminProductMedia;
+  listAdminInventoryFn: typeof listAdminInventory;
+  listInventoryLocationsFn: typeof listInventoryLocations;
+  initialInventoryCountFn: typeof initialInventoryCount;
+  adjustInventoryFn: typeof adjustInventory;
+  physicalInventoryCountFn: typeof physicalInventoryCount;
+  bulkInventoryCountFn: typeof bulkInventoryCount;
+  listInventoryHistoryFn: typeof listInventoryHistory;
 }
 
 const defaults: AdminDependencies = {
@@ -140,6 +156,13 @@ const defaults: AdminDependencies = {
   reorderAdminProductMediaFn: reorderAdminProductMedia,
   replaceAdminProductMediaFn: replaceAdminProductMedia,
   removeAdminProductMediaFn: removeAdminProductMedia,
+  listAdminInventoryFn: listAdminInventory,
+  listInventoryLocationsFn: listInventoryLocations,
+  initialInventoryCountFn: initialInventoryCount,
+  adjustInventoryFn: adjustInventory,
+  physicalInventoryCountFn: physicalInventoryCount,
+  bulkInventoryCountFn: bulkInventoryCount,
+  listInventoryHistoryFn: listInventoryHistory,
 };
 
 function json(body: unknown, status = 200): Response {
@@ -320,6 +343,52 @@ function productMediaInputError(cause: unknown): Response {
   return productMutationError(cause);
 }
 
+function inventoryMutationError(cause: unknown): Response {
+  const code = cause instanceof Error ? cause.message : "inventory_update_failed";
+  const notFound = new Set([
+    "inventory_variant_not_found",
+    "inventory_location_not_found",
+  ]);
+  const conflicts = new Set([
+    "inventory_already_tracked",
+    "inventory_balance_exists",
+    "inventory_not_tracked",
+    "inventory_balance_version_conflict",
+    "inventory_concurrency_conflict",
+    "inventory_idempotency_conflict",
+    "inventory_product_archived",
+  ]);
+  const impossible = new Set([
+    "inventory_negative_on_hand",
+    "inventory_adjustment_sign_invalid",
+  ]);
+  const status = notFound.has(code)
+    ? 404
+    : conflicts.has(code)
+      ? 409
+      : impossible.has(code)
+        ? 422
+        : 400;
+  const messages: Record<string, string> = {
+    inventory_variant_not_found: "Product variant not found.",
+    inventory_location_not_found: "Stock location not found.",
+    inventory_already_tracked: "Inventory tracking is already active. Use a stock count or adjustment instead.",
+    inventory_balance_exists: "A stock balance already exists for this product and location.",
+    inventory_not_tracked: "Start with an Initial Count before adjusting this product.",
+    inventory_balance_version_conflict: "Stock changed while you were editing it. Reload the latest quantity and try again.",
+    inventory_concurrency_conflict: "Stock changed during this operation. Reload and try again.",
+    inventory_idempotency_conflict: "This request key was already used for a different stock operation.",
+    inventory_product_archived: "Archived products cannot start inventory tracking.",
+    inventory_negative_on_hand: "This adjustment would make On hand negative.",
+    inventory_adjustment_sign_invalid: "The adjustment direction does not match the selected reason.",
+    inventory_reason_code_invalid: "Choose a valid stock adjustment reason.",
+    inventory_idempotency_key_invalid: "The stock operation key is invalid.",
+    inventory_bulk_items_invalid: "Bulk count must contain between 1 and 250 products.",
+    inventory_bulk_duplicate_variant: "A product appears more than once in this stock count.",
+  };
+  return error(code, status, messages[code] ?? "Unable to update inventory.");
+}
+
 async function readProductJson(request: Request): Promise<Record<string, unknown>> {
   const raw = await readJson(request);
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
@@ -473,6 +542,92 @@ export async function handleAdminRequest(
       priceMinor: product.priceMinor,
     }));
     return json({ products });
+  }
+
+  if (url.pathname === "/admin/api/inventory/locations" && request.method === "GET") {
+    const locations = await deps.listInventoryLocationsFn(env.DB);
+    return json({ locations });
+  }
+
+  if (url.pathname === "/admin/api/inventory" && request.method === "GET") {
+    const result = await deps.listAdminInventoryFn(env.DB, {
+      q: url.searchParams.get("q") ?? "",
+      category: url.searchParams.get("category"),
+      state: url.searchParams.get("state"),
+      locationId: url.searchParams.get("location"),
+      cursor: url.searchParams.get("cursor"),
+      limit: Number(url.searchParams.get("limit") ?? "60"),
+    });
+    return json(result);
+  }
+
+  if (url.pathname === "/admin/api/inventory/initial-count" && request.method === "POST") {
+    try {
+      const raw = await readProductJson(request);
+      const result = await deps.initialInventoryCountFn(
+        env.DB,
+        raw as unknown as Parameters<typeof initialInventoryCount>[1],
+        identity.email,
+      );
+      return json(result, 201);
+    } catch (cause) {
+      return inventoryMutationError(cause);
+    }
+  }
+
+  if (url.pathname === "/admin/api/inventory/adjustments" && request.method === "POST") {
+    try {
+      const raw = await readProductJson(request);
+      const result = await deps.adjustInventoryFn(
+        env.DB,
+        raw as unknown as Parameters<typeof adjustInventory>[1],
+        identity.email,
+      );
+      return json(result, 201);
+    } catch (cause) {
+      return inventoryMutationError(cause);
+    }
+  }
+
+  if (url.pathname === "/admin/api/inventory/count" && request.method === "POST") {
+    try {
+      const raw = await readProductJson(request);
+      const result = await deps.physicalInventoryCountFn(
+        env.DB,
+        raw as unknown as Parameters<typeof physicalInventoryCount>[1],
+        identity.email,
+      );
+      return json(result, 201);
+    } catch (cause) {
+      return inventoryMutationError(cause);
+    }
+  }
+
+  if (url.pathname === "/admin/api/inventory/bulk-count" && request.method === "POST") {
+    try {
+      const raw = await readProductJson(request);
+      const result = await deps.bulkInventoryCountFn(
+        env.DB,
+        raw as unknown as Parameters<typeof bulkInventoryCount>[1],
+        identity.email,
+      );
+      return json(result);
+    } catch (cause) {
+      return inventoryMutationError(cause);
+    }
+  }
+
+  const inventoryHistoryMatch = url.pathname.match(
+    /^\/admin\/api\/variants\/([^/]+)\/inventory\/history$/,
+  );
+  if (inventoryHistoryMatch && request.method === "GET") {
+    const variantId = decodeURIComponent(inventoryHistoryMatch[1]);
+    const history = await deps.listInventoryHistoryFn(env.DB, variantId, {
+      locationId: url.searchParams.get("location"),
+      cursor: url.searchParams.get("cursor"),
+      limit: Number(url.searchParams.get("limit") ?? "40"),
+    });
+    return json(history);
   }
 
   if (url.pathname === "/admin/api/products" && request.method === "GET") {
