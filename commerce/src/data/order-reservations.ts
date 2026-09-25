@@ -344,6 +344,7 @@ export interface RevisionReservationAdminView {
     committedAt: string | null;
     releasedAt: string | null;
     consumedAt: string | null;
+    returnedAt: string | null;
     releaseReason: string | null;
   };
   lines: Array<
@@ -373,6 +374,7 @@ export async function getRevisionReservationAdminView(
         committed_at AS committedAt,
         released_at AS releasedAt,
         consumed_at AS consumedAt,
+        returned_at AS returnedAt,
         release_reason AS releaseReason
       FROM inventory_reservations
       WHERE revision_id = ?
@@ -386,6 +388,7 @@ export async function getRevisionReservationAdminView(
       committedAt: string | null;
       releasedAt: string | null;
       consumedAt: string | null;
+      returnedAt: string | null;
       releaseReason: string | null;
     }>();
 
@@ -1424,6 +1427,373 @@ export function prepareReservationConsumeMutation(
     consumeMutationToken,
     statements,
     balanceMutationTokens,
+  };
+}
+
+
+interface ConsumedReservationReturnRow {
+  reservationId: string;
+  orderId: string;
+  revisionId: string;
+  locationId: string;
+  expiresAt: string;
+  version: number;
+  mutationToken: string;
+  returnedAt: string | null;
+  paymentStatus: string;
+  orderUpdatedAt: string;
+}
+
+export interface ReturnToStockResult {
+  reservationId: string;
+  returnedAt: string;
+  idempotentReplay: boolean;
+}
+
+async function buildConsumedReturnPlan(
+  db: D1DatabaseLike,
+  row: ConsumedReservationReturnRow,
+): Promise<ActiveReservationReleasePlan> {
+  const rows = await allRows<ReservationReleaseRequirementRow>(
+    db
+      .prepare(
+        `SELECT
+          i.variant_id AS variantId,
+          SUM(i.quantity) AS quantity,
+          b.on_hand AS onHand,
+          b.reserved AS reserved,
+          b.safety_stock AS safetyStock,
+          b.version AS balanceVersion
+        FROM inventory_reservation_items i
+        LEFT JOIN inventory_balances b
+          ON b.variant_id = i.variant_id
+          AND b.location_id = ?
+        WHERE i.reservation_id = ?
+        GROUP BY
+          i.variant_id,
+          b.on_hand,
+          b.reserved,
+          b.safety_stock,
+          b.version
+        ORDER BY i.variant_id`,
+      )
+      .bind(row.locationId, row.reservationId),
+  );
+
+  const requirements = rows.map((item) => {
+    if (
+      item.balanceVersion === null ||
+      item.onHand === null ||
+      item.reserved === null ||
+      item.safetyStock === null
+    ) {
+      throw new Error("return_to_stock_balance_missing");
+    }
+    const quantity = Number(item.quantity);
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      throw new Error("return_to_stock_quantity_invalid");
+    }
+    return {
+      variantId: item.variantId,
+      quantity,
+      onHand: Number(item.onHand),
+      reserved: Number(item.reserved),
+      safetyStock: Number(item.safetyStock),
+      balanceVersion: Number(item.balanceVersion),
+    };
+  });
+
+  return {
+    reservationId: row.reservationId,
+    orderId: row.orderId,
+    revisionId: row.revisionId,
+    locationId: row.locationId,
+    expiresAt: row.expiresAt,
+    version: row.version,
+    mutationToken: row.mutationToken,
+    requirements,
+  };
+}
+
+export async function returnConsumedReservationToStock(
+  db: D1DatabaseLike,
+  orderReference: string,
+  actorEmail: string,
+): Promise<ReturnToStockResult> {
+  requiredMutationText(actorEmail, "reservation_actor_required");
+
+  const row = await db
+    .prepare(
+      `SELECT
+        r.id AS reservationId,
+        r.order_id AS orderId,
+        r.revision_id AS revisionId,
+        r.location_id AS locationId,
+        r.expires_at AS expiresAt,
+        r.version,
+        r.mutation_token AS mutationToken,
+        r.returned_at AS returnedAt,
+        o.payment_status AS paymentStatus,
+        o.updated_at AS orderUpdatedAt
+      FROM inventory_reservations r
+      INNER JOIN orders o ON o.id = r.order_id
+      WHERE o.public_reference = ?
+        AND r.state = 'CONSUMED'
+      ORDER BY r.consumed_at DESC
+      LIMIT 1`,
+    )
+    .bind(orderReference)
+    .first<ConsumedReservationReturnRow>();
+
+  if (!row) throw new Error("return_to_stock_not_available");
+  if (row.paymentStatus !== "REFUNDED") {
+    throw new Error("return_to_stock_requires_refund");
+  }
+  if (row.returnedAt) {
+    return {
+      reservationId: row.reservationId,
+      returnedAt: row.returnedAt,
+      idempotentReplay: true,
+    };
+  }
+
+  const plan = await buildConsumedReturnPlan(db, row);
+  const now = new Date().toISOString();
+  const returnMutationToken = uid("rmut");
+  const balanceMutationTokens: Record<string, string> = {};
+  const statements: D1PreparedStatementLike[] = [];
+
+  for (const requirement of plan.requirements) {
+    const balanceMutationToken = uid("imut");
+    balanceMutationTokens[requirement.variantId] = balanceMutationToken;
+    statements.push(
+      db
+        .prepare(
+          `UPDATE inventory_balances
+          SET on_hand = on_hand + ?,
+              version = version + 1,
+              mutation_token = ?,
+              updated_at = ?
+          WHERE variant_id = ?
+            AND location_id = ?
+            AND version = ?
+            AND EXISTS (
+              SELECT 1
+              FROM inventory_reservations reservation_guard
+              WHERE reservation_guard.id = ?
+                AND reservation_guard.state = 'CONSUMED'
+                AND reservation_guard.returned_at IS NULL
+                AND reservation_guard.version = ?
+                AND reservation_guard.mutation_token = ?
+            )
+            AND EXISTS (
+              SELECT 1
+              FROM orders order_guard
+              WHERE order_guard.id = ?
+                AND order_guard.payment_status = 'REFUNDED'
+                AND order_guard.updated_at = ?
+            )`,
+        )
+        .bind(
+          requirement.quantity,
+          balanceMutationToken,
+          now,
+          requirement.variantId,
+          plan.locationId,
+          requirement.balanceVersion,
+          plan.reservationId,
+          plan.version,
+          plan.mutationToken,
+          plan.orderId,
+          row.orderUpdatedAt,
+        ),
+    );
+  }
+
+  const balanceGuardSql = plan.requirements.length
+    ? plan.requirements
+        .map(
+          () =>
+            `EXISTS (
+              SELECT 1
+              FROM inventory_balances return_balance_guard
+              WHERE return_balance_guard.variant_id = ?
+                AND return_balance_guard.location_id = ?
+                AND return_balance_guard.version = ?
+                AND return_balance_guard.mutation_token = ?
+            )`,
+        )
+        .join(" AND ")
+    : "1 = 1";
+  const balanceGuardValues: unknown[] = [];
+  for (const requirement of plan.requirements) {
+    balanceGuardValues.push(
+      requirement.variantId,
+      plan.locationId,
+      requirement.balanceVersion + 1,
+      balanceMutationTokens[requirement.variantId],
+    );
+  }
+
+  statements.push(
+    db
+      .prepare(
+        `UPDATE inventory_reservations
+        SET returned_at = ?,
+            version = version + 1,
+            mutation_token = CASE
+              WHEN state = 'CONSUMED'
+                AND returned_at IS NULL
+                AND version = ?
+                AND mutation_token = ?
+                AND ${balanceGuardSql}
+                AND EXISTS (
+                  SELECT 1
+                  FROM orders order_guard
+                  WHERE order_guard.id = ?
+                    AND order_guard.payment_status = 'REFUNDED'
+                    AND order_guard.updated_at = ?
+                )
+              THEN ?
+              ELSE NULL
+            END,
+            updated_at = ?
+        WHERE id = ?`,
+      )
+      .bind(
+        now,
+        plan.version,
+        plan.mutationToken,
+        ...balanceGuardValues,
+        plan.orderId,
+        row.orderUpdatedAt,
+        returnMutationToken,
+        now,
+        plan.reservationId,
+      ),
+  );
+
+  for (const requirement of plan.requirements) {
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO inventory_movements (
+            id, variant_id, location_id, movement_type,
+            on_hand_delta, reserved_delta, safety_stock_delta,
+            reason_code, note, order_id, order_revision_id,
+            reservation_id, incoming_id, batch_id, idempotency_key,
+            actor_type, actor_id, created_at,
+            balance_on_hand_after, balance_reserved_after, balance_safety_after
+          )
+          SELECT
+            ?, b.variant_id, b.location_id, 'RETURN',
+            ?, 0, 0,
+            'CUSTOMER_RETURN', 'Refunded order returned to stock',
+            ?, ?, ?, NULL, NULL, ?,
+            'ADMIN', ?, ?,
+            b.on_hand, b.reserved, b.safety_stock
+          FROM inventory_balances b
+          WHERE b.variant_id = ?
+            AND b.location_id = ?
+            AND b.version = ?
+            AND b.mutation_token = ?
+            AND EXISTS (
+              SELECT 1
+              FROM inventory_reservations r
+              WHERE r.id = ?
+                AND r.state = 'CONSUMED'
+                AND r.returned_at = ?
+                AND r.mutation_token = ?
+            )`,
+        )
+        .bind(
+          uid("imv"),
+          requirement.quantity,
+          plan.orderId,
+          plan.revisionId,
+          plan.reservationId,
+          "reservation-return:" +
+            plan.reservationId +
+            ":variant:" +
+            requirement.variantId,
+          actorEmail,
+          now,
+          requirement.variantId,
+          plan.locationId,
+          requirement.balanceVersion + 1,
+          balanceMutationTokens[requirement.variantId],
+          plan.reservationId,
+          now,
+          returnMutationToken,
+        ),
+    );
+  }
+
+  statements.push(
+    db
+      .prepare(
+        `INSERT INTO order_events (
+          order_id, event_type, from_status, to_status,
+          actor_type, actor_id, note, metadata_json, created_at
+        )
+        SELECT ?, 'INVENTORY_RETURNED_TO_STOCK', NULL, NULL,
+          'admin', ?, NULL, ?, ?
+        WHERE EXISTS (
+          SELECT 1
+          FROM inventory_reservations
+          WHERE id = ?
+            AND returned_at = ?
+            AND mutation_token = ?
+        )`,
+      )
+      .bind(
+        plan.orderId,
+        actorEmail,
+        JSON.stringify({
+          reservationId: plan.reservationId,
+          revisionId: plan.revisionId,
+        }),
+        now,
+        plan.reservationId,
+        now,
+        returnMutationToken,
+      ),
+  );
+
+  try {
+    await db.batch(statements);
+  } catch (cause) {
+    const latest = await db
+      .prepare(
+        "SELECT returned_at AS returnedAt FROM inventory_reservations WHERE id = ? LIMIT 1",
+      )
+      .bind(plan.reservationId)
+      .first<{ returnedAt: string | null }>();
+    if (latest?.returnedAt) {
+      return {
+        reservationId: plan.reservationId,
+        returnedAt: latest.returnedAt,
+        idempotentReplay: true,
+      };
+    }
+    throw cause;
+  }
+
+  const latest = await db
+    .prepare(
+      "SELECT returned_at AS returnedAt FROM inventory_reservations WHERE id = ? LIMIT 1",
+    )
+    .bind(plan.reservationId)
+    .first<{ returnedAt: string | null }>();
+
+  if (!latest?.returnedAt) {
+    throw new Error("return_to_stock_conflict");
+  }
+
+  return {
+    reservationId: plan.reservationId,
+    returnedAt: latest.returnedAt,
+    idempotentReplay: false,
   };
 }
 
