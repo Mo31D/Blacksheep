@@ -590,29 +590,17 @@ Status: **READY — all staging exit gates are closed. Production release has no
 
 # EXACT NEXT ACTION
 
-**PHASE 13 PRE-FLIGHT — production release is now unblocked, but not yet executed.**
+**PHASE 13 PRE-FLIGHT — STEP 1 IN PROGRESS: verify release-source equivalence.**
 
-Verified pre-production state:
-- Commerce CI: PASS
-- staging D1: migrations `0000–0008`
-- staging Worker Version ID: `e84f43fc-c9bc-4f8d-a259-f8d8646f5df7`
-- Admin V2 core + edge E2E: PASS
-- Admin desktop Chromium + mobile WebKit QA: PASS
-- public checkout/browser/idempotency/basket recovery: PASS
-- real production Delivery/Turnstile lifecycle: PASS
-- Resend signed webhook delivery: PASS
-- exact-event replay: HTTP 200 with `duplicate=true`
-- post-replay D1 persistence remained single-row/single-audit: PASS
-- synthetic staging webhook test data: CLEANED
-- SPF/DKIM: verified
-- DMARC: configured at `p=none`
-- production Worker/D1: still unchanged
+Reference staging deployment:
+- verified staging Worker Version ID: `e84f43fc-c9bc-4f8d-a259-f8d8646f5df7`
+- deployment trigger/source commit: `8c5462388648235acd3a41b853d1adee057a11a7`
 
-Next implementation session must start Phase 13 with a **pre-flight only**:
-1. compare current `main` against the source that produced the verified staging Worker and confirm any later changes are docs/tests/workflows only,
-2. pin the exact production release source SHA,
-3. record production recovery/bookmark and current Worker/D1 state,
-4. review migrations `0003–0008` one final time,
-5. only then execute guarded production migration/deployment.
+Current step:
+1. compare `8c5462388648235acd3a41b853d1adee057a11a7` to current `main`,
+2. enumerate every changed file,
+3. classify changes as runtime source, migration, config, workflow/test, or docs,
+4. require **no unverified runtime/migration change** after the staging deployment,
+5. update this checklist before pinning a production release SHA.
 
-**Do not migrate or deploy production before completing that pre-flight review.**
+**No production mutation.**
