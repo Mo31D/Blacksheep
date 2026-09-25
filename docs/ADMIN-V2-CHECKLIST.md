@@ -525,19 +525,19 @@ Status: COMPLETE FOR PRE-RELEASE CONTROL PLANE — current checklist is authorit
 Only after staging exit gates pass:
 
 - [x] Review migration plan — pre-flight PASS for additive migrations `0003–0008`.
-- [ ] Apply only required production migrations.
-- [ ] Deploy exact audited source SHA to production Worker.
-- [ ] Verify health.
-- [ ] Verify owner OTP.
-- [ ] Verify admin order workspace on phone.
-- [ ] Verify admin order workspace on desktop.
-- [ ] Run controlled low-value revised-order scenario.
-- [ ] Verify review email/page/payment path.
-- [ ] Verify refund recording.
-- [ ] Verify Resend delivery telemetry.
-- [ ] Record final production Worker version/SHA.
-- [ ] Record final production D1 migration level.
-- [ ] Update this checklist and session handoff.
+- [x] Apply only required production migrations — `0003–0008` applied and independently verified.
+- [x] Deploy exact audited source SHA to production Worker — pinned runtime `8c5462388648235acd3a41b853d1adee057a11a7` deployed.
+- [x] Verify health — custom domain + Workers.dev PASS with `webhookConfigured=true`.
+- [ ] Verify owner OTP in one fresh post-release human login session.
+- [~] Production `/admin` is reachable and staging WebKit/mobile QA passed; one real-device post-release visual spot-check remains.
+- [~] Production `/admin` is reachable and staging Chromium QA passed; one human post-release desktop visual spot-check remains.
+- [ ] Optional post-release: run one controlled low-value revised-order scenario on the live Admin V2.
+- [ ] Optional post-release: verify one fresh live revision review email/page/payment path.
+- [ ] Optional post-release: verify one controlled production refund record after actual money movement.
+- [~] Production Resend webhook is enabled/configured; verify one natural post-release transactional event when the next email is sent.
+- [x] Record final production Worker version/SHA — Worker `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`, runtime source `8c5462388648235acd3a41b853d1adee057a11a7`.
+- [x] Record final production D1 migration level — `0000–0008`.
+- [~] Checklist reconciled to the live release; session handoff synchronization is the current documentation step.
 
 Status: **PHASE 13 PRODUCTION RELEASE COMPLETE — migrations, pinned Worker deployment, health/Admin verification, production webhook configuration and final read-only smoke checks all passed.**
 
@@ -708,22 +708,36 @@ Status: **PHASE 13 PRODUCTION RELEASE COMPLETE — migrations, pinned Worker dep
   - production Admin page reachable
   - production Resend webhook enabled at `https://api.theblacksheepshop.co.uk/webhooks/resend`
 
+- [x] Final Phase 13 production state:
+  - runtime source SHA: `8c5462388648235acd3a41b853d1adee057a11a7`
+  - Worker deployment ID: `2e629bc4-99e9-41cf-b15e-0b087ec8a33b`
+  - Worker version: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`
+  - D1 migrations: `0000–0008`
+  - existing production orders preserved: 3
+  - production health custom domain: PASS
+  - production health Workers.dev: PASS
+  - production `/admin`: reachable
+  - production Resend webhook `db1d278b-aea6-4b52-90f4-b233252f5cf0`: ENABLED
+  - production secrets include `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `TURNSTILE_SECRET_KEY`
+  - post-release D1 Time Travel bookmark: `0000002b-00000000-000050f1-c99de2cbd416b44cc1ae27080bb939db`
+
 # EXACT NEXT ACTION
 
-**PHASE 13 COMPLETE — production release is live and verified.**
+**POST-RELEASE VALIDATION — NO FURTHER MIGRATION/DEPLOY IS REQUIRED FOR THIS RELEASE.**
 
-Final production state:
-- release source SHA: `8c5462388648235acd3a41b853d1adee057a11a7`
-- Worker version: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`
-- D1 migrations: `0000–0008`
-- existing production orders preserved: 3
-- public health: PASS
-- production Admin page: reachable
-- `RESEND_WEBHOOK_SECRET`: installed
-- production Resend webhook: ENABLED
-- SPF/DKIM: verified
-- DMARC: `p=none`
-- recovery bookmark captured before production mutation: `00000028-00000000-000050f1-68842c17a511b740b3b28bcc859c1042`
+Production Admin V2 is live.
 
-Next session should **not** repeat migrations or redeploy this release. Start from post-release operational validation / Admin V2 live usage, and only change production again for a new explicitly reviewed release.
+Next validation work:
+1. owner opens production `/admin` on desktop and iPhone and confirms the real visual/interaction experience,
+2. perform one fresh owner OTP login on production,
+3. optionally run one controlled low-value real order through revision → customer review → payment recording → fulfilment,
+4. if an actual refund is performed, verify the production refund record/notification path,
+5. confirm the next natural production transactional email produces delivery telemetry through the enabled production webhook,
+6. inspect/archive release-only or stale failing GitHub workflows separately; do not rerun migrations.
 
+Release invariants:
+- do **not** rerun migrations `0003–0008`,
+- do **not** redeploy `8c546238...` again unless intentionally releasing a new runtime change,
+- use post-release bookmark `0000002b-00000000-000050f1-c99de2cbd416b44cc1ae27080bb939db` as the latest recorded recovery reference.
+
+**Current work is validation/polish only.**
