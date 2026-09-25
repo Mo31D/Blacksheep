@@ -3,6 +3,10 @@ import {
   type D1DatabaseLike,
   type D1PreparedStatementLike,
 } from "./d1";
+import {
+  getActiveReservationReleasePlan,
+  prepareReservationReleaseMutation,
+} from "./order-reservations";
 
 interface ReviewRow {
   tokenId: string;
@@ -502,9 +506,14 @@ export async function acceptCustomerReview(
   };
 }
 
+export interface CustomerReviewMutationOptions {
+  inventoryReservations?: boolean;
+}
+
 export async function declineCustomerReview(
   db: D1DatabaseLike,
   token: string,
+  options: CustomerReviewMutationOptions = {},
 ): Promise<{ reference: string }> {
   const row = await findReviewRow(db, token);
   if (!row) throw new Error("review_not_available");
@@ -515,11 +524,15 @@ export async function declineCustomerReview(
     throw new Error("review_not_available");
   }
 
+  const activeReservation = options.inventoryReservations
+    ? await getActiveReservationReleasePlan(db, row.revisionId)
+    : null;
+
   const now = new Date().toISOString();
   const nextVersion = Number(row.revisionVersion) + 1;
   const mutationToken = crypto.randomUUID();
 
-  const results = await db.batch([
+  const statements: D1PreparedStatementLike[] = [
     db
       .prepare(
         `UPDATE order_revisions
@@ -537,6 +550,29 @@ export async function declineCustomerReview(
         row.revisionVersion,
         row.revisionState,
       ),
+  ];
+
+  if (activeReservation) {
+    const release = prepareReservationReleaseMutation(
+      db,
+      activeReservation,
+      {
+        actorEmail: "customer-review",
+        actorType: "CUSTOMER",
+        reason: "Customer declined reviewed quote",
+        createdAt: now,
+        externalGuard: {
+          revisionId: row.revisionId,
+          version: nextVersion,
+          mutationToken,
+          state: "DECLINED",
+        },
+      },
+    );
+    statements.push(...release.statements);
+  }
+
+  statements.push(
     db
       .prepare(
         `UPDATE orders
@@ -596,13 +632,28 @@ export async function declineCustomerReview(
           revisionNumber: row.revisionNumber,
           channel: "customer_review",
           version: nextVersion,
+          inventoryReservations: Boolean(options.inventoryReservations),
         }),
         now,
         row.revisionId,
         nextVersion,
         mutationToken,
       ),
-  ]);
+  );
+
+  let results: unknown[];
+  try {
+    results = await db.batch(statements);
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : String(cause);
+    if (
+      options.inventoryReservations &&
+      message.includes("inventory_reservations.mutation_token")
+    ) {
+      throw new Error("review_conflict");
+    }
+    throw cause;
+  }
 
   if (d1StatementChanged(results[0]) === false) {
     throw new Error("review_conflict");
