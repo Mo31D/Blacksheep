@@ -513,9 +513,19 @@ export async function updateAdminVariant(
     await db.batch([
       db
         .prepare(
-          "UPDATE products SET version = version + 1, updated_at = ? WHERE id = ? AND version = ?",
+          q(
+            "UPDATE products SET version = version + 1, updated_at = ?",
+            "WHERE id = ? AND version = ? AND EXISTS (",
+            "SELECT 1 FROM product_variants WHERE id = ? AND version = ?)",
+          ),
         )
-        .bind(token, current.productId, current.productVersion),
+        .bind(
+          token,
+          current.productId,
+          current.productVersion,
+          variantId,
+          expected,
+        ),
       db
         .prepare(
           q(
@@ -677,7 +687,8 @@ export async function quickEditAdminProduct(
           q(
             "UPDATE products SET sell_status = ?, online_ordering_enabled = ?,",
             "version = version + 1, updated_at = ?",
-            "WHERE id = ? AND version = ?",
+            "WHERE id = ? AND version = ? AND EXISTS (",
+            "SELECT 1 FROM product_variants WHERE id = ? AND version = ?)",
           ),
         )
         .bind(
@@ -686,6 +697,8 @@ export async function quickEditAdminProduct(
           token,
           productId,
           expectedProductVersion,
+          current.variantId,
+          expectedVariantVersion,
         ),
       db
         .prepare(
