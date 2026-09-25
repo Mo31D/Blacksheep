@@ -227,3 +227,20 @@ section{padding:78px 0}.section-head{display:flex;justify-content:space-between;
   .basket-continue-shopping{margin-top:13px;font-size:11px}
   .basket-clear{margin-top:10px}
 }
+
+
+/* Homepage discovery grid polish — 2026-09-25 */
+@media(max-width:1080px){
+  .home-discover-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:620px){
+  .home-discover-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .home-discover-grid .feature{border-radius:16px}
+  .home-discover-grid .feature .media{height:auto;aspect-ratio:1.08/1}
+  .home-discover-grid .feature .media img{object-fit:cover}
+  .home-discover-grid .feature .copy{padding:12px}
+  .home-discover-grid .feature .copy .eyebrow{font-size:8px;letter-spacing:.11em}
+  .home-discover-grid .feature h3{font-size:22px;line-height:1.02;margin-top:4px}
+  .home-discover-grid .feature p{font-size:11px;line-height:1.4;margin:6px 0 10px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .home-discover-grid .text-link{font-size:9px}
+}
