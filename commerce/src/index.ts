@@ -5,6 +5,7 @@ import { handleCustomerReviewRequest } from "./routes/customer-review";
 import { handleResendWebhook } from "./routes/resend-webhook";
 import { handleProductMediaRequest } from "./routes/product-media";
 import type { R2BucketLike } from "./data/product-media";
+import { expireDueReservations } from "./data/order-reservations";
 
 interface Env {
   ENVIRONMENT?: string;
@@ -158,5 +159,15 @@ export default {
         env,
       );
     }
+  },
+
+  async scheduled(_controller: unknown, env: Env): Promise<void> {
+    if (
+      env.ORDER_RESERVATIONS_ENABLED !== "true" ||
+      !env.DB
+    ) {
+      return;
+    }
+    await expireDueReservations(env.DB, { limit: 100 });
   },
 };
