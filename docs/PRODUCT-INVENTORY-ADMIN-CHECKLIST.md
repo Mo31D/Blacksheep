@@ -190,23 +190,28 @@ Exit gate:
 - [x] Product detail ↔ Stock integration polish — actual Low/Out state, quantities and `Stock` deep-link; CI run `36183681792` SUCCESS.
 - [x] Final Product↔Stock integration polish deployed — workflow `36183967251` / job `108232778002` SUCCESS.
 - [x] `0010` applied + Stock workspace deployed to staging — workflow `36183361766` SUCCESS.
-- [~] Controlled owner Phase 4 stock smoke-test on a staging QA product — final Phase 4 gate.
+- [~] Controlled owner Phase 4 stock smoke-test on a staging QA product — inventory flow exercised successfully; final re-test after the login/iPad UX fixes remains the Phase 4 gate.
 - [x] Independent staging D1 mutation smoke-test — PASS: Initial Count 10 → threshold 3 → Damage -2 → Physical Count 9 → Stocktake correction 8 → Archive; immutable UPDATE/DELETE triggers verified on real staging D1.
+- [x] Owner-reported Safari OTP transition defect fixed — successful verification now forces an authenticated document reload instead of changing only the URL fragment.
+- [x] iPad portrait master/detail defect fixed — Orders, Products and Stock now open selected detail immediately as a tablet overlay up to 900px instead of rendering it below the long list.
+- [x] Regression assertions added for login reload and iPad-width detail overlays.
+- [x] UX fix passed Commerce CI and the guarded Phase 4 staging deployment, including Production-isolation verification.
 
 Exit gate:
 - every quantity change is explainable from the ledger.
 
 ---
 
-**Status: TECHNICALLY + DATA-MUTATION COMPLETE ON STAGING — owner authenticated Stock UX QA is the only remaining Phase 4 gate.**
+**Status: TECHNICALLY + DATA-MUTATION COMPLETE ON STAGING — owner re-test of the corrected login + iPad portrait Stock UX is the only remaining Phase 4 gate.**
 
 Evidence:
 - source/contract CI: `36182963561` — SUCCESS
 - initial staging release: `36183361766` / job `108230788251` — SUCCESS
 - Product↔Stock polish CI: `36183681792` — SUCCESS
 - final staging release: `36183967251` / job `108232778002` — SUCCESS
-- current staging deployment: `30023133-b0b6-41b3-bbfe-66db86748fb0`
-- current staging Worker version: `b087f7b4-6cb7-4d80-bb62-06cac1ae2dbf` / version 70
+- current staging deployment after owner UX fixes: `6d89ff4c-f1d8-4552-83f1-7cf8113c5a4c`
+- current staging Worker version after owner UX fixes: `cf42c03a-0371-47c5-a1a7-bde6980f7dd5`
+- owner UX fix release: workflow `36187771688` SUCCESS; Commerce CI `36187771624` SUCCESS
 - staging migration ledger ends at `0010_inventory_core.sql`
 - direct post-release state before owner stock QA: 147 products / 146 original imports / 0 tracked / 0 balances / 0 movements / 0 incoming
 - Production remains `0000–0008` with no Product/Inventory tables and 3 orders
@@ -296,32 +301,30 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 4 — final owner authenticated Stock UX gate
+## Phase 4 — final owner re-test after UX fixes
 
-The independent real-staging D1 mutation proof has passed and the QA product is archived.
+The Inventory Core backend proof has passed. During the owner-facing iPad test, two UX defects were identified and have now been fixed/deployed to staging: post-OTP fragment-only navigation and tablet portrait detail panels appearing below the list.
 
-Remaining owner-facing check only:
+Remaining owner-facing check:
 
-1. Products → Archived → `STAGING QA PRODUCT` → Duplicate product.
-2. Open the copy and use **Stock**.
-3. Initial Count = 10.
-4. Low-stock threshold = 3.
-5. Adjust -2 / Damage.
-6. Physical Count = 9.
-7. Run Stocktake at 9 and confirm `Unchanged`.
-8. Optional Stocktake at 8 and confirm one update.
-9. Confirm Product ↔ Stock navigation and the movement timeline.
-10. Archive the UI QA copy.
+1. On iPad portrait, log out of Admin.
+2. Request a new OTP, enter it and press **Sign in** — Admin must open immediately without a manual Refresh.
+3. Open **Stock**, search/select `STAGING QA PRODUCT — Copy` — the Stock detail must appear immediately as an on-screen overlay with a visible back control, not below the list.
+4. Confirm the same immediate detail behavior with one item in **Products** and one order in **Orders**.
+5. In Stocktake, count the QA copy at its current system quantity and confirm **Unchanged**.
+6. Confirm Product ↔ Stock navigation and the movement timeline.
+7. Archive the UI QA copy when finished.
 
-Once that owner UI path is accepted:
+Once this corrected owner UX path is accepted:
 - mark Phase 4 fully COMPLETE,
 - begin implementation of the already locked Phase 5 plan,
 - first Phase 5 code step is additive `0011_order_reservations.sql`,
 - keep Production and Phase 6 storefront/checkout inventory authority locked.
 
-Backend proof evidence:
-- dedicated QA Product archived,
-- final On hand / Available = 8,
-- 4 immutable movements,
-- active tracked variants = 0,
-- Production = `0000–0008`, 3 orders.
+Release evidence:
+- source fix: `950849a3a1f66b52546d959f33182f1ecc531596`,
+- Commerce CI: `36187771624` — SUCCESS,
+- Phase 4 staging release: `36187771688` — SUCCESS,
+- staging deployment: `6d89ff4c-f1d8-4552-83f1-7cf8113c5a4c`,
+- staging Worker version: `cf42c03a-0371-47c5-a1a7-bde6980f7dd5`,
+- Production remains isolated at pre-Product-Core migration state.
