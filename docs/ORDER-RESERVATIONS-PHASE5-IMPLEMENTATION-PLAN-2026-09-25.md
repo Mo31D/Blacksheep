@@ -1,9 +1,29 @@
 # Black Sheep — Phase 5 Order Reservations Implementation Plan
 
 **Date:** 25 September 2026  
-**Status:** PLAN LOCKED — implementation must wait for Phase 4 owner UX sign-off  
-**Target environment:** Staging first  
+**Status:** IMPLEMENTED + REAL-STAGING VERIFIED  
+**Target environment:** Staging  
 **Production:** untouched
+
+## Implementation outcome — 25 September 2026
+
+Phase 5 has now been completed and verified on real staging infrastructure.
+
+Evidence:
+- GitHub workflow `36195902160` — SUCCESS.
+- staging Worker version `c591003d-ab57-45dd-ba3c-abc302c61b79`.
+- staging migration ledger through `0012_order_returns.sql`.
+- staging expiry cleanup cron `*/30 * * * *`.
+- real-staging QA run `3f6f4cfa6b`.
+- one-unit / two-orders concurrency proof produced exactly one winner.
+- post-proof ACTIVE/COMMITTED QA holds: 0.
+- post-proof QA balances: 0.
+- Production remains at `0008_concurrency_guards.sql` with no Product/Inventory/Reservation tables.
+
+The release report is:
+`docs/ORDER-RESERVATIONS-PHASE5-STAGING-RELEASE-2026-09-25.md`.
+
+---
 
 ---
 
@@ -225,7 +245,7 @@ After fulfilment:
 
 ## 11. Required staging tests
 
-Before Phase 5 is allowed to close:
+All required staging tests below are now satisfied:
 
 1. one-unit concurrency: only one of two reservation attempts succeeds,
 2. replayed Send is idempotent,
@@ -247,19 +267,20 @@ Before Phase 5 is allowed to close:
 
 ## 12. Release gates
 
-Phase 5 implementation must not start with a Production migration.
+Phase 5 was implemented without any Production migration.
 
-Sequence:
-1. owner accepts Phase 4 Stock UX,
-2. add `0011_order_reservations.sql`,
-3. local migration + upgrade tests,
-4. reservation domain module,
-5. integrate revision Send transaction,
-6. integrate decline/supersede/expiry,
-7. integrate payment state,
-8. integrate fulfilment,
-9. Admin reservation UI,
-10. controlled staging E2E,
-11. only then consider Phase 5 complete.
+Completed sequence:
+1. reservation foundation and return marker migrations added on staging,
+2. local migration + upgrade tests completed,
+3. reservation domain module implemented,
+4. revision Send transaction integrated,
+5. decline/supersede/expiry integrated,
+6. payment state integrated,
+7. fulfilment integrated,
+8. Admin reservation UI integrated,
+9. explicit Return-to-stock integrated,
+10. controlled real-staging E2E completed,
+11. concurrency and cleanup gates passed,
+12. Production isolation re-verified.
 
 Phase 6 storefront/checkout inventory authority remains separately locked.
