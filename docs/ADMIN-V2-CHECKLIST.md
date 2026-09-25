@@ -49,14 +49,15 @@ Hardened source baseline after Phase 8 work:
 - New concurrency migration: `0008_concurrency_guards.sql`.
 - Revision, refund, customer-review and Resend-webhook critical mutations now use winner-owned mutation/idempotency guards.
 
-Environment facts that must still be recorded:
+Environment facts — direct Cloudflare audit on 25 September 2026:
 
-- [ ] Staging Worker deployed SHA/version.
-- [ ] Production Worker deployed SHA/version.
-- [ ] Staging D1 applied migration level.
-- [ ] Production D1 applied migration level.
-- [ ] Current production Resend webhook configuration state.
-- [ ] Current production Turnstile configuration re-confirmed after the next Worker deployment.
+- [x] Staging Worker current Version ID: `95464370-9602-46a8-9509-bfd356d45677`; deployment ID `dc98a48d-cee4-467c-9777-e151c550e528`; created `2026-09-25T00:41:58Z`.
+- [x] Production Worker current Version ID: `938f0651-20b5-48df-a8d4-f84defbb263d`; deployment ID `f1ff4d67-bda6-4330-b4ae-961ea8d55f95`; created `2026-09-25T00:45:39Z`.
+- [x] Staging D1 is applied through `0002_order_fulfilment_message.sql`; remote pending migrations are `0003–0008`.
+- [x] Production D1 is applied through `0002_order_fulfilment_message.sql`; remote pending migrations are `0003–0008`.
+- [x] Production public `/health` is reachable and reports `status=ok`, `environment=production`, DB bound and Resend configured.
+- [~] Current production health payload does not yet expose `webhookConfigured`, while current source does; therefore the live Worker predates the current Admin V2 health contract. Resend webhook secret must be re-verified after staging deployment and before production release.
+- [ ] Turnstile configuration must be re-confirmed against the newly deployed staging Worker during Phase 10.
 
 ---
 
@@ -350,44 +351,59 @@ Status: COMPLETE — concurrency/idempotency hardening and clean/upgrade migrati
 
 Must happen before claiming Admin V2 is deployed.
 
-## Verified GitHub deployment evidence
+## Direct current-state audit
 
-- [x] Last GitHub-recorded staging deployment:
-  - workflow run: `36078688712`
-  - source SHA: `19418b02473e4d8122b0214021cc1196e84daa3d`
-  - Worker Version ID: `95464370-9602-46a8-9509-bfd356d45677`
-  - staging D1 migrations applied/confirmed through `0002_order_fulfilment_message.sql`
-- [x] Last GitHub-recorded production deployment:
-  - workflow run: `36078963186`
-  - source SHA: `19418b02473e4d8122b0214021cc1196e84daa3d`
-  - Worker Version ID: `938f0651-20b5-48df-a8d4-f84defbb263d`
-  - production D1 migrations applied/confirmed through `0002_order_fulfilment_message.sql`
-- [x] Audited GitHub Actions pages 1–6 (up to 600 recent runs) and found no later `Commerce Deploy` run.
-- [x] Existing `Commerce Deploy` workflow is guarded/manual (`workflow_dispatch`) and runs `npm run check` before migrations/deploy.
-- [x] Compare GitHub-recorded deployed source with current main: recorded Workers are at `19418b0…`; current repository at this Phase 9 update is `e1354c4773900e73d7ffa484cfdb4c7b193142e7`.
-- [x] GitHub-recorded migration delta is `0003_order_revisions.sql` through `0008_concurrency_guards.sql`, plus all Worker code after `19418b0…`.
+Read-only audit workflow:
 
-## Direct-current-state limitation
+- GitHub workflow: `.github/workflows/commerce-release-state.yml`
+- creation/source commit: `abb7e85a60c837a2e10a0f6fbf249ba542ea0d1f`
+- audit run: `36136085712`
+- Cloudflare Actions credentials: available to GitHub Actions; secret values were not exposed.
+- No deploy or migration-apply command was executed by the audit.
 
-- [~] Staging Worker/D1 **current Cloudflare state** is not directly queryable from this ChatGPT session. GitHub proves the last recorded deploy above, but cannot exclude a manual Cloudflare-side deployment/migration outside GitHub Actions.
-- [~] Production Worker/D1 **current Cloudflare state** has the same limitation.
-- Public `/health` checks could not be reached from the present tool environment because outbound DNS/network access is unavailable. This is **not** evidence that either Worker is down.
-- No Cloudflare connector/plugin is available in this ChatGPT session.
+### Staging
+
+- [x] Current Cloudflare deployment ID: `dc98a48d-cee4-467c-9777-e151c550e528`.
+- [x] Current Worker Version ID: `95464370-9602-46a8-9509-bfd356d45677`.
+- [x] Current deployment created: `2026-09-25T00:41:58.781669Z`.
+- [x] Current version matches the last GitHub-recorded staging deployment, so no later manual Cloudflare deployment was found.
+- [x] Current remote D1 migration table reports `0003_order_revisions.sql` through `0008_concurrency_guards.sql` still pending.
+- [x] Therefore staging D1 is currently at the pre-Admin-V2 schema level through `0002`.
+- [x] Staging Worker must be redeployed from current `main` after applying the pending staging migrations.
+
+### Production
+
+- [x] Current Cloudflare deployment ID: `f1ff4d67-bda6-4330-b4ae-961ea8d55f95`.
+- [x] Current Worker Version ID: `938f0651-20b5-48df-a8d4-f84defbb263d`.
+- [x] Current deployment created: `2026-09-25T00:45:39.494054Z`.
+- [x] Current version matches the last GitHub-recorded production deployment, so no later manual Cloudflare deployment was found.
+- [x] Current remote D1 migration table also reports `0003–0008` pending.
+- [x] Production public health is live and returns an OK production service with D1 bound and Resend credentials configured.
+- [x] Live production health payload is older than current source: it does not include `notifications.webhookConfigured`, which is present in current `commerce/src/index.ts`.
+- [x] Production is intentionally left unchanged until Phase 10 staging E2E passes.
+
+## Source/deployment mapping
+
+- [x] GitHub-recorded source for both currently deployed Workers: `19418b02473e4d8122b0214021cc1196e84daa3d`.
+- [x] Direct Cloudflare current Version IDs match those GitHub-recorded deployments.
+- [x] Admin V2 hardened commerce-code baseline: `1208892221271be6f0dfe320e408aafaef1e18d7`.
+- [x] Current `main` also includes subsequent checklist/audit-only commits; these do not weaken the Phase 8 code baseline.
+- [x] Exact staging release delta: apply remote migrations `0003–0008`, then deploy current `main` Worker code.
+- [x] Exact production release delta is intentionally recorded but blocked: same migration range + current Worker code, only after staging approval.
 
 ## Release decision
 
-- [x] Do not infer production currency from GitHub Pages or Commerce CI.
-- [x] Do not deploy or migrate production before staging passes Phase 10.
-- [x] Staging-first deployment delta is understood from GitHub evidence.
-- [ ] Run the guarded `Commerce Deploy` workflow with **environment=staging** from the newest `main`.
-- [ ] Record the resulting staging Worker Version ID.
-- [ ] Record the actual staging migration output; expected GitHub-recorded missing range is `0003–0008`, but trust Wrangler's remote migration table at execution time.
+- [x] Direct Cloudflare state is now verified rather than inferred.
+- [x] Staging-first delta is understood.
+- [x] Do not migrate/deploy production in Phase 9.
+- [ ] Run the guarded staging deploy from newest `main`.
+- [ ] Confirm `npm run check` passes in the staging deploy job.
+- [ ] Confirm staging migrations `0003–0008` apply successfully.
+- [ ] Confirm staging Worker deployment succeeds and record its new Version ID.
 - [ ] Verify staging `/health`.
-- [ ] Then execute Phase 10 staging E2E.
+- [ ] Move immediately to Phase 10 staging E2E.
 
-Status: **GITHUB-SIDE DISCOVERY COMPLETE; STAGING DEPLOYMENT IS THE NEXT RELEASE GATE.**
-
-Do not modify production in Phase 9.
+Status: **DISCOVERY COMPLETE; STAGING MIGRATION + DEPLOY IS THE ACTIVE RELEASE GATE.**
 
 ---
 
@@ -497,11 +513,21 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-Run the existing guarded **Commerce Deploy** workflow for **staging only** from the newest `main`.
+**Deploy Admin V2 to staging only from the newest `main`.**
 
-Required gate:
-1. `npm run check` passes inside the deploy workflow.
-2. Wrangler reports the actual missing staging migrations and applies them successfully.
-3. Staging Worker deploy succeeds.
-4. Record the deployed source SHA, Worker Version ID and migration output in this checklist.
-5. Run Phase 10 staging E2E before considering any production migration/deployment.
+Known pre-deploy state:
+- staging Worker Version ID: `95464370-9602-46a8-9509-bfd356d45677`
+- staging D1: applied through `0002`
+- staging pending migrations: `0003–0008`
+- production remains untouched at Worker Version ID `938f0651-20b5-48df-a8d4-f84defbb263d` and D1 through `0002`
+
+Required staging gate:
+1. run `npm run check`,
+2. apply staging migrations only,
+3. deploy the staging Worker,
+4. read back the staging migration table and Worker Version ID,
+5. verify staging health,
+6. update this checklist immediately,
+7. begin Phase 10 E2E.
+
+**Do not apply any production migration or Worker deployment until Phase 10 passes.**
