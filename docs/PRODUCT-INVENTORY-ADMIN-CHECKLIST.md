@@ -112,7 +112,7 @@ Evidence:
 - [x] Duplicate product — safe private Draft; SKU/barcode cleared; online ordering off.
 - [x] Archive product — non-destructive; sale disabled; audit retained.
 - [x] Archived filter.
-- [~] Owner mutation smoke-test in authenticated staging UI.
+- [x] Owner mutation smoke-test in authenticated staging UI — confirmed successful by owner.
 
 Current exit status:
 - normal text / price / status / SKU / barcode / category edits no longer require GitHub on staging,
@@ -159,7 +159,7 @@ Evidence:
 - [x] Full Commerce CI: **PASS** — latest run `36176490850` after Replace + coexistence hardening.
 - [x] Dedicated `Product Media Staging Phase 3` deployment workflow with R2 existence gate.
 - [x] Deploy Product Media to staging — workflow `36178631127` / job `108215277892` SUCCESS.
-- [~] iPhone photo upload QA — staging Media is live; authenticated owner upload/replace/reorder/remove smoke-test is the only remaining Phase 3 live QA.
+- [x] iPhone photo upload QA — authenticated owner Media/Product smoke-test confirmed successful.
 - [x] Legacy-image coexistence — 136 live `LEGACY_REPO` records coexisted with a real temporary R2 media row while `/media/:id` returned HTTP 200; temporary R2 row/object then removed.
 
 Exit gate:
@@ -167,16 +167,16 @@ Exit gate:
 - upload / primary / reorder / alt / remove proven on real staging R2,
 - iPhone Photos/camera path visually verified.
 
-**Current status: DEPLOYED TO STAGING. Core media flows are live; only authenticated owner iPhone QA remains before Phase 3 sign-off.**
+**Status: COMPLETE ON STAGING — owner Product + Media smoke-test passed.**
 
 ---
 
 # PHASE 4 — INVENTORY CORE
 
-- [ ] Locations.
-- [ ] Inventory balances.
-- [ ] Immutable movements.
-- [ ] Initial counts.
+- [x] Locations foundation — Ambleside location already exists from Product Core.
+- [~] Inventory balances — implementation starting in migration `0010`.
+- [~] Immutable movements — implementation starting in migration `0010`.
+- [~] Initial counts — implementation starting.
 - [ ] Quick stock adjustment.
 - [ ] Adjustment reason.
 - [ ] Low-stock threshold.
@@ -271,48 +271,27 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Combined owner smoke-test — Phase 2 + Phase 3
+## Phase 4 — Inventory Core implementation
 
-Open the staging Admin on iPhone:
+Owner Product + Media staging QA is complete.
 
-`https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/admin#products`
+Execute Phase 4 on **staging only**:
 
-Use a temporary product so no real catalogue item needs to be changed:
+1. Add forward-only migration `0010_inventory_core.sql`.
+2. Create `inventory_balances`, immutable `inventory_movements`, and `inventory_incoming`.
+3. Keep all existing variants inventory-untracked until an explicit Initial Count.
+4. Implement Initial Count with idempotency and optimistic concurrency.
+5. Implement Quick Adjustment with mandatory reason and no arbitrary Available write.
+6. Implement Physical Count/correction.
+7. Implement Low-stock threshold.
+8. Build Stock board: On hand / Reserved / Available / Incoming / Untracked / Low / Out.
+9. Add immutable Inventory history.
+10. Add Bulk Count with explicit success/conflict/unchanged results.
+11. Add staging concurrency/idempotency tests.
+12. Deploy to staging only and perform controlled inventory smoke-test.
 
-1. **Add product** → title it `STAGING QA PRODUCT`.
-2. Give it a temporary price, category and optional SKU.
-3. Confirm it is a private Draft.
-4. Open **Manage images**.
-5. Choose an image from iPhone Photos or Camera.
-6. Upload it with alt text.
-7. If possible add a second image:
-   - change Primary,
-   - reorder,
-   - edit alt text.
-8. Use **Replace** on one image and confirm position / Primary state remain correct.
-9. Remove one image.
-10. Confirm **Audit history** records the operations.
-11. Publish the Draft inside staging Product Core.
-12. Archive the temporary QA product when finished.
-
-After this owner smoke-test:
-- mark Phase 2 owner mutation QA complete,
-- mark Phase 3 iPhone QA complete,
-- close Phase 3,
-- begin **PHASE 4 — INVENTORY CORE**.
-
-Current verified staging release:
-- Phase 3 workflow `36178631127` / job `108215277892`: SUCCESS.
-- Worker deployment `119d4ceb-2678-40ce-9b43-4c2ede7b3523`.
-- Worker version `19e62702-1fde-48b1-802f-6dbf66e68eb3` / version number 68.
-- R2 bucket `black-sheep-product-media-staging` exists in WEUR.
-- real R2 delivery smoke run `36178979258`: SUCCESS / HTTP 200.
-- smoke data cleaned up; bucket is empty again.
-- staging Product Core remains 146 original products; inventory tracked = 0.
-- Production remains migrations `0000–0008` with 3 orders.
-
-Production remains locked:
-- Product Core migration `0009` is not applied to Production.
-- no Production Product Media/R2 binding exists.
-- Inventory tracking remains disabled.
-- storefront/checkout cutover remains a later phase.
+Safety locks:
+- no Phase 5 order reservation integration yet,
+- no checkout/storefront inventory authority yet,
+- no Production Product Core or Inventory migration,
+- no inferred stock quantities for existing products.
