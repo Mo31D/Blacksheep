@@ -472,6 +472,7 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] Production order read-only audit run `36146984153`, job `108110486489`: **SUCCESS** — controlled collection orders ended `COMPLETED / PAID`; no production write command was executed.
 - [x] Aggregate production delivery audit run `36147282538`, job `108111475317`: **SUCCESS / READ-ONLY** — `deliveryOrderCount=0`, so no real delivery-order submission can be claimed yet.
 - [x] Admin UI browser QA run `36150996964`, job `108123926387`: **SUCCESS** — authenticated order list/detail, start review, create revision, adjustment controls, collection↔delivery UI, desktop overflow checks, mobile WebKit detail/open-close, unclipped controls and no horizontal overflow.
+- [x] Staging webhook health re-verification run `36153542380`, job `108132465462`: **SUCCESS** — current Worker Version ID `e84f43fc-c9bc-4f8d-a259-f8d8646f5df7`; `/health` reports `notifications.webhookConfigured=true`.
 - [x] Deployed production source `19418b02473e4d8122b0214021cc1196e84daa3d` confirms `/v1/orders` required Turnstile verification before creating a new order.
 - [x] WebKit mobile Admin UI QA passed in staging browser workflow; real-device iPhone Safari spot-check remains optional polish, not a functional blocker.
 - [x] Desktop Chromium Admin UI QA passed on current staging build.
@@ -564,19 +565,23 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Re-verify staging health after manual webhook-secret installation.**
+**STEP IN PROGRESS — Enable and verify the staging Resend webhook.**
 
-Pre-step state:
-- `RESEND_WEBHOOK_SECRET` is present in the staging Worker.
-- the same secret is absent from production.
-- direct health probing from this chat environment is network-blocked, so health will be verified through the existing staging deployment workflow.
-- the Resend staging webhook remains disabled until health confirms `notifications.webhookConfigured=true`.
-- production remains unchanged.
+Pre-step verification:
+- staging `RESEND_WEBHOOK_SECRET`: present
+- production `RESEND_WEBHOOK_SECRET`: absent
+- staging Worker Version ID: `e84f43fc-c9bc-4f8d-a259-f8d8646f5df7`
+- staging `/health`: `status=ok`, `database=bound`, `notifications.webhookConfigured=true`
+- staging webhook: exists and is still disabled
+- production remains unchanged
 
 Current step:
-1. trigger a staging-only redeploy/health verification,
-2. confirm the deployed Worker sees `RESEND_WEBHOOK_SECRET`,
-3. require `notifications.webhookConfigured=true` in staging health,
-4. record the result here before enabling the Resend webhook.
+1. enable the existing staging Resend webhook,
+2. inspect recent webhook events,
+3. generate or replay one real staging email event if needed,
+4. confirm a successful signed delivery to the staging endpoint,
+5. replay the same event and verify duplicate/idempotent handling,
+6. verify the corresponding delivery state/audit persistence in staging D1,
+7. update this checklist before moving to the final Delivery checkout gate.
 
-**Do not enable the webhook or touch production until this health gate passes.**
+**Do not modify production in this step.**
