@@ -9,6 +9,7 @@ import { requirePurchasableProduct } from "../domain/catalog";
 
 interface OriginalOrderRow {
   id: string;
+  status: string;
   currency: string;
   fulfilmentMethod: "delivery" | "collection";
   deliveryAmountMinor: number | null;
@@ -263,6 +264,7 @@ export async function createDraftRevisionFromOriginal(
     .prepare(
       `SELECT
         id,
+        status,
         currency,
         fulfilment_method AS fulfilmentMethod,
         delivery_amount_minor AS deliveryAmountMinor
@@ -274,6 +276,9 @@ export async function createDraftRevisionFromOriginal(
     .first<OriginalOrderRow>();
 
   if (!order) throw new Error("revision_order_not_found");
+  if (!["UNDER_REVIEW", "QUOTED"].includes(order.status)) {
+    throw new Error("revision_order_not_editable");
+  }
 
   const items = await allRows<OriginalOrderItemRow>(
     db
