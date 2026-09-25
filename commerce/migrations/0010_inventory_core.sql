@@ -2,6 +2,9 @@
 -- Forward-only additive migration for staging validation first.
 -- No existing product gets an inferred quantity and no variant is auto-enabled for tracking.
 
+ALTER TABLE product_variants
+  ADD COLUMN inventory_mutation_token TEXT;
+
 CREATE TABLE inventory_balances (
   variant_id TEXT NOT NULL,
   location_id TEXT NOT NULL,
@@ -9,6 +12,7 @@ CREATE TABLE inventory_balances (
   reserved INTEGER NOT NULL DEFAULT 0 CHECK (reserved >= 0),
   safety_stock INTEGER NOT NULL DEFAULT 0 CHECK (safety_stock >= 0),
   version INTEGER NOT NULL DEFAULT 1 CHECK (version >= 1),
+  mutation_token TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   PRIMARY KEY (variant_id, location_id),
   FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE RESTRICT,
@@ -61,6 +65,10 @@ CREATE TABLE inventory_movements (
 CREATE UNIQUE INDEX idx_inventory_movements_idempotency
   ON inventory_movements(idempotency_key)
   WHERE idempotency_key IS NOT NULL AND idempotency_key <> '';
+
+CREATE UNIQUE INDEX idx_inventory_movements_initial_count
+  ON inventory_movements(variant_id, location_id)
+  WHERE movement_type = 'INITIAL_COUNT';
 
 CREATE INDEX idx_inventory_movements_variant_created
   ON inventory_movements(variant_id, created_at DESC);
