@@ -59,6 +59,18 @@ const baseDependencies = {
     state: "DRAFT",
     version: 2,
   })),
+  addCatalogItemToDraftRevisionFn: vi.fn(async () => ({
+    id: "rev-1",
+    revisionNumber: 1,
+    state: "DRAFT",
+    version: 2,
+  })),
+  substituteDraftRevisionLineFn: vi.fn(async () => ({
+    id: "rev-1",
+    revisionNumber: 1,
+    state: "DRAFT",
+    version: 2,
+  })),
   transitionOrderRevisionFn: vi.fn(async () => ({
     id: "rev-1",
     revisionNumber: 1,
@@ -196,6 +208,84 @@ describe("admin order revision routes", () => {
       "rev-1",
       "send",
       1,
+      "owner@example.com",
+    );
+  });
+
+  it("adds a catalogue-backed item through the owner API", async () => {
+    const addCatalogItemToDraftRevisionFn = vi.fn(
+      baseDependencies.addCatalogItemToDraftRevisionFn,
+    );
+
+    const response = await handleAdminRequest(
+      new Request(
+        "https://admin.example.com/admin/api/orders/BSR-1/revisions/rev-1/items",
+        {
+          method: "POST",
+          headers: {
+            origin: "https://admin.example.com",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            expectedVersion: 1,
+            catalogProductId: "ROM-001",
+            quantity: 2,
+          }),
+        },
+      ),
+      { DB: new Db() },
+      { ...baseDependencies, addCatalogItemToDraftRevisionFn } as any,
+    );
+
+    expect(response.status).toBe(201);
+    expect(addCatalogItemToDraftRevisionFn).toHaveBeenCalledWith(
+      expect.any(Db),
+      "BSR-1",
+      "rev-1",
+      expect.objectContaining({
+        expectedVersion: 1,
+        catalogProductId: "ROM-001",
+        quantity: 2,
+      }),
+      "owner@example.com",
+    );
+  });
+
+  it("substitutes a requested line with a server-priced catalogue product", async () => {
+    const substituteDraftRevisionLineFn = vi.fn(
+      baseDependencies.substituteDraftRevisionLineFn,
+    );
+
+    const response = await handleAdminRequest(
+      new Request(
+        "https://admin.example.com/admin/api/orders/BSR-1/revisions/rev-1/items/2/substitute",
+        {
+          method: "POST",
+          headers: {
+            origin: "https://admin.example.com",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            expectedVersion: 1,
+            catalogProductId: "ROM-001",
+            quantity: 1,
+          }),
+        },
+      ),
+      { DB: new Db() },
+      { ...baseDependencies, substituteDraftRevisionLineFn } as any,
+    );
+
+    expect(response.status).toBe(200);
+    expect(substituteDraftRevisionLineFn).toHaveBeenCalledWith(
+      expect.any(Db),
+      "BSR-1",
+      "rev-1",
+      expect.objectContaining({
+        lineNumber: 2,
+        expectedVersion: 1,
+        catalogProductId: "ROM-001",
+      }),
       "owner@example.com",
     );
   });
