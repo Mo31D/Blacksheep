@@ -137,8 +137,11 @@ describe("Phase 4 Inventory Core Admin", () => {
       { DB: new Db() },
       {
         verifyAccessFn: identity,
-        initialInventoryCountFn: (async (_db, raw) => {
-          rawInput = raw as unknown as Record<string, unknown>;
+        initialInventoryCountFn: (async (
+          _db: D1DatabaseLike,
+          raw: unknown,
+        ) => {
+          rawInput = raw as Record<string, unknown>;
           return {
             snapshot,
             movementId: "imv-1",
