@@ -1,0 +1,49 @@
+name: Commerce Production Health Diagnosis
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/commerce-production-health-diagnosis.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check custom domain health
+        shell: bash
+        run: |
+          echo "::group::CUSTOM_DOMAIN_HEALTH"
+          curl --fail --silent --show-error --max-time 30 https://api.theblacksheepshop.co.uk/health
+          echo
+          echo "::endgroup::"
+
+      - name: Check Workers.dev health
+        shell: bash
+        run: |
+          echo "::group::WORKERS_DEV_HEALTH"
+          curl --fail --silent --show-error --max-time 30 https://black-sheep-commerce-api.ky6vfb55p9.workers.dev/health
+          echo
+          echo "::endgroup::"
+
+      - name: Check Admin endpoints
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --max-time 30 https://api.theblacksheepshop.co.uk/admin > /tmp/custom-admin.html
+          curl --fail --silent --show-error --max-time 30 https://black-sheep-commerce-api.ky6vfb55p9.workers.dev/admin > /tmp/workers-admin.html
+          echo "custom_admin_bytes=$(wc -c < /tmp/custom-admin.html)"
+          echo "workers_admin_bytes=$(wc -c < /tmp/workers-admin.html)"
+          grep -qi "Black Sheep" /tmp/custom-admin.html
+          grep -qi "Black Sheep" /tmp/workers-admin.html
+          echo "Both Admin endpoints are reachable."
+
+      - name: Safety statement
+        run: |
+          echo "Read-only diagnosis only."
+          echo "No deploy, migration, secret, DNS, webhook or D1 mutation is performed."
