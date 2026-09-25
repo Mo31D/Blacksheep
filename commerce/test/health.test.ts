@@ -31,6 +31,7 @@ describe("commerce worker", () => {
       features: {
         orderReservations: false,
         publicCatalog: false,
+        publicCatalogContract: null,
       },
       notifications: {
         provider: "unconfigured",
@@ -53,6 +54,7 @@ describe("commerce worker", () => {
     await expect(response.json()).resolves.toMatchObject({
       features: {
         publicCatalog: true,
+        publicCatalogContract: "d1-published-v1",
         orderReservations: false,
       },
     });
