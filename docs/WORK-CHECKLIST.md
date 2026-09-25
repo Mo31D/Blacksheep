@@ -1,3 +1,7 @@
+> **HISTORICAL / CATALOGUE WORK CHECKLIST — NOT THE CURRENT ENGINEERING TRACKER**
+>
+> For current Commerce/Admin V2 execution, use `docs/ADMIN-V2-CHECKLIST.md` and `docs/SESSION-HANDOFF.md` first. This file is retained for catalogue/image/history reference only and must not restart superseded implementation phases.
+
 # Black Sheep — resumable work checklist
 
 Updated 2026-09-24. Repository: https://github.com/Mo31D/Blacksheep — branch main.
