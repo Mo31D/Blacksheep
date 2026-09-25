@@ -13,7 +13,10 @@ import {
   getOrderRefundSummary,
   recordManualRefund,
 } from "../data/refunds";
-import { createCustomerReviewToken } from "../data/customer-review";
+import {
+  createCustomerReviewToken,
+  listOrderMessages,
+} from "../data/customer-review";
 import {
   addCatalogItemToDraftRevision,
   createDraftRevisionFromOriginal,
@@ -37,6 +40,7 @@ import { adminHtml, adminLoginHtml } from "../admin/ui";
 import { notifyPaymentConfirmed, notifyPaymentRequest, type PaymentNotificationEnv } from "../notifications/payment";
 import { notifyLifecycleUpdate } from "../notifications/status";
 import { notifyRefundRecorded } from "../notifications/refund";
+import { sendOwnerCustomerMessage } from "../notifications/customer-message";
 
 export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
   DB?: D1DatabaseLike;
@@ -453,6 +457,127 @@ export async function handleAdminRequest(
             ? 409
             : 400;
       return error(code, status, status === 409 ? "Revision action is no longer valid. Reload and try again." : "Unable to update revision.");
+    }
+  }
+
+  const messagesMatch = url.pathname.match(
+    /^\/admin\/api\/orders\/([^/]+)\/messages$/,
+  );
+  if (messagesMatch && request.method === "GET") {
+    const reference = decodeURIComponent(messagesMatch[1]);
+    const messages = await listOrderMessages(env.DB, reference);
+    return json({ messages });
+  }
+
+  if (messagesMatch && request.method === "POST") {
+    const reference = decodeURIComponent(messagesMatch[1]);
+    let raw: unknown;
+    try {
+      raw = await readJson(request);
+    } catch (cause) {
+      const code =
+        cause instanceof Error ? cause.message : "admin_invalid_request";
+      return error(
+        code,
+        code === "admin_payload_too_large" ? 413 : 400,
+        "Invalid customer message.",
+      );
+    }
+
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return error(
+        "customer_message_invalid_request",
+        400,
+        "Invalid customer message.",
+      );
+    }
+
+    const input = raw as Record<string, unknown>;
+    const kind = String(input.kind ?? "CUSTOM_MESSAGE");
+    if (
+      !["CUSTOM_MESSAGE", "AVAILABILITY_UPDATE", "PAYMENT_REMINDER"].includes(
+        kind,
+      )
+    ) {
+      return error(
+        "customer_message_invalid_kind",
+        400,
+        "Invalid customer message type.",
+      );
+    }
+
+    const snapshot = await getPaymentNotificationSnapshot(env.DB, reference);
+    const detail = await getAdminOrderDetail(env.DB, reference);
+    if (!snapshot || !detail) {
+      return error("order_not_found", 404, "Order not found.");
+    }
+
+    if (
+      kind === "PAYMENT_REMINDER" &&
+      String(detail.paymentStatus) !== "PAYMENT_REQUESTED"
+    ) {
+      return error(
+        "payment_reminder_not_available",
+        409,
+        "A payment reminder can only be sent while payment is requested.",
+      );
+    }
+
+    if (kind === "AVAILABILITY_UPDATE" && !snapshot.revisionNumber) {
+      return error(
+        "availability_update_requires_revision",
+        409,
+        "Create and finalize a reviewed version before sending an availability update.",
+      );
+    }
+
+    let reviewUrl: string | null = null;
+    if (
+      snapshot.revisionNumber &&
+      (kind === "AVAILABILITY_UPDATE" || kind === "PAYMENT_REMINDER")
+    ) {
+      const review = await deps.createCustomerReviewTokenFn(env.DB, reference);
+      reviewUrl =
+        url.origin + "/review/" + encodeURIComponent(review.token);
+    }
+
+    const defaultSubject =
+      kind === "PAYMENT_REMINDER"
+        ? "Payment reminder for " + reference
+        : kind === "AVAILABILITY_UPDATE"
+          ? "Order update for " + reference
+          : "Message about order " + reference;
+    const defaultBody =
+      kind === "PAYMENT_REMINDER"
+        ? "This is a reminder that your order has been reviewed and is waiting for payment. Please use the secure link below when you are ready. If you need to change anything, reply to this email."
+        : kind === "AVAILABILITY_UPDATE"
+          ? "We have reviewed your order request and made an update. Please use the secure link below to review the confirmed version. You can ask us a question from that page if anything needs changing."
+          : "";
+
+    try {
+      const sent = await sendOwnerCustomerMessage(env, snapshot, {
+        kind: kind as
+          | "CUSTOM_MESSAGE"
+          | "AVAILABILITY_UPDATE"
+          | "PAYMENT_REMINDER",
+        subject: String(input.subject ?? defaultSubject),
+        body: String(input.body ?? defaultBody),
+        actorEmail: identity.email,
+        reviewUrl,
+      });
+      const messages = await listOrderMessages(env.DB, reference);
+      return json({ sent, messages }, 201);
+    } catch (cause) {
+      const code =
+        cause instanceof Error ? cause.message : "customer_message_failed";
+      const status = code === "customer_message_send_failed" ? 502 : 400;
+      return error(
+        code,
+        status,
+        status === 502
+          ? "The customer message could not be sent."
+          : "Invalid customer message.",
+      );
     }
   }
 
