@@ -4,6 +4,7 @@ import { handleAdminRequest } from "./routes/admin";
 import { handleCustomerReviewRequest } from "./routes/customer-review";
 import { handleResendWebhook } from "./routes/resend-webhook";
 import { handleProductMediaRequest } from "./routes/product-media";
+import { handlePublicCatalogRequest } from "./routes/catalog";
 import type { R2BucketLike } from "./data/product-media";
 import { expireDueReservations } from "./data/order-reservations";
 
@@ -21,6 +22,7 @@ interface Env {
   ORDER_OWNER_EMAIL?: string;
   PRODUCT_MEDIA?: R2BucketLike;
   ORDER_RESERVATIONS_ENABLED?: string;
+  D1_PUBLIC_CATALOG_ENABLED?: string;
 }
 
 const SERVICE = "black-sheep-commerce-api";
@@ -112,6 +114,7 @@ async function route(request: Request, env: Env): Promise<Response> {
       database: env.DB ? "bound" : "unbound",
       features: {
         orderReservations: env.ORDER_RESERVATIONS_ENABLED === "true",
+        publicCatalog: env.D1_PUBLIC_CATALOG_ENABLED === "true",
       },
       notifications: {
         provider: env.RESEND_API_KEY ? "resend" : "unconfigured",
@@ -126,6 +129,13 @@ async function route(request: Request, env: Env): Promise<Response> {
           : false,
       },
     });
+  }
+
+  if (
+    url.pathname === "/v1/catalog" ||
+    url.pathname.startsWith("/v1/catalog/")
+  ) {
+    return handlePublicCatalogRequest(request, env);
   }
 
   if (url.pathname === "/v1/orders") {
