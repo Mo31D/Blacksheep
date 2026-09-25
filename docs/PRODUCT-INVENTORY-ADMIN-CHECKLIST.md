@@ -269,9 +269,9 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 3 staging deployment succeeded — post-release verification in progress
+## Phase 3 staging deployment + safety verification succeeded
 
-R2 bucket exists and the gated Product Media workflow completed successfully. Verifying deployed Worker bindings, D1 state and Production isolation now.
+Worker version 68 is live on staging with the R2 bucket present. Staging Product Core remains 146 imported products / 0 inventory-tracked variants; Production remains on migrations 0000–0008 with 3 orders. Running a reversible R2 → `/media/:id` integration smoke test now.
 
 Do **not** create a bucket manually unless desired. Once R2 is enabled, the next automated steps are:
 
