@@ -8,6 +8,9 @@ This file is the authoritative progress tracker for the professional Admin V2 pr
 
 ## Current anchor
 
+- Latest Admin V2 code anchor: `7427e6e099684e588a94410b03c3a73f9a2d06a2`.
+- Commerce CI run `36085371334`: PASS, including local migration `0003_order_revisions.sql`, TypeScript, tests and Wrangler dry-run.
+- Search Readiness remains unaffected by the owner-side revision foundation.
 - Commerce V1 is live.
 - Public checkout is enabled against `https://api.theblacksheepshop.co.uk`.
 - Existing professional dashboard/reports UI code is on `main`.
@@ -32,31 +35,33 @@ Status: COMPLETE.
 
 ## P1A — Revision data foundation
 
-- [ ] Add migration for `order_revisions`.
-- [ ] Add migration for `order_revision_items`.
-- [ ] Add migration for `order_adjustments`.
-- [ ] Add indexes and integrity checks.
-- [ ] Add revision domain types/validation.
-- [ ] Add D1 repository methods.
-- [ ] Add automated tests.
-- [ ] Confirm local D1 migration through Commerce CI.
+- [x] Add migration for `order_revisions`.
+- [x] Add migration for `order_revision_items`.
+- [x] Add migration for `order_adjustments`.
+- [x] Add indexes and integrity checks.
+- [x] Add revision domain types/validation.
+- [x] Add D1 repository methods.
+- [x] Add automated tests.
+- [x] Confirm local D1 migration through Commerce CI.
 
-Status: IN PROGRESS.
+Status: COMPLETE IN CODE AND CI. Remote staging migration will be applied at the next guarded staging deploy.
 
 ## P1B — Revision admin API
 
-- [ ] List revisions.
-- [ ] Create draft revision from original order.
-- [ ] Read revision detail.
-- [ ] Update draft reviewed quantities/dispositions.
-- [ ] Update customer message separately from internal note.
-- [ ] Send revision.
-- [ ] Supersede older sent revision.
-- [ ] Accept/decline revision.
-- [ ] Add version/concurrency protection.
-- [ ] Add route/auth/same-origin tests.
+- [x] List revisions.
+- [x] Create draft revision from original order.
+- [x] Read revision detail.
+- [x] Update draft reviewed quantities/dispositions for existing requested lines.
+- [x] Update customer message separately from internal note.
+- [x] Send revision.
+- [x] Supersede older sent revision.
+- [x] Accept/decline revision.
+- [x] Add version/concurrency protection.
+- [x] Extend same-origin protection to PATCH/PUT/DELETE admin writes.
+- [x] Add route/auth/same-origin tests.
+- [ ] Add catalogue-backed substitute/add-new-item mutation API; this is intentionally coupled to the P2 workspace so prices remain server-authoritative.
 
-Status: NOT STARTED.
+Status: CORE COMPLETE IN CODE AND CI; substitute/add-item mutation is the next P2 integration step.
 
 ## P2 — Professional order workspace
 
@@ -183,4 +188,4 @@ Status: NOT STARTED.
 
 ## Exact next implementation step
 
-Complete P1A: add the backwards-compatible revision schema, domain/data layer and tests. Do not expose unfinished revision controls to production UI until P1B/P2 are validated in staging.
+Start P2: integrate the revision engine into the professional order workspace. First implement catalogue-backed add/substitute mutations, then the mobile availability-review UI, revised totals/change summary and context-sensitive actions. Do not expose unfinished revision controls to production until the staging migration and P2 flow are verified.
