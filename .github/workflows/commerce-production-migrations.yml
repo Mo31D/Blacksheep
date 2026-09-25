@@ -1,0 +1,96 @@
+name: Commerce Production Migrations Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/commerce-production-migrations.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: commerce
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RELEASE_SHA: 8c5462388648235acd3a41b853d1adee057a11a7
+
+    steps:
+      - name: Checkout pinned release source
+        uses: actions/checkout@v4
+        with:
+          ref: 8c5462388648235acd3a41b853d1adee057a11a7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: commerce/package.json
+
+      - name: Install commerce dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Require Cloudflare credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+
+      - name: Confirm pinned source
+        shell: bash
+        run: |
+          ACTUAL="$(git rev-parse HEAD)"
+          echo "Pinned release SHA: $RELEASE_SHA"
+          echo "Checked out SHA:    $ACTUAL"
+          test "$ACTUAL" = "$RELEASE_SHA"
+
+      - name: Production migrations before
+        run: npm run db:migrations:list:production
+
+      - name: Apply production migrations
+        run: npm run db:migrate:production
+
+      - name: Production migrations after
+        run: npm run db:migrations:list:production
+
+      - name: Verify production migration ledger
+        shell: bash
+        run: |
+          RESULT="$(npx wrangler d1 execute black-sheep-commerce-prod --remote --command "SELECT name FROM d1_migrations ORDER BY id;" --json)"
+          printf '%s
+' "$RESULT"
+          for migration in             0000_initial_orders.sql             0001_admin_email_auth.sql             0002_order_fulfilment_message.sql             0003_order_revisions.sql             0004_revision_fulfilment.sql             0005_refunds.sql             0006_customer_review_messages.sql             0007_email_delivery_webhooks.sql             0008_concurrency_guards.sql
+          do
+            printf '%s' "$RESULT" | grep -F "$migration" >/dev/null || {
+              echo "::error::Missing production migration: $migration"
+              exit 1
+            }
+          done
+
+      - name: Verify Admin V2 production schema
+        shell: bash
+        run: |
+          RESULT="$(npx wrangler d1 execute black-sheep-commerce-prod --remote --command "SELECT name,type FROM sqlite_master WHERE name IN ('order_revisions','order_revision_items','order_adjustments','refunds','customer_review_tokens','order_messages','email_webhook_events','idx_refunds_order_idempotency') ORDER BY name;" --json)"
+          printf '%s
+' "$RESULT"
+          for object in             order_revisions             order_revision_items             order_adjustments             refunds             customer_review_tokens             order_messages             email_webhook_events             idx_refunds_order_idempotency
+          do
+            printf '%s' "$RESULT" | grep -F "$object" >/dev/null || {
+              echo "::error::Missing production schema object: $object"
+              exit 1
+            }
+          done
+
+      - name: Safety statement
+        if: always()
+        run: |
+          echo "This workflow applies D1 migrations only."
+          echo "It does NOT run wrangler deploy."
+          echo "Worker production version must remain unchanged until a separate verified deployment step."
