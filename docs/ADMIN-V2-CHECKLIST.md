@@ -569,22 +569,29 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 - [x] Single-message staging webhook workflow created at `.github/workflows/commerce-staging-webhook-event-e2e.yml` (commit `07ea105ac28cec2c8ede8c879f4f07e379d86d0e`).
 
+- [x] Real production Delivery order `BSR-260925-2X63954D` verified read-only in D1: `delivery` → `PAID` → `shippedAt` → `COMPLETED`. This closes the Delivery/Turnstile release gate.
+
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Close Point 2: real Delivery order verification.**
+**STEP IN PROGRESS — Close Point 3: configure DMARC safely in production DNS.**
 
-Evidence supplied by the user:
-- public checkout completed on a real device,
-- order reference: `BSR-260925-2X63954D`,
-- customer acknowledgement email received,
-- checkout confirmation shows `Method: Delivery`,
-- Admin view shows delivery address, £10.00 delivery charge and £54.90 final total.
+Pre-step state:
+- Delivery release gate: CLOSED
+- SPF: verified
+- DKIM: verified
+- DMARC: absent in live Cloudflare DNS
+- production application Worker/D1 remain unchanged by this step
 
 Current step:
-1. query production D1 **read-only** for this reference,
-2. confirm `fulfilment_method='delivery'`,
-3. confirm the order exists in the real production lifecycle,
-4. record its current status/payment state,
-5. mark the Delivery release gate complete if the evidence matches.
+1. re-check live `_dmarc.theblacksheepshop.co.uk`,
+2. if absent, create a conservative valid DMARC record in monitoring mode,
+3. use policy `p=none` so mail flow is not quarantined/rejected,
+4. verify the authoritative Cloudflare DNS record after creation,
+5. record the result here.
 
-**No production mutation is authorized in this step.**
+Target record:
+`v=DMARC1; p=none; pct=100; adkim=r; aspf=r`
+
+This establishes DMARC without changing message acceptance policy. A stricter `quarantine` or `reject` policy can be considered later after monitoring.
+
+**No Worker or D1 mutation is part of this step.**
