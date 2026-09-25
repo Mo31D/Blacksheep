@@ -312,7 +312,8 @@ export async function handleCustomerReviewRequest(
         : code === "payload_too_large"
           ? 413
           : code === "review_already_paid" ||
-              code === "review_payment_not_available"
+              code === "review_payment_not_available" ||
+              code === "review_conflict"
             ? 409
             : 400;
 
@@ -323,7 +324,9 @@ export async function handleCustomerReviewRequest(
           ? "Payment has already been recorded for this order."
           : code === "review_payment_not_available"
             ? "The secure payment request is not currently available."
-            : code === "review_question_invalid"
+            : code === "review_conflict"
+              ? "This reviewed order changed while you were responding. Refresh the page and check the latest version."
+              : code === "review_question_invalid"
               ? "Please enter a question between 2 and 2000 characters."
               : "Unable to update this reviewed order.";
 
