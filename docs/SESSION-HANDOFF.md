@@ -6,40 +6,41 @@
 >
 > **Live execution tracker:** `docs/ADMIN-V2-CHECKLIST.md`.
 >
-> **Phase 13 production release is COMPLETE and verified.**
+> **Production Admin V2 is live. Phase 13 production release is complete.**
 >
-> Final production state:
-> - Release source SHA: `8c5462388648235acd3a41b853d1adee057a11a7`
-> - Production Worker deployment: `2e629bc4-99e9-41cf-b15e-0b087ec8a33b`
-> - Production Worker version: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac` at 100%
-> - Production D1: `black-sheep-commerce-prod`
-> - Production D1 ID: `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
-> - Production migrations: `0000–0008`
-> - Existing production orders preserved: 3
-> - Production health: PASS
-> - Production Admin page: reachable
-> - `RESEND_WEBHOOK_SECRET`: installed
-> - Production Resend webhook: enabled at `https://api.theblacksheepshop.co.uk/webhooks/resend`
-> - Staging Resend webhook remains separate and enabled
-> - SPF: verified
-> - DKIM: verified
+> Final verified production release:
+> - pinned runtime source SHA: `8c5462388648235acd3a41b853d1adee057a11a7`
+> - production migration run: `36157961810` / job `108147083426`
+> - production D1 migrations: `0000–0008`
+> - production Worker deployment ID: `2e629bc4-99e9-41cf-b15e-0b087ec8a33b`
+> - production Worker version: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`
+> - production D1 ID: `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
+> - production custom-domain health: PASS
+> - production Workers.dev health: PASS
+> - production `/admin`: reachable
+> - production secrets include `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `TURNSTILE_SECRET_KEY`
+> - production Resend webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0`
+> - production Resend webhook status: ENABLED
+> - production webhook endpoint: `https://api.theblacksheepshop.co.uk/webhooks/resend`
+> - existing production orders preserved through migration/deploy: 3
+> - SPF/DKIM: verified
 > - DMARC: `v=DMARC1; p=none; pct=100; adkim=r; aspf=r`
-> - Recovery Time Travel bookmark captured before production mutation: `00000028-00000000-000050f1-68842c17a511b740b3b28bcc859c1042`
+> - latest recorded post-release D1 Time Travel bookmark: `0000002b-00000000-000050f1-c99de2cbd416b44cc1ae27080bb939db`
 >
-> Production release sequence completed:
-> 1. pinned source equivalence verified,
-> 2. recovery point captured,
-> 3. migrations `0003–0008` applied and verified,
-> 4. production webhook created disabled,
-> 5. webhook signing secret installed,
-> 6. pinned Worker source deployed,
-> 7. health/Admin checks passed after propagation,
-> 8. production webhook enabled,
-> 9. final read-only production smoke check passed.
+> Release notes:
+> - Production migrations `0003–0008` were additive and applied successfully; do not rerun them.
+> - The Worker was deployed from the pinned audited runtime SHA, not from later documentation/test-only `main` commits.
+> - The first immediate post-deploy health request briefly omitted `webhookConfigured`; subsequent custom-domain and Workers.dev checks both returned `webhookConfigured=true`. This was propagation timing, not a runtime defect.
+> - Production webhook activation happened only after health and Admin reachability were reverified.
 >
-> **Do not repeat Phase 13 migrations or redeploy this release.**
+> **NEXT WORK: post-release validation/polish only.**
+> 1. Owner opens production `/admin` on desktop and iPhone and confirms the real UX.
+> 2. Perform one fresh production owner OTP login.
+> 3. Optionally run one controlled low-value live order through revision → customer review → payment recording → fulfilment.
+> 4. Verify the next natural production transactional email records delivery telemetry through the enabled webhook.
+> 5. Inspect/archive temporary release-only or stale failing workflows separately.
 >
-> Next session should start from post-release operational validation / real Admin V2 use, or from a newly reviewed release if code changes are required.
+> **Do not rerun migrations `0003–0008` or redeploy the same release unless intentionally shipping a new runtime change.**
 
 ---
 
