@@ -335,6 +335,92 @@ export function rebaseReservationPlanAfterRelease(
   };
 }
 
+
+export interface RevisionReservationAdminView {
+  reservation: null | {
+    id: string;
+    state: string;
+    expiresAt: string;
+    committedAt: string | null;
+    releasedAt: string | null;
+    consumedAt: string | null;
+    releaseReason: string | null;
+  };
+  lines: Array<
+    ReservationLineAvailability & {
+      reservationQuantity: number;
+    }
+  >;
+}
+
+export async function getRevisionReservationAdminView(
+  db: D1DatabaseLike,
+  revisionId: string,
+  locationId = DEFAULT_RESERVATION_LOCATION_ID,
+): Promise<RevisionReservationAdminView> {
+  const plan = await buildRevisionReservationPlan(
+    db,
+    revisionId,
+    locationId,
+  );
+
+  const reservation = await db
+    .prepare(
+      `SELECT
+        id,
+        state,
+        expires_at AS expiresAt,
+        committed_at AS committedAt,
+        released_at AS releasedAt,
+        consumed_at AS consumedAt,
+        release_reason AS releaseReason
+      FROM inventory_reservations
+      WHERE revision_id = ?
+      LIMIT 1`,
+    )
+    .bind(revisionId)
+    .first<{
+      id: string;
+      state: string;
+      expiresAt: string;
+      committedAt: string | null;
+      releasedAt: string | null;
+      consumedAt: string | null;
+      releaseReason: string | null;
+    }>();
+
+  const itemRows = reservation
+    ? await allRows<{ revisionItemId: number; quantity: number }>(
+        db
+          .prepare(
+            `SELECT
+              revision_item_id AS revisionItemId,
+              quantity
+            FROM inventory_reservation_items
+            WHERE reservation_id = ?
+            ORDER BY id`,
+          )
+          .bind(reservation.id),
+      )
+    : [];
+
+  const quantityByItem = new Map(
+    itemRows.map((row) => [
+      Number(row.revisionItemId),
+      Number(row.quantity),
+    ]),
+  );
+
+  return {
+    reservation: reservation ?? null,
+    lines: plan.lines.map((line) => ({
+      ...line,
+      reservationQuantity:
+        quantityByItem.get(line.revisionItemId) ?? 0,
+    })),
+  };
+}
+
 export interface ReservationMutationInput {
   orderId: string;
   actorEmail: string;
