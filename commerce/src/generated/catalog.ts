@@ -835,9 +835,9 @@ export const COMMERCE_CATALOG = [
     "type": "gifts",
     "priceMinor": 2495,
     "currency": "GBP",
-    "status": "available",
-    "purchasable": true,
-    "nonPurchasableReason": null,
+    "status": "out-of-stock",
+    "purchasable": false,
+    "nonPurchasableReason": "out_of_stock",
     "options": []
   },
   {
