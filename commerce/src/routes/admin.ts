@@ -60,9 +60,17 @@ import {
   updateAdminProductOperations,
   updateAdminVariant,
 } from "../data/product-editor";
+import {
+  addAdminProductMedia,
+  removeAdminProductMedia,
+  reorderAdminProductMedia,
+  updateAdminProductMedia,
+  type R2BucketLike,
+} from "../data/product-media";
 
 export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
   DB?: D1DatabaseLike;
+  PRODUCT_MEDIA?: R2BucketLike;
 }
 
 interface AdminDependencies {
@@ -92,6 +100,10 @@ interface AdminDependencies {
   quickEditAdminProductFn: typeof quickEditAdminProduct;
   updateAdminProductOperationsFn: typeof updateAdminProductOperations;
   updateAdminVariantFn: typeof updateAdminVariant;
+  addAdminProductMediaFn: typeof addAdminProductMedia;
+  updateAdminProductMediaFn: typeof updateAdminProductMedia;
+  reorderAdminProductMediaFn: typeof reorderAdminProductMedia;
+  removeAdminProductMediaFn: typeof removeAdminProductMedia;
 }
 
 const defaults: AdminDependencies = {
@@ -121,6 +133,10 @@ const defaults: AdminDependencies = {
   quickEditAdminProductFn: quickEditAdminProduct,
   updateAdminProductOperationsFn: updateAdminProductOperations,
   updateAdminVariantFn: updateAdminVariant,
+  addAdminProductMediaFn: addAdminProductMedia,
+  updateAdminProductMediaFn: updateAdminProductMedia,
+  reorderAdminProductMediaFn: reorderAdminProductMedia,
+  removeAdminProductMediaFn: removeAdminProductMedia,
 };
 
 function json(body: unknown, status = 200): Response {
@@ -148,11 +164,15 @@ function productMutationError(cause: unknown): Response {
     "product_publish_requires_category",
     "product_publish_requires_price",
     "product_already_archived",
+    "product_media_requires_draft",
+    "product_media_primary_required",
+    "product_media_order_mismatch",
   ]);
   const notFoundCodes = new Set([
     "product_not_found",
     "product_variant_not_found",
     "product_category_not_found",
+    "product_media_not_found",
   ]);
   const status = notFoundCodes.has(code) ? 404 : conflictCodes.has(code) ? 409 : 400;
   const messages: Record<string, string> = {
@@ -167,8 +187,134 @@ function productMutationError(cause: unknown): Response {
     product_not_found: "Product not found.",
     product_variant_not_found: "Product variant not found.",
     product_category_not_found: "One of the selected categories no longer exists.",
+    product_media_not_found: "That image is no longer attached to this product.",
+    product_media_requires_draft: "A product draft is required before changing images.",
+    product_media_primary_required: "Choose another primary image before clearing this one.",
+    product_media_order_mismatch: "The gallery changed while you were editing it. Reload and try again.",
+    product_media_order_invalid: "The gallery order is invalid.",
+    product_media_primary_invalid: "Primary image value is invalid.",
+    product_media_archived: "Archived products cannot be edited.",
   };
   return error(code, status, messages[code] ?? "Unable to update product.");
+}
+
+const PRODUCT_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+const PRODUCT_IMAGE_TYPES: Record<string, { extension: string; signature: (bytes: Uint8Array) => boolean }> = {
+  "image/jpeg": {
+    extension: "jpg",
+    signature: (bytes) => bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff,
+  },
+  "image/png": {
+    extension: "png",
+    signature: (bytes) =>
+      bytes.length >= 8 &&
+      bytes[0] === 0x89 &&
+      bytes[1] === 0x50 &&
+      bytes[2] === 0x4e &&
+      bytes[3] === 0x47 &&
+      bytes[4] === 0x0d &&
+      bytes[5] === 0x0a &&
+      bytes[6] === 0x1a &&
+      bytes[7] === 0x0a,
+  },
+  "image/webp": {
+    extension: "webp",
+    signature: (bytes) =>
+      bytes.length >= 12 &&
+      String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+      String.fromCharCode(...bytes.slice(8, 12)) === "WEBP",
+  },
+};
+
+async function readProductImageUpload(request: Request): Promise<{
+  expectedVersion: number;
+  altText: string | null;
+  mimeType: string;
+  extension: string;
+  bytes: Uint8Array;
+  checksumSha256: string;
+}> {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().startsWith("multipart/form-data")) {
+    throw new Error("product_media_multipart_required");
+  }
+
+  const form = await request.formData();
+  const file = form.get("file");
+  if (!(file instanceof File)) throw new Error("product_media_file_required");
+  if (file.size <= 0) throw new Error("product_media_file_empty");
+  if (file.size > PRODUCT_IMAGE_MAX_BYTES) throw new Error("product_media_file_too_large");
+
+  const config = PRODUCT_IMAGE_TYPES[file.type.toLowerCase()];
+  if (!config) throw new Error("product_media_type_invalid");
+
+  const expectedVersion = Number(form.get("expectedVersion"));
+  if (!Number.isInteger(expectedVersion) || expectedVersion < 1) {
+    throw new Error("product_expected_version_invalid");
+  }
+
+  const rawAlt = String(form.get("altText") ?? "").trim();
+  if (rawAlt.length > 240) throw new Error("product_media_alt_text_too_long");
+
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  if (!config.signature(bytes)) throw new Error("product_media_signature_invalid");
+
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", buffer));
+  const checksumSha256 = Array.from(digest)
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("");
+
+  return {
+    expectedVersion,
+    altText: rawAlt || null,
+    mimeType: file.type.toLowerCase(),
+    extension: config.extension,
+    bytes,
+    checksumSha256,
+  };
+}
+
+async function ensureMediaDraft(
+  deps: AdminDependencies,
+  db: D1DatabaseLike,
+  productId: string,
+  expected: number,
+  actorEmail: string,
+): Promise<Record<string, unknown>> {
+  let product = await deps.getAdminProductDetailFn(db, productId);
+  if (!product) throw new Error("product_not_found");
+  if (Number(product.version) !== expected) throw new Error("product_version_conflict");
+  if (product.publicationStatus === "ARCHIVED") throw new Error("product_media_archived");
+
+  if (!product.draftVersionId) {
+    await deps.saveAdminProductDraftFn(
+      db,
+      productId,
+      { expectedVersion: expected, changes: {} },
+      actorEmail,
+    );
+    product = await deps.getAdminProductDetailFn(db, productId);
+    if (!product) throw new Error("product_not_found");
+  }
+
+  return product;
+}
+
+function productMediaInputError(cause: unknown): Response {
+  const code = cause instanceof Error ? cause.message : "product_media_failed";
+  const messages: Record<string, string> = {
+    product_media_multipart_required: "Image upload must use multipart form data.",
+    product_media_file_required: "Choose an image to upload.",
+    product_media_file_empty: "The selected image is empty.",
+    product_media_file_too_large: "Image must be 8 MB or smaller.",
+    product_media_type_invalid: "Use a JPEG, PNG or WebP image.",
+    product_media_signature_invalid: "The file content does not match its image type.",
+    product_media_alt_text_too_long: "Alt text must be 240 characters or fewer.",
+    product_media_archived: "Archived products cannot be edited.",
+  };
+  if (messages[code]) return error(code, 400, messages[code]);
+  return productMutationError(cause);
 }
 
 async function readProductJson(request: Request): Promise<Record<string, unknown>> {
@@ -405,6 +551,190 @@ export async function handleAdminRequest(
       return json({ product });
     } catch (cause) {
       return productMutationError(cause);
+    }
+  }
+
+  const productMediaOrderMatch = url.pathname.match(
+    /^\/admin\/api\/products\/([^/]+)\/media-order$/,
+  );
+  if (productMediaOrderMatch && request.method === "PATCH") {
+    const productId = decodeURIComponent(productMediaOrderMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      const expected = Number(raw.expectedVersion);
+      const product = await ensureMediaDraft(
+        deps,
+        env.DB,
+        productId,
+        expected,
+        identity.email,
+      );
+      await deps.reorderAdminProductMediaFn(
+        env.DB,
+        productId,
+        {
+          ...raw,
+          expectedVersion: Number(product.version),
+        } as unknown as Parameters<typeof reorderAdminProductMedia>[2],
+        identity.email,
+      );
+      const updated = await deps.getAdminProductDetailFn(env.DB, productId);
+      return json({ product: updated });
+    } catch (cause) {
+      return productMediaInputError(cause);
+    }
+  }
+
+  const productMediaItemMatch = url.pathname.match(
+    /^\/admin\/api\/products\/([^/]+)\/media\/([^/]+)$/,
+  );
+  if (productMediaItemMatch && request.method === "PATCH") {
+    const productId = decodeURIComponent(productMediaItemMatch[1]);
+    const mediaId = decodeURIComponent(productMediaItemMatch[2]);
+    try {
+      const raw = await readProductJson(request);
+      const expected = Number(raw.expectedVersion);
+      const product = await ensureMediaDraft(
+        deps,
+        env.DB,
+        productId,
+        expected,
+        identity.email,
+      );
+      await deps.updateAdminProductMediaFn(
+        env.DB,
+        productId,
+        mediaId,
+        {
+          ...raw,
+          expectedVersion: Number(product.version),
+        } as unknown as Parameters<typeof updateAdminProductMedia>[3],
+        identity.email,
+      );
+      const updated = await deps.getAdminProductDetailFn(env.DB, productId);
+      return json({ product: updated });
+    } catch (cause) {
+      return productMediaInputError(cause);
+    }
+  }
+
+  if (productMediaItemMatch && request.method === "DELETE") {
+    const productId = decodeURIComponent(productMediaItemMatch[1]);
+    const mediaId = decodeURIComponent(productMediaItemMatch[2]);
+    try {
+      const raw = await readProductJson(request);
+      const expected = Number(raw.expectedVersion);
+      const product = await ensureMediaDraft(
+        deps,
+        env.DB,
+        productId,
+        expected,
+        identity.email,
+      );
+      const removed = await deps.removeAdminProductMediaFn(
+        env.DB,
+        productId,
+        mediaId,
+        {
+          expectedVersion: Number(product.version),
+        },
+        identity.email,
+      );
+      let storageCleanupPending = false;
+      if (
+        removed.shouldDeleteObject &&
+        removed.storageProvider === "R2" &&
+        env.PRODUCT_MEDIA
+      ) {
+        try {
+          await env.PRODUCT_MEDIA.delete(removed.storageKey);
+        } catch {
+          storageCleanupPending = true;
+        }
+      }
+      const updated = await deps.getAdminProductDetailFn(env.DB, productId);
+      return json({ product: updated, storageCleanupPending });
+    } catch (cause) {
+      return productMediaInputError(cause);
+    }
+  }
+
+  const productMediaUploadMatch = url.pathname.match(
+    /^\/admin\/api\/products\/([^/]+)\/media$/,
+  );
+  if (productMediaUploadMatch && request.method === "POST") {
+    const productId = decodeURIComponent(productMediaUploadMatch[1]);
+    if (!env.PRODUCT_MEDIA) {
+      return error(
+        "product_media_storage_unavailable",
+        503,
+        "Product image storage is not configured.",
+      );
+    }
+
+    let storageKey: string | null = null;
+    try {
+      const upload = await readProductImageUpload(request);
+      const product = await ensureMediaDraft(
+        deps,
+        env.DB,
+        productId,
+        upload.expectedVersion,
+        identity.email,
+      );
+      const mediaId = "med_" + crypto.randomUUID();
+      const month = new Date().toISOString().slice(0, 7);
+      storageKey =
+        "products/" +
+        productId +
+        "/" +
+        month +
+        "/" +
+        mediaId +
+        "." +
+        upload.extension;
+
+      await env.PRODUCT_MEDIA.put(storageKey, upload.bytes, {
+        httpMetadata: {
+          contentType: upload.mimeType,
+          cacheControl: "public, max-age=31536000, immutable",
+        },
+        customMetadata: {
+          productId,
+          mediaId,
+          checksumSha256: upload.checksumSha256,
+        },
+      });
+
+      await deps.addAdminProductMediaFn(
+        env.DB,
+        productId,
+        {
+          expectedVersion: Number(product.version),
+          mediaId,
+          storageKey,
+          publicUrl: "/media/" + encodeURIComponent(mediaId),
+          mimeType: upload.mimeType,
+          width: null,
+          height: null,
+          fileSize: upload.bytes.byteLength,
+          checksumSha256: upload.checksumSha256,
+          altText: upload.altText,
+        },
+        identity.email,
+      );
+
+      const updated = await deps.getAdminProductDetailFn(env.DB, productId);
+      return json({ product: updated }, 201);
+    } catch (cause) {
+      if (storageKey && env.PRODUCT_MEDIA) {
+        try {
+          await env.PRODUCT_MEDIA.delete(storageKey);
+        } catch {
+          // Orphan cleanup is preferable to masking the original mutation error.
+        }
+      }
+      return productMediaInputError(cause);
     }
   }
 
