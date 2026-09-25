@@ -226,6 +226,7 @@ jobs:
         run: |
           TOKEN="$(openssl rand -hex 32)"
           echo "::add-mask::$TOKEN"
+          export PHASE5_QA_TOKEN="$TOKEN"
           echo "PHASE5_QA_TOKEN=$TOKEN" >> "$GITHUB_ENV"
           node - <<'NODE'
           const fs = require("fs");
