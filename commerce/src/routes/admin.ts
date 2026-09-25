@@ -8,6 +8,7 @@ import {
   listAdminOrders,
 } from "../data/admin-orders";
 import { validateAdminOrderAction } from "../domain/admin-order";
+import { listPurchasableProducts } from "../domain/catalog";
 import {
   addCatalogItemToDraftRevision,
   createDraftRevisionFromOriginal,
@@ -203,6 +204,19 @@ export async function handleAdminRequest(
     const days = Number(url.searchParams.get("days") ?? "30");
     const reports = await getAdminReports(env.DB, Number.isFinite(days) ? days : 30);
     return json(reports);
+  }
+
+  if (url.pathname === "/admin/api/catalog" && request.method === "GET") {
+    const query = url.searchParams.get("q") ?? "";
+    const products = listPurchasableProducts(query, 60).map((product) => ({
+      id: product.id,
+      sku: product.sku,
+      slug: product.slug,
+      name: product.name,
+      type: product.type,
+      priceMinor: product.priceMinor,
+    }));
+    return json({ products });
   }
 
   const revisionsMatch = url.pathname.match(
