@@ -55,35 +55,26 @@
 > - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 > - target: D1-backed Product + Inventory source of truth, premium Products/Stock Admin, managed media, order reservations and storefront/checkout integration.
 >
-> **PRODUCT / INVENTORY — PHASE 2 COMPLETE ON STAGING; PHASE 3 CODE READY**
-> - Phase 1 Product Core + mobile polish: COMPLETE.
-> - Phase 2 Product Editor core: DEPLOYED TO STAGING.
-> - Duplicate: DEPLOYED — creates a safe private Draft with SKU/barcode cleared and ordering disabled.
-> - Archive: DEPLOYED — non-destructive, disables sale/orderability and retains audit/history.
-> - Archived filter: DEPLOYED.
-> - Duplicate/Archive release run `36174114456` / job `108200446776`: SUCCESS.
-> - current staging deployment: `7984e631-902e-470b-bb0f-447bdb031b3b`
-> - current staging Worker version: `cdcfe773-b6cc-4910-8c86-a74f28bde66c`
-> - staging Product Core: 146 original imported products; tracked inventory = 0.
-> - Phase 3 Product Media core code is implemented and latest Commerce CI `36176490850` is green.
-> - Media includes secure multipart upload, 8 MB limit, JPEG/PNG/WebP magic-byte validation, SHA-256, Draft gallery, Primary, reorder, alt text, one-click Replace, remove and audit.
-> - same-origin immutable delivery route `/media/<mediaId>` is implemented.
-> - Legacy repository images and R2 images are regression-tested in the same Draft gallery.
-> - duplicated R2 media now receives an independent media URL while safely sharing the underlying R2 object.
-> - dedicated staging release workflow: `.github/workflows/product-media-staging.yml`.
-> - **BLOCKER:** Cloudflare R2 is not enabled on the account. API returns `10042 — Please enable R2 through the Cloudflare Dashboard.`
-> - staging R2 target once enabled: `black-sheep-product-media-staging`.
-> - Phase 3 is intentionally NOT deployed until the R2 bucket exists.
-> - public storefront/checkout are NOT cut over to Product Core.
-> - Production D1 remains `0000–0008`; Production order count remains 3.
-> - read: `docs/PRODUCT-MEDIA-PHASE3-READINESS-2026-09-25.md`
+> **PRODUCT / INVENTORY — PHASE 3 PRODUCT MEDIA LIVE ON STAGING**
+> - Phase 1 Product Core/mobile polish: COMPLETE.
+> - Phase 2 Product Editor + Duplicate + Archive: DEPLOYED TO STAGING.
+> - Phase 3 Product Media: DEPLOYED TO STAGING; only owner iPhone smoke-test remains.
+> - R2 staging bucket: `black-sheep-product-media-staging` / WEUR / Standard.
+> - release workflow `36178631127` / job `108215277892`: SUCCESS.
+> - staging deployment: `119d4ceb-2678-40ce-9b43-4c2ede7b3523`
+> - staging Worker version: `19e62702-1fde-48b1-802f-6dbf66e68eb3` / version 68.
+> - Media features: authenticated upload, JPEG/PNG/WebP signature checks, 8 MB cap, SHA-256, Draft gallery, Primary, reorder, alt text, remove, one-click Replace and audit.
+> - real R2 → Worker delivery smoke `36178979258`: SUCCESS / HTTP 200.
+> - smoke object/D1 row/workflow cleaned up; staging bucket empty afterwards.
+> - Legacy/R2 coexistence proven while 136 legacy media records remained live.
+> - staging Product Core remains 146 original imported products; inventory tracked = 0.
+> - Production remains D1 `0000–0008`, 3 orders, no R2 Product Media binding.
+> - storefront/checkout are still NOT cut over to Product Core.
+> - read: `docs/PRODUCT-MEDIA-PHASE3-STAGING-RELEASE-2026-09-25.md`
 > - tracker: `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
-
-> **NEXT WORK: one external action, then continue Phase 3 automatically.**
-> 1. Enable R2 Object Storage in the Cloudflare Dashboard.
-> 2. Do not manually create the staging bucket unless desired; it can be created through the connector after activation.
-> 3. Create/verify `black-sheep-product-media-staging`, trigger the gated Phase 3 staging workflow and run iPhone image QA.
-> 4. Keep Inventory, storefront Product Core cutover and all Product/Media Production changes locked until their later gates.
+>
+> **NEXT WORK: combined owner Phase 2/3 smoke-test in staging, then Phase 4 Inventory Core.**
+> Create a temporary `STAGING QA PRODUCT`, exercise Product mutations + iPhone Media Manager, inspect Audit history, Publish, then Archive it.
 
 > **Do not rerun migrations `0003–0008`. Any future Worker deployment must correspond to an intentional new runtime/catalogue change and pass Commerce CI first.**
 

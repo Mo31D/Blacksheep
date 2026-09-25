@@ -155,19 +155,19 @@ Evidence:
 - [x] Phase 3 Admin UI + upload-validation tests.
 - [x] Immutable media-delivery route tests.
 - [x] Real R2 → Worker delivery smoke: HTTP 200 through `/media/:id` (run `36178979258`).
-- [~] Remove temporary smoke object / D1 row / temporary workflow and verify clean staging state.
+- [x] Temporary smoke object / D1 row / workflow removed; staging bucket verified empty afterwards.
 - [x] Full Commerce CI: **PASS** — latest run `36176490850` after Replace + coexistence hardening.
 - [x] Dedicated `Product Media Staging Phase 3` deployment workflow with R2 existence gate.
 - [x] Deploy Product Media to staging — workflow `36178631127` / job `108215277892` SUCCESS.
-- [~] iPhone photo upload QA — staging Media is live; owner upload smoke-test is now the remaining live QA.
-- [x] Legacy-image coexistence — regression test verifies `LEGACY_REPO` + `R2` in one Draft gallery; live real-R2 E2E remains blocked.
+- [~] iPhone photo upload QA — staging Media is live; authenticated owner upload/replace/reorder/remove smoke-test is the only remaining Phase 3 live QA.
+- [x] Legacy-image coexistence — 136 live `LEGACY_REPO` records coexisted with a real temporary R2 media row while `/media/:id` returned HTTP 200; temporary R2 row/object then removed.
 
 Exit gate:
 - owner can create a complete product including imagery from Admin,
 - upload / primary / reorder / alt / remove proven on real staging R2,
 - iPhone Photos/camera path visually verified.
 
-**Current status: CODE-COMPLETE FOR CORE MEDIA FLOWS; STAGING RELEASE BLOCKED ONLY BY CLOUDFLARE R2 ACTIVATION.**
+**Current status: DEPLOYED TO STAGING. Core media flows are live; only authenticated owner iPhone QA remains before Phase 3 sign-off.**
 
 ---
 
@@ -271,24 +271,48 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 3 staging deployment + safety verification succeeded
+## Combined owner smoke-test — Phase 2 + Phase 3
 
-Worker version 68 is live on staging with the R2 bucket present. Staging Product Core remains 146 imported products / 0 inventory-tracked variants; Production remains on migrations 0000–0008 with 3 orders. Running a reversible R2 → `/media/:id` integration smoke test now.
+Open the staging Admin on iPhone:
 
-Do **not** create a bucket manually unless desired. Once R2 is enabled, the next automated steps are:
+`https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/admin#products`
 
-1. Create isolated bucket `black-sheep-product-media-staging` in Western Europe.
-2. Verify the staging-only `PRODUCT_MEDIA` binding.
-3. Trigger `Product Media Staging Phase 3`.
-4. Re-run full Commerce CI and Product Core safety gates.
-5. Deploy Worker to staging only.
-6. Upload one controlled image from iPhone.
-7. Verify gallery / Primary / reorder / alt text / remove.
-8. Verify Legacy + R2 image coexistence.
-9. One-click Replace is complete in source; only live R2/iPhone verification remains.
+Use a temporary product so no real catalogue item needs to be changed:
+
+1. **Add product** → title it `STAGING QA PRODUCT`.
+2. Give it a temporary price, category and optional SKU.
+3. Confirm it is a private Draft.
+4. Open **Manage images**.
+5. Choose an image from iPhone Photos or Camera.
+6. Upload it with alt text.
+7. If possible add a second image:
+   - change Primary,
+   - reorder,
+   - edit alt text.
+8. Use **Replace** on one image and confirm position / Primary state remain correct.
+9. Remove one image.
+10. Confirm **Audit history** records the operations.
+11. Publish the Draft inside staging Product Core.
+12. Archive the temporary QA product when finished.
+
+After this owner smoke-test:
+- mark Phase 2 owner mutation QA complete,
+- mark Phase 3 iPhone QA complete,
+- close Phase 3,
+- begin **PHASE 4 — INVENTORY CORE**.
+
+Current verified staging release:
+- Phase 3 workflow `36178631127` / job `108215277892`: SUCCESS.
+- Worker deployment `119d4ceb-2678-40ce-9b43-4c2ede7b3523`.
+- Worker version `19e62702-1fde-48b1-802f-6dbf66e68eb3` / version number 68.
+- R2 bucket `black-sheep-product-media-staging` exists in WEUR.
+- real R2 delivery smoke run `36178979258`: SUCCESS / HTTP 200.
+- smoke data cleaned up; bucket is empty again.
+- staging Product Core remains 146 original products; inventory tracked = 0.
+- Production remains migrations `0000–0008` with 3 orders.
 
 Production remains locked:
 - Product Core migration `0009` is not applied to Production.
-- Production Product Media/R2 is not configured.
+- no Production Product Media/R2 binding exists.
 - Inventory tracking remains disabled.
 - storefront/checkout cutover remains a later phase.
