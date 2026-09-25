@@ -58,7 +58,8 @@
         "ORDER_EMAIL_FROM": "orders@theblacksheepshop.co.uk",
         "ADMIN_BASE_URL": "https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/admin",
         "ORDER_RESERVATIONS_ENABLED": "true",
-        "D1_PUBLIC_CATALOG_ENABLED": "true"
+        "D1_PUBLIC_CATALOG_ENABLED": "true",
+        "D1_COMMERCE_AUTHORITY_ENABLED": "true"
       },
       "ratelimits": [
         {
