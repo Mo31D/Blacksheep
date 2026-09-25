@@ -1,191 +1,485 @@
-# Black Sheep Admin V2 — Execution Checklist
+# Black Sheep Admin V2 — Live Execution Checklist
 
-Updated: 25 September 2026
-Repository: `Mo31D/Blacksheep`
+Updated: 25 September 2026  
+Repository: `Mo31D/Blacksheep`  
 Branch: `main`
 
-This file is the authoritative progress tracker for the professional Admin V2 programme.
+This file is the **authoritative, resumable execution tracker for Admin V2**.
 
-## Current anchor
+## Operating rule
 
-- Latest Admin V2 code anchor: `7427e6e099684e588a94410b03c3a73f9a2d06a2`.
-- Commerce CI run `36085371334`: PASS, including local migration `0003_order_revisions.sql`, TypeScript, tests and Wrangler dry-run.
-- Search Readiness remains unaffected by the owner-side revision foundation.
-- Commerce V1 is live.
-- Public checkout is enabled against `https://api.theblacksheepshop.co.uk`.
-- Existing professional dashboard/reports UI code is on `main`.
-- Admin V2 work must preserve existing production ordering while new capabilities are staged.
-- Detailed priorities: `docs/ADMIN-V2-IMPLEMENTATION-PLAN.md`.
-- Technical contract: `docs/ADMIN-V2-SPEC.md`.
+- Always start from the newest remote `main`.
+- Current code is the source of truth; old handoff prose is historical unless reconfirmed.
+- **Update this checklist in the same milestone that changes implementation state.**
+- Do not begin a new milestone until the previous milestone has:
+  1. code committed,
+  2. relevant automated checks green,
+  3. this checklist updated,
+  4. the exact next action recorded.
+- Do not claim staging/production completion from source inspection alone.
+- Preserve Commerce V1 ordering while Admin V2 is hardened.
+- Never replace current `main` with an older Work/Sites copy.
 
-## P0 — Controls and specification
+## Status legend
 
-- [x] Define operating model: original request → revision → payment → fulfilment.
-- [x] Prioritise implementation phases.
-- [x] Define immutable-original-order rule.
-- [x] Define revision/payment/refund/attention dimensions.
-- [x] Define mobile Admin V2 target UX.
-- [x] Define email and deliverability target.
-- [x] Define staging-before-production release gate.
-- [x] Commit implementation plan.
-- [x] Commit execution specification.
-- [x] Create this resumable checklist.
+- [x] Verified in current repository code/CI
+- [~] Implemented or materially present, but runtime/release verification remains
+- [ ] Not yet complete
+- [!] Blocker / must be resolved before dependent release work
 
-Status: COMPLETE.
+---
 
-## P1A — Revision data foundation
+# CURRENT RELEASE BASELINE
 
-- [x] Add migration for `order_revisions`.
-- [x] Add migration for `order_revision_items`.
-- [x] Add migration for `order_adjustments`.
-- [x] Add indexes and integrity checks.
-- [x] Add revision domain types/validation.
-- [x] Add D1 repository methods.
-- [x] Add automated tests.
-- [x] Confirm local D1 migration through Commerce CI.
+Source anchor at reconstruction start:
 
-Status: COMPLETE IN CODE AND CI. Remote staging migration will be applied at the next guarded staging deploy.
+- `4fc459fa97939f4ba45cd01db5a4be8ac807d038`
+- Commit: `commerce: add explicit reviewed-order adjustments`
+- Search Readiness: PASS at that source anchor.
+- Commerce CI: PASS at that source anchor.
+- GitHub Pages deployment: PASS at that source anchor.
+- Static storefront/search architecture is stable and must not be redesigned during Admin V2 completion.
 
-## P1B — Revision admin API
+Environment facts that must still be recorded:
+
+- [ ] Staging Worker deployed SHA/version.
+- [ ] Production Worker deployed SHA/version.
+- [ ] Staging D1 applied migration level.
+- [ ] Production D1 applied migration level.
+- [ ] Current production Resend webhook configuration state.
+- [ ] Current production Turnstile configuration re-confirmed after the next Worker deployment.
+
+---
+
+# PHASE 0 — CONTROL-PLANE RECONCILIATION
+
+Goal: make project state resumable before adding more behaviour.
+
+- [x] Deep repository audit completed against current `main`.
+- [x] Confirmed old `ADMIN-V2-CHECKLIST.md` materially understated implementation.
+- [x] Confirmed P2/P3/P4/P5/P6/P7 code already exists in current source.
+- [x] Replace stale Admin V2 checklist with this reality-based tracker.
+- [ ] Replace the top of `docs/SESSION-HANDOFF.md` with one truthful current Admin V2 handoff.
+- [ ] Mark/archive obsolete Commerce pre-merge handoff sections so they cannot be mistaken for current state.
+- [ ] Update README current-commerce wording after runtime state is established.
+
+Exit gate:
+- one live checklist,
+- one current handoff,
+- no future session instructed to restart already-built V2 features.
+
+Status: IN PROGRESS.
+
+---
+
+# PHASE 1 — REVISION FOUNDATION
+
+## P1A — Data model
+
+- [x] `order_revisions` migration.
+- [x] `order_revision_items` migration.
+- [x] `order_adjustments` support.
+- [x] Revision version field / optimistic concurrency model.
+- [x] Immutable original-order snapshot preserved.
+- [x] Revision fulfilment migration.
+- [x] Local migrations included in Commerce CI.
+
+## P1B — Revision API
 
 - [x] List revisions.
-- [x] Create draft revision from original order.
+- [x] Create draft from original order.
 - [x] Read revision detail.
-- [x] Update draft reviewed quantities/dispositions for existing requested lines.
-- [x] Update customer message separately from internal note.
-- [x] Send revision.
-- [x] Supersede older sent revision.
-- [x] Accept/decline revision.
-- [x] Add version/concurrency protection.
-- [x] Extend same-origin protection to PATCH/PUT/DELETE admin writes.
-- [x] Add route/auth/same-origin tests.
-- [ ] Add catalogue-backed substitute/add-new-item mutation API; this is intentionally coupled to the P2 workspace so prices remain server-authoritative.
+- [x] Update requested-line quantities/dispositions.
+- [x] Customer message separated from internal note.
+- [x] Catalogue-backed add-item endpoint.
+- [x] Catalogue-backed substitute endpoint.
+- [x] Remove owner-added revision line.
+- [x] Restore original requested line.
+- [x] Send / accept / decline / supersede transition support.
+- [x] Expected-version input and conflict handling.
+- [x] Same-origin protection extended to mutating admin routes.
+- [x] Route-level revision tests exist.
 
-Status: CORE COMPLETE IN CODE AND CI; substitute/add-item mutation is the next P2 integration step.
+## P1C — Explicit adjustments
 
-## P2 — Professional order workspace
+- [x] Discount adjustment.
+- [x] Surcharge adjustment.
+- [x] Manual correction adjustment.
+- [x] Label/reason validation.
+- [x] Final-total recalculation.
+- [x] Audit events for adjustment add/remove.
+- [~] Concurrent same-version write behaviour needs adversarial testing.
+- [~] Adjustment race safety needs explicit test coverage.
 
-- [ ] Integrate revisions into order detail.
-- [ ] Add item availability review controls.
-- [ ] Add reduce/unavailable/substitute/add-item flows.
-- [ ] Add human-readable change summary.
-- [ ] Add revised totals card.
-- [ ] Add context-sensitive sticky primary action.
-- [ ] Move dangerous actions under More actions.
-- [ ] Add mobile action sheets/confirmations.
-- [ ] Verify iPhone Safari.
-- [ ] Verify desktop.
+Status: CODE COMPLETE; CONCURRENCY HARDENING REMAINS.
 
-Status: NOT STARTED.
+---
 
-## P3 — Communication Centre / Email V2
+# PHASE 2 — PROFESSIONAL ORDER WORKSPACE
 
-- [ ] Shared responsive transactional email renderer.
-- [ ] Plain-text renderer.
-- [ ] Availability/revision email.
-- [ ] Revised payment request email.
-- [ ] Payment reminder.
-- [ ] Payment confirmed.
+Current repository evidence shows this phase has already moved well beyond "not started".
+
+## Implemented in code
+
+- [x] Revisions are exposed through admin APIs.
+- [x] Admin catalogue lookup exists.
+- [x] Add-item flow exists.
+- [x] Substitute flow exists.
+- [x] Remove added item exists.
+- [x] Restore original item exists.
+- [x] Reduced/unavailable review semantics exist.
+- [x] Revised totals are calculated server-side.
+- [x] Explicit reviewed-order adjustments exist.
+- [x] Refund summary/actions are wired into admin routes.
+- [x] Customer review-token creation is wired into admin routes.
+- [x] Customer/internal messaging infrastructure exists.
+
+## Still to verify/finish
+
+- [ ] Audit current `commerce/src/admin/ui` against V2 UX specification item by item.
+- [ ] Confirm human-readable change summary is complete for every revision mutation.
+- [ ] Confirm sticky primary action changes correctly by order/revision state.
+- [ ] Confirm dangerous actions are separated from primary actions.
+- [ ] Confirm mobile confirmations/action sheets are complete.
+- [ ] Verify unavailable/reduced/substitute/add/remove/restore on iPhone Safari.
+- [ ] Verify the same flows on desktop.
+- [ ] Verify fulfilment collection↔delivery revision UX end to end.
+
+Status: MATERIAL IMPLEMENTATION PRESENT; UX/E2E VERIFICATION REMAINS.
+
+---
+
+# PHASE 3 — COMMUNICATION CENTRE / EMAIL V2
+
+## Implemented/materially present
+
+- [x] Existing Resend transactional layer.
+- [x] Structured order-message persistence.
+- [x] Customer-facing message support.
+- [x] Internal notes remain separate from customer messages.
+- [x] Payment-request notification path.
+- [x] Payment-confirmed notification path.
+- [x] Lifecycle notification path.
+- [x] Refund notification path.
+- [x] Owner custom-customer-message path.
+- [x] Customer question/message history support.
+
+## Remaining
+
+- [ ] Build a definitive lifecycle-email matrix from current code.
+- [ ] Verify availability/revision email.
+- [ ] Verify revised payment request email.
+- [ ] Verify payment reminder behaviour if supported; implement only if genuinely absent.
+- [ ] Verify preparing email.
+- [ ] Verify ready-for-collection email.
+- [ ] Verify shipped email.
+- [ ] Verify cancellation email.
+- [ ] Verify partial/full refund emails.
+- [ ] Confirm all HTML emails have a usable plain-text equivalent.
+- [ ] Confirm responsive rendering on major mobile clients.
+- [ ] Confirm `Reply-To` uses the intended shop inbox.
+- [ ] Confirm message audit history surfaces useful delivery state.
+
+Status: PARTIALLY COMPLETE; COVERAGE MATRIX + RUNTIME VALIDATION REQUIRED.
+
+---
+
+# PHASE 4 — REFUND / POST-PAYMENT ENGINE
+
+## Implemented in code
+
+- [x] `refunds` migration exists.
+- [x] Refund ledger exists.
+- [x] Partial refund calculation.
+- [x] Full cumulative refund calculation.
+- [x] Over-refund guard.
+- [x] Paid vs fully-refunded payment-state handling.
+- [x] Refund audit event recording.
+- [x] Refund data tests exist.
+- [x] Admin refund route integration exists.
+- [x] Refund notification module exists.
+
+## Remaining
+
+- [ ] Add/refine zero and negative amount tests.
+- [ ] Add duplicate-admin-submission/idempotency test.
+- [ ] Add concurrent-refund race test.
+- [ ] Verify refund-after-completion.
+- [ ] Verify refund-and-cancel.
+- [ ] Verify cumulative partial refunds in real D1.
+- [ ] Verify reporting net revenue after refund.
+- [ ] Staging E2E refund scenario.
+- [ ] Production controlled refund record scenario.
+
+Status: MATERIAL IMPLEMENTATION PRESENT; CONCURRENCY/E2E HARDENING REMAINS.
+
+---
+
+# PHASE 5 — ADVANCED REPORTS
+
+## Implemented/materially present in `admin-reports-v2.ts`
+
+- [x] Gross revenue.
+- [x] Refund totals.
+- [x] Net revenue calculation.
+- [x] Paid/payment-requested counts.
+- [x] Collection vs delivery counts.
+- [x] Revenue/refund trends.
+- [x] Top products.
+- [x] Requested vs confirmed quantities.
+- [x] Lost quantity/value from unavailable/reduced items.
+- [x] Refund reasons.
+- [x] Cancellation reasons.
+- [x] Operational duration metrics.
+- [x] Ageing queues.
+- [x] Email-failure/deliverability queue data.
+
+## Remaining
+
+- [ ] Confirm V2 reports route actually uses V2 report provider everywhere intended.
+- [ ] Compare every planned metric in `ADMIN-V2-SPEC.md` with actual response shape.
+- [ ] Verify quote→payment and payment→ready timing semantics with real event histories.
+- [ ] Verify uncollected ageing thresholds/labels.
+- [ ] Verify revised conversion funnel.
+- [ ] Verify CSV exports; implement only if absent.
+- [ ] Desktop + mobile report UI QA.
+
+Status: SUBSTANTIALLY IMPLEMENTED; CONTRACT/UI VALIDATION REMAINS.
+
+---
+
+# PHASE 6 — SECURE CUSTOMER REVIEW
+
+## Implemented in code
+
+- [x] Customer review token storage.
+- [x] Private review route.
+- [x] Expired/superseded token rejection.
+- [x] Original vs revised item rendering.
+- [x] Customer message.
+- [x] Exact revised total.
+- [x] Accept-and-pay path.
+- [x] Ask-a-question path.
+- [x] Customer contact details not exposed in rendered page.
+- [x] `noindex` / no-referrer protections.
+- [x] Route tests exist.
+
+## Remaining
+
+- [ ] Verify token hashing and expiry implementation against spec.
+- [ ] Add explicit cross-order token isolation test.
+- [ ] Add double-accept test.
+- [ ] Add accept-vs-decline race test.
+- [ ] Verify current-revision-only enforcement under superseded revisions.
+- [ ] Verify decline flow end to end.
+- [ ] Verify payment target always matches accepted revision.
+- [ ] iPhone Safari QA.
+- [ ] Desktop QA.
+
+Status: SUBSTANTIALLY IMPLEMENTED; SECURITY/RACE/E2E VALIDATION REMAINS.
+
+---
+
+# PHASE 7 — EMAIL DELIVERABILITY TELEMETRY
+
+## Implemented in code
+
+- [x] `email_delivery_webhooks` migration exists.
+- [x] Resend webhook route exists.
+- [x] Svix/Resend signature verification path exists.
+- [x] Provider message IDs are tracked.
+- [x] SENT state mapping.
+- [x] DELIVERED state mapping.
+- [x] DELAYED state mapping.
+- [x] BOUNCED state mapping.
+- [x] COMPLAINED state mapping.
+- [x] FAILED/SUPPRESSED state mapping.
+- [x] Duplicate webhook event short-circuit exists.
+- [x] Delivery state updates message records.
+- [x] Order audit events are written for delivery transitions.
+
+## Remaining
+
+- [ ] Add/confirm duplicate webhook automated test.
+- [ ] Verify signed real Resend webhook in staging.
+- [ ] Confirm staging webhook secret.
+- [ ] Confirm production webhook secret.
+- [ ] Confirm SPF.
+- [ ] Confirm DKIM.
+- [ ] Confirm DMARC.
+- [ ] Verify admin warning/attention queue renders delayed/bounced/complained/failed messages usefully.
+- [ ] Verify repeated provider delivery is idempotent in real D1.
+
+Status: CODE SUBSTANTIALLY COMPLETE; PROVIDER/DNS/RUNTIME VERIFICATION REMAINS.
+
+---
+
+# PHASE 8 — CRITICAL AUTOMATED HARDENING
+
+This is the next code milestone.
+
+- [ ] Same-version concurrent revision-mutation test: exactly one winner.
+- [ ] Concurrent add/remove/restore mutation protection test.
+- [ ] Concurrent adjustment protection test.
+- [ ] Concurrent refund protection test.
+- [ ] Customer review accept/decline race test.
+- [ ] Duplicate webhook test.
+- [ ] Migration clean-install test through `0007`.
+- [ ] Migration upgrade-path verification from production-equivalent schema.
+- [ ] `npm run check` PASS after all additions.
+
+Exit gate:
+- no money-affecting action can be duplicated by a stale version/race in the tested model,
+- migrations are deterministic,
+- Commerce CI remains green.
+
+Status: NEXT ACTIVE IMPLEMENTATION PHASE.
+
+---
+
+# PHASE 9 — RELEASE-STATE DISCOVERY
+
+Must happen before claiming Admin V2 is deployed.
+
+- [ ] Record staging Worker SHA/version.
+- [ ] Record production Worker SHA/version.
+- [ ] Record staging D1 migration level.
+- [ ] Record production D1 migration level.
+- [ ] Compare deployed environments against audited source SHA.
+- [ ] Create exact migration/deployment delta.
+- [ ] No production migration until staging passes.
+
+Status: NOT YET VERIFIED.
+
+---
+
+# PHASE 10 — STAGING END-TO-END V2
+
+Run one complete scenario:
+
+- [ ] Submit order.
+- [ ] Start review.
+- [ ] Reduce quantity.
+- [ ] Mark product unavailable.
+- [ ] Substitute product.
+- [ ] Restore original line.
+- [ ] Add extra item.
+- [ ] Remove added item.
+- [ ] Apply discount.
+- [ ] Apply surcharge/manual correction.
+- [ ] Change fulfilment method if supported.
+- [ ] Send revised order to customer.
+- [ ] Customer opens review page.
+- [ ] Customer asks a question.
+- [ ] Customer accepts current revision.
+- [ ] Payment request flow.
+- [ ] Mark paid.
 - [ ] Preparing.
-- [ ] Ready for collection.
-- [ ] Shipped.
-- [ ] Cancellation.
-- [ ] Refund/partial refund.
-- [ ] Custom customer message.
-- [ ] Separate internal notes.
-- [ ] Message audit history.
-- [ ] Reply-To verified to shop inbox.
-
-Status: NOT STARTED.
-
-## P4 — Refund/post-payment engine
-
-- [ ] Add `refunds` ledger migration.
+- [ ] Ready/shipped.
 - [ ] Partial refund.
-- [ ] Full refund.
-- [ ] Refund and cancel.
-- [ ] Refund after completion.
-- [ ] Cumulative refund guard.
-- [ ] Net paid/refunded calculations.
-- [ ] Admin refund UX.
-- [ ] Refund emails.
-- [ ] Automated tests.
-
-Status: NOT STARTED.
-
-## P5 — Advanced reports
-
-- [ ] Net revenue after refunds.
-- [ ] Lost sales/unavailable products.
-- [ ] Requested vs confirmed quantities.
-- [ ] Cancellation reasons.
-- [ ] Refund reasons/values.
-- [ ] Average review time.
-- [ ] Quote-to-payment time.
-- [ ] Payment-to-ready time.
-- [ ] Uncollected ageing.
-- [ ] Email failure queue.
-- [ ] Revised conversion funnel.
-- [ ] CSV exports.
-
-Status: NOT STARTED.
-
-## P6 — Secure customer review page
-
-- [ ] Hashed review tokens.
-- [ ] Expiry.
-- [ ] Current-revision-only enforcement.
-- [ ] Original vs revised comparison.
-- [ ] Customer message.
-- [ ] Exact total.
-- [ ] Accept & pay.
-- [ ] Ask a question.
-- [ ] Decline changes.
-- [ ] Mobile QA.
-
-Status: NOT STARTED.
-
-## P7 — Deliverability telemetry
-
-- [ ] Verify SPF.
-- [ ] Verify DKIM.
-- [ ] Add/verify DMARC.
-- [ ] Resend webhook endpoint.
-- [ ] Verify webhook signatures.
-- [ ] Store provider message ids.
-- [ ] Delivered state.
-- [ ] Delayed state.
-- [ ] Bounced state.
-- [ ] Complained state.
-- [ ] Failed state.
-- [ ] Admin warning/attention queue.
-
-Status: NOT STARTED.
-
-## P8 — Release QA
-
-- [ ] All-items-available scenario.
-- [ ] Unavailable-item scenario.
-- [ ] Reduced-quantity scenario.
-- [ ] Substitute scenario.
-- [ ] Add-item scenario.
-- [ ] Collection→delivery revision.
-- [ ] Delivery→collection revision.
-- [ ] Superseded quote.
-- [ ] Partial refund.
-- [ ] Full refund.
-- [ ] Refund after completion.
-- [ ] Failed email.
-- [ ] Duplicate submission.
-- [ ] Concurrent admin edit.
-- [ ] Mobile Safari.
+- [ ] Full/refund-and-cancel scenario where appropriate.
+- [ ] Verify customer/owner emails.
+- [ ] Verify Resend delivery webhook events.
+- [ ] Verify reports/net figures.
+- [ ] iPhone Safari.
 - [ ] Desktop.
-- [ ] Staging migration/deploy pass.
-- [ ] Production migration/deploy pass.
-- [ ] Final handoff updated.
 
-Status: NOT STARTED.
+Status: WAITING FOR PHASES 8–9.
 
-## Exact next implementation step
+---
 
-Start P2: integrate the revision engine into the professional order workspace. First implement catalogue-backed add/substitute mutations, then the mobile availability-review UI, revised totals/change summary and context-sensitive actions. Do not expose unfinished revision controls to production until the staging migration and P2 flow are verified.
+# PHASE 11 — COMMERCE V1 REMAINING QA
+
+Historical production gaps that should be closed while V2 is staged:
+
+- [ ] Delivery checkout.
+- [ ] Repeat desktop checkout.
+- [ ] Duplicate order submission against real API.
+- [ ] API/network failure preserves basket.
+- [ ] Confirm controlled production test order final lifecycle state.
+
+Status: REMAINS.
+
+---
+
+# PHASE 12 — DOCUMENTATION RESET
+
+- [ ] Rewrite README present architecture only.
+- [ ] Reduce `SESSION-HANDOFF.md` to one current handoff plus archive pointers.
+- [ ] Archive/label `WORK-CHECKLIST.md` as historical for current engineering work.
+- [ ] Keep this file as the single live V2 execution tracker.
+- [ ] Record exact staging/prod Worker versions and migration levels after release work.
+
+Status: STARTED BY THIS CHECKLIST RECONSTRUCTION.
+
+---
+
+# PHASE 13 — GUARDED PRODUCTION RELEASE
+
+Only after staging exit gates pass:
+
+- [ ] Review migration plan.
+- [ ] Apply only required production migrations.
+- [ ] Deploy exact audited source SHA to production Worker.
+- [ ] Verify health.
+- [ ] Verify owner OTP.
+- [ ] Verify admin order workspace on phone.
+- [ ] Verify admin order workspace on desktop.
+- [ ] Run controlled low-value revised-order scenario.
+- [ ] Verify review email/page/payment path.
+- [ ] Verify refund recording.
+- [ ] Verify Resend delivery telemetry.
+- [ ] Record final production Worker version/SHA.
+- [ ] Record final production D1 migration level.
+- [ ] Update this checklist and session handoff.
+
+Status: BLOCKED UNTIL STAGING PASS.
+
+---
+
+# DO NOT TOUCH / PRESERVE
+
+- Canonical static `/products/<slug>.html` architecture.
+- Existing Search Readiness protections.
+- Server-authoritative Commerce catalogue/pricing.
+- Turnstile server verification.
+- Order idempotency.
+- Original customer-order snapshot.
+- Separate revision state rather than rewriting the original order.
+- Internal-note vs customer-message separation.
+- Same-origin admin mutation controls.
+- Expected-version concurrency model.
+- Audit-event history.
+- Separate staging and production D1 databases.
+- Secrets outside source control.
+- Manual payment/refund recording must not be presented as automatic bank movement.
+- Do not delete historical/recovery assets without a reference audit.
+
+---
+
+# EXACT NEXT ACTION
+
+**Phase 8 — Critical automated hardening.**
+
+Start by auditing the actual mutation SQL in:
+
+- `commerce/src/data/order-revisions.ts`
+- `commerce/src/data/refunds.ts`
+- `commerce/src/data/customer-review.ts`
+- `commerce/src/data/email-delivery.ts`
+
+Then add tests proving stale/concurrent operations cannot produce duplicate money/state side effects.
+
+Minimum first milestone:
+
+1. same-version revision write race,
+2. adjustment race,
+3. refund race,
+4. review accept/decline race,
+5. duplicate Resend webhook handling.
+
+After the milestone:
+- run/confirm Commerce CI,
+- update this checklist immediately,
+- record the resulting commit SHA here,
+- then proceed to Phase 9 deployment-state discovery.
