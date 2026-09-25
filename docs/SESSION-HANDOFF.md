@@ -15,7 +15,7 @@
 > - production Worker deployment ID: `2bbc3281-a57a-4cd0-aba5-594dd4563939`
 > - production Worker version: `f4a9ba95-b144-436e-9e4d-808cc5218792`
 > - production D1 ID: `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
-> - production order count after patch: 3
+> - current verified production order count: 4
 > - production health/Admin gates: PASS in the deployment workflow
 > - production secrets remain `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `TURNSTILE_SECRET_KEY`
 > - production Resend webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0` — ENABLED
@@ -54,15 +54,16 @@
 > - `docs/PRODUCT-INVENTORY-ADMIN-MASTERPLAN-2026-09-25.md`
 > - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 > - Phases 1–3 complete on staging.
-> - Phase 4 Inventory Core technically complete; owner OTP/iPad UX re-test remains open.
+> - Phase 4 Inventory Core is COMPLETE ON STAGING; owner confirmed corrected OTP login + iPad portrait UX re-test passed.
 > - Phase 5 Order Reservations is COMPLETE + REAL-STAGING VERIFIED.
-> - Phase 6 storefront/checkout authority remains locked.
+> - Phase 6 is ACTIVE: milestones 6.1–6.4 are COMPLETE + REAL-STAGING VERIFIED; 6.5 storefront overlay is next.
+> - Production Product/Inventory migration and Phase 6 authority remain locked.
 >
 > **PRODUCT / INVENTORY — PHASE 4 INVENTORY CORE LIVE ON STAGING**
 > - Phase 1 Product Core: COMPLETE.
 > - Phase 2 Product Editor + Duplicate + Archive: COMPLETE ON STAGING.
 > - Phase 3 Product Media + R2 + owner iPhone smoke-test: COMPLETE ON STAGING.
-> - Phase 4 Inventory Core: TECHNICALLY + DATA-MUTATION COMPLETE ON STAGING.
+> - Phase 4 Inventory Core: COMPLETE ON STAGING.
 > - Inventory migration: `0010_inventory_core.sql`.
 > - Stock workspace: deployed with Initial Count, Adjust, Physical Count, threshold, history and Stocktake.
 > - Product ↔ Stock deep-links are deployed.
@@ -73,11 +74,11 @@
 > - QA ledger: 4 immutable movements; deployed UPDATE/DELETE triggers directly verified.
 > - active tracked variants after QA archive: 0.
 > - staging totals now include 148 products = 146 imported + 2 archived QA products.
-> - Production remains `0000–0008`, no Product/Inventory tables, 3 orders.
+> - Production remains `0000–0008`, no Product/Inventory tables; current verified order count is 4.
 > - Owner QA exposed two UI defects which are now fixed on staging: OTP verification now reloads the authenticated Admin document, and iPad portrait Orders/Products/Stock detail opens as an immediate overlay up to 900px instead of below the list.
 > - UX fix source: `950849a3a1f66b52546d959f33182f1ecc531596`; Commerce CI `36187771624` SUCCESS; staging release `36187771688` SUCCESS.
 > - Current staging deployment after UX fixes: `6d89ff4c-f1d8-4552-83f1-7cf8113c5a4c`; Worker version `cf42c03a-0371-47c5-a1a7-bde6980f7dd5`.
-> - **only remaining Phase 4 gate:** owner re-test of corrected OTP login + iPad portrait master/detail flow, then archive the UI QA copy.
+> - Owner confirmed the corrected OTP login + iPad portrait master/detail re-test passed on 25 September 2026; the Phase 4 owner UX gate is closed.
 > - Phase 5 Order Reservations is COMPLETE + REAL-STAGING VERIFIED.
 > - Phase 5 staging release workflow `36195902160` — SUCCESS.
 > - staging migration ledger now through `0012_order_returns.sql`.
@@ -88,7 +89,7 @@
 > - retained QA movement evidence: ORDER_RESERVATION 8 / RESERVATION_RELEASE 6 / SALE 2 / RETURN 1.
 > - post-proof live QA authority: 0 ACTIVE/COMMITTED holds, 0 QA balances, 0 active/tracked QA variants.
 > - temporary Phase 5 QA Worker deleted.
-> - Production remains `0000–0008`, 3 orders, no Product/Inventory/Reservation tables, no reservation flag and no cron.
+> - Production remains `0000–0008`, no Product/Inventory/Reservation tables, no reservation flag and no cron; current verified order count is 4.
 > - read:
 >   - `docs/INVENTORY-CORE-PHASE4-STAGING-2026-09-25.md`
 >   - `docs/INVENTORY-CORE-PHASE4-MUTATION-PROOF-2026-09-25.md`
@@ -96,8 +97,23 @@
 >   - `docs/ORDER-RESERVATIONS-PHASE5-STAGING-RELEASE-2026-09-25.md`
 > - tracker: `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 >
-> **NEXT WORK: owner re-test of the corrected OTP/iPad Phase 4 UX fixes, then close the remaining Phase 4 UX gate. After that, prepare the Phase 6 storefront/commerce integration cutover plan.**
-> Do not apply Product/Inventory/Reservation migrations to Production and do not enable Phase 6 checkout/storefront stock authority before a separate cutover gate.
+> **PHASE 6 STOREFRONT / COMMERCE — CURRENT STAGING CHECKPOINT**
+> - implementation plan: `docs/STOREFRONT-COMMERCE-PHASE6-IMPLEMENTATION-PLAN-2026-09-25.md`.
+> - staging foundation report: `docs/STOREFRONT-COMMERCE-PHASE6-STAGING-FOUNDATION-2026-09-25.md`.
+> - milestones 6.1–6.4: COMPLETE + REAL-STAGING VERIFIED.
+> - public D1 routes: `GET /v1/catalog` and `GET /v1/catalog/:id`.
+> - exact generated-static vs D1 parity: 146 / 146 / 0 mismatches.
+> - public/parity workflow `36199480713` — SUCCESS.
+> - D1 checkout + tracked-stock proof workflow `36200073433` — SUCCESS.
+> - real checkout QA run `05d821c4e1`: D1 price persistence, repricing, tracked Available, Reserved reduction, online-ordering override, OUT_OF_STOCK override and Archive behavior all PASS.
+> - current staging Worker deployment `4e358034-e033-472c-a450-a52550058d25`.
+> - current staging Worker version `3603f5da-1521-4c01-8888-65b9ebea0d29`.
+> - staging flags: `D1_PUBLIC_CATALOG_ENABLED=true`, `D1_COMMERCE_AUTHORITY_ENABLED=true`, `ORDER_RESERVATIONS_ENABLED=true`.
+> - temporary Phase 6 QA Worker deleted and synthetic Product/orders/variant/balance cleaned.
+> - Production remains migration `0008_concurrency_guards.sql`, Product/Inventory tables absent, both Phase 6 flags absent, generated static catalogue still Production checkout authority, current orders 4.
+>
+> **NEXT WORK: Phase 6.5 Storefront live overlay with staging-preview mode and static fallback.**
+> Do not apply Product/Inventory/Reservation migrations to Production and do not switch Production commerce authority before the separate Phase 6 production cutover gate.
 
 > **Do not rerun migrations `0003–0008`. Any future Worker deployment must correspond to an intentional new runtime/catalogue change and pass Commerce CI first.**
 
