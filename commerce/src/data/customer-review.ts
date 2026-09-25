@@ -60,6 +60,11 @@ export interface CustomerReviewSnapshot {
     unitPriceMinor: number;
     lineTotalMinor: number;
   }>;
+  adjustments: Array<{
+    kind: string;
+    label: string;
+    amountMinor: number;
+  }>;
 }
 
 async function allRows<T>(statement: D1PreparedStatementLike): Promise<T[]> {
@@ -254,7 +259,7 @@ export async function getCustomerReview(
   const row = await findReviewRow(db, token);
   if (!row) return null;
 
-  const [originalItems, revisedItems] = await Promise.all([
+  const [originalItems, revisedItems, adjustments] = await Promise.all([
     allRows<{
       lineNumber: number;
       productName: string;
@@ -303,6 +308,23 @@ export async function getCustomerReview(
         )
         .bind(row.revisionId),
     ),
+    allRows<{
+      kind: string;
+      label: string;
+      amountMinor: number;
+    }>(
+      db
+        .prepare(
+          `SELECT
+            kind,
+            label,
+            amount_minor AS amountMinor
+          FROM order_adjustments
+          WHERE revision_id = ?
+          ORDER BY id ASC`,
+        )
+        .bind(row.revisionId),
+    ),
   ]);
 
   await db
@@ -348,6 +370,10 @@ export async function getCustomerReview(
       confirmedQuantity: Number(item.confirmedQuantity),
       unitPriceMinor: Number(item.unitPriceMinor),
       lineTotalMinor: Number(item.lineTotalMinor),
+    })),
+    adjustments: adjustments.map((adjustment) => ({
+      ...adjustment,
+      amountMinor: Number(adjustment.amountMinor),
     })),
   };
 }
