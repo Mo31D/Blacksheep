@@ -120,6 +120,8 @@ async function route(request: Request, env: Env): Promise<Response> {
           env.D1_PUBLIC_CATALOG_ENABLED === "true"
             ? "d1-published-v1"
             : null,
+        commerceAuthority:
+          env.D1_COMMERCE_AUTHORITY_ENABLED === "true",
       },
       notifications: {
         provider: env.RESEND_API_KEY ? "resend" : "unconfigured",
