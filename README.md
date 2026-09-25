@@ -28,8 +28,14 @@ Home · Gifts & Souvenirs · Ice Cream · Romney's · Hawkshead Relish · Full r
 
 Gift-category selection lives inside `gifts.html`; there is no nested Gifts menu.
 
-## My list
-**My list** is a lightweight pre-visit planning feature stored in browser localStorage. It is not checkout, payment or online ordering. Removed/stale catalogue items are pruned from saved lists automatically.
+## Basket and order-request flow
+The storefront now includes a persistent browser basket backed by the current catalogue, plus `basket.html`, checkout details and `order-requested.html`.
+
+- Adding an item uses the current server-authoritative catalogue identity/price model.
+- The customer submits an **order request**; no payment is taken at submission.
+- The Commerce Worker accepts `POST /v1/orders` with validation, Turnstile verification, idempotency and D1 persistence.
+- Availability, reviewed quantities, fulfilment changes and the final amount are confirmed before payment.
+- Admin V2 review/refund/reporting work is tracked separately in `docs/ADMIN-V2-CHECKLIST.md`; staging completion must not be mistaken for a production Admin V2 release.
 
 ## SEO
 - Production `CNAME` is set to `theblacksheepshop.co.uk`.
@@ -43,7 +49,13 @@ Gift-category selection lives inside `gifts.html`; there is no nested Gifts menu
 Active Peter Rabbit/Highland Cow collection views now use the smaller real product WebP files where possible. Many old numbered PNG placeholders and recovery assets remain in the repository for history/recovery but are not part of the active catalogue.
 
 ## Current publishing rule
-GitHub `main` is the source of truth. Preserve newer commits; do not restore the old broad placeholder catalogue, the old nested Gifts menu, or checkout functionality unless the owner explicitly requests it.
+GitHub `main` is the source of truth. Preserve newer commits; do not restore the old broad placeholder catalogue or old nested Gifts menu. Preserve the current basket/order-request architecture, and do not turn it into automatic card checkout or overwrite the staged Admin V2 flow unless the owner explicitly requests that change.
+
+## Commerce runtime boundary
+- Static storefront files and product pages remain on the website layer.
+- The separate `commerce/` Worker handles order API, admin routes, secure customer review and Resend webhook routes.
+- Customer order submission and Admin V2 release state are deliberately tracked separately.
+- Production Admin V2 must only move forward through the guarded release checklist; current staging success does not authorize a production migration/deploy.
 
 ## Search architecture rule
 - Keep `assets/catalog.js` as the catalogue data source, but do not make indexable product content depend on client-side rendering.
