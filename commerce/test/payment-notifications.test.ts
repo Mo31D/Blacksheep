@@ -69,7 +69,7 @@ describe("payment notifications", () => {
     expect(sent[0].text).toContain(order.paymentRequestUrl);
     expect(sent[0].text).toContain(order.fulfilmentMessage);
     expect(sent[0].text).toContain("delivery-returns.html");
-    expect(sent[0].text).toContain("places the order");
+    expect(sent[0].text).toContain("Paying confirms the reviewed order");
     expect(sent[0].to).toMatchObject({ email: order.customerEmail });
     expect(db.statements[0].values[1]).toBe("PAYMENT_REQUEST_EMAIL_SENT");
   });
@@ -135,7 +135,7 @@ describe("payment notifications", () => {
 
     expect(sent).toHaveLength(1);
     expect(sent[0].subject).toContain("Payment received");
-    expect(sent[0].text).toContain("order is now confirmed");
+    expect(sent[0].text).toContain("Your order is confirmed");
     expect(db.statements[0].values[1]).toBe("PAYMENT_CONFIRMED_EMAIL_SENT");
   });
 });
