@@ -8,6 +8,22 @@ on:
       - "commerce/migrations/0011_order_reservations.sql"
       - "commerce/scripts/test-migration-upgrade.mjs"
       - "commerce/scripts/test-order-reservations.mjs"
+      - "commerce/src/data/order-reservations.ts"
+      - "commerce/src/data/order-revisions.ts"
+      - "commerce/src/data/customer-review.ts"
+      - "commerce/src/data/admin-orders.ts"
+      - "commerce/src/routes/admin.ts"
+      - "commerce/src/routes/customer-review.ts"
+      - "commerce/src/index.ts"
+      - "commerce/test/order-reservations.test.ts"
+      - "commerce/test/order-reservation-transitions.test.ts"
+      - "commerce/test/order-reservation-expiry.test.ts"
+      - "commerce/test/customer-review-reservations.test.ts"
+      - "commerce/test/customer-review-expiry.test.ts"
+      - "commerce/test/admin-order-reservations.test.ts"
+      - "commerce/test/admin-revision-routes.test.ts"
+      - "commerce/test/health.test.ts"
+      - "commerce/wrangler.jsonc"
       - "commerce/package.json"
       - ".github/workflows/order-reservations-staging.yml"
 
@@ -44,15 +60,34 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
 
+      - name: Verify reservation feature is staging-only in source config
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require("fs");
+          const config = JSON.parse(fs.readFileSync("wrangler.jsonc", "utf8"));
+          const production = config.vars || {};
+          const staging = config.env?.staging?.vars || {};
+          if (production.ORDER_RESERVATIONS_ENABLED === "true") {
+            console.error("Production reservation feature must remain disabled.", production);
+            process.exit(1);
+          }
+          if (staging.ORDER_RESERVATIONS_ENABLED !== "true") {
+            console.error("Staging reservation feature must be explicitly enabled.", staging);
+            process.exit(1);
+          }
+          console.log("Feature configuration gate passed: staging enabled, Production disabled.");
+          NODE
+
       - name: Run full Commerce validation
         run: npm run check
 
-      - name: Capture staging reservation baseline
+      - name: Capture staging Phase 5 runtime baseline
         shell: bash
         run: |
           npx wrangler d1 execute black-sheep-commerce-staging \
             --remote --env staging --json \
-            --command "SELECT COUNT(*) AS products FROM products; SELECT COUNT(*) AS imported FROM product_audit_events WHERE event_type='PRODUCT_IMPORTED'; SELECT COUNT(*) AS tracked FROM product_variants WHERE track_inventory=1; SELECT COUNT(*) AS balances FROM inventory_balances; SELECT COUNT(*) AS movements FROM inventory_movements; SELECT COUNT(*) AS incoming FROM inventory_incoming; SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT COUNT(*) AS reservation_tables FROM sqlite_master WHERE type='table' AND name IN ('inventory_reservations','inventory_reservation_items');" \
+            --command "SELECT COUNT(*) AS products FROM products; SELECT COUNT(*) AS imported FROM product_audit_events WHERE event_type='PRODUCT_IMPORTED'; SELECT COUNT(*) AS tracked FROM product_variants WHERE track_inventory=1; SELECT COUNT(*) AS balances FROM inventory_balances; SELECT COUNT(*) AS movements FROM inventory_movements; SELECT COUNT(*) AS incoming FROM inventory_incoming; SELECT COUNT(*) AS reservations FROM inventory_reservations; SELECT COUNT(*) AS reservation_items FROM inventory_reservation_items; SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1;" \
             > /tmp/reservation-pre.json
           cat /tmp/reservation-pre.json
           node - /tmp/reservation-pre.json /tmp/reservation-pre-baseline.json <<'NODE'
@@ -66,23 +101,20 @@ jobs:
             balances: scalar(3, "balances"),
             movements: scalar(4, "movements"),
             incoming: scalar(5, "incoming"),
-            latestMigration: String(blocks?.[6]?.results?.[0]?.name ?? ""),
-            reservationTables: scalar(7, "reservation_tables"),
+            reservations: scalar(6, "reservations"),
+            reservationItems: scalar(7, "reservation_items"),
+            latestMigration: String(blocks?.[8]?.results?.[0]?.name ?? ""),
           };
           if (baseline.products < 146 || baseline.imported !== 146) {
             console.error("Product Core baseline is incomplete.", baseline);
             process.exit(1);
           }
-          if (!["0010_inventory_core.sql", "0011_order_reservations.sql"].includes(baseline.latestMigration)) {
-            console.error("Unexpected staging migration baseline.", baseline);
-            process.exit(1);
-          }
-          if (baseline.latestMigration === "0010_inventory_core.sql" && baseline.reservationTables !== 0) {
-            console.error("Reservation tables exist before 0011.", baseline);
+          if (baseline.latestMigration !== "0011_order_reservations.sql") {
+            console.error("Staging must already be on 0011 before runtime activation.", baseline);
             process.exit(1);
           }
           fs.writeFileSync(process.argv[3], JSON.stringify(baseline));
-          console.log("Reservation pre-migration baseline captured.", baseline);
+          console.log("Phase 5 runtime baseline captured.", baseline);
           NODE
 
       - name: Apply Reservation Foundation migration to staging only
@@ -115,14 +147,10 @@ jobs:
             triggers: (blocks?.[10]?.results || []).map(x => x.name),
           };
           const failures = [];
-          for (const key of ["products","imported","tracked","balances","movements","incoming"]) {
-            if (after[key] !== before[key]) failures.push(key + " changed during schema migration");
+          for (const key of ["products","imported","tracked","balances","movements","incoming","reservations","reservationItems"]) {
+            if (after[key] !== before[key]) failures.push(key + " changed during idempotent migration check");
           }
           if (after.latestMigration !== "0011_order_reservations.sql") failures.push("0011 not latest migration");
-          if (before.latestMigration === "0010_inventory_core.sql" &&
-              (after.reservations !== 0 || after.reservationItems !== 0)) {
-            failures.push("0011 invented reservation rows");
-          }
           for (const required of [
             "idx_inventory_reservations_idempotency",
             "idx_inventory_reservations_state_expiry",
@@ -166,24 +194,33 @@ jobs:
           console.log("Production remains isolated.", { latest, orders });
           NODE
 
-      - name: Verify staging Worker remains healthy
+      - name: Deploy reservation-aware Worker to staging only
+        run: npx wrangler deploy --env staging
+
+      - name: Verify staging Worker reservation mode and health
         shell: bash
         run: |
           HEALTH="$(curl --fail --silent --show-error --max-time 30 https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/health)"
           echo "$HEALTH"
           node - "$HEALTH" <<'NODE'
           const health = JSON.parse(process.argv[2]);
-          if (health.status !== "ok" || health.environment !== "staging" || health.database !== "bound") {
-            console.error("Staging health gate failed.", health);
+          if (
+            health.status !== "ok" ||
+            health.environment !== "staging" ||
+            health.database !== "bound" ||
+            health.features?.orderReservations !== true
+          ) {
+            console.error("Staging reservation runtime gate failed.", health);
             process.exit(1);
           }
-          console.log("Staging health gate passed.");
+          console.log("Staging reservation runtime gate passed.");
           NODE
 
       - name: Safety statement
         if: always()
         run: |
-          echo "Phase 5 schema target: staging only."
-          echo "0011 creates reservation structures but no reservation rows or stock holds."
+          echo "Phase 5 runtime target: staging only."
+          echo "ORDER_RESERVATIONS_ENABLED=true exists only under env.staging vars."
           echo "No Production migration or Worker deploy is run."
+          echo "Production remains pre-Product-Core at migration 0008."
           echo "No Phase 6 storefront/checkout inventory cutover is performed."
