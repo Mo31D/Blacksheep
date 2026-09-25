@@ -173,18 +173,21 @@ Exit gate:
 
 # PHASE 4 — INVENTORY CORE
 
-- [x] Locations foundation — Ambleside location already exists from Product Core.
-- [~] Inventory balances — implementation starting in migration `0010`.
-- [~] Immutable movements — implementation starting in migration `0010`.
-- [~] Initial counts — implementation starting.
-- [ ] Quick stock adjustment.
-- [ ] Adjustment reason.
-- [ ] Low-stock threshold.
-- [ ] Available/on-hand/reserved/incoming UI.
-- [ ] Inventory history.
-- [ ] Bulk count.
-- [ ] Out-of-stock behavior.
-- [ ] Staging concurrency tests.
+- [x] Locations foundation + authenticated location API — Ambleside is the initial active location.
+- [x] Inventory balances — additive migration `0010_inventory_core.sql`; no quantities inferred.
+- [x] Immutable movements — append-only ledger with UPDATE/DELETE blocking triggers.
+- [x] Initial Count — explicitly enables tracking and creates the first balance/movement.
+- [x] Quick stock adjustment — delta-based; Available is never directly editable.
+- [x] Adjustment reason — required controlled reason code + optional owner note.
+- [x] Low-stock threshold — operational variant field editable from Stock.
+- [x] Available / On hand / Reserved / Incoming UI — dedicated premium Stock workspace.
+- [x] Inventory history — immutable movement timeline per variant/location.
+- [x] Bulk Count — iPhone-first Save & next stocktake with explicit success/conflict/unchanged results.
+- [x] Out-of-stock behavior inside Inventory Core — tracked Available=0 is surfaced as Out; checkout/storefront cutover remains Phase 6.
+- [x] Staging concurrency/idempotency test suite in source — UUID mutation tokens, balance versions, unique Initial Count, unique idempotency keys.
+- [x] Full Commerce CI after Phase 4 implementation — run `36182963561` SUCCESS.
+- [~] Apply `0010` + deploy Stock workspace to staging through a dedicated safety-gated workflow.
+- [ ] Controlled owner Phase 4 stock smoke-test on a staging QA product.
 
 Exit gate:
 - every quantity change is explainable from the ledger.
@@ -271,27 +274,29 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 4 — Inventory Core implementation
+## Phase 4 — gated staging release
 
-Owner Product + Media staging QA is complete.
+Phase 4 source is CI-clean. Next:
 
-Execute Phase 4 on **staging only**:
+1. Create dedicated `Inventory Core Staging Phase 4` workflow.
+2. Before migration, record current staging Product/Inventory baseline.
+3. Re-run full Commerce CI.
+4. Apply forward-only `0010_inventory_core.sql` to **staging only**.
+5. Verify migration itself did not infer or enable any stock quantity.
+6. Verify immutable ledger triggers / idempotency / Initial Count uniqueness.
+7. Deploy the Stock workspace/API to staging only.
+8. Verify Worker health and Admin shell.
+9. Re-check Production still stops at migration `0008` and its order data is unchanged.
+10. Owner performs one controlled QA sequence:
+   - Initial Count,
+   - Adjustment,
+   - Physical Count,
+   - Low-stock threshold,
+   - Inventory History,
+   - Bulk Stocktake.
 
-1. Add forward-only migration `0010_inventory_core.sql`.
-2. Create `inventory_balances`, immutable `inventory_movements`, and `inventory_incoming`.
-3. Keep all existing variants inventory-untracked until an explicit Initial Count.
-4. Implement Initial Count with idempotency and optimistic concurrency.
-5. Implement Quick Adjustment with mandatory reason and no arbitrary Available write.
-6. Implement Physical Count/correction.
-7. Implement Low-stock threshold.
-8. Build Stock board: On hand / Reserved / Available / Incoming / Untracked / Low / Out.
-9. Add immutable Inventory history.
-10. Add Bulk Count with explicit success/conflict/unchanged results.
-11. Add staging concurrency/idempotency tests.
-12. Deploy to staging only and perform controlled inventory smoke-test.
-
-Safety locks:
-- no Phase 5 order reservation integration yet,
-- no checkout/storefront inventory authority yet,
-- no Production Product Core or Inventory migration,
+Safety locks remain:
+- no Phase 5 reviewed-order reservations yet,
+- no Phase 6 storefront/checkout inventory authority yet,
+- no Production Product Core/Inventory migration,
 - no inferred stock quantities for existing products.
