@@ -1,5 +1,9 @@
 import type { D1DatabaseLike } from "../data/d1";
 import { recordOrderEvent } from "../data/order-events";
+import {
+  providerMessageIdFromResult,
+  recordOutboundEmailAudit,
+} from "../data/email-messages";
 import { resolveEmailSender, type EmailProviderEnv } from "./email-provider";
 import { emailMoney, escapeEmailHtml, renderTransactionalEmail } from "./email-template";
 import type { PaymentNotificationSnapshot } from "./payment";
@@ -103,23 +107,56 @@ export async function notifyRefundRecorded(
     ? "REFUND_CANCELLATION_EMAIL"
     : "REFUND_EMAIL";
 
+  const subject =
+    (refund.cancelled
+      ? "Refund and cancellation"
+      : refund.fullyRefunded
+        ? "Refund recorded"
+        : "Partial refund recorded") +
+    " · " +
+    order.publicReference;
+
   for (let attemptNumber = 1; attemptNumber <= 2; attemptNumber += 1) {
+    let result: unknown;
     try {
-      await resolved.sender.send({
+      result = await resolved.sender.send({
         from: { email: env.ORDER_EMAIL_FROM, name: "The Black Sheep Shop" },
         to: { email: order.customerEmail, name: order.customerName },
         replyTo: { email: env.ORDER_EMAIL_FROM, name: "The Black Sheep Shop" },
-        subject:
-          (refund.cancelled
-            ? "Refund and cancellation"
-            : refund.fullyRefunded
-              ? "Refund recorded"
-              : "Partial refund recorded") +
-          " · " +
-          order.publicReference,
+        subject,
         text: message.text,
         html: message.html,
       });
+    } catch {
+      if (attemptNumber === 2) {
+        try {
+          await recordOrderEvent(env.DB, {
+            orderId: order.id,
+            eventType: eventPrefix + "_FAILED",
+            metadata: {
+              provider: resolved.provider,
+              attempts: attemptNumber,
+              refundId: refund.refundId,
+              amountMinor: refund.amountMinor,
+              error: "send_failed",
+            },
+          });
+          await recordOutboundEmailAudit(env.DB, {
+            orderId: order.id,
+            subject,
+            body: message.text,
+            provider: resolved.provider,
+            deliveryStatus: "FAILED",
+          });
+        } catch {
+          // Preserve the provider failure even if audit storage is unavailable.
+        }
+      }
+      continue;
+    }
+
+    const providerMessageId = providerMessageIdFromResult(result);
+    try {
       await recordOrderEvent(env.DB, {
         orderId: order.id,
         eventType: eventPrefix + "_SENT",
@@ -128,23 +165,20 @@ export async function notifyRefundRecorded(
           attempts: attemptNumber,
           refundId: refund.refundId,
           amountMinor: refund.amountMinor,
+          providerMessageId,
         },
       });
-      return;
+      await recordOutboundEmailAudit(env.DB, {
+        orderId: order.id,
+        subject,
+        body: message.text,
+        provider: resolved.provider,
+        providerMessageId,
+        deliveryStatus: "SENT",
+      });
     } catch {
-      if (attemptNumber === 2) {
-        await recordOrderEvent(env.DB, {
-          orderId: order.id,
-          eventType: eventPrefix + "_FAILED",
-          metadata: {
-            provider: resolved.provider,
-            attempts: attemptNumber,
-            refundId: refund.refundId,
-            amountMinor: refund.amountMinor,
-            error: "send_failed",
-          },
-        });
-      }
+      // Never send the customer a duplicate refund message because audit storage failed.
     }
+    return;
   }
 }
