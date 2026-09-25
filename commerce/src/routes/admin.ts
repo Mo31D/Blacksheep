@@ -9,9 +9,11 @@ import {
 } from "../data/admin-orders";
 import { validateAdminOrderAction } from "../domain/admin-order";
 import {
+  addCatalogItemToDraftRevision,
   createDraftRevisionFromOriginal,
   getOrderRevisionDetail,
   listOrderRevisions,
+  substituteDraftRevisionLine,
   transitionOrderRevision,
   updateDraftRevision,
 } from "../data/order-revisions";
@@ -38,6 +40,8 @@ interface AdminDependencies {
   createDraftRevisionFromOriginalFn: typeof createDraftRevisionFromOriginal;
   getOrderRevisionDetailFn: typeof getOrderRevisionDetail;
   updateDraftRevisionFn: typeof updateDraftRevision;
+  addCatalogItemToDraftRevisionFn: typeof addCatalogItemToDraftRevision;
+  substituteDraftRevisionLineFn: typeof substituteDraftRevisionLine;
   transitionOrderRevisionFn: typeof transitionOrderRevision;
 }
 
@@ -47,6 +51,8 @@ const defaults: AdminDependencies = {
   createDraftRevisionFromOriginalFn: createDraftRevisionFromOriginal,
   getOrderRevisionDetailFn: getOrderRevisionDetail,
   updateDraftRevisionFn: updateDraftRevision,
+  addCatalogItemToDraftRevisionFn: addCatalogItemToDraftRevision,
+  substituteDraftRevisionLineFn: substituteDraftRevisionLine,
   transitionOrderRevisionFn: transitionOrderRevision,
 };
 
@@ -274,6 +280,106 @@ export async function handleAdminRequest(
             ? 409
             : 400;
       return error(code, status, status === 409 ? "Revision changed. Reload before editing again." : "Unable to update revision.");
+    }
+  }
+
+  const revisionAddItemMatch = url.pathname.match(
+    /^\/admin\/api\/orders\/([^/]+)\/revisions\/([^/]+)\/items$/,
+  );
+  if (revisionAddItemMatch && request.method === "POST") {
+    const reference = decodeURIComponent(revisionAddItemMatch[1]);
+    const revisionId = decodeURIComponent(revisionAddItemMatch[2]);
+
+    let raw: unknown;
+    try {
+      raw = await readJson(request);
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "admin_invalid_request";
+      return error(code, code === "admin_payload_too_large" ? 413 : 400, "Invalid revision item.");
+    }
+
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return error("revision_invalid_item", 400, "Invalid revision item.");
+    }
+
+    try {
+      const revision = await deps.addCatalogItemToDraftRevisionFn(
+        env.DB,
+        reference,
+        revisionId,
+        raw as Parameters<typeof addCatalogItemToDraftRevision>[3],
+        identity.email,
+      );
+      return json({ revision }, 201);
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "revision_item_add_failed";
+      const status =
+        code === "revision_not_found"
+          ? 404
+          : code === "revision_version_conflict" ||
+              code === "revision_not_draft" ||
+              code === "revision_product_already_present"
+            ? 409
+            : code === "catalog_product_not_found" ||
+                code === "catalog_product_not_purchasable" ||
+                code === "arriving_soon" ||
+                code === "out_of_stock" ||
+                code === "price_unavailable"
+              ? 409
+              : 400;
+      return error(code, status, status === 409 ? "The draft changed or that product cannot be added." : "Unable to add product.");
+    }
+  }
+
+  const revisionSubstituteMatch = url.pathname.match(
+    /^\/admin\/api\/orders\/([^/]+)\/revisions\/([^/]+)\/items\/(\d+)\/substitute$/,
+  );
+  if (revisionSubstituteMatch && request.method === "POST") {
+    const reference = decodeURIComponent(revisionSubstituteMatch[1]);
+    const revisionId = decodeURIComponent(revisionSubstituteMatch[2]);
+    const lineNumber = Number(revisionSubstituteMatch[3]);
+
+    let raw: unknown;
+    try {
+      raw = await readJson(request);
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "admin_invalid_request";
+      return error(code, code === "admin_payload_too_large" ? 413 : 400, "Invalid substitute item.");
+    }
+
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return error("revision_invalid_item", 400, "Invalid substitute item.");
+    }
+
+    try {
+      const revision = await deps.substituteDraftRevisionLineFn(
+        env.DB,
+        reference,
+        revisionId,
+        {
+          ...(raw as Record<string, unknown>),
+          lineNumber,
+        } as Parameters<typeof substituteDraftRevisionLine>[3],
+        identity.email,
+      );
+      return json({ revision });
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "revision_substitute_failed";
+      const status =
+        code === "revision_not_found" || code === "revision_unknown_line"
+          ? 404
+          : code === "revision_version_conflict" ||
+              code === "revision_not_draft" ||
+              code === "revision_substitute_must_change_product"
+            ? 409
+            : code === "catalog_product_not_found" ||
+                code === "catalog_product_not_purchasable" ||
+                code === "arriving_soon" ||
+                code === "out_of_stock" ||
+                code === "price_unavailable"
+              ? 409
+              : 400;
+      return error(code, status, status === 409 ? "The draft changed or that substitute cannot be used." : "Unable to substitute product.");
     }
   }
 
