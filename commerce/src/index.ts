@@ -19,6 +19,7 @@ interface Env {
   ORDER_EMAIL_FROM?: string;
   ORDER_OWNER_EMAIL?: string;
   PRODUCT_MEDIA?: R2BucketLike;
+  ORDER_RESERVATIONS_ENABLED?: string;
 }
 
 const SERVICE = "black-sheep-commerce-api";
