@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0010_")) {
+  if (!latestMigration?.startsWith("0011_")) {
     throw new Error(
-      `Expected latest migration to be 0010, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0011, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0009_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0009.");
+  if (baselineMigrations.at(-1)?.startsWith("0010_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0010.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -121,6 +121,8 @@ try {
     "SELECT variant_id, location_id, on_hand, reserved, safety_stock, version, mutation_token FROM inventory_balances LIMIT 0",
     "SELECT movement_type, on_hand_delta, reserved_delta, reason_code, idempotency_key FROM inventory_movements LIMIT 0",
     "SELECT expected_quantity, received_quantity, status, version FROM inventory_incoming LIMIT 0",
+    "SELECT order_id, revision_id, location_id, state, expires_at, version, mutation_token, idempotency_key FROM inventory_reservations LIMIT 0",
+    "SELECT reservation_id, revision_item_id, variant_id, quantity FROM inventory_reservation_items LIMIT 0",
   ];
 
   for (const sql of schemaQueries) {
@@ -148,7 +150,7 @@ try {
     "--persist-to",
     persistDir,
     "--command",
-    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status') ORDER BY name",
+    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant') ORDER BY name",
   ]);
 
   for (const required of [
@@ -159,6 +161,9 @@ try {
     "idx_inventory_movements_initial_count",
     "idx_inventory_movements_variant_created",
     "idx_inventory_incoming_variant_status",
+    "idx_inventory_reservations_idempotency",
+    "idx_inventory_reservations_state_expiry",
+    "idx_inventory_reservation_items_variant",
   ]) {
     if (!indexOutput.includes(required)) {
       throw new Error(`Required index missing after upgrade: ${required}`);
@@ -203,8 +208,29 @@ try {
     }
   }
 
+  const reservationGuards = runWrangler([
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    configPath,
+    "--persist-to",
+    persistDir,
+    "--command",
+    "SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('inventory_reservation_items_immutable_update','inventory_reservation_items_immutable_delete') ORDER BY name",
+  ]);
+  for (const required of [
+    "inventory_reservation_items_immutable_update",
+    "inventory_reservation_items_immutable_delete",
+  ]) {
+    if (!reservationGuards.includes(required)) {
+      throw new Error(`Immutable reservation-item trigger missing: ${required}`);
+    }
+  }
+
   console.log(
-    "PASS: migrations 0000–0009 upgraded cleanly to 0010 and Inventory Core schema is present.",
+    "PASS: migrations 0000–0010 upgraded cleanly to 0011 and Reservation Foundation schema is present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
