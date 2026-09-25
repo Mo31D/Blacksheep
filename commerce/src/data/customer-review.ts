@@ -174,7 +174,8 @@ export async function createCustomerReviewToken(
       `SELECT
         o.id AS orderId,
         r.id AS revisionId,
-        r.revision_number AS revisionNumber
+        r.revision_number AS revisionNumber,
+        r.expires_at AS revisionExpiresAt
       FROM orders o
       INNER JOIN order_revisions r ON r.id = (
         SELECT r2.id
@@ -189,7 +190,12 @@ export async function createCustomerReviewToken(
       LIMIT 1`,
     )
     .bind(reference)
-    .first<{ orderId: string; revisionId: string; revisionNumber: number }>();
+    .first<{
+      orderId: string;
+      revisionId: string;
+      revisionNumber: number;
+      revisionExpiresAt: string | null;
+    }>();
 
   if (!revision) throw new Error("review_revision_not_available");
 
@@ -199,9 +205,16 @@ export async function createCustomerReviewToken(
   const id = crypto.randomUUID();
   const now = new Date();
   const createdAt = now.toISOString();
-  const expiresAt = new Date(
+  const fallbackExpiresAt = new Date(
     now.getTime() + safeTtl * 60 * 60 * 1000,
   ).toISOString();
+  const revisionExpiry = revision.revisionExpiresAt
+    ? Date.parse(revision.revisionExpiresAt)
+    : NaN;
+  if (revision.revisionExpiresAt && (!Number.isFinite(revisionExpiry) || revisionExpiry <= now.getTime())) {
+    throw new Error("review_revision_expired");
+  }
+  const expiresAt = revision.revisionExpiresAt || fallbackExpiresAt;
 
   await db.batch([
     db
