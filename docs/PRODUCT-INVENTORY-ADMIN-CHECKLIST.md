@@ -156,8 +156,8 @@ Evidence:
 - [x] Immutable media-delivery route tests.
 - [x] Full Commerce CI: **PASS** — latest run `36176490850` after Replace + coexistence hardening.
 - [x] Dedicated `Product Media Staging Phase 3` deployment workflow with R2 existence gate.
-- [~] Deploy Product Media to staging — R2 enabled and bucket created; gated Phase 3 release starting now.
-- [!] iPhone photo upload QA — blocked until the same R2 activation.
+- [x] Deploy Product Media to staging — workflow `36178631127` / job `108215277892` SUCCESS.
+- [~] iPhone photo upload QA — staging Media is live; owner upload smoke-test is now the remaining live QA.
 - [x] Legacy-image coexistence — regression test verifies `LEGACY_REPO` + `R2` in one Draft gallery; live real-R2 E2E remains blocked.
 
 Exit gate:
@@ -269,9 +269,9 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## R2 enabled — staging release in progress
+## Phase 3 staging deployment succeeded — post-release verification in progress
 
-Cloudflare R2 is now enabled. Creating and validating the isolated staging media bucket.
+R2 bucket exists and the gated Product Media workflow completed successfully. Verifying deployed Worker bindings, D1 state and Production isolation now.
 
 Do **not** create a bucket manually unless desired. Once R2 is enabled, the next automated steps are:
 
