@@ -1,7 +1,7 @@
 # Black Sheep — Phase 6 Storefront / Commerce Integration Plan
 
 **Date:** 25 September 2026  
-**Status:** ACTIVE — architecture/cutover locked before authority switch  
+**Status:** ACTIVE — milestones 6.1–6.4 COMPLETE + REAL-STAGING VERIFIED; 6.5 next  
 **Target:** staging first  
 **Production:** unchanged until a separate cutover gate
 
@@ -16,7 +16,8 @@ Phase 6 is a staged authority cutover, not a storefront redesign.
 Current static/generated commerce baseline:
 - generated commerce catalogue: **146 products**,
 - source remains `assets/catalog.js`,
-- Worker pricing currently uses `commerce/src/generated/catalog.ts`,
+- Production Worker pricing still uses `commerce/src/generated/catalog.ts`,
+- staging checkout now uses D1 Product/Inventory authority behind an explicit staging-only flag,
 - `priceRequestedCart()` currently validates against that generated static catalogue.
 
 Current staging D1 baseline:
@@ -34,6 +35,23 @@ Production remains:
 - latest migration `0008_concurrency_guards.sql`,
 - no Product/Inventory/Reservation tables,
 - generated static catalogue remains commerce authority.
+
+## 2A. Verified staging foundation — 25 September 2026
+
+Milestones 6.1–6.4 are complete on staging.
+
+Evidence:
+- public D1 catalogue/parity workflow `36199480713` — SUCCESS,
+- D1 checkout authority/real tracked-stock workflow `36200073433` — SUCCESS,
+- exact generated-vs-D1 parity: 146 / 146 / 0 mismatches,
+- real checkout QA run `05d821c4e1`,
+- current staging Worker version `3603f5da-1521-4c01-8888-65b9ebea0d29`,
+- staging `D1_PUBLIC_CATALOG_ENABLED=true`,
+- staging `D1_COMMERCE_AUTHORITY_ENABLED=true`,
+- Production remains `0008_concurrency_guards.sql` with neither Phase 6 flag.
+
+Detailed report:
+`docs/STOREFRONT-COMMERCE-PHASE6-STAGING-FOUNDATION-2026-09-25.md`.
 
 ## 3. Public Product truth rules
 
@@ -219,29 +237,31 @@ Before Production cutover is considered:
 
 ## 12. Milestones
 
-### 6.1 — D1 commerce query layer
+### 6.1 — D1 commerce query layer — COMPLETE
 - public Product contract,
 - public Product list/detail query,
 - exact orderability calculation,
 - unit tests.
 
-### 6.2 — Staging public API
+### 6.2 — Staging public API — COMPLETE
 - `GET /v1/catalog`,
 - `GET /v1/catalog/:id`,
 - CORS/cache/error contract,
 - staging deployment,
 - privacy-field test.
 
-### 6.3 — Parity engine
+### 6.3 — Parity engine — COMPLETE
 - generated-static vs D1 comparison,
 - mismatch report,
 - zero unexplained mismatch gate.
 
-### 6.4 — D1 checkout pricing
+### 6.4 — D1 checkout pricing — COMPLETE ON STAGING
 - async D1 pricing,
 - staging-only authority flag,
 - checkout regression tests,
-- real staging order proof.
+- real staging order proof,
+- tracked-stock quantity/Reserved proof,
+- server-price persistence proof.
 
 ### 6.5 — Storefront live overlay
 - price/status/orderability overlay,
@@ -273,12 +293,13 @@ Until Phase 6 Production cutover is explicitly approved:
 - do not change Production checkout authority,
 - do not change canonical product URLs.
 
-## 14. Exact first implementation milestone
+## 14. Current exact milestone
 
-Start 6.1:
-1. implement one reusable D1 public-commerce Product query,
-2. encode the selling/inventory rules above once,
-3. add tests for published-vs-draft and tracked/untracked orderability,
-4. expose nothing publicly yet,
-5. run Commerce CI,
-6. then move to 6.2 public staging API.
+Start 6.5 — Storefront live overlay:
+1. consume the public D1 contract in a lightweight browser overlay,
+2. keep ordinary Production traffic on static fallback until explicit cutover,
+3. provide a staging-preview switch for owner QA,
+4. update cards, Product detail, basket and Add-to-basket state,
+5. fail safely back to static content when the API is unavailable,
+6. verify iPhone/iPad/desktop behavior and no layout shift,
+7. then proceed to 6.6 publication pipeline.
