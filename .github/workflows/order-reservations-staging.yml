@@ -385,5 +385,6 @@ jobs:
           echo "ORDER_RESERVATIONS_ENABLED=true exists only under env.staging vars."
           echo "No Production migration or Worker deploy is run."
           echo "Staging schema target is 0012_order_returns.sql."
+          echo "Reservation builder placeholder/binding regression checks are part of Commerce validation."
           echo "Production remains pre-Product-Core at migration 0008."
           echo "No Phase 6 storefront/checkout inventory cutover is performed."
