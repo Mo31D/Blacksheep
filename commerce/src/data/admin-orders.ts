@@ -27,26 +27,39 @@ export async function listAdminOrders(
   db: D1DatabaseLike,
   status?: string | null,
 ): Promise<OrderSummaryRow[]> {
+  const activeRevision = `r.order_id = o.id AND r.state IN ('SENT', 'ACCEPTED')`;
   const base = `SELECT
-      id,
-      public_reference AS publicReference,
-      status,
-      fulfilment_method AS fulfilmentMethod,
-      customer_name AS customerName,
-      customer_email AS customerEmail,
-      items_subtotal_minor AS itemsSubtotalMinor,
-      delivery_amount_minor AS deliveryAmountMinor,
-      final_total_minor AS finalTotalMinor,
-      payment_status AS paymentStatus,
-      created_at AS createdAt,
-      updated_at AS updatedAt
-    FROM orders`;
+      o.id,
+      o.public_reference AS publicReference,
+      o.status,
+      COALESCE(
+        (SELECT r.fulfilment_method FROM order_revisions r WHERE ${activeRevision} ORDER BY r.revision_number DESC LIMIT 1),
+        o.fulfilment_method
+      ) AS fulfilmentMethod,
+      o.customer_name AS customerName,
+      o.customer_email AS customerEmail,
+      COALESCE(
+        (SELECT r.items_subtotal_minor FROM order_revisions r WHERE ${activeRevision} ORDER BY r.revision_number DESC LIMIT 1),
+        o.items_subtotal_minor
+      ) AS itemsSubtotalMinor,
+      COALESCE(
+        (SELECT r.delivery_amount_minor FROM order_revisions r WHERE ${activeRevision} ORDER BY r.revision_number DESC LIMIT 1),
+        o.delivery_amount_minor
+      ) AS deliveryAmountMinor,
+      COALESCE(
+        (SELECT r.final_total_minor FROM order_revisions r WHERE ${activeRevision} ORDER BY r.revision_number DESC LIMIT 1),
+        o.final_total_minor
+      ) AS finalTotalMinor,
+      o.payment_status AS paymentStatus,
+      o.created_at AS createdAt,
+      o.updated_at AS updatedAt
+    FROM orders o`;
 
   const statement = status
     ? db
-        .prepare(`${base} WHERE status = ? ORDER BY created_at DESC LIMIT 100`)
+        .prepare(`${base} WHERE o.status = ? ORDER BY o.created_at DESC LIMIT 100`)
         .bind(status)
-    : db.prepare(`${base} ORDER BY created_at DESC LIMIT 100`);
+    : db.prepare(`${base} ORDER BY o.created_at DESC LIMIT 100`);
 
   return allRows<OrderSummaryRow>(statement);
 }
@@ -61,7 +74,16 @@ export async function getAdminOrderState(
         o.id,
         o.public_reference AS publicReference,
         o.status,
-        o.fulfilment_method AS fulfilmentMethod,
+        COALESCE(
+          (
+            SELECT r.fulfilment_method
+            FROM order_revisions r
+            WHERE r.order_id = o.id AND r.state IN ('SENT', 'ACCEPTED')
+            ORDER BY r.revision_number DESC
+            LIMIT 1
+          ),
+          o.fulfilment_method
+        ) AS fulfilmentMethod,
         COALESCE(
           (
             SELECT r.items_subtotal_minor
@@ -197,7 +219,137 @@ export async function getAdminOrderDetail(
             LIMIT 1
           ),
           final_total_minor
-        ) AS effectiveFinalTotalMinor
+        ) AS effectiveFinalTotalMinor,
+        COALESCE(
+          (
+            SELECT r.fulfilment_method
+            FROM order_revisions r
+            WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+            ORDER BY r.revision_number DESC
+            LIMIT 1
+          ),
+          fulfilment_method
+        ) AS effectiveFulfilmentMethod,
+        CASE
+          WHEN COALESCE(
+            (
+              SELECT r.fulfilment_method
+              FROM order_revisions r
+              WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+              ORDER BY r.revision_number DESC LIMIT 1
+            ),
+            fulfilment_method
+          ) = 'delivery'
+          THEN COALESCE(
+            (
+              SELECT r.delivery_address_line1
+              FROM order_revisions r
+              WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+              ORDER BY r.revision_number DESC LIMIT 1
+            ),
+            delivery_address_line1
+          )
+        END AS effectiveDeliveryAddressLine1,
+        CASE
+          WHEN COALESCE(
+            (
+              SELECT r.fulfilment_method
+              FROM order_revisions r
+              WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+              ORDER BY r.revision_number DESC LIMIT 1
+            ),
+            fulfilment_method
+          ) = 'delivery'
+          THEN COALESCE(
+            (
+              SELECT r.delivery_address_line2
+              FROM order_revisions r
+              WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+              ORDER BY r.revision_number DESC LIMIT 1
+            ),
+            delivery_address_line2
+          )
+        END AS effectiveDeliveryAddressLine2,
+        CASE
+          WHEN COALESCE(
+            (
+              SELECT r.fulfilment_method
+              FROM order_revisions r
+              WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+              ORDER BY r.revision_number DESC LIMIT 1
+            ),
+            fulfilment_method
+          ) = 'delivery'
+          THEN COALESCE(
+            (
+              SELECT r.delivery_town
+              FROM order_revisions r
+              WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+              ORDER BY r.revision_number DESC LIMIT 1
+            ),
+            delivery_town
+          )
+        END AS effectiveDeliveryTown,
+        CASE
+          WHEN COALESCE(
+            (
+              SELECT r.fulfilment_method
+              FROM order_revisions r
+              WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+              ORDER BY r.revision_number DESC LIMIT 1
+            ),
+            fulfilment_method
+          ) = 'delivery'
+          THEN COALESCE(
+            (
+              SELECT r.delivery_county
+              FROM order_revisions r
+              WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+              ORDER BY r.revision_number DESC LIMIT 1
+            ),
+            delivery_county
+          )
+        END AS effectiveDeliveryCounty,
+        CASE
+          WHEN COALESCE(
+            (
+              SELECT r.fulfilment_method
+              FROM order_revisions r
+              WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+              ORDER BY r.revision_number DESC LIMIT 1
+            ),
+            fulfilment_method
+          ) = 'delivery'
+          THEN COALESCE(
+            (
+              SELECT r.delivery_postcode
+              FROM order_revisions r
+              WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+              ORDER BY r.revision_number DESC LIMIT 1
+            ),
+            delivery_postcode
+          )
+        END AS effectiveDeliveryPostcode,
+        CASE
+          WHEN COALESCE(
+            (
+              SELECT r.fulfilment_method
+              FROM order_revisions r
+              WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+              ORDER BY r.revision_number DESC LIMIT 1
+            ),
+            fulfilment_method
+          ) = 'delivery'
+          THEN COALESCE(
+            (
+              SELECT r.delivery_country
+              FROM order_revisions r
+              WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+              ORDER BY r.revision_number DESC LIMIT 1
+            ),
+            delivery_country
+          )
+        END AS effectiveDeliveryCountry
       FROM orders
       WHERE public_reference = ?
       LIMIT 1`,
@@ -361,7 +513,16 @@ export async function getPaymentNotificationSnapshot(
           o.final_total_minor
         ) AS finalTotalMinor,
         o.payment_request_url AS paymentRequestUrl,
-        o.fulfilment_method AS fulfilmentMethod,
+        COALESCE(
+          (
+            SELECT r.fulfilment_method
+            FROM order_revisions r
+            WHERE r.order_id = o.id AND r.state IN ('SENT', 'ACCEPTED')
+            ORDER BY r.revision_number DESC
+            LIMIT 1
+          ),
+          o.fulfilment_method
+        ) AS fulfilmentMethod,
         o.fulfilment_message AS fulfilmentMessage
       FROM orders o
       WHERE o.public_reference = ?
