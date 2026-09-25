@@ -32,6 +32,9 @@
   "env": {
     "staging": {
       "workers_dev": true,
+      "triggers": {
+        "crons": ["*/30 * * * *"]
+      },
       "d1_databases": [
         {
           "binding": "DB",
