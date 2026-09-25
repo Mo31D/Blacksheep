@@ -121,29 +121,50 @@ Current exit status:
 - numeric inventory remains intentionally disabled.
 
 Evidence:
-- staging workflow `36172797078`
-- job `108196158387`
-- staging deployment `376e151f-0a0f-44b5-b91e-c0081cc8296b`
-- staging Worker version `f79d2e06-858c-4e98-a579-2cc8a03f4d07`
+- initial Phase 2 workflow `36172797078` / job `108196158387`
+- Duplicate/Archive staging workflow `36174114456` / job `108200446776`
+- current staging deployment `7984e631-902e-470b-bb0f-447bdb031b3b`
+- current staging Worker version `cdcfe773-b6cc-4910-8c86-a74f28bde66c`
 - `docs/PRODUCT-EDITOR-PHASE2-STAGING-2026-09-25.md`
 
 ---
 
 # PHASE 3 — PRODUCT MEDIA
 
-- [!] Provision media storage — Cloudflare R2 is not enabled on the account; API returns error 10042.
-- [~] Secure upload route — implementation in progress.
-- [~] File type/size validation — implementation in progress.
-- [ ] Product gallery.
-- [ ] Primary image.
-- [ ] Reorder.
-- [ ] Alt text.
-- [ ] Replace/remove.
-- [ ] iPhone photo upload QA.
-- [ ] Legacy-image coexistence verified.
+- [!] Provision media storage — **external blocker:** Cloudflare account has not enabled R2; API error 10042: `Please enable R2 through the Cloudflare Dashboard.`
+- [x] Staging-only R2 binding declared as `PRODUCT_MEDIA` / `black-sheep-product-media-staging`.
+- [x] Secure authenticated multipart upload route implemented.
+- [x] 8 MB upload limit.
+- [x] JPEG / PNG / WebP allow-list.
+- [x] Magic-byte/signature validation; MIME label alone is not trusted.
+- [x] SHA-256 checksum captured.
+- [x] Immutable media ID + R2 object-key design.
+- [x] Same-origin immutable media delivery route `/media/<mediaId>`.
+- [x] Media changes automatically create/use a Product Draft.
+- [x] Product gallery manager implemented.
+- [x] First uploaded image becomes Primary automatically.
+- [x] Change Primary image.
+- [x] Reorder gallery.
+- [x] Edit alt text.
+- [x] Remove image non-destructively from the Draft.
+- [x] Preserve published-version media when Draft removes an image.
+- [x] Avoid deleting shared R2 objects still referenced by another media row.
+- [~] Replace image — safe workflow currently available as upload-new + remove-old; dedicated one-click replace remains pending.
+- [x] Product Media audit events.
+- [x] Phase 3 Admin UI + upload-validation tests.
+- [x] Immutable media-delivery route tests.
+- [x] Full Commerce CI: **PASS** — run `36174836076`.
+- [x] Dedicated `Product Media Staging Phase 3` deployment workflow with R2 existence gate.
+- [ ] Deploy Product Media to staging — blocked until R2 is enabled and the staging bucket can be created.
+- [!] iPhone photo upload QA — blocked until the same R2 activation.
+- [~] Legacy-image coexistence — architecture supports `LEGACY_REPO` and `R2` together; live R2 E2E remains blocked.
 
 Exit gate:
-- owner can create a complete product including imagery from Admin.
+- owner can create a complete product including imagery from Admin,
+- upload / primary / reorder / alt / remove proven on real staging R2,
+- iPhone Photos/camera path visually verified.
+
+**Current status: CODE-COMPLETE FOR CORE MEDIA FLOWS; STAGING RELEASE BLOCKED ONLY BY CLOUDFLARE R2 ACTIVATION.**
 
 ---
 
@@ -247,32 +268,28 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-Phase 2 Duplicate / Archive is code-complete and CI-clean. Begin **Phase 3 — Product Media** on staging only:
+## External action required once
 
-1. Provision isolated staging R2 media bucket.
-2. Add staging-only Worker binding.
-3. Implement authenticated upload + validation.
-4. Attach uploads to the current product draft/version.
-5. Add gallery / primary / alt text / reorder / remove controls.
-6. Run CI + deploy + direct staging verification.
+Enable **R2 Object Storage** in the Cloudflare account.
 
-Then:
+The Cloudflare API currently returns:
 
-1. Duplicate product → safe private draft with no copied SKU/barcode.
-2. Archive product → non-destructive, confirmed action with audit trail.
-3. Add Archived filter so archived records remain recoverable/auditable.
-4. Run CI and staging deployment.
+`10042 — Please enable R2 through the Cloudflare Dashboard.`
 
-Then perform the owner **Phase 2 staging mutation smoke-test** in the authenticated Products workspace:
+Do **not** create a bucket manually unless desired. Once R2 is enabled, the next automated steps are:
 
-1. Add a temporary Draft product.
-2. Quick Edit price / SKU / barcode / selling status.
-3. Edit name / description / categories as Draft.
-4. Confirm Draft changes appears.
-5. Confirm Audit history records the before/after changes.
-6. Publish the Draft inside staging Product Core.
+1. Create isolated bucket `black-sheep-product-media-staging` in Western Europe.
+2. Verify the staging-only `PRODUCT_MEDIA` binding.
+3. Trigger `Product Media Staging Phase 3`.
+4. Re-run full Commerce CI and Product Core safety gates.
+5. Deploy Worker to staging only.
+6. Upload one controlled image from iPhone.
+7. Verify gallery / Primary / reorder / alt text / remove.
+8. Verify Legacy + R2 image coexistence.
+9. Finish the dedicated one-click Replace control if still useful after the live workflow review.
 
-Then:
-- finish Duplicate / Archive controls,
-- proceed to **PHASE 3 — PRODUCT MEDIA** so a product can be completed from iPhone with real image upload,
-- keep Production Product Core / inventory cutover locked until later gates.
+Production remains locked:
+- Product Core migration `0009` is not applied to Production.
+- Production Product Media/R2 is not configured.
+- Inventory tracking remains disabled.
+- storefront/checkout cutover remains a later phase.
