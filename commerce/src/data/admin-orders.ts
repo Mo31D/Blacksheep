@@ -92,7 +92,14 @@ export async function getAdminOrderState(
           ),
           o.final_total_minor
         ) AS finalTotalMinor,
-        o.payment_status AS paymentStatus
+        o.payment_status AS paymentStatus,
+        (
+          SELECT r.id
+          FROM order_revisions r
+          WHERE r.order_id = o.id AND r.state IN ('SENT', 'ACCEPTED')
+          ORDER BY r.revision_number DESC
+          LIMIT 1
+        ) AS activeRevisionId
       FROM orders o
       WHERE o.public_reference = ?
       LIMIT 1`,
