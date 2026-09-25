@@ -77,10 +77,12 @@ import {
   listInventoryLocations,
   physicalInventoryCount,
 } from "../data/inventory";
+import { expireDueReservations } from "../data/order-reservations";
 
 export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
   DB?: D1DatabaseLike;
   PRODUCT_MEDIA?: R2BucketLike;
+  ORDER_RESERVATIONS_ENABLED?: string;
 }
 
 interface AdminDependencies {
@@ -1519,6 +1521,10 @@ export async function handleAdminRequest(
         action,
         expectedVersion,
         identity.email,
+        {
+          inventoryReservations:
+            env.ORDER_RESERVATIONS_ENABLED === "true",
+        },
       );
       return json({ revision });
     } catch (cause) {
@@ -1527,6 +1533,9 @@ export async function handleAdminRequest(
         code === "revision_not_found"
           ? 404
           : code === "revision_version_conflict" ||
+              code === "reservation_insufficient_stock" ||
+              code === "reservation_concurrency_conflict" ||
+              code === "reservation_supersede_balance_version_mismatch" ||
               code.startsWith("revision_send_requires") ||
               code.startsWith("revision_accept_requires") ||
               code.startsWith("revision_decline_requires")
@@ -1759,6 +1768,9 @@ export async function handleAdminRequest(
     }
 
     const reference = decodeURIComponent(actionMatch[1]);
+    if (env.ORDER_RESERVATIONS_ENABLED === "true") {
+      await expireDueReservations(env.DB);
+    }
     const order = await getAdminOrderState(env.DB, reference);
     if (!order) return error("order_not_found", 404, "Order not found.");
 
@@ -1772,7 +1784,16 @@ export async function handleAdminRequest(
 
     try {
       const action = validateAdminOrderAction(order, raw);
-      await applyAdminOrderUpdate(env.DB, order, action, identity.email);
+      await applyAdminOrderUpdate(
+        env.DB,
+        order,
+        action,
+        identity.email,
+        {
+          inventoryReservations:
+            env.ORDER_RESERVATIONS_ENABLED === "true",
+        },
+      );
 
       if (raw && typeof raw === "object" && !Array.isArray(raw)) {
         const actionName = (raw as Record<string, unknown>).action;
@@ -1825,7 +1846,11 @@ export async function handleAdminRequest(
       return json({ order: updated });
     } catch (cause) {
       const code = cause instanceof Error ? cause.message : "admin_action_failed";
-      const status = code.startsWith("admin_transition_not_allowed") ? 409 : 400;
+      const status =
+        code.startsWith("admin_transition_not_allowed") ||
+        code === "reservation_order_transition_conflict"
+          ? 409
+          : 400;
       return error(code, status, "This order action is not allowed.");
     }
   }
