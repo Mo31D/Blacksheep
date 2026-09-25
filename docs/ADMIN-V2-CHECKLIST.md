@@ -618,23 +618,29 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
 - [x] Fresh pre-migration recovery bookmark captured immediately before first production write: `00000028-00000000-000050f1-68842c17a511b740b3b28bcc859c1042`.
 - [x] Production state immediately before migration rechecked: 3 orders, migrations `0000–0002`.
 
+- [x] Production migrations run `36157961810`, job `108147083426`: SUCCESS.
+  - pinned source SHA verified exactly: `8c5462388648235acd3a41b853d1adee057a11a7`
+  - pending set before apply: `0003–0008`
+  - all six migrations applied successfully
+  - post-apply migration list: no migrations pending
+  - Admin V2 schema objects verified present
+  - existing production order count remained 3
+  - no Worker deploy occurred in the migration workflow
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — STEP 1 IN PROGRESS: apply production migrations 0003–0008 only.**
+**PHASE 13 EXECUTION — STEP 2 IN PROGRESS: verify production runtime secrets/webhook readiness before Worker deployment.**
 
-Safety baseline:
-- pinned release source: `8c5462388648235acd3a41b853d1adee057a11a7`
-- production Worker version remains `938f0651-20b5-48df-a8d4-f84defbb263d`
-- production D1 currently `0000–0002`
-- fresh recovery bookmark: `00000028-00000000-000050f1-68842c17a511b740b3b28bcc859c1042`
-- production order count: 3
+Production database state:
+- migrations: `0000–0008`
+- existing orders preserved: 3
+- migration verification: PASS
 
-Execution rule:
-1. run a **migration-only** workflow that checks out the pinned release SHA,
-2. apply production migrations,
-3. verify D1 reports `0000–0008`,
-4. verify expected Admin V2 tables/columns exist,
-5. update this checklist,
-6. only after PASS may Worker deployment begin.
+Current step:
+1. verify production Worker secret names,
+2. confirm whether `RESEND_WEBHOOK_SECRET` exists in production,
+3. inspect Resend webhooks and determine whether a production endpoint is already configured,
+4. if missing, configure production webhook/secret safely before Worker deployment,
+5. update this checklist before deploying the pinned Worker source.
 
-**Do not deploy the Worker in this step.**
+**Do not deploy the Worker until production webhook readiness is complete.**
