@@ -40,6 +40,15 @@ Source anchor at reconstruction start:
 - GitHub Pages deployment: PASS at that source anchor.
 - Static storefront/search architecture is stable and must not be redesigned during Admin V2 completion.
 
+Hardened source baseline after Phase 8 work:
+
+- `fafdcac6a4e0ab82e81954ea6f5fa1d8841df1c1`
+- Commerce CI: PASS (run `36134835149`).
+- Search Readiness: PASS (run `36134835077`).
+- GitHub Pages: PASS (run `36134834631`).
+- New concurrency migration: `0008_concurrency_guards.sql`.
+- Revision, refund, customer-review and Resend-webhook critical mutations now use winner-owned mutation/idempotency guards.
+
 Environment facts that must still be recorded:
 
 - [ ] Staging Worker deployed SHA/version.
@@ -108,10 +117,10 @@ Status: IN PROGRESS.
 - [x] Label/reason validation.
 - [x] Final-total recalculation.
 - [x] Audit events for adjustment add/remove.
-- [~] Concurrent same-version write behaviour needs adversarial testing.
-- [~] Adjustment race safety needs explicit test coverage.
+- [x] Concurrent same-version revision/transition losers are rejected via D1 `meta.changes` + mutation ownership tokens.
+- [x] Adjustment race safety has explicit loser-path coverage.
 
-Status: CODE COMPLETE; CONCURRENCY HARDENING REMAINS.
+Status: CODE COMPLETE; CORE CONCURRENCY HARDENING VERIFIED IN CI.
 
 ---
 
@@ -201,9 +210,9 @@ Status: PARTIALLY COMPLETE; COVERAGE MATRIX + RUNTIME VALIDATION REQUIRED.
 
 ## Remaining
 
-- [ ] Add/refine zero and negative amount tests.
-- [ ] Add duplicate-admin-submission/idempotency test.
-- [ ] Add concurrent-refund race test.
+- [x] Zero and negative refund amount tests.
+- [x] Duplicate-admin-submission/idempotent refund replay test.
+- [x] Concurrent-refund loser-path test.
 - [ ] Verify refund-after-completion.
 - [ ] Verify refund-and-cancel.
 - [ ] Verify cumulative partial refunds in real D1.
@@ -268,8 +277,8 @@ Status: SUBSTANTIALLY IMPLEMENTED; CONTRACT/UI VALIDATION REMAINS.
 
 - [ ] Verify token hashing and expiry implementation against spec.
 - [ ] Add explicit cross-order token isolation test.
-- [ ] Add double-accept test.
-- [ ] Add accept-vs-decline race test.
+- [x] Idempotent double-accept behaviour test.
+- [x] Accept/decline concurrency conflict coverage.
 - [ ] Verify current-revision-only enforcement under superseded revisions.
 - [ ] Verify decline flow end to end.
 - [ ] Verify payment target always matches accepted revision.
@@ -300,7 +309,7 @@ Status: SUBSTANTIALLY IMPLEMENTED; SECURITY/RACE/E2E VALIDATION REMAINS.
 
 ## Remaining
 
-- [ ] Add/confirm duplicate webhook automated test.
+- [x] Duplicate webhook automated tests, including concurrent claim loser.
 - [ ] Verify signed real Resend webhook in staging.
 - [ ] Confirm staging webhook secret.
 - [ ] Confirm production webhook secret.
@@ -318,22 +327,22 @@ Status: CODE SUBSTANTIALLY COMPLETE; PROVIDER/DNS/RUNTIME VERIFICATION REMAINS.
 
 This is the next code milestone.
 
-- [ ] Same-version concurrent revision-mutation test: exactly one winner.
+- [x] Same-version concurrent revision/transition mutation loser is rejected; side effects require the winning mutation token.
 - [ ] Concurrent add/remove/restore mutation protection test.
-- [ ] Concurrent adjustment protection test.
-- [ ] Concurrent refund protection test.
-- [ ] Customer review accept/decline race test.
-- [ ] Duplicate webhook test.
-- [ ] Migration clean-install test through `0007`.
+- [x] Concurrent adjustment protection test.
+- [x] Concurrent refund protection test.
+- [x] Customer review accept/decline race test.
+- [x] Duplicate webhook test, including insert-race loser.
+- [x] Migration clean-install through `0008` is exercised by `npm run check` → `db:migrate:local`.
 - [ ] Migration upgrade-path verification from production-equivalent schema.
-- [ ] `npm run check` PASS after all additions.
+- [x] `npm run check` PASS on `fafdcac6a4e0ab82e81954ea6f5fa1d8841df1c1` (Commerce CI run 36134835149).
 
 Exit gate:
 - no money-affecting action can be duplicated by a stale version/race in the tested model,
 - migrations are deterministic,
 - Commerce CI remains green.
 
-Status: NEXT ACTIVE IMPLEMENTATION PHASE.
+Status: IN PROGRESS — CORE RACE/IDEMPOTENCY GATE PASSED; TWO VALIDATION ITEMS REMAIN.
 
 ---
 
@@ -459,7 +468,7 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**Phase 8 — Critical automated hardening.**
+**Finish Phase 8, then enter Phase 9 — Release-state discovery.**
 
 Start by auditing the actual mutation SQL in:
 
@@ -478,8 +487,15 @@ Minimum first milestone:
 4. review accept/decline race,
 5. duplicate Resend webhook handling.
 
-After the milestone:
-- run/confirm Commerce CI,
-- update this checklist immediately,
-- record the resulting commit SHA here,
-- then proceed to Phase 9 deployment-state discovery.
+Current hardened source baseline:
+- `fafdcac6a4e0ab82e81954ea6f5fa1d8841df1c1`
+- Commerce CI: PASS
+- Search Readiness: PASS
+- GitHub Pages: PASS
+- `npm run check` includes local D1 migrations and therefore applied migrations through `0008_concurrency_guards.sql` on the clean CI database.
+
+Remaining before Phase 8 is fully closed:
+1. Add explicit concurrent add/remove/restore reviewed-item coverage, not only shared mutation-token/adjustment coverage.
+2. Verify the migration **upgrade path** from a production-equivalent pre-`0008` schema, distinct from the clean-install CI path.
+3. Update this checklist again with the exact closing SHA.
+4. Then proceed immediately to Phase 9 deployment-state discovery.
