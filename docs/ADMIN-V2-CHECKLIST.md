@@ -637,21 +637,26 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
 - [x] Production Worker remains unchanged at version `938f0651-20b5-48df-a8d4-f84defbb263d`; no Worker deploy has occurred yet.
 - [!] GitHub migration workflow reported failure after the migration phase; external Cloudflare verification confirms the database migration itself completed correctly. Do not rerun migrations.
 
+- [x] Production Resend webhook created for `https://api.theblacksheepshop.co.uk/webhooks/resend`.
+  - webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0`
+  - status immediately set to `disabled`
+  - subscribed events match the verified staging delivery telemetry set
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — PRE-DEPLOY CONFIG GATE IN PROGRESS.**
+**PHASE 13 EXECUTION — STEP 2B IN PROGRESS: install the production webhook signing secret.**
 
-Completed:
-- production D1 migrations: `0000–0008`
-- production schema verification: PASS
-- production order count preserved: 3
-- production Worker still unchanged
+Current readiness:
+- production D1 migrations `0000–0008`: PASS
+- production webhook: CREATED + DISABLED
+- production webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0`
+- production Worker `RESEND_WEBHOOK_SECRET`: still missing
+- Worker deployment: not started
 
-Before deploying the pinned Worker:
-1. inspect production Resend webhook configuration,
-2. confirm whether a production webhook endpoint exists,
-3. confirm production Worker has the required `RESEND_WEBHOOK_SECRET`,
-4. if missing, configure the production webhook/secret safely,
-5. only then deploy pinned source SHA `8c5462388648235acd3a41b853d1adee057a11a7`.
+Current step:
+1. retrieve the production webhook signing secret from Resend without exposing it,
+2. store it as production Worker secret `RESEND_WEBHOOK_SECRET`,
+3. verify the secret name exists on the production Worker,
+4. update this checklist before deploying the pinned Worker source.
 
-**Do not deploy the Worker until this config gate passes.**
+**Keep the production webhook disabled until the new Worker health check reports `webhookConfigured=true`.**
