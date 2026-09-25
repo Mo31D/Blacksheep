@@ -131,7 +131,7 @@ Evidence:
 
 # PHASE 3 — PRODUCT MEDIA
 
-- [ ] Provision media storage.
+- [~] Provision media storage — creating isolated staging R2 bucket.
 - [ ] Secure upload route.
 - [ ] File type/size validation.
 - [ ] Product gallery.
@@ -247,7 +247,16 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-Deploy the completed Duplicate / Archive controls to **staging only** and verify the release gates. Then:
+Phase 2 Duplicate / Archive is code-complete and CI-clean. Begin **Phase 3 — Product Media** on staging only:
+
+1. Provision isolated staging R2 media bucket.
+2. Add staging-only Worker binding.
+3. Implement authenticated upload + validation.
+4. Attach uploads to the current product draft/version.
+5. Add gallery / primary / alt text / reorder / remove controls.
+6. Run CI + deploy + direct staging verification.
+
+Then:
 
 1. Duplicate product → safe private draft with no copied SKU/barcode.
 2. Archive product → non-destructive, confirmed action with audit trail.
