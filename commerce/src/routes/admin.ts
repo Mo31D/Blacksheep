@@ -50,7 +50,9 @@ import {
   listAdminProducts,
 } from "../data/products";
 import {
+  archiveAdminProduct,
   createAdminProduct,
+  duplicateAdminProduct,
   listAdminCategories,
   publishAdminProduct,
   quickEditAdminProduct,
@@ -83,6 +85,8 @@ interface AdminDependencies {
   getAdminProductDetailFn: typeof getAdminProductDetail;
   listAdminCategoriesFn: typeof listAdminCategories;
   createAdminProductFn: typeof createAdminProduct;
+  duplicateAdminProductFn: typeof duplicateAdminProduct;
+  archiveAdminProductFn: typeof archiveAdminProduct;
   saveAdminProductDraftFn: typeof saveAdminProductDraft;
   publishAdminProductFn: typeof publishAdminProduct;
   quickEditAdminProductFn: typeof quickEditAdminProduct;
@@ -110,6 +114,8 @@ const defaults: AdminDependencies = {
   getAdminProductDetailFn: getAdminProductDetail,
   listAdminCategoriesFn: listAdminCategories,
   createAdminProductFn: createAdminProduct,
+  duplicateAdminProductFn: duplicateAdminProduct,
+  archiveAdminProductFn: archiveAdminProduct,
   saveAdminProductDraftFn: saveAdminProductDraft,
   publishAdminProductFn: publishAdminProduct,
   quickEditAdminProductFn: quickEditAdminProduct,
@@ -141,6 +147,7 @@ function productMutationError(cause: unknown): Response {
     "product_no_draft",
     "product_publish_requires_category",
     "product_publish_requires_price",
+    "product_already_archived",
   ]);
   const notFoundCodes = new Set([
     "product_not_found",
@@ -156,6 +163,7 @@ function productMutationError(cause: unknown): Response {
     product_no_draft: "There are no draft changes to publish.",
     product_publish_requires_category: "Add at least one category before publishing.",
     product_publish_requires_price: "Add a price or disable online ordering before publishing.",
+    product_already_archived: "This product is already archived.",
     product_not_found: "Product not found.",
     product_variant_not_found: "Product variant not found.",
     product_category_not_found: "One of the selected categories no longer exists.",
@@ -356,6 +364,46 @@ export async function handleAdminRequest(
           "Invalid product request.",
         );
       }
+      return productMutationError(cause);
+    }
+  }
+
+  const productDuplicateMatch = url.pathname.match(
+    /^\/admin\/api\/products\/([^/]+)\/duplicate$/,
+  );
+  if (productDuplicateMatch && request.method === "POST") {
+    const productId = decodeURIComponent(productDuplicateMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      const created = await deps.duplicateAdminProductFn(
+        env.DB,
+        productId,
+        raw as unknown as Parameters<typeof duplicateAdminProduct>[2],
+        identity.email,
+      );
+      const product = await deps.getAdminProductDetailFn(env.DB, created.id);
+      return json({ product }, 201);
+    } catch (cause) {
+      return productMutationError(cause);
+    }
+  }
+
+  const productArchiveMatch = url.pathname.match(
+    /^\/admin\/api\/products\/([^/]+)\/archive$/,
+  );
+  if (productArchiveMatch && request.method === "POST") {
+    const productId = decodeURIComponent(productArchiveMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      await deps.archiveAdminProductFn(
+        env.DB,
+        productId,
+        raw as unknown as Parameters<typeof archiveAdminProduct>[2],
+        identity.email,
+      );
+      const product = await deps.getAdminProductDetailFn(env.DB, productId);
+      return json({ product });
+    } catch (cause) {
       return productMutationError(cause);
     }
   }
