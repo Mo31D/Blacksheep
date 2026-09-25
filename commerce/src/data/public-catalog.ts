@@ -116,10 +116,10 @@ export function toPublicCommerceProduct(
   } else if (row.sellStatus === "NOT_FOR_SALE") {
     status = "not-for-sale";
     reason = "not_for_sale";
-  } else if (!onlineOrderingEnabled) {
-    reason = "online_ordering_disabled";
   } else if (priceMinor === null) {
     reason = "price_unavailable";
+  } else if (!onlineOrderingEnabled) {
+    reason = "online_ordering_disabled";
   } else if (tracked && (available === null || available <= 0)) {
     status = "out-of-stock";
     reason = "out_of_stock";
