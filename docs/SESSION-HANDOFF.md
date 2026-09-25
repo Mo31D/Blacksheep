@@ -50,10 +50,13 @@
 > - owner emails include environment-correct Admin CTA links
 > - new-order/customer-question CTAs deep-link to the exact order after authentication
 >
-> **Next major project is now planned, not yet implemented:**
+> **Product / Inventory project is active and advanced on staging:**
 > - `docs/PRODUCT-INVENTORY-ADMIN-MASTERPLAN-2026-09-25.md`
 > - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
-> - target: D1-backed Product + Inventory source of truth, premium Products/Stock Admin, managed media, order reservations and storefront/checkout integration.
+> - Phases 1–3 complete on staging.
+> - Phase 4 Inventory Core technically complete; owner OTP/iPad UX re-test remains open.
+> - Phase 5 Order Reservations is COMPLETE + REAL-STAGING VERIFIED.
+> - Phase 6 storefront/checkout authority remains locked.
 >
 > **PRODUCT / INVENTORY — PHASE 4 INVENTORY CORE LIVE ON STAGING**
 > - Phase 1 Product Core: COMPLETE.
@@ -75,15 +78,26 @@
 > - UX fix source: `950849a3a1f66b52546d959f33182f1ecc531596`; Commerce CI `36187771624` SUCCESS; staging release `36187771688` SUCCESS.
 > - Current staging deployment after UX fixes: `6d89ff4c-f1d8-4552-83f1-7cf8113c5a4c`; Worker version `cf42c03a-0371-47c5-a1a7-bde6980f7dd5`.
 > - **only remaining Phase 4 gate:** owner re-test of corrected OTP login + iPad portrait master/detail flow, then archive the UI QA copy.
-> - Phase 5 architecture/implementation plan is locked but code has NOT started.
+> - Phase 5 Order Reservations is COMPLETE + REAL-STAGING VERIFIED.
+> - Phase 5 staging release workflow `36195902160` — SUCCESS.
+> - staging migration ledger now through `0012_order_returns.sql`.
+> - staging Worker version `c591003d-ab57-45dd-ba3c-abc302c61b79`.
+> - staging reservation expiry cleanup cron: `*/30 * * * *`.
+> - real-staging QA run `3f6f4cfa6b`: collection, delivery, insufficiency rollback, untracked compatibility, decline, supersede, expiry, cancellation and explicit Return-to-stock all PASS.
+> - one-unit / two-orders concurrency proof: exactly one winner.
+> - retained QA movement evidence: ORDER_RESERVATION 8 / RESERVATION_RELEASE 6 / SALE 2 / RETURN 1.
+> - post-proof live QA authority: 0 ACTIVE/COMMITTED holds, 0 QA balances, 0 active/tracked QA variants.
+> - temporary Phase 5 QA Worker deleted.
+> - Production remains `0000–0008`, 3 orders, no Product/Inventory/Reservation tables, no reservation flag and no cron.
 > - read:
 >   - `docs/INVENTORY-CORE-PHASE4-STAGING-2026-09-25.md`
 >   - `docs/INVENTORY-CORE-PHASE4-MUTATION-PROOF-2026-09-25.md`
 >   - `docs/ORDER-RESERVATIONS-PHASE5-IMPLEMENTATION-PLAN-2026-09-25.md`
+>   - `docs/ORDER-RESERVATIONS-PHASE5-STAGING-RELEASE-2026-09-25.md`
 > - tracker: `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 >
-> **NEXT WORK: owner re-test of the deployed OTP/iPad Phase 4 UX fixes, then close Phase 4 and begin Phase 5 Order Reservations implementation.**
-> Do not enable reservation logic, Production Product/Inventory migrations, or Phase 6 checkout/storefront stock authority before that gate.
+> **NEXT WORK: owner re-test of the corrected OTP/iPad Phase 4 UX fixes, then close the remaining Phase 4 UX gate. After that, prepare the Phase 6 storefront/commerce integration cutover plan.**
+> Do not apply Product/Inventory/Reservation migrations to Production and do not enable Phase 6 checkout/storefront stock authority before a separate cutover gate.
 
 > **Do not rerun migrations `0003–0008`. Any future Worker deployment must correspond to an intentional new runtime/catalogue change and pass Commerce CI first.**
 
