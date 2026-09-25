@@ -19,10 +19,12 @@ import {
 } from "../data/customer-review";
 import {
   addCatalogItemToDraftRevision,
+  addDraftRevisionAdjustment,
   createDraftRevisionFromOriginal,
   getOrderRevisionDetail,
   listOrderRevisions,
   removeAddedRevisionLine,
+  removeDraftRevisionAdjustment,
   restoreOriginalRevisionLine,
   substituteDraftRevisionLine,
   transitionOrderRevision,
@@ -55,8 +57,10 @@ interface AdminDependencies {
   getOrderRevisionDetailFn: typeof getOrderRevisionDetail;
   updateDraftRevisionFn: typeof updateDraftRevision;
   addCatalogItemToDraftRevisionFn: typeof addCatalogItemToDraftRevision;
+  addDraftRevisionAdjustmentFn: typeof addDraftRevisionAdjustment;
   substituteDraftRevisionLineFn: typeof substituteDraftRevisionLine;
   removeAddedRevisionLineFn: typeof removeAddedRevisionLine;
+  removeDraftRevisionAdjustmentFn: typeof removeDraftRevisionAdjustment;
   restoreOriginalRevisionLineFn: typeof restoreOriginalRevisionLine;
   transitionOrderRevisionFn: typeof transitionOrderRevision;
   getOrderRefundSummaryFn: typeof getOrderRefundSummary;
@@ -71,8 +75,10 @@ const defaults: AdminDependencies = {
   getOrderRevisionDetailFn: getOrderRevisionDetail,
   updateDraftRevisionFn: updateDraftRevision,
   addCatalogItemToDraftRevisionFn: addCatalogItemToDraftRevision,
+  addDraftRevisionAdjustmentFn: addDraftRevisionAdjustment,
   substituteDraftRevisionLineFn: substituteDraftRevisionLine,
   removeAddedRevisionLineFn: removeAddedRevisionLine,
+  removeDraftRevisionAdjustmentFn: removeDraftRevisionAdjustment,
   restoreOriginalRevisionLineFn: restoreOriginalRevisionLine,
   transitionOrderRevisionFn: transitionOrderRevision,
   getOrderRefundSummaryFn: getOrderRefundSummary,
@@ -509,6 +515,122 @@ export async function handleAdminRequest(
             ? 409
             : 400;
       return error(code, status, status === 409 ? "The reviewed version changed. Reload and try again." : "Unable to remove reviewed item.");
+    }
+  }
+
+  const revisionAdjustmentsMatch = url.pathname.match(
+    /^\/admin\/api\/orders\/([^/]+)\/revisions\/([^/]+)\/adjustments$/,
+  );
+  if (revisionAdjustmentsMatch && request.method === "POST") {
+    const reference = decodeURIComponent(revisionAdjustmentsMatch[1]);
+    const revisionId = decodeURIComponent(revisionAdjustmentsMatch[2]);
+
+    let raw: unknown;
+    try {
+      raw = await readJson(request);
+    } catch (cause) {
+      const code =
+        cause instanceof Error ? cause.message : "admin_invalid_request";
+      return error(
+        code,
+        code === "admin_payload_too_large" ? 413 : 400,
+        "Invalid revision adjustment.",
+      );
+    }
+
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return error(
+        "revision_adjustment_invalid_request",
+        400,
+        "Invalid revision adjustment.",
+      );
+    }
+
+    try {
+      const revision = await deps.addDraftRevisionAdjustmentFn(
+        env.DB,
+        reference,
+        revisionId,
+        raw as Parameters<typeof addDraftRevisionAdjustment>[3],
+        identity.email,
+      );
+      return json({ revision }, 201);
+    } catch (cause) {
+      const code =
+        cause instanceof Error ? cause.message : "revision_adjustment_add_failed";
+      const status =
+        code === "revision_not_found"
+          ? 404
+          : code === "revision_version_conflict" ||
+              code === "revision_not_draft"
+            ? 409
+            : 400;
+      return error(
+        code,
+        status,
+        status === 409
+          ? "The reviewed version changed. Reload before adjusting the total."
+          : "Unable to add adjustment.",
+      );
+    }
+  }
+
+  const revisionAdjustmentDeleteMatch = url.pathname.match(
+    /^\/admin\/api\/orders\/([^/]+)\/revisions\/([^/]+)\/adjustments\/(\d+)$/,
+  );
+  if (revisionAdjustmentDeleteMatch && request.method === "DELETE") {
+    const reference = decodeURIComponent(revisionAdjustmentDeleteMatch[1]);
+    const revisionId = decodeURIComponent(revisionAdjustmentDeleteMatch[2]);
+    const adjustmentId = Number(revisionAdjustmentDeleteMatch[3]);
+
+    let raw: unknown;
+    try {
+      raw = await readJson(request);
+    } catch (cause) {
+      const code =
+        cause instanceof Error ? cause.message : "admin_invalid_request";
+      return error(
+        code,
+        code === "admin_payload_too_large" ? 413 : 400,
+        "Invalid adjustment removal.",
+      );
+    }
+
+    const expectedVersion =
+      raw && typeof raw === "object" && !Array.isArray(raw)
+        ? Number((raw as Record<string, unknown>).expectedVersion)
+        : NaN;
+
+    try {
+      const revision = await deps.removeDraftRevisionAdjustmentFn(
+        env.DB,
+        reference,
+        revisionId,
+        adjustmentId,
+        expectedVersion,
+        identity.email,
+      );
+      return json({ revision });
+    } catch (cause) {
+      const code =
+        cause instanceof Error
+          ? cause.message
+          : "revision_adjustment_remove_failed";
+      const status =
+        code === "revision_not_found" ||
+        code === "revision_adjustment_not_found"
+          ? 404
+          : code === "revision_version_conflict" ||
+              code === "revision_not_draft"
+            ? 409
+            : 400;
+      return error(
+        code,
+        status,
+        status === 409
+          ? "The reviewed version changed. Reload before removing the adjustment."
+          : "Unable to remove adjustment.",
+      );
     }
   }
 
