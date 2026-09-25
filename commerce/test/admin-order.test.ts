@@ -113,4 +113,46 @@ describe("admin order state machine", () => {
       ).nextStatus,
     ).toBe("READY_FOR_COLLECTION");
   });
+
+  it("records a manual full refund without pretending to move money", () => {
+    const action = validateAdminOrderAction(
+      {
+        ...deliveryOrder,
+        status: "COMPLETED",
+        paymentStatus: "PAID",
+        finalTotalMinor: 2995,
+      },
+      { action: "record_refund", note: "Refund sent by original payment method" },
+    );
+
+    expect(action.nextStatus).toBe("COMPLETED");
+    expect(action.paymentStatus).toBe("REFUNDED");
+    expect(action.eventType).toBe("PAYMENT_REFUNDED");
+  });
+
+  it("can record a refund and cancel a paid order before completion", () => {
+    const action = validateAdminOrderAction(
+      {
+        ...deliveryOrder,
+        status: "PREPARING",
+        paymentStatus: "PAID",
+        finalTotalMinor: 2995,
+      },
+      { action: "refund_and_cancel", note: "Customer changed mind" },
+    );
+
+    expect(action.nextStatus).toBe("CANCELLED");
+    expect(action.paymentStatus).toBe("REFUNDED");
+    expect(action.eventType).toBe("ORDER_REFUNDED_AND_CANCELLED");
+    expect(action.timestampField).toBe("cancelled_at");
+  });
+
+  it("rejects refund recording when no paid payment exists", () => {
+    expect(() =>
+      validateAdminOrderAction(
+        { ...deliveryOrder, status: "COMPLETED", paymentStatus: "UNPAID" },
+        { action: "record_refund" },
+      ),
+    ).toThrow("admin_refund_requires_paid");
+  });
 });
