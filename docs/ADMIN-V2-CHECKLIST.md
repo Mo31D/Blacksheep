@@ -317,7 +317,7 @@ Status: CORE SECURITY/RACE/DECLINE/SUPERSEDED-TOKEN STAGING E2E VERIFIED; TOKEN 
 - [ ] Confirm production webhook secret.
 - [x] SPF verified in Resend domain configuration (`rsend` and `send` CNAME records both verified).
 - [x] DKIM verified in Resend domain configuration (`resend._domainkey`).
-- [!] DMARC checked directly in live Cloudflare DNS: no `_dmarc.theblacksheepshop.co.uk` TXT record exists. Policy creation remains an explicit production-DNS decision.
+- [x] DMARC configured in live Cloudflare DNS at `_dmarc.theblacksheepshop.co.uk`: `v=DMARC1; p=none; pct=100; adkim=r; aspf=r` (monitoring mode; no quarantine/reject enforcement).
 - [ ] Verify admin warning/attention queue renders delayed/bounced/complained/failed messages usefully.
 - [ ] Verify repeated provider delivery is idempotent in real D1.
 
@@ -464,7 +464,7 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] Audit events verified for revision, adjustments, acceptance, payment, fulfilment and refunds.
 - [x] Reports verified to include E2E gross/refund figures.
 - [x] Payment-confirmed, ready-for-collection, partial-refund and refund-and-cancellation emails were received in the real inbox and rendered cleanly on iPhone; user-provided screenshots correspond to successful staging E2E orders including `E2E-36142333770` and `E2E-36142342245`.
-- [!] Resend staging webhook now exists with the required delivery events but is intentionally disabled until the real signing secret is stored in Cloudflare staging; staging health therefore still reports `notifications.webhookConfigured=false`.
+- [x] Resend staging webhook is enabled; staging Worker has the signing secret and `/health` reports `notifications.webhookConfigured=true`.
 - [x] Customer decline flow E2E: revision → `DECLINED`, order → `UNDER_REVIEW`, payment request cleared, token revoked.
 - [x] Superseded/current-revision-only review-token E2E: old token → 404, current token → 200.
 - [x] Cross-order reference/content isolation verified with separate synthetic orders.
@@ -477,7 +477,7 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] WebKit mobile Admin UI QA passed in staging browser workflow; real-device iPhone Safari spot-check remains optional polish, not a functional blocker.
 - [x] Desktop Chromium Admin UI QA passed on current staging build.
 
-Status: **CORE + REVIEW-EDGE ADMIN V2 STAGING E2E PASSED, transactional emails are inbox/provider-verified, checkout browser regression passes, and Admin UI browser QA now passes on desktop Chromium + mobile WebKit. Remaining gates are webhook telemetry and one real Delivery submission through Turnstile.**
+Status: **CORE + REVIEW-EDGE ADMIN V2 STAGING E2E PASSED, transactional emails are inbox/provider-verified, checkout browser regression passes, Admin UI browser QA passes, and the real Delivery/Turnstile production gate is closed. Remaining gate: webhook replay/idempotency verification.**
 
 ---
 
@@ -498,13 +498,13 @@ Historical production gaps that should be closed while V2 is staged.
 
 ## Runtime/browser gates still open
 
-- [ ] Real delivery checkout submission through the public checkout with a valid Turnstile token.
+- [x] Real delivery checkout submission through the public checkout with a valid Turnstile token — verified with production order `BSR-260925-2X63954D`.
 - [ ] Repeat desktop checkout through the live customer flow.
-- [ ] Duplicate order submission against the **real** API with one real order/idempotency key.
-- [ ] Browser-runtime verification that API/network failure preserves basket state after a failed submit.
+- [x] Duplicate/idempotent retry behavior verified against the real staging API; one order row persisted for the replayed key.
+- [x] Browser-runtime verification passed: API/network failure preserves basket and the same idempotency key.
 - [x] Controlled production test orders were audited read-only: `BSR-260925-XHWRY3CV` and `BSR-260925-REZJU5DE` are `COMPLETED / PAID / collection`; full review→quote→payment→preparing→ready→completed event histories are present.
 
-Status: **CODE BEHAVIOUR IS PRESENT AND UNIT-VERIFIED; REAL PUBLIC CHECKOUT/TURNSTILE BROWSER QA REMAINS.**
+Status: **DELIVERY/TURNSTILE GATE CLOSED — real production delivery order completed successfully; browser retry/basket protections are verified.**
 
 ---
 
@@ -571,27 +571,29 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 - [x] Real production Delivery order `BSR-260925-2X63954D` verified read-only in D1: `delivery` → `PAID` → `shippedAt` → `COMPLETED`. This closes the Delivery/Turnstile release gate.
 
+- [x] DMARC record created and verified in Cloudflare authoritative DNS (record ID `3e3ea2ad99f99ec71b5e732add6ce525`).
+
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Close Point 3: configure DMARC safely in production DNS.**
+**NEXT RELEASE GATE — finish webhook replay/idempotency verification, then prepare Phase 13 production release.**
 
-Pre-step state:
-- Delivery release gate: CLOSED
+Closed now:
+- real Delivery checkout/Turnstile production gate: CLOSED
+- real Delivery order `BSR-260925-2X63954D`: `delivery / PAID / COMPLETED`
 - SPF: verified
 - DKIM: verified
-- DMARC: absent in live Cloudflare DNS
-- production application Worker/D1 remain unchanged by this step
+- DMARC: configured in monitoring mode
+- Admin UI browser QA: PASS
+- staging health: `webhookConfigured=true`
+- staging Resend webhook: ENABLED
 
-Current step:
-1. re-check live `_dmarc.theblacksheepshop.co.uk`,
-2. if absent, create a conservative valid DMARC record in monitoring mode,
-3. use policy `p=none` so mail flow is not quarantined/rejected,
-4. verify the authoritative Cloudflare DNS record after creation,
-5. record the result here.
+Remaining before Phase 13:
+1. inspect the successful single-message staging webhook E2E run and capture its delivered webhook event ID,
+2. replay that exact event once,
+3. verify duplicate/idempotent handling in staging D1,
+4. clean the synthetic staging webhook test order,
+5. record final pre-production staging state in this checklist/handoff.
 
-Target record:
-`v=DMARC1; p=none; pct=100; adkim=r; aspf=r`
+After those checks pass, Phase 13 can begin with guarded production migrations `0003–0008` and deployment of the exact audited source.
 
-This establishes DMARC without changing message acceptance policy. A stricter `quarantine` or `reject` policy can be considered later after monitoring.
-
-**No Worker or D1 mutation is part of this step.**
+**No production Worker/D1 deployment has been performed yet.**
