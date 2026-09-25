@@ -64,6 +64,7 @@ import {
   addAdminProductMedia,
   removeAdminProductMedia,
   reorderAdminProductMedia,
+  replaceAdminProductMedia,
   updateAdminProductMedia,
   type R2BucketLike,
 } from "../data/product-media";
@@ -103,6 +104,7 @@ interface AdminDependencies {
   addAdminProductMediaFn: typeof addAdminProductMedia;
   updateAdminProductMediaFn: typeof updateAdminProductMedia;
   reorderAdminProductMediaFn: typeof reorderAdminProductMedia;
+  replaceAdminProductMediaFn: typeof replaceAdminProductMedia;
   removeAdminProductMediaFn: typeof removeAdminProductMedia;
 }
 
@@ -136,6 +138,7 @@ const defaults: AdminDependencies = {
   addAdminProductMediaFn: addAdminProductMedia,
   updateAdminProductMediaFn: updateAdminProductMedia,
   reorderAdminProductMediaFn: reorderAdminProductMedia,
+  replaceAdminProductMediaFn: replaceAdminProductMedia,
   removeAdminProductMediaFn: removeAdminProductMedia,
 };
 
@@ -581,6 +584,100 @@ export async function handleAdminRequest(
       const updated = await deps.getAdminProductDetailFn(env.DB, productId);
       return json({ product: updated });
     } catch (cause) {
+      return productMediaInputError(cause);
+    }
+  }
+
+  const productMediaReplaceMatch = url.pathname.match(
+    /^\/admin\/api\/products\/([^/]+)\/media\/([^/]+)\/replace$/,
+  );
+  if (productMediaReplaceMatch && request.method === "POST") {
+    const productId = decodeURIComponent(productMediaReplaceMatch[1]);
+    const oldMediaId = decodeURIComponent(productMediaReplaceMatch[2]);
+    if (!env.PRODUCT_MEDIA) {
+      return error(
+        "product_media_storage_unavailable",
+        503,
+        "Product image storage is not configured.",
+      );
+    }
+
+    let newStorageKey: string | null = null;
+    try {
+      const upload = await readProductImageUpload(request);
+      const product = await ensureMediaDraft(
+        deps,
+        env.DB,
+        productId,
+        upload.expectedVersion,
+        identity.email,
+      );
+      const mediaId = "med_" + crypto.randomUUID();
+      const month = new Date().toISOString().slice(0, 7);
+      newStorageKey =
+        "products/" +
+        productId +
+        "/" +
+        month +
+        "/" +
+        mediaId +
+        "." +
+        upload.extension;
+
+      await env.PRODUCT_MEDIA.put(newStorageKey, upload.bytes, {
+        httpMetadata: {
+          contentType: upload.mimeType,
+          cacheControl: "public, max-age=31536000, immutable",
+        },
+        customMetadata: {
+          productId,
+          mediaId,
+          checksumSha256: upload.checksumSha256,
+          replacesMediaId: oldMediaId,
+        },
+      });
+
+      const replaced = await deps.replaceAdminProductMediaFn(
+        env.DB,
+        productId,
+        oldMediaId,
+        {
+          expectedVersion: Number(product.version),
+          mediaId,
+          storageKey: newStorageKey,
+          publicUrl: "/media/" + encodeURIComponent(mediaId),
+          mimeType: upload.mimeType,
+          width: null,
+          height: null,
+          fileSize: upload.bytes.byteLength,
+          checksumSha256: upload.checksumSha256,
+          altText: upload.altText,
+        },
+        identity.email,
+      );
+
+      let storageCleanupPending = false;
+      if (
+        replaced.shouldDeleteOldObject &&
+        replaced.oldStorageProvider === "R2"
+      ) {
+        try {
+          await env.PRODUCT_MEDIA.delete(replaced.oldStorageKey);
+        } catch {
+          storageCleanupPending = true;
+        }
+      }
+
+      const updated = await deps.getAdminProductDetailFn(env.DB, productId);
+      return json({ product: updated, storageCleanupPending }, 201);
+    } catch (cause) {
+      if (newStorageKey && env.PRODUCT_MEDIA) {
+        try {
+          await env.PRODUCT_MEDIA.delete(newStorageKey);
+        } catch {
+          // Preserve the original error; orphan cleanup can be handled separately.
+        }
+      }
       return productMediaInputError(cause);
     }
   }
