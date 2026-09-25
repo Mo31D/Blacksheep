@@ -19,15 +19,11 @@ const configPath = join(tempRoot, "wrangler-upgrade-test.json");
 
 function runWrangler(args) {
   const command = process.platform === "win32" ? "npx.cmd" : "npx";
-  const result = spawnSync(
-    command,
-    ["--no-install", "wrangler", ...args],
-    {
-      cwd: commerceRoot,
-      encoding: "utf8",
-      env: process.env,
-    },
-  );
+  const result = spawnSync(command, ["--no-install", "wrangler", ...args], {
+    cwd: commerceRoot,
+    encoding: "utf8",
+    env: process.env,
+  });
 
   if (result.status !== 0) {
     const detail = [result.stdout, result.stderr].filter(Boolean).join("\n");
@@ -40,10 +36,7 @@ function runWrangler(args) {
 }
 
 function copyMigration(fileName) {
-  copyFileSync(
-    join(sourceMigrations, fileName),
-    join(tempMigrations, fileName),
-  );
+  copyFileSync(join(sourceMigrations, fileName), join(tempMigrations, fileName));
 }
 
 try {
@@ -75,28 +68,19 @@ try {
     .filter((name) => /^\d{4}_.+\.sql$/.test(name))
     .sort();
 
-  const baselineMigrations = allMigrations.filter(
-    (name) => !name.startsWith("0008_"),
-  );
-  const hardeningMigration = allMigrations.find((name) =>
-    name.startsWith("0008_"),
-  );
+  const latestMigration = allMigrations.at(-1);
+  const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!hardeningMigration) {
-    throw new Error("Expected 0008 concurrency migration was not found.");
-  }
-  if (
-    baselineMigrations.length === 0 ||
-    baselineMigrations.at(-1)?.startsWith("0007_") !== true
-  ) {
+  if (!latestMigration?.startsWith("0009_")) {
     throw new Error(
-      "Upgrade baseline must contain the ordered 0000–0007 migration set.",
+      `Expected latest migration to be 0009, found ${latestMigration ?? "none"}.`,
     );
   }
-
-  for (const fileName of baselineMigrations) {
-    copyMigration(fileName);
+  if (baselineMigrations.at(-1)?.startsWith("0008_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0008.");
   }
+
+  for (const fileName of baselineMigrations) copyMigration(fileName);
 
   runWrangler([
     "d1",
@@ -110,7 +94,7 @@ try {
     persistDir,
   ]);
 
-  copyMigration(hardeningMigration);
+  copyMigration(latestMigration);
 
   runWrangler([
     "d1",
@@ -129,6 +113,11 @@ try {
     "SELECT refund_version, refund_mutation_token FROM orders LIMIT 0",
     "SELECT idempotency_key FROM refunds LIMIT 0",
     "SELECT claim_token FROM email_webhook_events LIMIT 0",
+    "SELECT legacy_catalog_id, current_slug, publication_status, sell_status FROM products LIMIT 0",
+    "SELECT product_id, version_number, title FROM product_versions LIMIT 0",
+    "SELECT sku, barcode, price_minor, track_inventory FROM product_variants LIMIT 0",
+    "SELECT storage_provider, storage_key, public_url FROM product_media LIMIT 0",
+    "SELECT code, name FROM inventory_locations LIMIT 1",
   ];
 
   for (const sql of schemaQueries) {
@@ -156,15 +145,38 @@ try {
     "--persist-to",
     persistDir,
     "--command",
-    "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_refunds_order_idempotency'",
+    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary') ORDER BY name",
   ]);
 
-  if (!indexOutput.includes("idx_refunds_order_idempotency")) {
-    throw new Error("Refund idempotency index was not present after the 0008 upgrade.");
+  for (const required of [
+    "idx_refunds_order_idempotency",
+    "idx_product_variants_sku",
+    "idx_product_version_media_one_primary",
+  ]) {
+    if (!indexOutput.includes(required)) {
+      throw new Error(`Required index missing after upgrade: ${required}`);
+    }
+  }
+
+  const locationOutput = runWrangler([
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    configPath,
+    "--persist-to",
+    persistDir,
+    "--command",
+    "SELECT code, name FROM inventory_locations WHERE id='loc_ambleside'",
+  ]);
+
+  if (!locationOutput.includes("AMBLESIDE")) {
+    throw new Error("Default Ambleside inventory location was not created.");
   }
 
   console.log(
-    "PASS: migrations 0000–0007 upgraded cleanly to 0008 and concurrency guard schema is present.",
+    "PASS: migrations 0000–0008 upgraded cleanly to 0009 and Product Core foundation schema is present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
