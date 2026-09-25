@@ -58,16 +58,17 @@ jobs:
         run: |
           npx wrangler d1 execute black-sheep-commerce-staging \
             --remote --env staging --json \
-            --command "SELECT COUNT(*) AS product_count FROM products; SELECT COUNT(*) AS tracked_count FROM product_variants WHERE track_inventory=1;" \
+            --command "SELECT COUNT(*) AS product_count FROM products; SELECT COUNT(*) AS imported_count FROM product_audit_events WHERE event_type='PRODUCT_IMPORTED'; SELECT COUNT(*) AS tracked_count FROM product_variants WHERE track_inventory=1;" \
             > /tmp/product-core-guard.json
           cat /tmp/product-core-guard.json
           node - /tmp/product-core-guard.json <<'NODE'
           const fs = require("fs");
           const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
           const products = Number(blocks?.[0]?.results?.[0]?.product_count ?? -1);
-          const tracked = Number(blocks?.[1]?.results?.[0]?.tracked_count ?? -1);
-          if (products !== 146) {
-            console.error("Refusing Phase 2 deploy: expected 146 staging products, got", products);
+          const imported = Number(blocks?.[1]?.results?.[0]?.imported_count ?? -1);
+          const tracked = Number(blocks?.[2]?.results?.[0]?.tracked_count ?? -1);
+          if (products < 146 || imported !== 146) {
+            console.error("Refusing Phase 2 deploy: imported Product Core baseline is incomplete.", { products, imported });
             process.exit(1);
           }
           if (tracked !== 0) {
