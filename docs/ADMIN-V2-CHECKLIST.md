@@ -278,16 +278,16 @@ Status: SUBSTANTIALLY IMPLEMENTED; CONTRACT/UI VALIDATION REMAINS.
 ## Remaining
 
 - [ ] Verify token hashing and expiry implementation against spec.
-- [ ] Add explicit cross-order token isolation test.
+- [x] Explicit cross-order reference/content isolation verified in staging edge E2E.
 - [x] Idempotent double-accept behaviour test.
 - [x] Accept/decline concurrency conflict coverage.
-- [ ] Verify current-revision-only enforcement under an explicitly superseded revision in staging.
-- [ ] Verify customer decline flow end to end in staging.
+- [x] Verify current-revision-only enforcement under an explicitly superseded revision in staging (edge E2E run `36143031389`).
+- [x] Verify customer decline flow end to end in staging, including payment reset + token revocation.
 - [x] Verify customer accept returns the exact payment URL attached to the active reviewed order.
 - [ ] iPhone Safari QA.
 - [ ] Desktop QA.
 
-Status: SUBSTANTIALLY IMPLEMENTED; SECURITY/RACE/E2E VALIDATION REMAINS.
+Status: CORE SECURITY/RACE/DECLINE/SUPERSEDED-TOKEN STAGING E2E VERIFIED; TOKEN EXPIRY SPEC REVIEW + BROWSER QA REMAIN.
 
 ---
 
@@ -425,6 +425,8 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] Isolated staging E2E workflow: `.github/workflows/commerce-staging-v2-e2e.yml`.
 - [x] E2E script: `commerce/scripts/staging-v2-e2e.mjs`.
 - [x] E2E run `36142333770`, job `108094936767`: **SUCCESS**.
+- [x] Edge-case E2E run `36143031389`, job `108097224317`: **SUCCESS** (decline, token revocation, superseded-token rejection, current-token enforcement, cross-order isolation).
+- [x] Synthetic edge-case data was automatically cleaned after the successful run.
 - [x] Synthetic test data was automatically cleaned after the successful run.
 - [x] Production was not touched.
 
@@ -461,13 +463,13 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] Reports verified to include E2E gross/refund figures.
 - [~] Payment/ready/refund/question notification calls returned successfully through the live staging Worker. Actual inbox receipt is not independently verified by this workflow.
 - [!] Signed Resend delivery-webhook E2E is blocked because staging health still reports `notifications.webhookConfigured=false`.
-- [ ] Customer decline flow E2E.
-- [ ] Superseded/current-revision-only review-token E2E.
-- [ ] Explicit cross-order token-isolation test.
+- [x] Customer decline flow E2E: revision → `DECLINED`, order → `UNDER_REVIEW`, payment request cleared, token revoked.
+- [x] Superseded/current-revision-only review-token E2E: old token → 404, current token → 200.
+- [x] Cross-order reference/content isolation verified with separate synthetic orders.
 - [ ] iPhone Safari UI QA.
 - [ ] Desktop browser UI QA.
 
-Status: **CORE ADMIN V2 STAGING E2E PASSED. Remaining gates are review-token edge cases, provider webhook configuration/telemetry, and browser/device QA.**
+Status: **CORE + REVIEW-EDGE ADMIN V2 STAGING E2E PASSED. Remaining gates are provider webhook configuration/telemetry, public checkout/Turnstile QA, and browser/device QA.**
 
 ---
 
@@ -542,22 +544,21 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**Phase 10 edge-case closeout before production release.**
+**Phase 10 external/runtime closeout.**
 
-Core staging E2E is now green:
-- E2E run: `36142333770`
-- job: `108094936767`
-- staging Worker: `0f5fb208-e4a8-49b7-9721-23bab226ba1b`
-- staging D1: current through `0008`
-- production Worker remains `938f0651-20b5-48df-a8d4-f84defbb263d`
-- production D1 remains through `0002`
+Automated staging gates now green:
+- core E2E run `36142333770` / job `108094936767`
+- review-edge E2E run `36143031389` / job `108097224317`
+- staging Worker `0f5fb208-e4a8-49b7-9721-23bab226ba1b`
+- staging D1 current through `0008`
+- decline/superseded/current-token/cross-order checks: PASS
+- production remains untouched at Worker `938f0651-20b5-48df-a8d4-f84defbb263d`, D1 through `0002`
 
 Next work, in order:
-1. add and run a staging customer-review edge-case scenario covering decline and superseded/current-revision-only tokens,
-2. add explicit cross-order token-isolation coverage,
-3. resolve staging `RESEND_WEBHOOK_SECRET` from the actual Resend webhook configuration; do not invent a signing secret,
-4. run one real signed Resend webhook through staging and confirm delivery state + idempotent duplicate handling in real D1,
-5. complete iPhone Safari and desktop browser QA,
-6. update this checklist after each gate.
+1. obtain the **real** staging Resend webhook signing secret from the configured Resend webhook and set it as staging `RESEND_WEBHOOK_SECRET`; do not invent or derive a fake secret,
+2. run one real signed Resend webhook through staging and verify delivery-state persistence + duplicate idempotency in real D1,
+3. complete browser QA: desktop Admin workspace and mobile layout; iPhone Safari remains a device/WebKit gate,
+4. close Phase 11 public checkout/Turnstile items (real order submission, duplicate submit, network failure basket preservation),
+5. only after those gates pass, prepare the guarded production migration/deploy plan.
 
-**Do not migrate or deploy production until these Phase 10 release gates are explicitly closed.**
+**Do not migrate or deploy production yet.**
