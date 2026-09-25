@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "npm run catalog:check && npm run product-core:validate && npm run cart:test && npm run legal:test && npm run typecheck && npm run db:migrate:local && npm run db:migrate:upgrade-test && npm run test && npm run dry-run",
+    "check": "npm run catalog:check && npm run product-core:validate && npm run cart:test && npm run legal:test && npm run typecheck && npm run db:migrate:local && npm run db:migrate:upgrade-test && npm run inventory-core:test && npm run test && npm run dry-run",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply DB --local --env staging",
@@ -24,7 +24,8 @@
     "db:migrate:upgrade-test": "node scripts/test-migration-upgrade.mjs",
     "product-core:validate": "node scripts/product-core-validate.mjs",
     "product-core:import:staging": "node scripts/product-core-import.mjs --remote --env staging",
-    "product-core:parity:staging": "node scripts/product-core-parity.mjs --remote --env staging"
+    "product-core:parity:staging": "node scripts/product-core-parity.mjs --remote --env staging",
+    "inventory-core:test": "node scripts/test-inventory-core.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0",
