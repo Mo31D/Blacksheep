@@ -32,6 +32,7 @@ export interface AdminOrderState {
   deliveryAmountMinor: number | null;
   finalTotalMinor: number | null;
   paymentStatus: string;
+  activeRevisionId?: string | null;
 }
 
 export interface ValidatedAdminAction {
@@ -101,6 +102,9 @@ export function validateAdminOrderAction(
 
     case "quote": {
       requireStatus(order.status, ["SUBMITTED", "UNDER_REVIEW", "QUOTED"], action);
+      if (order.activeRevisionId) {
+        throw new Error("admin_quote_revision_active");
+      }
       const amount = input.deliveryAmountMinor;
       if (!Number.isInteger(amount) || Number(amount) < 0 || Number(amount) > 100000) {
         throw new Error("admin_invalid_delivery_amount");
