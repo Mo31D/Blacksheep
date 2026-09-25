@@ -18,26 +18,36 @@ This checklist is intentionally separate from `ADMIN-V2-CHECKLIST.md` until Prod
 # PHASE 0 — ARCHITECTURE LOCK
 
 - [x] Create masterplan.
-- [ ] Freeze current 146-product source snapshot for migration.
-- [ ] Produce exact current-field inventory from `assets/catalog.js`.
-- [ ] Finalize product/variant schema.
-- [ ] Finalize category model.
-- [ ] Finalize media model.
-- [ ] Finalize supplier model.
-- [ ] Finalize inventory quantity semantics: on-hand / reserved / available / incoming.
-- [ ] Finalize order reservation lifecycle.
-- [ ] Finalize publish vs immediate-operational-change rules.
-- [ ] Define D1 migration rollback/forward-only policy.
-- [ ] Define API request/response contracts.
-- [ ] Define Admin Product workspace wireframe/spec.
-- [ ] Define mobile Product/Stock interaction spec.
-- [ ] Review Phase 0 plan before creating production migrations.
+- [x] Freeze current 146-product source snapshot for migration.
+- [x] Produce exact current-field inventory from assets/catalog.js.
+- [x] Finalize product/variant schema.
+- [x] Finalize category model.
+- [x] Finalize media model.
+- [x] Finalize supplier model.
+- [x] Finalize inventory quantity semantics: on-hand / reserved / available / incoming.
+- [x] Finalize order reservation lifecycle.
+- [x] Finalize publish vs immediate-operational-change rules.
+- [x] Define D1 migration rollback/forward-only policy.
+- [x] Define API request/response contracts.
+- [x] Define Admin Product workspace UX specification.
+- [x] Define mobile Product/Stock interaction specification.
+- [x] Review Phase 0 plan before creating production migrations.
+- [x] Record architecture lock summary and exact Phase 1 entry gate.
 
 Exit gate:
 - schema approved,
 - lifecycle approved,
 - no ambiguous source-of-truth rules,
 - no code path requires GitHub edits for routine owner product management.
+
+**Status: COMPLETE — specification locked. No Product/Inventory migration has been created or applied.**
+
+Exact Phase 1 start:
+1. additive Product Core D1 migration,
+2. deterministic importer,
+3. staging-only import,
+4. parity report,
+5. read-only Products Admin.
 
 ---
 
@@ -205,10 +215,15 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-Complete **Phase 0 Architecture Lock** before creating Product/Inventory production migrations.
+Begin **PHASE 1 — PRODUCT CORE / READ ONLY**.
 
-Start with:
-1. current-catalogue field audit,
-2. final D1 schema proposal,
-3. inventory/reservation lifecycle decision,
-4. Admin Products/Stock UX specification.
+Do not start Product write access or inventory quantity mutation yet.
+
+Sequence:
+1. create additive Product Core D1 migration,
+2. build deterministic importer against frozen catalogue blob b382d8e161f165f7291da34b1cb23bef06c2742d,
+3. import to staging only,
+4. produce parity report,
+5. build read-only Product APIs and Products workspace,
+6. verify iPhone + desktop,
+7. keep public storefront/checkout on current authority until parity/cutover is explicitly approved.
