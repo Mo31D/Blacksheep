@@ -306,25 +306,64 @@ Release report:
 
 # PHASE 6 — STOREFRONT / COMMERCE INTEGRATION
 
-**Status: ACTIVE — staging-first cutover. Production authority remains locked.**
+**Status: ACTIVE — Milestones 6.1–6.4 COMPLETE + REAL-STAGING VERIFIED. Production authority remains locked.**
 
-- [x] Phase 6 cutover principles locked before code.
-- [~] D1 public commerce catalogue/query layer — active milestone.
-- [ ] Commerce price validation reads D1 Product Core on staging.
-- [ ] Commerce orderability reads D1 Inventory Core on staging.
-- [ ] Public catalogue endpoint.
-- [ ] D1/static catalogue parity report with explicit allowed differences.
-- [ ] Live stock/price overlay.
+- [x] Phase 6 cutover principles locked before code — `docs/STOREFRONT-COMMERCE-PHASE6-IMPLEMENTATION-PLAN-2026-09-25.md`.
+- [x] D1 public commerce catalogue/query layer — published content only; Draft never used by the public query.
+- [x] Commerce price validation reads D1 Product Core on staging.
+- [x] Commerce orderability reads D1 Inventory Core on staging.
+- [x] Public catalogue endpoint — `GET /v1/catalog` + `GET /v1/catalog/:id`, staging only.
+- [x] Public API privacy contract — no cost/supplier/audit/internal-note/Draft fields.
+- [x] D1/static catalogue parity — 146 generated products vs 146 D1 public products, zero missing, zero extra, zero field mismatches.
+- [x] Staging D1 checkout authority enabled behind `D1_COMMERCE_AUTHORITY_ENABLED=true`.
+- [x] Browser/cart forged price ignored; current D1 price persisted server-side.
+- [x] Real tracked-stock checkout proof:
+  - Available 1 allows quantity 1,
+  - quantity 2 is rejected,
+  - Reserved reduces Available to 0 and blocks ordering.
+- [x] Operational propagation proof on real staging:
+  - D1 price 777 → order persisted 777,
+  - D1 price edited to 888 → next order persisted 888,
+  - online ordering OFF blocks,
+  - manual OUT_OF_STOCK blocks,
+  - archive removes the Product from public D1 catalogue.
+- [x] Published-vs-Draft proof — synthetic Product had a separate secret Draft and the public contract returned only the Published version.
+- [x] Synthetic Phase 6 QA Product/orders/balance cleaned after proof.
+- [x] Temporary Phase 6 checkout QA Worker deleted.
+- [~] Add/Publish/Archive propagation proof from **Admin UI** → public API → storefront preview — price/archive/public-layer mechanics proved; full Admin Add/Publish + storefront preview remains.
+- [ ] Live stock/price storefront overlay.
 - [ ] Static product publication pipeline.
 - [ ] Structured-data parity.
-- [ ] Canonical URL preservation.
-- [ ] Add/Publish/Archive propagation proof from Admin → public API → storefront preview.
-- [ ] Remove legacy duplicate catalogue authority only after parity/cutover proof.
-- [ ] Search-readiness regression suite updated.
+- [ ] Canonical URL preservation under generated publication.
+- [ ] Remove legacy duplicate catalogue authority only after publication/cutover proof.
+- [~] Search-readiness regression coverage — existing suite remains green; Phase 6 publication-specific SEO assertions remain for milestone 6.6.
 - [ ] Production cutover plan reviewed separately before Product/Inventory migrations or authority switch.
 
+### Phase 6 staging evidence
+
+- Public D1 catalogue + exact parity workflow: `36199480713` — SUCCESS.
+- D1 checkout authority + real tracked-stock proof workflow: `36200073433` — SUCCESS.
+- Current staging Worker deployment: `4e358034-e033-472c-a450-a52550058d25`.
+- Current staging Worker version: `3603f5da-1521-4c01-8888-65b9ebea0d29`.
+- Staging migration ledger: `0012_order_returns.sql`.
+- Staging flags:
+  - `D1_PUBLIC_CATALOG_ENABLED=true`,
+  - `D1_COMMERCE_AUTHORITY_ENABLED=true`,
+  - `ORDER_RESERVATIONS_ENABLED=true`.
+- Exact parity: generated 146 / D1 146 / missing 0 / extra 0 / mismatches 0.
+- Public staging catalogue: 146 products / 115 purchasable / 0 active tracked baseline products.
+- Real tracked-stock QA run: `05d821c4e1` — PASS.
+- QA cleanup restored staging to 146 ACTIVE baseline Products with no synthetic live Product/variant/balance/order.
+- Production remains:
+  - migration `0008_concurrency_guards.sql`,
+  - Product/Inventory/Reservation tables absent,
+  - `D1_PUBLIC_CATALOG_ENABLED` absent,
+  - `D1_COMMERCE_AUTHORITY_ENABLED` absent,
+  - checkout authority remains generated static catalogue,
+  - current order count: 4.
+
 Exit gate:
-- Admin, storefront and checkout share one operational truth.
+- [~] Admin, storefront and checkout share one operational truth — Admin + staging checkout/API now share D1; storefront visual overlay/publication pipeline remain.
 
 ---
 
@@ -373,23 +412,18 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 6 — D1 commerce authority foundation
+## Phase 6.5 — Storefront live overlay
 
-Phase 4 owner UX re-test is now accepted and Phase 5 is complete.
+Milestones 6.1–6.4 are complete and real-staging verified.
 
-First Phase 6 milestone:
+Next implementation sequence:
 
-1. Freeze current static/generated commerce catalogue as the comparison baseline.
-2. Define one D1 public-product query using **published content only**:
-   - never expose Product Draft content,
-   - use the active default variant,
-   - price comes from D1 variant operational state,
-   - manual sell status overrides automatic inventory,
-   - tracked AUTO products use Available = On hand - Reserved - Safety stock,
-   - untracked AUTO products preserve current orderability behaviour.
-3. Add a public read-only D1 catalogue endpoint on staging.
-4. Add D1-backed cart pricing/orderability behind a **staging-only feature flag**.
-5. Run a parity report against the generated static commerce catalogue before enabling the D1 path.
-6. Do not alter the public Production storefront or Production D1 in this milestone.
+1. Add a lightweight storefront overlay that can consume the public D1 catalogue without rewriting canonical HTML URLs.
+2. Keep the ordinary Production storefront on static fallback until the Production API cutover is explicitly approved.
+3. Add a safe staging-preview mode so price/status/orderability can be QA'd against the staging D1 API before general activation.
+4. Update cards, Product detail, basket state and Add-to-basket controls from the live public contract.
+5. If the API is unavailable, leave the existing static catalogue and pages usable.
+6. Verify no layout shift / mobile regressions.
+7. Then begin milestone 6.6: Admin Publish → static product pages/cards/sitemap/JSON-LD pipeline.
 
-Production remains on migration `0008` and the current generated catalogue remains its commerce authority until a later explicit Phase 6 cutover gate.
+Production D1 remains at `0008`; no Product/Inventory migration or D1 commerce authority has been enabled there.
