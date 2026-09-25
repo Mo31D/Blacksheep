@@ -235,8 +235,9 @@ Status: IN PROGRESS; production shell/configuration prepared, public checkout st
 - [x] Create separate production Turnstile widget/secret.
 - [x] Create separate Resend production API key.
 - [x] Attach `api.theblacksheepshop.co.uk` as the production Worker Custom Domain.
-- [ ] Apply production D1 migrations.
-- [ ] Deploy production Worker.
+- [x] Apply production D1 migrations (`0000`, `0001`, `0002`) via guarded run `36078963186`.
+- [x] Deploy production Worker from `main` commit `19418b02473e4d8122b0214021cc1196e84daa3d`.
+- [x] Production Worker deployment version: `938f0651-20b5-48df-a8d4-f84defbb263d`.
 - [ ] Verify production `/health` and `/admin`.
 - [ ] Point checkout config to production API and switch public feature gates ON.
 - [ ] Test delivery + collection on mobile/desktop.
@@ -280,12 +281,10 @@ Completed in the production setup:
 - Public storefront checkout remains feature-gated OFF.
 
 Next:
-1. Run the guarded `Commerce Deploy` workflow with `environment = production` and confirmation `DEPLOY-PRODUCTION`.
-2. That run must apply pending production D1 migrations and deploy the real Commerce Worker code.
-3. Verify `https://api.theblacksheepshop.co.uk/health`.
-4. Verify owner login at `https://api.theblacksheepshop.co.uk/admin`.
-5. Only after production API/admin checks pass, update the storefront with the production Turnstile Site Key, point checkout to `https://api.theblacksheepshop.co.uk`, and switch the public feature gates ON.
-6. Complete delivery/collection, duplicate-protection, cart-preservation, notification and controlled low-value production lifecycle QA.
-7. Record final production SHA/resources in the handoff.
+1. Verify `https://api.theblacksheepshop.co.uk/health` returns the production environment with D1 and notifications configured.
+2. Verify owner login at `https://api.theblacksheepshop.co.uk/admin` and confirm the production order list loads.
+3. Only after production API/admin checks pass, update the storefront with the production Turnstile Site Key, point checkout to `https://api.theblacksheepshop.co.uk`, and switch the public feature gates ON.
+4. Complete delivery/collection, duplicate-protection, cart-preservation, notification and controlled low-value production lifecycle QA.
+5. Record final production SHA/resources in the handoff.
 
-Production D1 has still not been migrated at the time of this checklist update; that happens only in the guarded production deployment.
+Guarded production deploy run `36078963186` succeeded. Production D1 migrations `0000`, `0001`, and `0002` were applied and Worker version `938f0651-20b5-48df-a8d4-f84defbb263d` was deployed. Public storefront checkout remains OFF pending production health/admin verification.
