@@ -12,6 +12,7 @@ import {
 
 export interface CustomerReviewEnv extends CustomerQuestionEnv {
   DB?: D1DatabaseLike;
+  ORDER_RESERVATIONS_ENABLED?: string;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -320,7 +321,11 @@ export async function handleCustomerReviewRequest(
     }
 
     if (action === "decline") {
-      return json(await declineCustomerReview(env.DB, token));
+      return json(
+        await declineCustomerReview(env.DB, token, {
+          inventoryReservations: env.ORDER_RESERVATIONS_ENABLED === "true",
+        }),
+      );
     }
 
     const body = await readJson(request);
