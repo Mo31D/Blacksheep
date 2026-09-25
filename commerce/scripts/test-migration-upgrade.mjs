@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0009_")) {
+  if (!latestMigration?.startsWith("0010_")) {
     throw new Error(
-      `Expected latest migration to be 0009, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0010, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0008_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0008.");
+  if (baselineMigrations.at(-1)?.startsWith("0009_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0009.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -118,6 +118,9 @@ try {
     "SELECT sku, barcode, price_minor, track_inventory FROM product_variants LIMIT 0",
     "SELECT storage_provider, storage_key, public_url FROM product_media LIMIT 0",
     "SELECT code, name FROM inventory_locations LIMIT 1",
+    "SELECT variant_id, location_id, on_hand, reserved, safety_stock, version FROM inventory_balances LIMIT 0",
+    "SELECT movement_type, on_hand_delta, reserved_delta, reason_code, idempotency_key FROM inventory_movements LIMIT 0",
+    "SELECT expected_quantity, received_quantity, status, version FROM inventory_incoming LIMIT 0",
   ];
 
   for (const sql of schemaQueries) {
@@ -145,13 +148,16 @@ try {
     "--persist-to",
     persistDir,
     "--command",
-    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary') ORDER BY name",
+    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status') ORDER BY name",
   ]);
 
   for (const required of [
     "idx_refunds_order_idempotency",
     "idx_product_variants_sku",
     "idx_product_version_media_one_primary",
+    "idx_inventory_movements_idempotency",
+    "idx_inventory_movements_variant_created",
+    "idx_inventory_incoming_variant_status",
   ]) {
     if (!indexOutput.includes(required)) {
       throw new Error(`Required index missing after upgrade: ${required}`);
@@ -175,8 +181,29 @@ try {
     throw new Error("Default Ambleside inventory location was not created.");
   }
 
+  const ledgerGuard = runWrangler([
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    configPath,
+    "--persist-to",
+    persistDir,
+    "--command",
+    "SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('inventory_movements_immutable_update','inventory_movements_immutable_delete') ORDER BY name",
+  ]);
+  for (const required of [
+    "inventory_movements_immutable_update",
+    "inventory_movements_immutable_delete",
+  ]) {
+    if (!ledgerGuard.includes(required)) {
+      throw new Error(`Immutable inventory ledger trigger missing: ${required}`);
+    }
+  }
+
   console.log(
-    "PASS: migrations 0000–0008 upgraded cleanly to 0009 and Product Core foundation schema is present.",
+    "PASS: migrations 0000–0009 upgraded cleanly to 0010 and Inventory Core schema is present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
