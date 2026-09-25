@@ -657,7 +657,8 @@ describe("Phase 5 guarded reservation release builder", () => {
     expect(balance.values).toContain("revision-guard-token");
 
     const release = db.prepared[1];
-    expect(release.sql).toContain("SET state = 'RELEASED'");
+    expect(release.sql).toContain("SET state = ?");
+    expect(release.values).toContain("RELEASED");
     expect(release.sql).toContain("CASE");
     expect(release.sql).toContain("ELSE NULL");
     expect(release.sql).toContain("release_reason = ?");
@@ -691,7 +692,8 @@ describe("Phase 5 guarded reservation release builder", () => {
     );
 
     expect(prepared.statements).toHaveLength(1);
-    expect(db.prepared[0].sql).toContain("SET state = 'RELEASED'");
+    expect(db.prepared[0].sql).toContain("SET state = ?");
+    expect(db.prepared[0].values).toContain("RELEASED");
     expect(db.prepared[0].sql).toContain("WHEN 1 = 1 THEN ?");
   });
 
