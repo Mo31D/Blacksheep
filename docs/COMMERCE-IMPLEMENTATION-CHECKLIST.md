@@ -220,7 +220,7 @@ Status: COMPLETE, INCLUDING OWNER IDENTITY AND LIVE INBOUND-EMAIL VERIFICATION.
 
 ## Phase 14 — Production cutover
 
-Status: IN PROGRESS; production shell/configuration prepared, public checkout still OFF.
+Status: IN PROGRESS; production API/admin verified and public checkout enabled. Controlled production QA remains.
 
 - [x] Conservative production cutover runbook.
 - [x] Customer Commerce UI on `main` with public ordering OFF.
@@ -244,15 +244,16 @@ Status: IN PROGRESS; production shell/configuration prepared, public checkout st
 - [x] Verify production `/admin` UI loads on the production `workers.dev` URL.
 - [x] Verify production owner OTP login on `api.theblacksheepshop.co.uk` and confirm the production order list loads successfully (currently empty, as expected for the new production D1).
 - [x] Verify `api.theblacksheepshop.co.uk` is reachable over HTTPS from an external mobile network. Any remaining failure on the original Wi-Fi/device path is local resolver/cache propagation, not a production API or Cloudflare routing failure.
-- [ ] Point checkout config to production API and switch public feature gates ON.
+- [x] Point checkout config to `https://api.theblacksheepshop.co.uk` and switch public feature gates ON.
+- [x] Replace the staging Turnstile Site Key in checkout with the production Site Key.
 - [ ] Test delivery + collection on mobile/desktop.
 - [ ] Verify duplicate protection and API-error cart preservation.
 - [ ] Verify owner/customer notifications.
 - [ ] Run one controlled low-value production order lifecycle.
-- [ ] Search Readiness PASS.
-- [ ] Commerce CI PASS.
-- [ ] GitHub Pages deployment PASS.
-- [ ] Commerce Worker deployment PASS.
+- [x] Search Readiness PASS for production-checkout commit `33ff084b18fabd2b211995aa7450171916784c29` (run `36081015683`).
+- [x] Commerce CI PASS for production-checkout commit `33ff084b18fabd2b211995aa7450171916784c29` (run `36081015696`).
+- [x] GitHub Pages deployment PASS for production-checkout commit `33ff084b18fabd2b211995aa7450171916784c29` (run `36081015383`).
+- [x] Commerce Worker production deployment PASS (guarded run `36078963186`).
 - [ ] Update handoff with final production SHA/resources.
 
 ## Phase 15 — Future full ecommerce
@@ -283,14 +284,14 @@ Completed in the production setup:
 - Separate production Resend API key configured.
 - `ORDER_OWNER_EMAIL` configured.
 - Custom Domain `api.theblacksheepshop.co.uk` attached.
-- Public storefront checkout remains feature-gated OFF.
+- Public storefront checkout is now enabled and points to the verified production API.
 
 Next:
-1. Production health is verified on `https://black-sheep-commerce-api.ky6vfb55p9.workers.dev/health` with environment=`production`, D1 bound and Resend/owner configuration present.
-2. `https://api.theblacksheepshop.co.uk/health` is now verified from an external mobile network and returns the correct production health JSON. Any failure on the original Wi-Fi/device path is local DNS/cache propagation only.
-3. Production owner OTP login and the production order list are now verified on `https://api.theblacksheepshop.co.uk/admin`. The empty list is expected because the production D1 is newly initialized.
-4. Next, update the storefront with the production Turnstile Site Key, point checkout to `https://api.theblacksheepshop.co.uk`, and switch the public feature gates ON.
-5. Complete delivery/collection, duplicate-protection, cart-preservation, notification and controlled low-value production lifecycle QA.
-6. Record final production SHA/resources in the handoff.
+1. Public checkout is now enabled on GitHub Pages with the production Turnstile Site Key and API base `https://api.theblacksheepshop.co.uk`.
+2. Run one controlled low-value production order on mobile, first with collection and then a separate delivery test if practical.
+3. Confirm the order appears in production admin, customer acknowledgement arrives, owner notification arrives, and the basket clears only after successful submission.
+4. Verify duplicate protection by retrying the same submission path without creating a duplicate order, and verify an API/network failure preserves the basket.
+5. Take the controlled order through the production admin lifecycle and confirm payment-request/payment-received notifications.
+6. After those live checks pass, mark Phase 14 complete and update the session handoff with final production resources.
 
 Guarded production deploy run `36078963186` succeeded. Production D1 migrations `0000`, `0001`, and `0002` were applied and Worker version `938f0651-20b5-48df-a8d4-f84defbb263d` was deployed. Public storefront checkout remains OFF pending production health/admin verification.
