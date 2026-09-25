@@ -131,9 +131,9 @@ Evidence:
 
 # PHASE 3 — PRODUCT MEDIA
 
-- [~] Provision media storage — creating isolated staging R2 bucket.
-- [ ] Secure upload route.
-- [ ] File type/size validation.
+- [!] Provision media storage — Cloudflare R2 is not enabled on the account; API returns error 10042.
+- [~] Secure upload route — implementation in progress.
+- [~] File type/size validation — implementation in progress.
 - [ ] Product gallery.
 - [ ] Primary image.
 - [ ] Reorder.
