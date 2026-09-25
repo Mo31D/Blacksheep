@@ -45,6 +45,10 @@ import { notifyPaymentConfirmed, notifyPaymentRequest, type PaymentNotificationE
 import { notifyLifecycleUpdate } from "../notifications/status";
 import { notifyRefundRecorded } from "../notifications/refund";
 import { sendOwnerCustomerMessage } from "../notifications/customer-message";
+import {
+  getAdminProductDetail,
+  listAdminProducts,
+} from "../data/products";
 
 export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
   DB?: D1DatabaseLike;
@@ -66,6 +70,8 @@ interface AdminDependencies {
   getOrderRefundSummaryFn: typeof getOrderRefundSummary;
   recordManualRefundFn: typeof recordManualRefund;
   createCustomerReviewTokenFn: typeof createCustomerReviewToken;
+  listAdminProductsFn: typeof listAdminProducts;
+  getAdminProductDetailFn: typeof getAdminProductDetail;
 }
 
 const defaults: AdminDependencies = {
@@ -84,6 +90,8 @@ const defaults: AdminDependencies = {
   getOrderRefundSummaryFn: getOrderRefundSummary,
   recordManualRefundFn: recordManualRefund,
   createCustomerReviewTokenFn: createCustomerReviewToken,
+  listAdminProductsFn: listAdminProducts,
+  getAdminProductDetailFn: getAdminProductDetail,
 };
 
 function json(body: unknown, status = 200): Response {
@@ -246,6 +254,32 @@ export async function handleAdminRequest(
       priceMinor: product.priceMinor,
     }));
     return json({ products });
+  }
+
+  if (url.pathname === "/admin/api/products" && request.method === "GET") {
+    const result = await deps.listAdminProductsFn(env.DB, {
+      q: url.searchParams.get("q") ?? "",
+      publication: url.searchParams.get("publication"),
+      sellStatus: url.searchParams.get("sellStatus"),
+      stock: url.searchParams.get("stock"),
+      category: url.searchParams.get("category"),
+      quality: url.searchParams.get("quality"),
+      sort: url.searchParams.get("sort"),
+      cursor: url.searchParams.get("cursor"),
+      limit: Number(url.searchParams.get("limit") ?? "60"),
+    });
+    return json(result);
+  }
+
+  const productDetailMatch = url.pathname.match(
+    /^\/admin\/api\/products\/([^/]+)$/,
+  );
+  if (productDetailMatch && request.method === "GET") {
+    const productId = decodeURIComponent(productDetailMatch[1]);
+    const product = await deps.getAdminProductDetailFn(env.DB, productId);
+    return product
+      ? json({ product })
+      : error("product_not_found", 404, "Product not found.");
   }
 
   const revisionsMatch = url.pathname.match(
