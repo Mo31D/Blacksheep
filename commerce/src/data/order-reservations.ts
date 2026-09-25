@@ -528,3 +528,410 @@ export function prepareReservationMutation(
     balanceMutationTokens,
   };
 }
+
+
+interface ActiveReservationRow {
+  id: string;
+  orderId: string;
+  revisionId: string;
+  locationId: string;
+  state: "ACTIVE";
+  expiresAt: string;
+  version: number;
+  mutationToken: string;
+}
+
+interface ReservationReleaseRequirementRow {
+  variantId: string;
+  quantity: number;
+  onHand: number | null;
+  reserved: number | null;
+  safetyStock: number | null;
+  balanceVersion: number | null;
+}
+
+export interface ReservationReleaseRequirement {
+  variantId: string;
+  quantity: number;
+  onHand: number;
+  reserved: number;
+  safetyStock: number;
+  balanceVersion: number;
+}
+
+export interface ActiveReservationReleasePlan {
+  reservationId: string;
+  orderId: string;
+  revisionId: string;
+  locationId: string;
+  expiresAt: string;
+  version: number;
+  mutationToken: string;
+  requirements: ReservationReleaseRequirement[];
+}
+
+export interface ReservationExternalGuard {
+  revisionId: string;
+  version: number;
+  mutationToken: string;
+  state: "DRAFT" | "SENT" | "ACCEPTED";
+}
+
+export interface ReservationReleaseInput {
+  actorEmail: string;
+  reason: string;
+  createdAt?: string;
+  externalGuard?: ReservationExternalGuard;
+}
+
+export interface PreparedReservationRelease {
+  reservationId: string;
+  releaseMutationToken: string;
+  statements: D1PreparedStatementLike[];
+  balanceMutationTokens: Record<string, string>;
+}
+
+async function activeReservationRowForRevision(
+  db: D1DatabaseLike,
+  revisionId: string,
+): Promise<ActiveReservationRow | null> {
+  return db
+    .prepare(
+      `SELECT
+        id,
+        order_id AS orderId,
+        revision_id AS revisionId,
+        location_id AS locationId,
+        state,
+        expires_at AS expiresAt,
+        version,
+        mutation_token AS mutationToken
+      FROM inventory_reservations
+      WHERE revision_id = ?
+        AND state = 'ACTIVE'
+      LIMIT 1`,
+    )
+    .bind(revisionId)
+    .first<ActiveReservationRow>();
+}
+
+async function buildReleasePlanFromRow(
+  db: D1DatabaseLike,
+  reservation: ActiveReservationRow,
+): Promise<ActiveReservationReleasePlan> {
+  const rows = await allRows<ReservationReleaseRequirementRow>(
+    db
+      .prepare(
+        `SELECT
+          i.variant_id AS variantId,
+          SUM(i.quantity) AS quantity,
+          b.on_hand AS onHand,
+          b.reserved AS reserved,
+          b.safety_stock AS safetyStock,
+          b.version AS balanceVersion
+        FROM inventory_reservation_items i
+        LEFT JOIN inventory_balances b
+          ON b.variant_id = i.variant_id
+          AND b.location_id = ?
+        WHERE i.reservation_id = ?
+        GROUP BY
+          i.variant_id,
+          b.on_hand,
+          b.reserved,
+          b.safety_stock,
+          b.version
+        ORDER BY i.variant_id`,
+      )
+      .bind(reservation.locationId, reservation.id),
+  );
+
+  const requirements = rows.map((row) => {
+    if (
+      row.balanceVersion === null ||
+      row.onHand === null ||
+      row.reserved === null ||
+      row.safetyStock === null
+    ) {
+      throw new Error("reservation_release_balance_missing");
+    }
+    const quantity = Number(row.quantity);
+    const reserved = Number(row.reserved);
+    if (!Number.isInteger(quantity) || quantity <= 0 || reserved < quantity) {
+      throw new Error("reservation_release_balance_invalid");
+    }
+    return {
+      variantId: row.variantId,
+      quantity,
+      onHand: Number(row.onHand),
+      reserved,
+      safetyStock: Number(row.safetyStock),
+      balanceVersion: Number(row.balanceVersion),
+    };
+  });
+
+  return {
+    reservationId: reservation.id,
+    orderId: reservation.orderId,
+    revisionId: reservation.revisionId,
+    locationId: reservation.locationId,
+    expiresAt: reservation.expiresAt,
+    version: Number(reservation.version),
+    mutationToken: reservation.mutationToken,
+    requirements,
+  };
+}
+
+export async function getActiveReservationReleasePlan(
+  db: D1DatabaseLike,
+  revisionId: string,
+): Promise<ActiveReservationReleasePlan | null> {
+  const reservation = await activeReservationRowForRevision(db, revisionId);
+  return reservation ? buildReleasePlanFromRow(db, reservation) : null;
+}
+
+export async function getSupersededReservationReleasePlan(
+  db: D1DatabaseLike,
+  orderId: string,
+  excludeRevisionId: string,
+): Promise<ActiveReservationReleasePlan | null> {
+  const rows = await allRows<ActiveReservationRow>(
+    db
+      .prepare(
+        `SELECT
+          id,
+          order_id AS orderId,
+          revision_id AS revisionId,
+          location_id AS locationId,
+          state,
+          expires_at AS expiresAt,
+          version,
+          mutation_token AS mutationToken
+        FROM inventory_reservations
+        WHERE order_id = ?
+          AND revision_id <> ?
+          AND state = 'ACTIVE'
+        ORDER BY created_at DESC
+        LIMIT 2`,
+      )
+      .bind(orderId, excludeRevisionId),
+  );
+  if (rows.length > 1) {
+    throw new Error("reservation_multiple_active_for_order");
+  }
+  return rows[0] ? buildReleasePlanFromRow(db, rows[0]) : null;
+}
+
+function externalGuardSql(
+  guard: ReservationExternalGuard | undefined,
+): string {
+  return guard
+    ? `EXISTS (
+        SELECT 1
+        FROM order_revisions external_revision_guard
+        WHERE external_revision_guard.id = ?
+          AND external_revision_guard.version = ?
+          AND external_revision_guard.mutation_token = ?
+          AND external_revision_guard.state = ?
+      )`
+    : "1 = 1";
+}
+
+function externalGuardValues(
+  guard: ReservationExternalGuard | undefined,
+): unknown[] {
+  return guard
+    ? [
+        guard.revisionId,
+        guard.version,
+        guard.mutationToken,
+        guard.state,
+      ]
+    : [];
+}
+
+export function prepareReservationReleaseMutation(
+  db: D1DatabaseLike,
+  plan: ActiveReservationReleasePlan,
+  input: ReservationReleaseInput,
+): PreparedReservationRelease {
+  const actorEmail = requiredMutationText(
+    input.actorEmail,
+    "reservation_actor_required",
+  );
+  const reason = requiredMutationText(
+    input.reason,
+    "reservation_release_reason_required",
+  );
+  if (reason.length > 240) {
+    throw new Error("reservation_release_reason_too_long");
+  }
+
+  const createdAt = input.createdAt ?? new Date().toISOString();
+  const releaseMutationToken = uid("rmut");
+  const balanceMutationTokens: Record<string, string> = {};
+  const statements: D1PreparedStatementLike[] = [];
+  const extSql = externalGuardSql(input.externalGuard);
+  const extValues = externalGuardValues(input.externalGuard);
+
+  for (const requirement of plan.requirements) {
+    const balanceMutationToken = uid("imut");
+    balanceMutationTokens[requirement.variantId] = balanceMutationToken;
+    statements.push(
+      db
+        .prepare(
+          `UPDATE inventory_balances
+          SET reserved = reserved - ?,
+              version = version + 1,
+              mutation_token = ?,
+              updated_at = ?
+          WHERE variant_id = ?
+            AND location_id = ?
+            AND version = ?
+            AND reserved >= ?
+            AND EXISTS (
+              SELECT 1
+              FROM inventory_reservations reservation_guard
+              WHERE reservation_guard.id = ?
+                AND reservation_guard.version = ?
+                AND reservation_guard.mutation_token = ?
+                AND reservation_guard.state = 'ACTIVE'
+            )
+            AND ${extSql}`,
+        )
+        .bind(
+          requirement.quantity,
+          balanceMutationToken,
+          createdAt,
+          requirement.variantId,
+          plan.locationId,
+          requirement.balanceVersion,
+          requirement.quantity,
+          plan.reservationId,
+          plan.version,
+          plan.mutationToken,
+          ...extValues,
+        ),
+    );
+  }
+
+  const balanceGuardSql = plan.requirements.length
+    ? plan.requirements
+        .map(
+          () =>
+            `EXISTS (
+              SELECT 1
+              FROM inventory_balances release_balance_guard
+              WHERE release_balance_guard.variant_id = ?
+                AND release_balance_guard.location_id = ?
+                AND release_balance_guard.version = ?
+                AND release_balance_guard.mutation_token = ?
+            )`,
+        )
+        .join(" AND ")
+    : "1 = 1";
+  const balanceGuardValues: unknown[] = [];
+  for (const requirement of plan.requirements) {
+    balanceGuardValues.push(
+      requirement.variantId,
+      plan.locationId,
+      requirement.balanceVersion + 1,
+      balanceMutationTokens[requirement.variantId],
+    );
+  }
+
+  statements.push(
+    db
+      .prepare(
+        `UPDATE inventory_reservations
+        SET state = 'RELEASED',
+            released_at = ?,
+            release_reason = ?,
+            version = version + 1,
+            mutation_token = CASE
+              WHEN ${balanceGuardSql} THEN ?
+              ELSE NULL
+            END,
+            updated_at = ?
+        WHERE id = ?
+          AND version = ?
+          AND mutation_token = ?
+          AND state = 'ACTIVE'
+          AND ${extSql}`,
+      )
+      .bind(
+        createdAt,
+        reason,
+        ...balanceGuardValues,
+        releaseMutationToken,
+        createdAt,
+        plan.reservationId,
+        plan.version,
+        plan.mutationToken,
+        ...extValues,
+      ),
+  );
+
+  for (const requirement of plan.requirements) {
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO inventory_movements (
+            id, variant_id, location_id, movement_type,
+            on_hand_delta, reserved_delta, safety_stock_delta,
+            reason_code, note, order_id, order_revision_id,
+            reservation_id, incoming_id, batch_id, idempotency_key,
+            actor_type, actor_id, created_at,
+            balance_on_hand_after, balance_reserved_after, balance_safety_after
+          )
+          SELECT
+            ?, b.variant_id, b.location_id, 'RESERVATION_RELEASE',
+            0, ?, 0,
+            'RESERVATION_RELEASE', ?,
+            ?, ?, ?, NULL, NULL, ?,
+            'ADMIN', ?, ?,
+            b.on_hand, b.reserved, b.safety_stock
+          FROM inventory_balances b
+          WHERE b.variant_id = ?
+            AND b.location_id = ?
+            AND b.version = ?
+            AND b.mutation_token = ?
+            AND EXISTS (
+              SELECT 1
+              FROM inventory_reservations r
+              WHERE r.id = ?
+                AND r.state = 'RELEASED'
+                AND r.mutation_token = ?
+            )`,
+        )
+        .bind(
+          uid("imv"),
+          -requirement.quantity,
+          reason,
+          plan.orderId,
+          plan.revisionId,
+          plan.reservationId,
+          "reservation-release:" +
+            plan.reservationId +
+            ":v" +
+            plan.version +
+            ":variant:" +
+            requirement.variantId,
+          actorEmail,
+          createdAt,
+          requirement.variantId,
+          plan.locationId,
+          requirement.balanceVersion + 1,
+          balanceMutationTokens[requirement.variantId],
+          plan.reservationId,
+          releaseMutationToken,
+        ),
+    );
+  }
+
+  return {
+    reservationId: plan.reservationId,
+    releaseMutationToken,
+    statements,
+    balanceMutationTokens,
+  };
+}
