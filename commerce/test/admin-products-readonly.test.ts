@@ -36,18 +36,44 @@ const identity = async () => ({
   identity: { email: "owner@example.com", subject: "owner-1" },
 });
 
-describe("Phase 1 read-only Product Admin", () => {
-  it("renders the premium Products workspace without edit controls", () => {
+const product = {
+  id: "prd-1",
+  legacyId: "PR-001",
+  slug: "peter-rabbit",
+  title: "Peter Rabbit",
+  publicationStatus: "ACTIVE",
+  sellStatus: "AUTO",
+  onlineOrderingEnabled: true,
+  featured: false,
+  version: 4,
+  draftVersionId: null,
+  variantId: "var-1",
+  variantVersion: 2,
+  sku: "SKU-1",
+  barcode: null,
+  priceMinor: 995,
+  trackInventory: false,
+  categories: [],
+  media: [],
+  attributes: [],
+  sources: [],
+  history: [],
+};
+
+describe("Phase 2 Product Admin", () => {
+  it("renders premium editing controls and mobile polish hooks", () => {
     const html = adminHtml("owner@example.com");
     expect(html).toContain('data-nav="products"');
     expect(html).toContain('id="view-products"');
-    expect(html).toContain("Phase 1 · Read only");
-    expect(html).toContain("Search product, SKU, barcode or code");
-    expect(html).toContain("Read-only Product Core");
-    expect(html).not.toContain("Add product</button>");
+    expect(html).toContain("Phase 2 · Editing");
+    expect(html).toContain('id="addProduct"');
+    expect(html).toContain("Quick edit");
+    expect(html).toContain("Edit details");
+    expect(html).toContain("product-mobile-sticky");
+    expect(html).toContain("Unique products needing action");
   });
 
-  it("returns the authenticated product list contract", async () => {
+  it("returns actionable quality metrics without treating in-store pricing as missing", async () => {
     const response = await handleAdminRequest(
       new Request(
         "https://admin.example.com/admin/api/products?q=peter&quality=missing-image&limit=100",
@@ -55,7 +81,7 @@ describe("Phase 1 read-only Product Admin", () => {
       { DB: new Db() },
       {
         verifyAccessFn: identity,
-        listAdminProductsFn: async (_db, filters) => ({
+        listAdminProductsFn: async () => ({
           products: [
             {
               id: "prd-1",
@@ -78,7 +104,7 @@ describe("Phase 1 read-only Product Admin", () => {
                 incoming: 0,
               },
               qualityFlags: ["MISSING_IMAGE"],
-              version: 1,
+              version: 4,
               updatedAt: "2026-09-25T00:00:00.000Z",
             },
           ],
@@ -100,33 +126,12 @@ describe("Phase 1 read-only Product Admin", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       products: [{ legacyId: "PR-001", priceMinor: 995 }],
-      summary: { total: 146, untracked: 146 },
+      summary: { total: 146, missingPrice: 2, needsData: 15 },
     });
   });
 
-  it("returns one authenticated product detail", async () => {
-    const response = await handleAdminRequest(
-      new Request("https://admin.example.com/admin/api/products/prd-1"),
-      { DB: new Db() },
-      {
-        verifyAccessFn: identity,
-        getAdminProductDetailFn: async () => ({
-          id: "prd-1",
-          legacyId: "PR-001",
-          title: "Peter Rabbit",
-          publicationStatus: "ACTIVE",
-          trackInventory: false,
-        }),
-      },
-    );
-
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({
-      product: { id: "prd-1", publicationStatus: "ACTIVE" },
-    });
-  });
-
-  it("does not expose a Phase 1 product write route", async () => {
+  it("creates a draft product through the authenticated write route", async () => {
+    let called = false;
     const response = await handleAdminRequest(
       new Request("https://admin.example.com/admin/api/products", {
         method: "POST",
@@ -134,12 +139,143 @@ describe("Phase 1 read-only Product Admin", () => {
           origin: "https://admin.example.com",
           "content-type": "application/json",
         },
-        body: JSON.stringify({ title: "Should not be writable" }),
+        body: JSON.stringify({
+          title: "New Product",
+          priceMinor: 1295,
+          categoryIds: [],
+        }),
+      }),
+      { DB: new Db() },
+      {
+        verifyAccessFn: identity,
+        createAdminProductFn: async () => {
+          called = true;
+          return { id: "prd-new" };
+        },
+        getAdminProductDetailFn: async () => ({
+          ...product,
+          id: "prd-new",
+          title: "New Product",
+          publicationStatus: "DRAFT",
+          draftVersionId: "pver-new",
+        }),
+      },
+    );
+
+    expect(called).toBe(true);
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      product: { id: "prd-new", publicationStatus: "DRAFT" },
+    });
+  });
+
+  it("updates variant price/codes and returns refreshed product state", async () => {
+    const response = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/variants/var-1", {
+        method: "PATCH",
+        headers: {
+          origin: "https://admin.example.com",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          expectedVersion: 2,
+          priceMinor: 1095,
+          sku: "SKU-2",
+        }),
+      }),
+      { DB: new Db() },
+      {
+        verifyAccessFn: identity,
+        updateAdminVariantFn: async () => ({ productId: "prd-1" }),
+        getAdminProductDetailFn: async () => ({
+          ...product,
+          priceMinor: 1095,
+          sku: "SKU-2",
+          version: 5,
+          variantVersion: 3,
+        }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      product: { priceMinor: 1095, sku: "SKU-2", variantVersion: 3 },
+    });
+  });
+
+  it("saves a private content draft and publishes it explicitly", async () => {
+    const draftResponse = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/products/prd-1/draft", {
+        method: "PATCH",
+        headers: {
+          origin: "https://admin.example.com",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          expectedVersion: 4,
+          changes: { title: "Peter Rabbit Updated", categoryIds: [] },
+        }),
+      }),
+      { DB: new Db() },
+      {
+        verifyAccessFn: identity,
+        saveAdminProductDraftFn: async () => undefined,
+        getAdminProductDetailFn: async () => ({
+          ...product,
+          title: "Peter Rabbit Updated",
+          draftVersionId: "pver-draft",
+          version: 5,
+        }),
+      },
+    );
+
+    expect(draftResponse.status).toBe(200);
+    await expect(draftResponse.json()).resolves.toMatchObject({
+      product: { draftVersionId: "pver-draft", version: 5 },
+    });
+
+    const publishResponse = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/products/prd-1/publish", {
+        method: "POST",
+        headers: {
+          origin: "https://admin.example.com",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ expectedVersion: 5 }),
+      }),
+      { DB: new Db() },
+      {
+        verifyAccessFn: identity,
+        publishAdminProductFn: async () => undefined,
+        getAdminProductDetailFn: async () => ({
+          ...product,
+          title: "Peter Rabbit Updated",
+          draftVersionId: null,
+          version: 6,
+        }),
+      },
+    );
+
+    expect(publishResponse.status).toBe(200);
+    await expect(publishResponse.json()).resolves.toMatchObject({
+      product: { draftVersionId: null, version: 6 },
+    });
+  });
+
+  it("rejects cross-origin Product mutations", async () => {
+    const response = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/products", {
+        method: "POST",
+        headers: {
+          origin: "https://evil.example",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ title: "No" }),
       }),
       { DB: new Db() },
       { verifyAccessFn: identity },
     );
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(403);
   });
 });
