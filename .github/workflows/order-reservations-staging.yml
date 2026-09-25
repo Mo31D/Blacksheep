@@ -255,9 +255,21 @@ jobs:
       - name: Run real-staging Phase 5 E2E and one-unit concurrency proof
         shell: bash
         run: |
-          sleep 5
-          curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-all-errors --max-time 180 -X POST -H "x-phase5-qa-token: $PHASE5_QA_TOKEN" https://black-sheep-phase5-reservation-qa.ky6vfb55p9.workers.dev/ > /tmp/phase5-qa-proof.json
-          cat /tmp/phase5-qa-proof.json
+          sleep 4
+          HTTP_CODE="000"
+          for attempt in $(seq 1 10); do
+            HTTP_CODE="$(curl --silent --show-error --max-time 180 -o /tmp/phase5-qa-proof.json -w "%{http_code}" -X POST -H "x-phase5-qa-token: $PHASE5_QA_TOKEN" https://black-sheep-phase5-reservation-qa.ky6vfb55p9.workers.dev/ || true)"
+            if [ "$HTTP_CODE" = "404" ] || [ "$HTTP_CODE" = "000" ]; then
+              sleep 2
+              continue
+            fi
+            break
+          done
+          cat /tmp/phase5-qa-proof.json || true
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Phase 5 QA Worker returned HTTP $HTTP_CODE"
+            exit 1
+          fi
           node - /tmp/phase5-qa-proof.json /tmp/phase5-qa-run-id <<'NODE'
           const fs = require("fs");
           const payload = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
