@@ -11,6 +11,8 @@ on:
       - "commerce/test/public-catalog.test.ts"
       - "commerce/test/public-catalog-route.test.ts"
       - "commerce/test/health.test.ts"
+      - "commerce/scripts/phase6-catalog-parity.mjs"
+      - "commerce/package.json"
       - "commerce/wrangler.jsonc"
       - ".github/workflows/storefront-commerce-staging.yml"
 
@@ -123,13 +125,15 @@ jobs:
       - name: Deploy public D1 catalogue to staging only
         run: npx wrangler deploy --env staging
 
-      - name: Verify staging health feature gates
+      - name: Verify staging health feature gates after deployment propagation
         shell: bash
         run: |
-          HEALTH="$(curl --fail --silent --show-error --max-time 30 https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/health)"
-          echo "$HEALTH"
-          node - "$HEALTH" <<'NODE'
-          const health = JSON.parse(process.argv[2]);
+          PASSED=0
+          for attempt in $(seq 1 15); do
+            HEALTH="$(curl --silent --show-error --max-time 30 https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/health || true)"
+            echo "$HEALTH"
+            if node - "$HEALTH" <<'NODE'
+          const health = JSON.parse(process.argv[2] || "{}");
           if (
             health.status !== "ok" ||
             health.environment !== "staging" ||
@@ -137,11 +141,20 @@ jobs:
             health.features?.orderReservations !== true ||
             health.features?.publicCatalog !== true
           ) {
-            console.error("Phase 6 staging health gate failed.", health);
             process.exit(1);
           }
-          console.log("Phase 6 staging health gate passed.");
           NODE
+            then
+              PASSED=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$PASSED" != "1" ]; then
+            echo "Phase 6 staging health feature gate did not propagate in time."
+            exit 1
+          fi
+          echo "Phase 6 staging health gate passed."
 
       - name: Verify public D1 catalogue contract on real staging
         shell: bash
@@ -188,10 +201,15 @@ jobs:
           });
           NODE
 
+      - name: Verify generated-static versus D1 public catalogue parity
+        env:
+          PHASE6_PUBLIC_CATALOG_ENDPOINT: https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev
+        run: npm run phase6:catalog-parity -- --output /tmp/phase6-catalog-parity.json
+
       - name: Verify one public product detail
         shell: bash
         run: |
-          DETAIL="$(curl --fail --silent --show-error --max-time 30 https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/v1/catalog/HC-003)"
+          DETAIL="$(curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-all-errors --max-time 30 https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/v1/catalog/HC-003)"
           echo "$DETAIL"
           node - "$DETAIL" <<'NODE'
           const payload = JSON.parse(process.argv[2]);
