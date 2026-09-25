@@ -469,6 +469,8 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] Superseded/current-revision-only review-token E2E: old token → 404, current token → 200.
 - [x] Cross-order reference/content isolation verified with separate synthetic orders.
 - [x] Checkout browser QA run `36146604387`, job `108109223048`: **SUCCESS** — delivery review UI, production Turnstile widget render, production-origin→staging CORS, staging idempotent replay and network-failure basket recovery.
+- [x] Production order read-only audit run `36146984153`, job `108110486489`: **SUCCESS** — controlled collection orders ended `COMPLETED / PAID`; no production write command was executed.
+- [x] Deployed production source `19418b02473e4d8122b0214021cc1196e84daa3d` confirms `/v1/orders` required Turnstile verification before creating a new order.
 - [ ] iPhone Safari UI QA.
 - [ ] Desktop browser UI QA.
 
@@ -497,7 +499,7 @@ Historical production gaps that should be closed while V2 is staged.
 - [ ] Repeat desktop checkout through the live customer flow.
 - [ ] Duplicate order submission against the **real** API with one real order/idempotency key.
 - [ ] Browser-runtime verification that API/network failure preserves basket state after a failed submit.
-- [ ] Confirm controlled production test order final lifecycle state.
+- [x] Controlled production test orders were audited read-only: `BSR-260925-XHWRY3CV` and `BSR-260925-REZJU5DE` are `COMPLETED / PAID / collection`; full review→quote→payment→preparing→ready→completed event histories are present.
 
 Status: **CODE BEHAVIOUR IS PRESENT AND UNIT-VERIFIED; REAL PUBLIC CHECKOUT/TURNSTILE BROWSER QA REMAINS.**
 
@@ -560,27 +562,26 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**Close the remaining non-production-write release gates.**
+**Close the last staging/external release gates without production writes.**
 
 Verified now:
 - core Admin V2 staging E2E: PASS
 - customer-review edge E2E: PASS
-- checkout browser QA run `36146604387`: PASS
-- delivery review UI: PASS
-- production-origin → staging CORS: PASS
+- checkout browser QA: PASS
+- controlled production lifecycle read-only audit: PASS
+- two known production collection orders reached `COMPLETED / PAID`
+- deployed production order route required real Turnstile verification before order creation
 - real staging API idempotent replay: PASS
 - network failure preserves basket + idempotency key: PASS
-- production Turnstile widget renders with the expected site key
-- automated real Turnstile token issuance is intentionally **not** bypassed in headless CI
-- Resend provider confirms the main E2E transactional emails as delivered
-- SPF + DKIM verified
-- staging Resend webhook exists but remains disabled until its signing secret is securely installed in the staging Worker
-- production Worker/D1 remain frozen
+- Resend delivery records: delivered
+- SPF + DKIM: verified
+- staging Resend webhook: created, intentionally disabled pending secure secret installation
+- production Admin V2 remains frozen
 
 Next work, in order:
-1. run a **read-only** audit of the known controlled production test order to confirm its fulfilment method and final lifecycle state without modifying production,
-2. verify real Turnstile submission on a normal browser/device (or use existing controlled-order evidence if it proves the full path),
-3. securely install the existing Resend staging webhook signing secret as `RESEND_WEBHOOK_SECRET`, then enable/replay the webhook and verify real D1 telemetry/idempotency,
+1. run a read-only aggregate audit for existing production **delivery** orders; if a delivery order exists, use only non-PII aggregate/state evidence to determine whether the real delivery path has already been exercised,
+2. if delivery has not been exercised, leave one manual real-device delivery checkout as the final Commerce V1 gate; do not automate around Turnstile,
+3. securely install the existing Resend staging webhook signing secret as `RESEND_WEBHOOK_SECRET`, then enable/replay the webhook and verify D1 telemetry/idempotency,
 4. complete Admin UI desktop + iPhone Safari QA,
 5. verify DMARC independently,
 6. only after those gates are closed, prepare guarded production Admin V2 migration/deploy.
