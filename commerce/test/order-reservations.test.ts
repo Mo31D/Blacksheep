@@ -41,6 +41,16 @@ class Statement implements D1PreparedStatementLike {
   }
 }
 
+function expectD1BindingsMatch(statements: Statement[]): void {
+  for (const statement of statements) {
+    const placeholders = (statement.sql.match(/\?/g) || []).length;
+    expect(
+      statement.values.length,
+      statement.sql.slice(0, 120),
+    ).toBe(placeholders);
+  }
+}
+
 class ReservationPlanDb implements D1DatabaseLike {
   readonly prepared: Statement[] = [];
 
@@ -475,6 +485,7 @@ describe("Phase 5 guarded reservation mutation builder", () => {
 
     expect(prepared.statements).toHaveLength(4);
     expect(prepared.idempotencyKey).toBe("reservation:test:guarded");
+    expectD1BindingsMatch(db.prepared);
 
     const balanceUpdate = db.prepared[0];
     expect(balanceUpdate.sql).toContain("SET reserved = reserved + ?");
@@ -649,6 +660,7 @@ describe("Phase 5 guarded reservation release builder", () => {
     );
 
     expect(prepared.statements).toHaveLength(3);
+    expectD1BindingsMatch(db.prepared);
 
     const balance = db.prepared[0];
     expect(balance.sql).toContain("SET reserved = reserved - ?");
@@ -810,6 +822,7 @@ describe("Phase 5 payment and fulfilment reservation builders", () => {
     });
 
     expect(prepared.statements).toHaveLength(3);
+    expectD1BindingsMatch(db.prepared);
 
     const balance = db.prepared[0];
     expect(balance.sql).toContain("SET on_hand = on_hand - ?");
