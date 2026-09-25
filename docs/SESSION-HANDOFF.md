@@ -71,7 +71,10 @@
 > - active tracked variants after QA archive: 0.
 > - staging totals now include 148 products = 146 imported + 2 archived QA products.
 > - Production remains `0000–0008`, no Product/Inventory tables, 3 orders.
-> - **only remaining Phase 4 gate:** owner authenticated Stock UX smoke-test on iPhone/desktop.
+> - Owner QA exposed two UI defects which are now fixed on staging: OTP verification now reloads the authenticated Admin document, and iPad portrait Orders/Products/Stock detail opens as an immediate overlay up to 900px instead of below the list.
+> - UX fix source: `950849a3a1f66b52546d959f33182f1ecc531596`; Commerce CI `36187771624` SUCCESS; staging release `36187771688` SUCCESS.
+> - Current staging deployment after UX fixes: `6d89ff4c-f1d8-4552-83f1-7cf8113c5a4c`; Worker version `cf42c03a-0371-47c5-a1a7-bde6980f7dd5`.
+> - **only remaining Phase 4 gate:** owner re-test of corrected OTP login + iPad portrait master/detail flow, then archive the UI QA copy.
 > - Phase 5 architecture/implementation plan is locked but code has NOT started.
 > - read:
 >   - `docs/INVENTORY-CORE-PHASE4-STAGING-2026-09-25.md`
@@ -79,7 +82,7 @@
 >   - `docs/ORDER-RESERVATIONS-PHASE5-IMPLEMENTATION-PLAN-2026-09-25.md`
 > - tracker: `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 >
-> **NEXT WORK: final owner Phase 4 Stock UX smoke-test, then Phase 5 Order Reservations implementation.**
+> **NEXT WORK: owner re-test of the deployed OTP/iPad Phase 4 UX fixes, then close Phase 4 and begin Phase 5 Order Reservations implementation.**
 > Do not enable reservation logic, Production Product/Inventory migrations, or Phase 6 checkout/storefront stock authority before that gate.
 
 > **Do not rerun migrations `0003–0008`. Any future Worker deployment must correspond to an intentional new runtime/catalogue change and pass Commerce CI first.**
