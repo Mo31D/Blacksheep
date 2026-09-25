@@ -1,6 +1,18 @@
-import type { D1DatabaseLike, D1PreparedStatementLike } from "./d1";
+import {
+  d1StatementChanged,
+  type D1DatabaseLike,
+  type D1PreparedStatementLike,
+} from "./d1";
 import type { AdminOrderState, ValidatedAdminAction } from "../domain/admin-order";
 import { getAdminReportsV2 } from "./admin-reports-v2";
+import {
+  getActiveReservationReleasePlan,
+  getCommittedReservationPlan,
+  prepareReservationCommitMutation,
+  prepareReservationConsumeMutation,
+  prepareReservationReleaseMutation,
+  type ActiveReservationReleasePlan,
+} from "./order-reservations";
 
 interface OrderSummaryRow {
   id: string;
@@ -404,11 +416,16 @@ export async function getAdminOrderDetail(
   return { ...order, items, events };
 }
 
+export interface AdminOrderUpdateOptions {
+  inventoryReservations?: boolean;
+}
+
 export async function applyAdminOrderUpdate(
   db: D1DatabaseLike,
   order: AdminOrderState,
   action: ValidatedAdminAction,
   actorEmail: string,
+  options: AdminOrderUpdateOptions = {},
 ): Promise<void> {
   const now = new Date().toISOString();
   const assignments = ["status = ?", "updated_at = ?"];
@@ -450,37 +467,195 @@ export async function applyAdminOrderUpdate(
     set(action.timestampField, now);
   }
 
+  let reservationPlan: ActiveReservationReleasePlan | null = null;
+  let lifecycle:
+    | "COMMIT"
+    | "CONSUME"
+    | "RELEASE_ACTIVE"
+    | "RELEASE_COMMITTED"
+    | null = null;
+
+  if (options.inventoryReservations && order.activeRevisionId) {
+    if (action.eventType === "PAYMENT_CONFIRMED") {
+      lifecycle = "COMMIT";
+      reservationPlan = await getActiveReservationReleasePlan(
+        db,
+        order.activeRevisionId,
+      );
+    } else if (
+      action.eventType === "ORDER_SHIPPED" ||
+      (action.eventType === "ORDER_COMPLETED" &&
+        order.fulfilmentMethod === "collection")
+    ) {
+      lifecycle = "CONSUME";
+      reservationPlan = await getCommittedReservationPlan(
+        db,
+        order.activeRevisionId,
+      );
+    } else if (action.eventType === "ORDER_CANCELLED") {
+      lifecycle = "RELEASE_ACTIVE";
+      reservationPlan = await getActiveReservationReleasePlan(
+        db,
+        order.activeRevisionId,
+      );
+    } else if (
+      action.eventType === "ORDER_REFUNDED_AND_CANCELLED" &&
+      order.status !== "SHIPPED"
+    ) {
+      lifecycle = "RELEASE_COMMITTED";
+      reservationPlan = await getCommittedReservationPlan(
+        db,
+        order.activeRevisionId,
+      );
+    }
+  }
+
   values.push(order.id);
 
-  const update = db
-    .prepare(`UPDATE orders SET ${assignments.join(", ")} WHERE id = ?`)
-    .bind(...values);
+  const guardedLifecycle = Boolean(
+    options.inventoryReservations && lifecycle && reservationPlan,
+  );
+  const update = guardedLifecycle
+    ? db
+        .prepare(
+          `UPDATE orders
+          SET ${assignments.join(", ")}
+          WHERE id = ?
+            AND status = ?
+            AND payment_status = ?`,
+        )
+        .bind(...values, order.status, order.paymentStatus)
+    : db
+        .prepare(`UPDATE orders SET ${assignments.join(", ")} WHERE id = ?`)
+        .bind(...values);
 
-  const event = db
-    .prepare(
-      `INSERT INTO order_events (
-        order_id,
-        event_type,
-        from_status,
-        to_status,
-        actor_type,
-        actor_id,
-        note,
-        metadata_json,
-        created_at
-      ) VALUES (?, ?, ?, ?, 'admin', ?, ?, '{}', ?)`,
-    )
-    .bind(
-      order.id,
-      action.eventType,
-      order.status,
-      action.nextStatus,
-      actorEmail,
-      action.note ?? null,
-      now,
-    );
+  const statements: D1PreparedStatementLike[] = [update];
+  const nextPaymentStatus = action.paymentStatus ?? order.paymentStatus;
+  const orderGuard = {
+    orderId: order.id,
+    status: action.nextStatus,
+    paymentStatus: nextPaymentStatus,
+    updatedAt: now,
+  };
 
-  await db.batch([update, event]);
+  if (guardedLifecycle && reservationPlan) {
+    if (lifecycle === "COMMIT") {
+      statements.push(
+        ...prepareReservationCommitMutation(db, reservationPlan, {
+          actorEmail,
+          createdAt: now,
+          externalOrderGuard: orderGuard,
+        }).statements,
+      );
+    } else if (lifecycle === "CONSUME") {
+      statements.push(
+        ...prepareReservationConsumeMutation(db, reservationPlan, {
+          actorEmail,
+          createdAt: now,
+          externalOrderGuard: orderGuard,
+        }).statements,
+      );
+    } else {
+      statements.push(
+        ...prepareReservationReleaseMutation(db, reservationPlan, {
+          actorEmail,
+          sourceState:
+            lifecycle === "RELEASE_COMMITTED" ? "COMMITTED" : "ACTIVE",
+          reason:
+            lifecycle === "RELEASE_COMMITTED"
+              ? "Paid order cancelled before fulfilment"
+              : "Order cancelled before payment",
+          createdAt: now,
+          externalOrderGuard: orderGuard,
+        }).statements,
+      );
+    }
+  }
+
+  const event = guardedLifecycle
+    ? db
+        .prepare(
+          `INSERT INTO order_events (
+            order_id,
+            event_type,
+            from_status,
+            to_status,
+            actor_type,
+            actor_id,
+            note,
+            metadata_json,
+            created_at
+          )
+          SELECT ?, ?, ?, ?, 'admin', ?, ?, ?, ?
+          WHERE EXISTS (
+            SELECT 1
+            FROM orders
+            WHERE id = ?
+              AND status = ?
+              AND payment_status = ?
+              AND updated_at = ?
+          )`,
+        )
+        .bind(
+          order.id,
+          action.eventType,
+          order.status,
+          action.nextStatus,
+          actorEmail,
+          action.note ?? null,
+          JSON.stringify({
+            inventoryReservationLifecycle: lifecycle,
+            reservationId: reservationPlan?.reservationId ?? null,
+          }),
+          now,
+          order.id,
+          action.nextStatus,
+          nextPaymentStatus,
+          now,
+        )
+    : db
+        .prepare(
+          `INSERT INTO order_events (
+            order_id,
+            event_type,
+            from_status,
+            to_status,
+            actor_type,
+            actor_id,
+            note,
+            metadata_json,
+            created_at
+          ) VALUES (?, ?, ?, ?, 'admin', ?, ?, '{}', ?)`,
+        )
+        .bind(
+          order.id,
+          action.eventType,
+          order.status,
+          action.nextStatus,
+          actorEmail,
+          action.note ?? null,
+          now,
+        );
+
+  statements.push(event);
+
+  let results: unknown[];
+  try {
+    results = await db.batch(statements);
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : String(cause);
+    if (
+      guardedLifecycle &&
+      message.includes("inventory_reservations.mutation_token")
+    ) {
+      throw new Error("reservation_order_transition_conflict");
+    }
+    throw cause;
+  }
+
+  if (guardedLifecycle && d1StatementChanged(results[0]) === false) {
+    throw new Error("reservation_order_transition_conflict");
+  }
 }
 
 export async function getPaymentNotificationSnapshot(
