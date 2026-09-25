@@ -1,0 +1,107 @@
+name: Commerce Release State Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/commerce-release-state.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: commerce
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: commerce/package.json
+
+      - name: Install commerce dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Check Cloudflare credentials
+        id: cloudflare
+        shell: bash
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare credentials: AVAILABLE"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Cloudflare Actions credentials are unavailable. Release-state facts remain UNVERIFIED."
+          fi
+
+      - name: Staging Worker deployment status
+        if: steps.cloudflare.outputs.available == 'true'
+        continue-on-error: true
+        run: |
+          echo "::group::STAGING_WORKER_STATUS"
+          npx wrangler deployments status --env staging --json
+          echo "::endgroup::"
+
+      - name: Staging Worker deployment history
+        if: steps.cloudflare.outputs.available == 'true'
+        continue-on-error: true
+        run: |
+          echo "::group::STAGING_WORKER_DEPLOYMENTS"
+          npx wrangler deployments list --env staging --json
+          echo "::endgroup::"
+
+      - name: Production Worker deployment status
+        if: steps.cloudflare.outputs.available == 'true'
+        continue-on-error: true
+        run: |
+          echo "::group::PRODUCTION_WORKER_STATUS"
+          npx wrangler deployments status --json
+          echo "::endgroup::"
+
+      - name: Production Worker deployment history
+        if: steps.cloudflare.outputs.available == 'true'
+        continue-on-error: true
+        run: |
+          echo "::group::PRODUCTION_WORKER_DEPLOYMENTS"
+          npx wrangler deployments list --json
+          echo "::endgroup::"
+
+      - name: Staging D1 migration state
+        if: steps.cloudflare.outputs.available == 'true'
+        continue-on-error: true
+        run: |
+          echo "::group::STAGING_D1_MIGRATIONS"
+          npm run db:migrations:list:staging
+          echo "::endgroup::"
+
+      - name: Production D1 migration state
+        if: steps.cloudflare.outputs.available == 'true'
+        continue-on-error: true
+        run: |
+          echo "::group::PRODUCTION_D1_MIGRATIONS"
+          npm run db:migrations:list:production
+          echo "::endgroup::"
+
+      - name: Production public health
+        continue-on-error: true
+        shell: bash
+        run: |
+          echo "::group::PRODUCTION_HEALTH"
+          curl --fail --silent --show-error --max-time 20 https://api.theblacksheepshop.co.uk/health
+          echo
+          echo "::endgroup::"
+
+      - name: Audit note
+        run: |
+          echo "This workflow is intentionally read-only."
+          echo "It does not run wrangler deploy or wrangler d1 migrations apply."
