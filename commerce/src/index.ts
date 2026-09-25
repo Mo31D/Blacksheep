@@ -109,6 +109,9 @@ async function route(request: Request, env: Env): Promise<Response> {
       status: "ok",
       environment: env.ENVIRONMENT ?? "unknown",
       database: env.DB ? "bound" : "unbound",
+      features: {
+        orderReservations: env.ORDER_RESERVATIONS_ENABLED === "true",
+      },
       notifications: {
         provider: env.RESEND_API_KEY ? "resend" : "unconfigured",
         fromConfigured: Boolean(env.ORDER_EMAIL_FROM),
