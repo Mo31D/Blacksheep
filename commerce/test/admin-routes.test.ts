@@ -76,6 +76,38 @@ describe("admin routes", () => {
     await expect(response.json()).resolves.toEqual({ orders: [] });
   });
 
+  it("records an explicit return-to-stock only when Phase 5 is enabled", async () => {
+    const returnConsumedReservationToStockFn = async () => ({
+      reservationId: "res-1",
+      returnedAt: "2026-09-25T22:05:00.000Z",
+      idempotentReplay: false,
+    });
+
+    const response = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/orders/BSR-1/return-stock", {
+        method: "POST",
+        headers: {
+          origin: "https://admin.example.com",
+          "content-type": "application/json",
+        },
+        body: "{}",
+      }),
+      { DB: new Db(), ORDER_RESERVATIONS_ENABLED: "true" },
+      {
+        verifyAccessFn: identity,
+        returnConsumedReservationToStockFn,
+      } as any,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      result: {
+        reservationId: "res-1",
+        idempotentReplay: false,
+      },
+    });
+  });
+
   it("returns authenticated report data with a safe default period", async () => {
     const response = await handleAdminRequest(
       new Request("https://admin.example.com/admin/api/reports?days=31"),
