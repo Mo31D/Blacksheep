@@ -116,6 +116,7 @@ export interface R2BucketLike {
 
 export interface AddProductMediaInput {
   expectedVersion: unknown;
+  mediaId?: string;
   storageKey: string;
   publicUrl: string;
   mimeType: string;
@@ -159,7 +160,7 @@ export async function addAdminProductMedia(
 
   const token = now();
   const resultVersion = expected + 1;
-  const mediaId = uid("med");
+  const mediaId = raw.mediaId?.trim() || uid("med");
 
   await db.batch([
     db
