@@ -32,6 +32,26 @@ describe("generated Admin HTML scripts", () => {
   it("emits syntactically valid Admin login JavaScript", () => {
     const html = adminLoginHtml();
     compileInlineScripts(html);
-    expect(html).toContain("location.href='/admin'+location.search+'#orders'");
+    expect(html).toContain(
+      "history.replaceState(null,'','/admin'+location.search+'#orders')",
+    );
+    expect(html).toContain("location.reload()");
+    expect(html).not.toContain(
+      "location.href='/admin'+location.search+'#orders'",
+    );
+  });
+
+  it("promotes iPad-width master/detail views into immediate overlays", () => {
+    const html = adminHtml("owner@example.com");
+    expect(html).toContain(
+      "window.matchMedia('(max-width:900px)').matches",
+    );
+    expect(html).toContain("if(innerWidth<=900)");
+    expect(html).toContain(
+      ".detail-open .order-panel{display:block;position:fixed;inset:72px 0 0 78px",
+    );
+    expect(html).toContain(
+      ".product-detail-open .product-detail-panel{display:block;position:fixed;inset:72px 0 0 78px",
+    );
   });
 });
