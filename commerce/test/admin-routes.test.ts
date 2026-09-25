@@ -58,7 +58,7 @@ describe("admin routes", () => {
     const html = await response.text();
     expect(html).toContain("Black Sheep Shop");
     expect(html).toContain("Reports");
-    expect(html).toContain("Record full refund");
+    expect(html).toContain("Record refund");
     expect(html).toContain("Availability review");
     expect(html).toContain("Save & finalize quote");
     expect(html).toContain("catalogSheet");
