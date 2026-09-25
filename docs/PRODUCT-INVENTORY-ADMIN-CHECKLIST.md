@@ -229,7 +229,7 @@ Evidence:
 - [x] Reservation foundation invariant script added and wired into Commerce CI.
 - [x] Staging-only `0011` release gate — workflow `36188861211` SUCCESS.
 - [x] Direct Cloudflare D1 verification — latest migration `0011_order_reservations.sql`; 0 reservations; 0 reservation items; existing Inventory Core state preserved.
-- [ ] Reviewed quote reservation.
+- [~] Reviewed quote reservation — Product Core resolution + tracked/untracked availability planning implemented; transactional hold builder next.
 - [ ] Reservation release.
 - [ ] Reservation expiry policy.
 - [ ] Payment transition.
@@ -307,34 +307,23 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 5 — Reservation Domain + revision Send integration
+## Phase 5 — concurrency-safe reservation mutation builder
 
-Reservation Foundation is now live on staging without creating any holds.
+Completed in source:
+- legacy Product ID → Product Core resolution,
+- Product UUID fallback,
+- default active variant resolution,
+- no SKU fuzzy matching,
+- untracked/unresolved compatibility,
+- aggregate tracked-variant quantity calculation,
+- exact insufficient-stock conflict detection.
 
-Verified staging state immediately after `0011`:
-- `inventory_reservations = 0`,
-- `inventory_reservation_items = 0`,
-- existing tracked variants/balances/movements preserved,
-- staging migration ledger ends at `0011_order_reservations.sql`,
-- Production isolation gate passed.
+Current sub-step:
+1. Build guarded balance reservation updates using expected balance versions.
+2. Aggregate multiple reviewed lines for the same variant into one balance mutation.
+3. Create reservation group only after every tracked balance mutation is proven to have won.
+4. Use a DB constraint assertion so a lost concurrent balance race rolls the D1 batch back instead of leaving a partial hold.
+5. Insert immutable reservation-line provenance and `ORDER_RESERVATION` movements.
+6. Add unit tests before connecting the builder to revision Send.
 
-Next implementation sequence:
-
-1. Add Product Core resolution for reviewed revision lines:
-   - `catalog_product_id → products.legacy_catalog_id`,
-   - Product UUID fallback,
-   - active default variant only,
-   - no SKU fuzzy matching.
-2. Build reservation availability preview for tracked lines.
-3. Aggregate required quantity per tracked variant.
-4. Add concurrency-safe reservation batch with balance-version guards.
-5. Make insufficient stock fail before any reservation/ledger side effect.
-6. Integrate the winning reservation batch into revision **Send**.
-7. Add `ORDER_RESERVATION` ledger movements and reservation-item provenance.
-8. Add automated tests for untracked compatibility, insufficient stock and one-unit concurrency.
-9. Keep decline/release/payment/fulfilment as the following sub-milestones.
-
-Safety locks:
-- Phase 4 owner UX re-test remains open.
-- Production remains pre-Product-Core.
-- No storefront/checkout Inventory Core cutover.
+No Worker release will occur at this sub-step.
