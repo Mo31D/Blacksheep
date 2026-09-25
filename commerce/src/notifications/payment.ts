@@ -1,6 +1,13 @@
 import type { D1DatabaseLike } from "../data/d1";
 import { recordOrderEvent } from "../data/order-events";
 import { resolveEmailSender, type EmailProviderEnv } from "./email-provider";
+import {
+  emailMoney,
+  escapeEmailHtml,
+  itemsText,
+  renderItemsTable,
+  renderTransactionalEmail,
+} from "./email-template";
 
 export interface PaymentNotificationEnv extends EmailProviderEnv {
   DB?: D1DatabaseLike;
@@ -16,24 +23,13 @@ export interface PaymentNotificationSnapshot {
   paymentRequestUrl: string | null;
   fulfilmentMethod: string;
   fulfilmentMessage: string | null;
-}
-
-function money(minor: number): string {
-  return `£${(minor / 100).toFixed(2)}`;
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(
-    /[&<>"']/g,
-    (character) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      })[character] ?? character,
-  );
+  revisionNumber?: number | null;
+  customerMessage?: string | null;
+  items?: Array<{
+    productName: string;
+    quantity: number;
+    lineTotalMinor: number;
+  }>;
 }
 
 async function attempt(
@@ -73,6 +69,23 @@ async function attempt(
   }
 }
 
+function summaryHtml(order: PaymentNotificationSnapshot): string {
+  const items = order.items ?? [];
+  const reviewed = order.revisionNumber
+    ? `Reviewed version ${order.revisionNumber}`
+    : "Confirmed order";
+
+  return `
+    ${order.customerMessage ? `<div style="border-left:4px solid #b9822f;background:#f8f4eb;border-radius:0 12px 12px 0;padding:14px 16px;margin:18px 0"><div style="font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#756f64;font-weight:700;margin-bottom:6px">Message from the shop</div><div style="font-size:15px;line-height:1.6">${escapeEmailHtml(order.customerMessage)}</div></div>` : ""}
+    ${items.length ? renderItemsTable(items) : ""}
+    <div style="border:1px solid #ded6c8;border-radius:14px;padding:16px 18px;background:#f8f4eb;margin:18px 0">
+      <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#756f64"><span>${escapeEmailHtml(reviewed)}</span><span>${order.fulfilmentMethod === "collection" ? "Collection" : "Delivery"}</span></div>
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:end;margin-top:12px"><span style="font-size:14px">Final total</span><strong style="font-size:28px">${order.finalTotalMinor === null ? "—" : emailMoney(order.finalTotalMinor)}</strong></div>
+      <div style="border-top:1px solid #ded6c8;margin-top:13px;padding-top:13px;font-size:14px"><span style="color:#756f64">Timing</span><br><strong>${escapeEmailHtml(order.fulfilmentMessage || "To be confirmed")}</strong></div>
+    </div>
+  `;
+}
+
 export async function notifyPaymentRequest(
   env: PaymentNotificationEnv,
   order: PaymentNotificationSnapshot,
@@ -88,32 +101,46 @@ export async function notifyPaymentRequest(
     return;
   }
 
-  const total = money(order.finalTotalMinor);
+  const items = order.items ?? [];
+  const message = renderTransactionalEmail({
+    preheader: `Final total ${emailMoney(order.finalTotalMinor)} · payment request`,
+    eyebrow: order.revisionNumber ? "Reviewed order" : "Order reviewed",
+    title: "Your order is ready for confirmation",
+    reference: order.publicReference,
+    greeting: `Hello ${order.customerName},`,
+    intro: order.revisionNumber
+      ? "We have reviewed your request and prepared the confirmed version below. Please check the changes and total before paying."
+      : "We have reviewed your request and confirmed the final total below.",
+    bodyText: [
+      order.customerMessage ? `Message from the shop: ${order.customerMessage}` : null,
+      order.customerMessage ? "" : null,
+      items.length ? itemsText(items) : null,
+      items.length ? "" : null,
+      `Final total: ${emailMoney(order.finalTotalMinor)}`,
+      `Fulfilment: ${order.fulfilmentMethod === "collection" ? "Collection" : "Delivery"}`,
+      `Timing: ${order.fulfilmentMessage}`,
+    ]
+      .filter((line) => line !== null)
+      .join("\n"),
+    bodyHtml: summaryHtml(order),
+    cta: {
+      label: "Pay securely",
+      url: order.paymentRequestUrl,
+    },
+    afterCtaText:
+      "Paying confirms the reviewed order and final total shown in this message. The Black Sheep Shop does not store your card or online-banking details.",
+    afterCtaHtml:
+      '<p style="font-size:14px;line-height:1.65;color:#655f56;margin:4px 0 0">Paying confirms the reviewed order and final total shown above. The Black Sheep Shop does not store your card or online-banking details.</p>',
+  });
+
   await attempt(env, order.id, "PAYMENT_REQUEST_EMAIL", resolved.provider, async () => {
     await resolved.sender.send({
       from: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
       to: { email: order.customerEmail, name: order.customerName },
+      replyTo: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
       subject: `Payment request for ${order.publicReference}`,
-      text: [
-        `Hello ${order.customerName},`,
-        "",
-        `Your Black Sheep Shop order request ${order.publicReference} has been reviewed and the requested goods are available.`,
-        `Final total: ${total}.`,
-        `Delivery / collection timing: ${order.fulfilmentMessage}.`,
-        "",
-        "If you wish to proceed, use the secure payment request below:",
-        order.paymentRequestUrl!,
-        "",
-        "Paying the request accepts the final total and places the order. No card or online-banking details are stored by The Black Sheep Shop.",
-        "",
-        "For most distance orders, you can cancel within 14 days after receiving the goods. Delivery, returns and the model cancellation form:",
-        "https://theblacksheepshop.co.uk/delivery-returns.html",
-        "Order terms: https://theblacksheepshop.co.uk/terms.html",
-        "Privacy: https://theblacksheepshop.co.uk/privacy.html",
-        "",
-        "The Black Sheep Shop, 2 Lancaster House, Lake Road, Ambleside, LA22 0AD · 07776 185647 · orders@theblacksheepshop.co.uk",
-      ].join("\n"),
-      html: `<p>Hello ${escapeHtml(order.customerName)},</p><p>Your Black Sheep Shop order request <strong>${escapeHtml(order.publicReference)}</strong> has been reviewed and the requested goods are available.</p><p>Final total: <strong>${total}</strong>.</p><p>Delivery / collection timing: <strong>${escapeHtml(order.fulfilmentMessage!)}</strong>.</p><p><a href="${escapeHtml(order.paymentRequestUrl!)}">Open secure payment request</a></p><p>Paying the request accepts the final total and places the order. No card or online-banking details are stored by The Black Sheep Shop.</p><p>For most distance orders, you can cancel within 14 days after receiving the goods. See <a href="https://theblacksheepshop.co.uk/delivery-returns.html">Delivery &amp; returns and the model cancellation form</a>, <a href="https://theblacksheepshop.co.uk/terms.html">Order terms</a> and <a href="https://theblacksheepshop.co.uk/privacy.html">Privacy</a>.</p><p>The Black Sheep Shop<br>2 Lancaster House, Lake Road, Ambleside, LA22 0AD<br>07776 185647 · orders@theblacksheepshop.co.uk</p>`,
+      text: message.text,
+      html: message.html,
     });
   });
 }
@@ -125,20 +152,45 @@ export async function notifyPaymentConfirmed(
   const resolved = resolveEmailSender(env);
   if (!resolved || !env.ORDER_EMAIL_FROM) return;
 
+  const message = renderTransactionalEmail({
+    preheader: `Payment received for ${order.publicReference}`,
+    eyebrow: "Payment received",
+    title: "Your order is confirmed",
+    reference: order.publicReference,
+    greeting: `Hello ${order.customerName},`,
+    intro:
+      "Payment has been recorded successfully. We are now moving your order into fulfilment.",
+    bodyText: [
+      order.finalTotalMinor !== null
+        ? `Amount recorded: ${emailMoney(order.finalTotalMinor)}`
+        : null,
+      order.fulfilmentMessage ? `Timing: ${order.fulfilmentMessage}` : null,
+      "",
+      order.fulfilmentMethod === "collection"
+        ? "We will let you know when your order is ready to collect in Ambleside."
+        : "We will let you know when your order is dispatched.",
+    ]
+      .filter((line) => line !== null)
+      .join("\n"),
+    bodyHtml: `
+      <div style="border:1px solid #ded6c8;border-radius:14px;padding:16px 18px;background:#eef7f1;margin:18px 0">
+        <div style="font-size:13px;color:#52705e">Payment status</div>
+        <div style="font-size:22px;font-weight:800;margin-top:4px">Paid</div>
+        ${order.finalTotalMinor !== null ? `<div style="font-size:15px;margin-top:9px">Amount recorded: <strong>${emailMoney(order.finalTotalMinor)}</strong></div>` : ""}
+      </div>
+      <p style="font-size:15px;line-height:1.65;margin:0">${order.fulfilmentMethod === "collection" ? "We will let you know when your order is ready to collect in Ambleside." : "We will let you know when your order is dispatched."}</p>
+      ${order.fulfilmentMessage ? `<p style="font-size:14px;line-height:1.6;color:#655f56">Current timing: <strong>${escapeEmailHtml(order.fulfilmentMessage)}</strong></p>` : ""}
+    `,
+  });
+
   await attempt(env, order.id, "PAYMENT_CONFIRMED_EMAIL", resolved.provider, async () => {
     await resolved.sender.send({
       from: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
       to: { email: order.customerEmail, name: order.customerName },
+      replyTo: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
       subject: `Payment received for ${order.publicReference}`,
-      text: [
-        `Hello ${order.customerName},`,
-        "",
-        `Payment has been recorded for order ${order.publicReference}. Your order is now confirmed.`,
-        order.fulfilmentMethod === "collection"
-          ? "We will contact you when it is ready to collect."
-          : "We will prepare your order for delivery.",
-      ].join("\n"),
-      html: `<p>Hello ${escapeHtml(order.customerName)},</p><p>Payment has been recorded for order <strong>${escapeHtml(order.publicReference)}</strong>. Your order is now confirmed.</p><p>${order.fulfilmentMethod === "collection" ? "We will contact you when it is ready to collect." : "We will prepare your order for delivery."}</p>`,
+      text: message.text,
+      html: message.html,
     });
   });
 }
