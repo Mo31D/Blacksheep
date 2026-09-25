@@ -42,8 +42,8 @@ Source anchor at reconstruction start:
 
 Hardened source baseline after Phase 8 work:
 
-- `fafdcac6a4e0ab82e81954ea6f5fa1d8841df1c1`
-- Commerce CI: PASS (run `36134835149`).
+- Code/test hardening baseline before checklist close: `1208892221271be6f0dfe320e408aafaef1e18d7`
+- Commerce CI: PASS (latest hardening run `36135410328`).
 - Search Readiness: PASS (run `36134835077`).
 - GitHub Pages: PASS (run `36134834631`).
 - New concurrency migration: `0008_concurrency_guards.sql`.
@@ -328,13 +328,13 @@ Status: CODE SUBSTANTIALLY COMPLETE; PROVIDER/DNS/RUNTIME VERIFICATION REMAINS.
 This is the next code milestone.
 
 - [x] Same-version concurrent revision/transition mutation loser is rejected; side effects require the winning mutation token.
-- [ ] Concurrent add/remove/restore mutation protection test.
+- [x] Concurrent add/remove/restore mutation protection tests.
 - [x] Concurrent adjustment protection test.
 - [x] Concurrent refund protection test.
 - [x] Customer review accept/decline race test.
 - [x] Duplicate webhook test, including insert-race loser.
 - [x] Migration clean-install through `0008` is exercised by `npm run check` → `db:migrate:local`.
-- [ ] Migration upgrade-path verification from production-equivalent schema.
+- [x] Pre-`0008` upgrade-path test: apply `0000–0007`, then apply `0008` to the same isolated local D1 and verify new guard columns/index.
 - [x] `npm run check` PASS on `fafdcac6a4e0ab82e81954ea6f5fa1d8841df1c1` (Commerce CI run 36134835149).
 
 Exit gate:
@@ -342,13 +342,18 @@ Exit gate:
 - migrations are deterministic,
 - Commerce CI remains green.
 
-Status: IN PROGRESS — CORE RACE/IDEMPOTENCY GATE PASSED; TWO VALIDATION ITEMS REMAIN.
+Status: COMPLETE — concurrency/idempotency hardening and clean/upgrade migration gates pass in Commerce CI.
 
 ---
 
 # PHASE 9 — RELEASE-STATE DISCOVERY
 
 Must happen before claiming Admin V2 is deployed.
+
+Status evidence so far:
+- `Commerce Deploy` is manual (`workflow_dispatch`) and performs migrations before Worker deploy.
+- No `Commerce Deploy` run was present in the latest 100 GitHub Actions runs inspected on 25 September 2026.
+- Therefore staging/production Worker SHA and remote D1 migration level are **not established from GitHub Actions** and must not be inferred from CI or Pages deployment.
 
 - [ ] Record staging Worker SHA/version.
 - [ ] Record production Worker SHA/version.
@@ -358,7 +363,7 @@ Must happen before claiming Admin V2 is deployed.
 - [ ] Create exact migration/deployment delta.
 - [ ] No production migration until staging passes.
 
-Status: NOT YET VERIFIED.
+Status: IN PROGRESS — GitHub-side discovery started; remote Cloudflare state still needs direct evidence.
 
 ---
 
@@ -468,7 +473,7 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**Finish Phase 8, then enter Phase 9 — Release-state discovery.**
+**Phase 9 — Release-state discovery.**
 
 Start by auditing the actual mutation SQL in:
 
@@ -494,8 +499,19 @@ Current hardened source baseline:
 - GitHub Pages: PASS
 - `npm run check` includes local D1 migrations and therefore applied migrations through `0008_concurrency_guards.sql` on the clean CI database.
 
-Remaining before Phase 8 is fully closed:
-1. Add explicit concurrent add/remove/restore reviewed-item coverage, not only shared mutation-token/adjustment coverage.
-2. Verify the migration **upgrade path** from a production-equivalent pre-`0008` schema, distinct from the clean-install CI path.
-3. Update this checklist again with the exact closing SHA.
-4. Then proceed immediately to Phase 9 deployment-state discovery.
+Phase 8 closing evidence:
+- Reviewed-order update/add/remove/restore concurrency coverage: PASS.
+- Adjustment concurrency coverage: PASS.
+- Refund CAS + retry idempotency coverage: PASS.
+- Customer accept/decline race coverage: PASS.
+- Resend duplicate webhook race coverage: PASS.
+- Clean local migration path through `0008`: PASS.
+- Incremental local upgrade `0000–0007 → 0008`: PASS.
+- `npm run check`: PASS in Commerce CI run `36135410328` on `1208892221271be6f0dfe320e408aafaef1e18d7`.
+
+Phase 9 next:
+1. Find the strongest available evidence for staging Worker deployment SHA/version.
+2. Find the strongest available evidence for production Worker deployment SHA/version.
+3. Establish staging and production D1 migration levels directly; do not infer from repository files.
+4. Compare remote state to the hardened source and build an exact staging-first deployment delta.
+5. Do not deploy or migrate production before the staging evidence and E2E gate are complete.
