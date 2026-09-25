@@ -8,6 +8,7 @@ import {
   buildRevisionReservationPlan,
   prepareReservationMutation,
   prepareReservationReleaseMutation,
+  rebaseReservationPlanAfterRelease,
   ReservationAvailabilityError,
 } from "../src/data/order-reservations";
 
@@ -277,6 +278,130 @@ describe("Phase 5 reservation planning", () => {
     ).rejects.toThrow("reservation_location_not_found");
   });
 
+
+
+describe("Phase 5 supersede reservation rebasing", () => {
+  it("adds released quantity back to availability and advances the expected balance version", () => {
+    const plan = {
+      revisionId: "rev-new",
+      locationId: "loc_ambleside",
+      lines: [
+        {
+          revisionItemId: 61,
+          lineNumber: 1,
+          catalogProductId: "LEGACY-SHARED",
+          confirmedQuantity: 4,
+          productId: "prd-shared",
+          variantId: "var-shared",
+          resolved: true,
+          tracked: true,
+          onHand: 5,
+          reserved: 2,
+          safetyStock: 0,
+          available: 3,
+          balanceVersion: 10,
+          sufficient: false,
+        },
+      ],
+      trackedLines: [] as any[],
+      untrackedLines: [] as any[],
+      requirements: [
+        {
+          variantId: "var-shared",
+          requiredQuantity: 4,
+          onHand: 5,
+          reserved: 2,
+          safetyStock: 0,
+          available: 3,
+          balanceVersion: 10,
+        },
+      ],
+    };
+    plan.trackedLines = plan.lines;
+
+    const rebased = rebaseReservationPlanAfterRelease(plan, {
+      reservationId: "res-old",
+      orderId: "order-1",
+      revisionId: "rev-old",
+      locationId: "loc_ambleside",
+      expiresAt: "2026-10-02T21:00:00.000Z",
+      version: 2,
+      mutationToken: "old-res-token",
+      requirements: [
+        {
+          variantId: "var-shared",
+          quantity: 2,
+          onHand: 5,
+          reserved: 2,
+          safetyStock: 0,
+          balanceVersion: 10,
+        },
+      ],
+    });
+
+    expect(rebased.requirements).toEqual([
+      {
+        variantId: "var-shared",
+        requiredQuantity: 4,
+        onHand: 5,
+        reserved: 0,
+        safetyStock: 0,
+        available: 5,
+        balanceVersion: 11,
+      },
+    ]);
+    expect(rebased.lines[0]).toMatchObject({
+      reserved: 0,
+      available: 5,
+      balanceVersion: 11,
+      sufficient: true,
+    });
+    expect(() => assertReservationAvailability(rebased)).not.toThrow();
+  });
+
+  it("rejects a stale supersede plan when the old and new reads disagree on balance version", () => {
+    const plan = {
+      revisionId: "rev-new",
+      locationId: "loc_ambleside",
+      lines: [],
+      trackedLines: [],
+      untrackedLines: [],
+      requirements: [
+        {
+          variantId: "var-shared",
+          requiredQuantity: 1,
+          onHand: 5,
+          reserved: 1,
+          safetyStock: 0,
+          available: 4,
+          balanceVersion: 11,
+        },
+      ],
+    };
+
+    expect(() =>
+      rebaseReservationPlanAfterRelease(plan, {
+        reservationId: "res-old",
+        orderId: "order-1",
+        revisionId: "rev-old",
+        locationId: "loc_ambleside",
+        expiresAt: "2026-10-02T21:00:00.000Z",
+        version: 2,
+        mutationToken: "old-res-token",
+        requirements: [
+          {
+            variantId: "var-shared",
+            quantity: 1,
+            onHand: 5,
+            reserved: 1,
+            safetyStock: 0,
+            balanceVersion: 10,
+          },
+        ],
+      }),
+    ).toThrow("reservation_supersede_balance_version_mismatch");
+  });
+});
 
 describe("Phase 5 guarded reservation mutation builder", () => {
   class MutationDb implements D1DatabaseLike {
