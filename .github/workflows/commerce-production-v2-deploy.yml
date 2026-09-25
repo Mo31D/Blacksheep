@@ -20,13 +20,13 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      RELEASE_SHA: 43757734376c3c4b7f8a139ee096927bbb09a251
+      RELEASE_SHA: ecc05a588cbb2a07210661d4c34cf5b9bb8afb62
 
     steps:
       - name: Checkout pinned release source
         uses: actions/checkout@v4
         with:
-          ref: 43757734376c3c4b7f8a139ee096927bbb09a251
+          ref: ecc05a588cbb2a07210661d4c34cf5b9bb8afb62
           fetch-depth: 1
 
       - name: Verify pinned release SHA
