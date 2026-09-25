@@ -1,4 +1,8 @@
-import type { D1DatabaseLike, D1PreparedStatementLike } from "./d1";
+import {
+  d1StatementChanged,
+  type D1DatabaseLike,
+  type D1PreparedStatementLike,
+} from "./d1";
 
 interface ReviewRow {
   tokenId: string;
@@ -12,6 +16,7 @@ interface ReviewRow {
   customerEmail: string;
   revisionId: string;
   revisionNumber: number;
+  revisionVersion: number;
   revisionState: string;
   customerMessage: string | null;
   fulfilmentMethod: string;
@@ -119,6 +124,7 @@ async function findReviewRow(
         o.customer_email AS customerEmail,
         r.id AS revisionId,
         r.revision_number AS revisionNumber,
+        r.version AS revisionVersion,
         r.state AS revisionState,
         r.customer_message AS customerMessage,
         r.fulfilment_method AS fulfilmentMethod,
@@ -357,45 +363,100 @@ export async function acceptCustomerReview(
   }
 
   const now = new Date().toISOString();
-  const statements: D1PreparedStatementLike[] = [
-    db
+  if (row.revisionState === "ACCEPTED") {
+    await db
       .prepare(
         "UPDATE customer_review_tokens SET last_used_at = ? WHERE id = ?",
       )
-      .bind(now, row.tokenId),
-  ];
-
-  if (row.revisionState === "SENT") {
-    statements.push(
-      db
-        .prepare(
-          `UPDATE order_revisions
-          SET state = 'ACCEPTED', accepted_at = ?, version = version + 1
-          WHERE id = ? AND state = 'SENT'`,
-        )
-        .bind(now, row.revisionId),
-    );
-    statements.push(
-      db
-        .prepare(
-          `INSERT INTO order_events (
-            order_id, event_type, from_status, to_status,
-            actor_type, actor_id, note, metadata_json, created_at
-          ) VALUES (?, 'ORDER_REVISION_ACCEPTED', NULL, NULL, 'customer', NULL, NULL, ?, ?)`,
-        )
-        .bind(
-          row.orderId,
-          JSON.stringify({
-            revisionId: row.revisionId,
-            revisionNumber: row.revisionNumber,
-            channel: "customer_review",
-          }),
-          now,
-        ),
-    );
+      .bind(now, row.tokenId)
+      .run();
+    return {
+      paymentRequestUrl: row.paymentRequestUrl,
+      reference: row.publicReference,
+    };
+  }
+  if (row.revisionState !== "SENT") {
+    throw new Error("review_not_available");
   }
 
-  await db.batch(statements);
+  const nextVersion = Number(row.revisionVersion) + 1;
+  const mutationToken = crypto.randomUUID();
+  const results = await db.batch([
+    db
+      .prepare(
+        `UPDATE order_revisions
+        SET state = 'ACCEPTED',
+            accepted_at = ?,
+            version = ?,
+            mutation_token = ?
+        WHERE id = ? AND version = ? AND state = 'SENT'`,
+      )
+      .bind(
+        now,
+        nextVersion,
+        mutationToken,
+        row.revisionId,
+        row.revisionVersion,
+      ),
+    db
+      .prepare(
+        `UPDATE customer_review_tokens
+        SET last_used_at = ?
+        WHERE id = ?
+          AND EXISTS (
+            SELECT 1 FROM order_revisions
+            WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'ACCEPTED'
+          )`,
+      )
+      .bind(
+        now,
+        row.tokenId,
+        row.revisionId,
+        nextVersion,
+        mutationToken,
+      ),
+    db
+      .prepare(
+        `INSERT INTO order_events (
+          order_id, event_type, from_status, to_status,
+          actor_type, actor_id, note, metadata_json, created_at
+        )
+        SELECT ?, 'ORDER_REVISION_ACCEPTED', NULL, NULL, 'customer', NULL, NULL, ?, ?
+        WHERE EXISTS (
+          SELECT 1 FROM order_revisions
+          WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'ACCEPTED'
+        )`,
+      )
+      .bind(
+        row.orderId,
+        JSON.stringify({
+          revisionId: row.revisionId,
+          revisionNumber: row.revisionNumber,
+          channel: "customer_review",
+          version: nextVersion,
+        }),
+        now,
+        row.revisionId,
+        nextVersion,
+        mutationToken,
+      ),
+  ]);
+
+  if (d1StatementChanged(results[0]) === false) {
+    const latest = await findReviewRow(db, token);
+    if (
+      latest?.revisionState === "ACCEPTED" &&
+      latest.paymentRequestUrl &&
+      latest.paymentStatus === "PAYMENT_REQUESTED"
+    ) {
+      return {
+        paymentRequestUrl: latest.paymentRequestUrl,
+        reference: latest.publicReference,
+      };
+    }
+    throw new Error("review_conflict");
+  }
+
   return {
     paymentRequestUrl: row.paymentRequestUrl,
     reference: row.publicReference,
@@ -411,17 +472,32 @@ export async function declineCustomerReview(
   if (row.paymentStatus === "PAID" || row.paymentStatus === "REFUNDED") {
     throw new Error("review_already_paid");
   }
+  if (!["SENT", "ACCEPTED"].includes(row.revisionState)) {
+    throw new Error("review_not_available");
+  }
 
   const now = new Date().toISOString();
+  const nextVersion = Number(row.revisionVersion) + 1;
+  const mutationToken = crypto.randomUUID();
 
-  await db.batch([
+  const results = await db.batch([
     db
       .prepare(
         `UPDATE order_revisions
-        SET state = 'DECLINED', declined_at = ?, version = version + 1
-        WHERE id = ? AND state IN ('SENT', 'ACCEPTED')`,
+        SET state = 'DECLINED',
+            declined_at = ?,
+            version = ?,
+            mutation_token = ?
+        WHERE id = ? AND version = ? AND state = ?`,
       )
-      .bind(now, row.revisionId),
+      .bind(
+        now,
+        nextVersion,
+        mutationToken,
+        row.revisionId,
+        row.revisionVersion,
+        row.revisionState,
+      ),
     db
       .prepare(
         `UPDATE orders
@@ -430,20 +506,48 @@ export async function declineCustomerReview(
             payment_request_url = NULL,
             payment_reference = NULL,
             updated_at = ?
-        WHERE id = ? AND payment_status IN ('UNPAID', 'PAYMENT_REQUESTED')`,
+        WHERE id = ? AND payment_status IN ('UNPAID', 'PAYMENT_REQUESTED')
+          AND EXISTS (
+            SELECT 1 FROM order_revisions
+            WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DECLINED'
+          )`,
       )
-      .bind(now, row.orderId),
+      .bind(
+        now,
+        row.orderId,
+        row.revisionId,
+        nextVersion,
+        mutationToken,
+      ),
     db
       .prepare(
-        "UPDATE customer_review_tokens SET revoked_at = ?, last_used_at = ? WHERE id = ?",
+        `UPDATE customer_review_tokens
+        SET revoked_at = ?, last_used_at = ?
+        WHERE id = ?
+          AND EXISTS (
+            SELECT 1 FROM order_revisions
+            WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DECLINED'
+          )`,
       )
-      .bind(now, now, row.tokenId),
+      .bind(
+        now,
+        now,
+        row.tokenId,
+        row.revisionId,
+        nextVersion,
+        mutationToken,
+      ),
     db
       .prepare(
         `INSERT INTO order_events (
           order_id, event_type, from_status, to_status,
           actor_type, actor_id, note, metadata_json, created_at
-        ) VALUES (?, 'ORDER_REVISION_DECLINED', ?, 'UNDER_REVIEW', 'customer', NULL, NULL, ?, ?)`,
+        )
+        SELECT ?, 'ORDER_REVISION_DECLINED', ?, 'UNDER_REVIEW', 'customer', NULL, NULL, ?, ?
+        WHERE EXISTS (
+          SELECT 1 FROM order_revisions
+          WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DECLINED'
+        )`,
       )
       .bind(
         row.orderId,
@@ -452,10 +556,18 @@ export async function declineCustomerReview(
           revisionId: row.revisionId,
           revisionNumber: row.revisionNumber,
           channel: "customer_review",
+          version: nextVersion,
         }),
         now,
+        row.revisionId,
+        nextVersion,
+        mutationToken,
       ),
   ]);
+
+  if (d1StatementChanged(results[0]) === false) {
+    throw new Error("review_conflict");
+  }
 
   return { reference: row.publicReference };
 }
