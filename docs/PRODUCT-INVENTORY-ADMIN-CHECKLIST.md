@@ -235,9 +235,9 @@ Evidence:
 - [~] Review-token expiry alignment — source + tests added; CI pending.
 - [ ] Reservation release.
 - [~] Reservation expiry policy — lazy expiry release implementation active.
-- [ ] Payment transition.
-- [ ] Fulfilment SALE movement.
-- [ ] Cancellation release.
+- [~] Payment transition — COMMITTED builder milestone active.
+- [~] Fulfilment SALE movement — consume builder milestone active.
+- [~] Cancellation release — ACTIVE/COMMITTED release integration planned in same order-action transaction.
 - [ ] Explicit return-to-stock workflow.
 - [ ] Revision/substitution inventory integration.
 - [ ] Concurrency protection.
@@ -310,17 +310,18 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 5 — lazy reservation expiry
+## Phase 5 — payment / fulfilment reservation lifecycle
 
-Customer-decline release source/tests are in place behind an OFF-by-default feature flag.
+Expiry source/tests are in place; reservation mode remains OFF.
 
 Current sub-step:
-1. Add explicit `EXPIRED` terminal release support.
-2. Find ACTIVE reservations whose `expires_at <= now`.
-3. Release their reserved quantities with guarded balance versions.
-4. Record `RESERVATION_RELEASE` ledger movements attributed to SYSTEM.
-5. Make concurrent expiry workers idempotent/tolerant when another worker already released the hold.
-6. Run lazy expiry immediately before reservation-aware revision Send so stale holds cannot cause false stock shortages.
-7. Add tests before any runtime feature enablement.
+1. Add order-state guard primitives for atomic Admin order + reservation transitions.
+2. `ACTIVE → COMMITTED` on Mark paid, with no quantity change.
+3. `COMMITTED → CONSUMED` on delivery Shipped or collection Completed.
+4. Consumption updates both `on_hand -= quantity` and `reserved -= quantity`.
+5. Record immutable `SALE` movement only at consumption.
+6. Allow cancellation to release ACTIVE or COMMITTED holds before consumption.
+7. Keep already-consumed stock unchanged on refund/cancel; return-to-stock remains explicit.
+8. Add tests before enabling the feature flag.
 
-No environment has `ORDER_RESERVATIONS_ENABLED=true` yet.
+Production remains isolated and the flag is OFF everywhere.
