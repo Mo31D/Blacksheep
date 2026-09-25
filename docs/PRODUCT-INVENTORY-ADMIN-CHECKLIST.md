@@ -223,6 +223,8 @@ Evidence:
 # PHASE 5 — ORDER RESERVATIONS
 
 - [x] Phase 5 implementation plan locked before code — `docs/ORDER-RESERVATIONS-PHASE5-IMPLEMENTATION-PLAN-2026-09-25.md`.
+- [~] Implementation started on staging by owner direction while the Phase 4 owner UX re-test remains open; Phase 4 is not being falsely marked complete.
+- [~] Migration `0011_order_reservations.sql` — active milestone.
 - [ ] Reviewed quote reservation.
 - [ ] Reservation release.
 - [ ] Reservation expiry policy.
@@ -301,30 +303,22 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 4 — final owner re-test after UX fixes
+## Phase 5 — reservation foundation milestone
 
-The Inventory Core backend proof has passed. During the owner-facing iPad test, two UX defects were identified and have now been fixed/deployed to staging: post-OTP fragment-only navigation and tablet portrait detail panels appearing below the list.
+Owner requested development to continue. Phase 4 remains technically complete with its owner UX re-test still open; this does not authorize a Production Product/Inventory cutover.
 
-Remaining owner-facing check:
+Current implementation sequence:
 
-1. On iPad portrait, log out of Admin.
-2. Request a new OTP, enter it and press **Sign in** — Admin must open immediately without a manual Refresh.
-3. Open **Stock**, search/select `STAGING QA PRODUCT — Copy` — the Stock detail must appear immediately as an on-screen overlay with a visible back control, not below the list.
-4. Confirm the same immediate detail behavior with one item in **Products** and one order in **Orders**.
-5. In Stocktake, count the QA copy at its current system quantity and confirm **Unchanged**.
-6. Confirm Product ↔ Stock navigation and the movement timeline.
-7. Archive the UI QA copy when finished.
+1. Add additive staging-first migration `0011_order_reservations.sql`.
+2. Extend migration-upgrade validation from `0000–0010 → 0011`.
+3. Add Reservation Core schema/invariant test coverage.
+4. Run full Commerce CI.
+5. Apply `0011` to staging only behind a Production-isolation gate.
+6. Verify no reservation row, stock hold or movement is invented by migration.
+7. Then implement the reservation domain module and revision-Send transaction.
 
-Once this corrected owner UX path is accepted:
-- mark Phase 4 fully COMPLETE,
-- begin implementation of the already locked Phase 5 plan,
-- first Phase 5 code step is additive `0011_order_reservations.sql`,
-- keep Production and Phase 6 storefront/checkout inventory authority locked.
-
-Release evidence:
-- source fix: `950849a3a1f66b52546d959f33182f1ecc531596`,
-- Commerce CI: `36187771624` — SUCCESS,
-- Phase 4 staging release: `36187771688` — SUCCESS,
-- staging deployment: `6d89ff4c-f1d8-4552-83f1-7cf8113c5a4c`,
-- staging Worker version: `cf42c03a-0371-47c5-a1a7-bde6980f7dd5`,
-- Production remains isolated at pre-Product-Core migration state.
+Safety locks:
+- Production remains pre-Product-Core.
+- Public storefront/checkout inventory authority remains Phase 6.
+- Existing untracked order behaviour must remain unchanged.
+- No partial reservation may be created for an insufficient reviewed order.
