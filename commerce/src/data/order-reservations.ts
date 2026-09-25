@@ -651,7 +651,7 @@ export function prepareReservationMutation(
             0, ?, 0,
             'ORDER_RESERVATION', 'Reviewed order reservation',
             ?, ?, ?, NULL, NULL, ?,
-            ?, ?, ?,
+            'ADMIN', ?, ?,
             b.on_hand, b.reserved, b.safety_stock
           FROM inventory_balances b
           WHERE b.variant_id = ?
