@@ -1,0 +1,490 @@
+import { createHash, randomBytes } from "node:crypto";
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { chromium, webkit } from "playwright";
+
+const BASE =
+  "https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev";
+const DB = "black-sheep-commerce-staging";
+const RUN_ID = String(process.env.GITHUB_RUN_ID || Date.now());
+const ORDER_ID = "admin-browser-" + RUN_ID;
+const REF = "E2E-ADMIN-UI-" + RUN_ID;
+const NOW = new Date().toISOString();
+const ARTIFACT_DIR = path.resolve("admin-browser-qa-artifacts");
+
+let sessionToken = "";
+let sessionHash = "";
+let completed = false;
+
+function assert(value, message) {
+  if (!value) throw new Error(message);
+}
+
+function q(value) {
+  return "'" + String(value).replaceAll("'", "''") + "'";
+}
+
+function sha256(value) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function d1(sql) {
+  const result = spawnSync(
+    "npx",
+    [
+      "wrangler",
+      "d1",
+      "execute",
+      DB,
+      "--remote",
+      "--env",
+      "staging",
+      "--command",
+      sql,
+      "--json",
+    ],
+    {
+      encoding: "utf8",
+      env: process.env,
+      maxBuffer: 16 * 1024 * 1024,
+    },
+  );
+
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(
+      "Wrangler D1 command failed:\n" +
+        String(result.stderr || result.stdout || "").slice(-5000),
+    );
+  }
+
+  const parsed = JSON.parse(result.stdout.trim());
+  const batches = Array.isArray(parsed) ? parsed : [parsed];
+  return batches.flatMap((part) => part.results || []);
+}
+
+function cleanupSql() {
+  const id = q(ORDER_ID);
+  return [
+    "DELETE FROM order_messages WHERE order_id=" + id,
+    "DELETE FROM customer_review_tokens WHERE order_id=" + id,
+    "DELETE FROM refunds WHERE order_id=" + id,
+    "DELETE FROM order_adjustments WHERE revision_id IN (SELECT id FROM order_revisions WHERE order_id=" +
+      id +
+      ")",
+    "DELETE FROM order_revision_items WHERE revision_id IN (SELECT id FROM order_revisions WHERE order_id=" +
+      id +
+      ")",
+    "DELETE FROM order_revisions WHERE order_id=" + id,
+    "DELETE FROM order_events WHERE order_id=" + id,
+    "DELETE FROM order_items WHERE order_id=" + id,
+    "DELETE FROM orders WHERE id=" + id,
+  ].join(";");
+}
+
+function findOwnerEmail() {
+  let rows = d1(
+    "SELECT email FROM admin_sessions ORDER BY created_at DESC LIMIT 1",
+  );
+
+  if (!rows.length) {
+    rows = d1(
+      "SELECT email FROM admin_login_codes ORDER BY created_at DESC LIMIT 1",
+    );
+  }
+
+  assert(
+    rows.length && rows[0].email,
+    "No existing staging owner identity is available for browser QA.",
+  );
+
+  return String(rows[0].email);
+}
+
+function seedSession() {
+  const ownerEmail = findOwnerEmail();
+  sessionToken = randomBytes(32).toString("base64url");
+  sessionHash = sha256(sessionToken);
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+  d1(
+    "INSERT INTO admin_sessions (token_hash,email,expires_at,created_at) VALUES (" +
+      [
+        q(sessionHash),
+        q(ownerEmail),
+        q(expiresAt),
+        q(NOW),
+      ].join(",") +
+      ")",
+  );
+}
+
+function seedOrder() {
+  d1(cleanupSql());
+
+  d1(
+    "INSERT INTO orders (" +
+      "id,public_reference,idempotency_key,status,currency,fulfilment_method," +
+      "customer_name,customer_email,items_subtotal_minor,delivery_amount_minor," +
+      "final_total_minor,payment_status,created_at,updated_at" +
+      ") VALUES (" +
+      [
+        q(ORDER_ID),
+        q(REF),
+        q("admin-browser-idem-" + RUN_ID),
+        "'SUBMITTED'",
+        "'GBP'",
+        "'collection'",
+        "'Admin Browser QA'",
+        "'orders@theblacksheepshop.co.uk'",
+        "1200",
+        "0",
+        "NULL",
+        "'UNPAID'",
+        q(NOW),
+        q(NOW),
+      ].join(",") +
+      ");" +
+      "INSERT INTO order_items (" +
+      "order_id,line_number,catalog_product_id,sku,slug,product_name," +
+      "unit_price_minor,quantity,line_total_minor,options_json,created_at" +
+      ") VALUES (" +
+      [
+        q(ORDER_ID),
+        "1",
+        "'admin-ui-item-a'",
+        "'UI-A'",
+        "'admin-ui-item-a'",
+        "'Admin UI Test Item A'",
+        "500",
+        "1",
+        "500",
+        "'{}'",
+        q(NOW),
+      ].join(",") +
+      "),(" +
+      [
+        q(ORDER_ID),
+        "2",
+        "'admin-ui-item-b'",
+        "'UI-B'",
+        "'admin-ui-item-b'",
+        "'Admin UI Test Item B'",
+        "700",
+        "1",
+        "700",
+        "'{}'",
+        q(NOW),
+      ].join(",") +
+      ");" +
+      "INSERT INTO order_events (" +
+      "order_id,event_type,from_status,to_status,actor_type,actor_id,note,metadata_json,created_at" +
+      ") VALUES (" +
+      [
+        q(ORDER_ID),
+        "'ORDER_SUBMITTED'",
+        "NULL",
+        "'SUBMITTED'",
+        "'system'",
+        "NULL",
+        "'Synthetic staging Admin UI browser QA'",
+        "'{}'",
+        q(NOW),
+      ].join(",") +
+      ")",
+  );
+}
+
+async function addAdminCookie(context) {
+  await context.addCookies([
+    {
+      name: "bs_admin_session",
+      value: sessionToken,
+      url: BASE,
+      secure: true,
+      httpOnly: true,
+      sameSite: "Strict",
+    },
+  ]);
+}
+
+async function waitForOrderList(page) {
+  await page.goto(BASE + "/admin", {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  });
+
+  await page.waitForSelector("#orders", { timeout: 20_000 });
+  await page.waitForFunction(
+    (reference) =>
+      Boolean(
+        document.querySelector(
+          '#orders [data-ref="' + CSS.escape(String(reference)) + '"]',
+        ),
+      ),
+    REF,
+    { timeout: 30_000 },
+  );
+
+  const heading = await page.locator("#view-orders h1").textContent();
+  assert(heading?.trim() === "Orders", "Authenticated Admin Orders view did not load.");
+}
+
+async function assertNoHorizontalOverflow(page, label) {
+  const dimensions = await page.evaluate(() => ({
+    viewport: window.innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    bodyWidth: document.body.scrollWidth,
+  }));
+
+  assert(
+    dimensions.documentWidth <= dimensions.viewport + 2 &&
+      dimensions.bodyWidth <= dimensions.viewport + 2,
+    label +
+      " has horizontal overflow: viewport=" +
+      dimensions.viewport +
+      ", document=" +
+      dimensions.documentWidth +
+      ", body=" +
+      dimensions.bodyWidth,
+  );
+}
+
+async function desktopQa() {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+  });
+  const page = await context.newPage();
+
+  try {
+    await addAdminCookie(context);
+    await waitForOrderList(page);
+    await assertNoHorizontalOverflow(page, "Desktop order list");
+
+    await page.locator('#orders [data-ref="' + REF + '"]').click();
+
+    await page.waitForFunction(
+      (reference) =>
+        document.getElementById("detail")?.textContent?.includes(reference),
+      REF,
+      { timeout: 20_000 },
+    );
+
+    await page.waitForSelector('#detail [data-action="start_review"]', {
+      timeout: 10_000,
+    });
+
+    await page.locator('#detail [data-action="start_review"]').click();
+
+    await page.waitForSelector("#createRevision", { timeout: 20_000 });
+    await page.locator("#createRevision").click();
+
+    await page.waitForSelector("#saveRevision", { timeout: 20_000 });
+    await page.waitForSelector("#addRevisionAdjustment", { timeout: 20_000 });
+    await page.waitForSelector("#revisionFulfilment", { timeout: 20_000 });
+
+    await page.locator("#revisionAdjustmentKind").selectOption("DISCOUNT");
+    await page.locator("#revisionAdjustmentAmount").fill("1.00");
+    await page
+      .locator("#revisionAdjustmentLabel")
+      .fill("Browser QA discount");
+    await page
+      .locator("#revisionAdjustmentReason")
+      .fill("Synthetic staging browser QA adjustment.");
+    await page.locator("#addRevisionAdjustment").click();
+
+    await page.waitForFunction(
+      () => document.getElementById("detail")?.textContent?.includes("Browser QA discount"),
+      null,
+      { timeout: 20_000 },
+    );
+
+    await page.locator("#revisionFulfilment").selectOption("delivery");
+
+    await page.waitForFunction(
+      () => {
+        const fields = document.getElementById("revisionAddressFields");
+        const delivery = document.getElementById("revisionDelivery");
+        return (
+          fields &&
+          getComputedStyle(fields).display !== "none" &&
+          delivery &&
+          delivery.readOnly === false
+        );
+      },
+      null,
+      { timeout: 10_000 },
+    );
+
+    await page.locator("#revisionFulfilment").selectOption("collection");
+
+    await page.waitForFunction(
+      () => {
+        const fields = document.getElementById("revisionAddressFields");
+        const delivery = document.getElementById("revisionDelivery");
+        return (
+          fields &&
+          getComputedStyle(fields).display === "none" &&
+          delivery &&
+          delivery.readOnly === true &&
+          Number(delivery.value) === 0
+        );
+      },
+      null,
+      { timeout: 10_000 },
+    );
+
+    await assertNoHorizontalOverflow(page, "Desktop order detail");
+
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "desktop-admin-order.png"),
+      fullPage: true,
+    });
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
+async function mobileWebkitQa() {
+  const browser = await webkit.launch({ headless: true });
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+  });
+  const page = await context.newPage();
+
+  try {
+    await addAdminCookie(context);
+    await waitForOrderList(page);
+    await assertNoHorizontalOverflow(page, "Mobile order list");
+
+    await page.locator('#orders [data-ref="' + REF + '"]').click();
+
+    await page.waitForFunction(
+      (reference) =>
+        document.body.classList.contains("detail-open") &&
+        document.getElementById("detail")?.textContent?.includes(reference),
+      REF,
+      { timeout: 20_000 },
+    );
+
+    await page.waitForSelector("#addRevisionAdjustment", { timeout: 20_000 });
+    await page.waitForSelector("#revisionFulfilment", { timeout: 20_000 });
+
+    const controls = await page.evaluate(() => {
+      const ids = [
+        "revisionFulfilment",
+        "revisionAdjustmentKind",
+        "revisionAdjustmentAmount",
+        "addRevisionAdjustment",
+      ];
+
+      return ids.map((id) => {
+        const el = document.getElementById(id);
+        const rect = el?.getBoundingClientRect();
+        return {
+          id,
+          exists: Boolean(el),
+          left: rect?.left ?? -9999,
+          right: rect?.right ?? 9999,
+          width: rect?.width ?? 0,
+        };
+      });
+    });
+
+    for (const control of controls) {
+      assert(control.exists, "Missing mobile revision control: " + control.id);
+      assert(
+        control.left >= -1 && control.right <= 391,
+        "Mobile control is clipped horizontally: " +
+          control.id +
+          " left=" +
+          control.left +
+          " right=" +
+          control.right,
+      );
+      assert(control.width > 20, "Mobile control has invalid width: " + control.id);
+    }
+
+    await assertNoHorizontalOverflow(page, "Mobile order detail");
+
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "mobile-webkit-admin-order.png"),
+      fullPage: true,
+    });
+
+    await page.locator("#closeDetail").click();
+
+    await page.waitForFunction(
+      () => !document.body.classList.contains("detail-open"),
+      null,
+      { timeout: 10_000 },
+    );
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
+fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
+
+try {
+  seedOrder();
+  seedSession();
+
+  await desktopQa();
+  await mobileWebkitQa();
+
+  completed = true;
+
+  console.log(
+    JSON.stringify(
+      {
+        ok: true,
+        reference: REF,
+        checks: [
+          "authenticated-admin-orders-view",
+          "desktop-order-list-no-horizontal-overflow",
+          "desktop-order-detail",
+          "start-review-ui-action",
+          "create-reviewed-version-ui-action",
+          "adjustment-controls-render-and-submit",
+          "collection-delivery-collection-ui-toggle",
+          "desktop-order-detail-no-horizontal-overflow",
+          "webkit-mobile-order-list",
+          "webkit-mobile-detail-open-close",
+          "webkit-mobile-revision-controls-not-clipped",
+          "webkit-mobile-no-horizontal-overflow",
+        ],
+      },
+      null,
+      2,
+    ),
+  );
+} catch (error) {
+  console.error(
+    "ADMIN BROWSER QA FAILED:",
+    error instanceof Error ? error.message : error,
+  );
+  process.exitCode = 1;
+} finally {
+  try {
+    if (sessionHash) {
+      d1("DELETE FROM admin_sessions WHERE token_hash=" + q(sessionHash));
+    }
+    if (completed) {
+      d1(cleanupSql());
+      console.log("Synthetic Admin UI browser QA data cleaned up.");
+    } else {
+      console.error("Synthetic order preserved for failure investigation:", REF);
+    }
+  } catch (cleanupError) {
+    console.error(
+      "Cleanup warning:",
+      cleanupError instanceof Error ? cleanupError.message : cleanupError,
+    );
+    if (completed) process.exitCode = 1;
+  }
+}
