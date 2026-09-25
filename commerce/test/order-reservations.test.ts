@@ -6,6 +6,7 @@ import type {
 import {
   assertReservationAvailability,
   buildRevisionReservationPlan,
+  prepareReservationMutation,
   ReservationAvailabilityError,
 } from "../src/data/order-reservations";
 
@@ -274,4 +275,197 @@ describe("Phase 5 reservation planning", () => {
       buildRevisionReservationPlan(db, "rev-1", "loc-unknown"),
     ).rejects.toThrow("reservation_location_not_found");
   });
+
+
+describe("Phase 5 guarded reservation mutation builder", () => {
+  class MutationDb implements D1DatabaseLike {
+    readonly prepared: Statement[] = [];
+
+    prepare(query: string): Statement {
+      const statement = new Statement(query);
+      this.prepared.push(statement);
+      return statement;
+    }
+
+    async batch<T>(): Promise<T[]> {
+      return [] as T[];
+    }
+  }
+
+  const basePlan = {
+    revisionId: "rev-guarded",
+    locationId: "loc_ambleside",
+    lines: [
+      {
+        revisionItemId: 51,
+        lineNumber: 1,
+        catalogProductId: "LEGACY-GUARDED",
+        confirmedQuantity: 2,
+        productId: "prd-guarded",
+        variantId: "var-guarded",
+        resolved: true,
+        tracked: true,
+        onHand: 5,
+        reserved: 1,
+        safetyStock: 0,
+        available: 4,
+        balanceVersion: 8,
+        sufficient: true,
+      },
+    ],
+    trackedLines: [] as any[],
+    untrackedLines: [] as any[],
+    requirements: [
+      {
+        variantId: "var-guarded",
+        requiredQuantity: 2,
+        onHand: 5,
+        reserved: 1,
+        safetyStock: 0,
+        available: 4,
+        balanceVersion: 8,
+      },
+    ],
+  };
+
+  it("builds one guarded balance mutation and one ledger movement per tracked variant", () => {
+    const db = new MutationDb();
+    const plan = {
+      ...basePlan,
+      trackedLines: basePlan.lines,
+    };
+
+    const prepared = prepareReservationMutation(db, plan, {
+      orderId: "order-guarded",
+      actorEmail: "owner@example.com",
+      expiresAt: "2026-10-02T21:00:00.000Z",
+      revisionVersion: 4,
+      revisionMutationToken: "revision-win-token",
+      idempotencyKey: "reservation:test:guarded",
+      createdAt: "2026-09-25T21:00:00.000Z",
+    });
+
+    expect(prepared.statements).toHaveLength(4);
+    expect(prepared.idempotencyKey).toBe("reservation:test:guarded");
+
+    const balanceUpdate = db.prepared[0];
+    expect(balanceUpdate.sql).toContain("SET reserved = reserved + ?");
+    expect(balanceUpdate.sql).toContain("version = ?");
+    expect(balanceUpdate.sql).toContain(
+      "(on_hand - reserved - safety_stock) >= ?",
+    );
+    expect(balanceUpdate.sql).toContain("mutation_token = ?");
+    expect(balanceUpdate.sql).toContain("state = 'DRAFT'");
+    expect(balanceUpdate.values).toContain(8);
+    expect(balanceUpdate.values).toContain(2);
+
+    const reservationInsert = db.prepared[1];
+    expect(reservationInsert.sql).toContain(
+      "INSERT INTO inventory_reservations",
+    );
+    expect(reservationInsert.sql).toContain("CASE WHEN");
+    expect(reservationInsert.sql).toContain("THEN ? ELSE NULL END");
+    expect(reservationInsert.sql).toContain(
+      "guard_balance.mutation_token = ?",
+    );
+
+    const itemInsert = db.prepared[2];
+    expect(itemInsert.sql).toContain(
+      "INSERT INTO inventory_reservation_items",
+    );
+    expect(itemInsert.values).toContain(51);
+    expect(itemInsert.values).toContain("var-guarded");
+
+    const movementInsert = db.prepared[3];
+    expect(movementInsert.sql).toContain(
+      "'ORDER_RESERVATION'",
+    );
+    expect(movementInsert.sql).toContain("b.reserved");
+    expect(movementInsert.values).toContain("order-guarded");
+    expect(movementInsert.values).toContain("rev-guarded");
+  });
+
+  it("aggregates one balance mutation while retaining each reviewed-line provenance row", () => {
+    const db = new MutationDb();
+    const second = {
+      ...basePlan.lines[0],
+      revisionItemId: 52,
+      lineNumber: 2,
+      confirmedQuantity: 1,
+    };
+    const plan = {
+      ...basePlan,
+      lines: [basePlan.lines[0], second],
+      trackedLines: [basePlan.lines[0], second],
+      requirements: [
+        {
+          ...basePlan.requirements[0],
+          requiredQuantity: 3,
+        },
+      ],
+    };
+
+    const prepared = prepareReservationMutation(db, plan, {
+      orderId: "order-guarded",
+      actorEmail: "owner@example.com",
+      expiresAt: "2026-10-02T21:00:00.000Z",
+      revisionVersion: 4,
+      revisionMutationToken: "revision-win-token",
+      createdAt: "2026-09-25T21:00:00.000Z",
+    });
+
+    expect(prepared.statements).toHaveLength(5);
+    expect(
+      db.prepared.filter((statement) =>
+        statement.sql.includes("UPDATE inventory_balances"),
+      ),
+    ).toHaveLength(1);
+    expect(
+      db.prepared.filter((statement) =>
+        statement.sql.includes("INSERT INTO inventory_reservation_items"),
+      ),
+    ).toHaveLength(2);
+    expect(
+      db.prepared.filter((statement) =>
+        statement.sql.includes("INSERT INTO inventory_movements"),
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("refuses to prepare any mutation when aggregate availability is insufficient", () => {
+    const db = new MutationDb();
+    const plan = {
+      ...basePlan,
+      lines: basePlan.lines.map((line) => ({
+        ...line,
+        available: 1,
+        sufficient: false,
+      })),
+      trackedLines: basePlan.lines.map((line) => ({
+        ...line,
+        available: 1,
+        sufficient: false,
+      })),
+      requirements: [
+        {
+          ...basePlan.requirements[0],
+          requiredQuantity: 2,
+          available: 1,
+        },
+      ],
+    };
+
+    expect(() =>
+      prepareReservationMutation(db, plan, {
+        orderId: "order-guarded",
+        actorEmail: "owner@example.com",
+        expiresAt: "2026-10-02T21:00:00.000Z",
+        revisionVersion: 4,
+        revisionMutationToken: "revision-win-token",
+      }),
+    ).toThrow("reservation_insufficient_stock");
+
+    expect(db.prepared).toHaveLength(0);
+  });
+});
 });
