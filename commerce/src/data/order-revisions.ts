@@ -10,6 +10,15 @@ import {
   type RevisionState,
 } from "../domain/order-revision";
 import { requirePurchasableProduct } from "../domain/catalog";
+import {
+  buildRevisionReservationPlan,
+  getActiveReservationReleasePlan,
+  getSupersededReservationReleasePlan,
+  prepareReservationMutation,
+  prepareReservationReleaseMutation,
+  type ActiveReservationReleasePlan,
+  type RevisionReservationPlan,
+} from "./order-reservations";
 
 interface OriginalOrderRow {
   id: string;
@@ -739,6 +748,11 @@ export async function updateDraftRevision(
   return verifyMutationResult(db, orderReference, revisionId, results);
 }
 
+export interface RevisionTransitionOptions {
+  inventoryReservations?: boolean;
+  reservationTtlHours?: number;
+}
+
 export async function transitionOrderRevision(
   db: D1DatabaseLike,
   orderReference: string,
@@ -746,6 +760,7 @@ export async function transitionOrderRevision(
   action: "send" | "accept" | "decline",
   expectedVersion: number,
   actorEmail: string,
+  options: RevisionTransitionOptions = {},
 ): Promise<Record<string, unknown>> {
   requireExpectedVersion(expectedVersion);
 
@@ -759,9 +774,37 @@ export async function transitionOrderRevision(
   if (action === "decline" && revision.state !== "SENT") throw new Error("revision_decline_requires_sent");
   if (action === "send" && revision.finalTotalMinor === null) throw new Error("revision_total_required");
 
+  let reservationPlan: RevisionReservationPlan | null = null;
+  let supersededReservation: ActiveReservationReleasePlan | null = null;
+  let currentReservation: ActiveReservationReleasePlan | null = null;
+
+  if (options.inventoryReservations) {
+    if (action === "send") {
+      reservationPlan = await buildRevisionReservationPlan(db, revisionId);
+      supersededReservation = await getSupersededReservationReleasePlan(
+        db,
+        revision.orderId,
+        revisionId,
+      );
+    } else if (action === "decline") {
+      currentReservation = await getActiveReservationReleasePlan(
+        db,
+        revisionId,
+      );
+    }
+  }
+
   const now = new Date().toISOString();
   const nextVersion = revision.version + 1;
   const mutationToken = crypto.randomUUID();
+  const ttlHours = Math.max(
+    1,
+    Math.min(336, Math.floor(options.reservationTtlHours ?? 168)),
+  );
+  const reservationExpiresAt = new Date(
+    Date.parse(now) + ttlHours * 60 * 60 * 1000,
+  ).toISOString();
+
   const statements: D1PreparedStatementLike[] = [
     db.prepare(
       `UPDATE order_revisions
@@ -771,6 +814,43 @@ export async function transitionOrderRevision(
   ];
 
   if (action === "send") {
+    if (options.inventoryReservations && supersededReservation) {
+      const release = prepareReservationReleaseMutation(
+        db,
+        supersededReservation,
+        {
+          actorEmail,
+          reason: "Reviewed quote superseded",
+          createdAt: now,
+          externalGuard: {
+            revisionId,
+            version: nextVersion,
+            mutationToken,
+            state: "DRAFT",
+          },
+        },
+      );
+      statements.push(...release.statements);
+    }
+
+    if (options.inventoryReservations && reservationPlan) {
+      const reservation = prepareReservationMutation(
+        db,
+        reservationPlan,
+        {
+          orderId: revision.orderId,
+          actorEmail,
+          expiresAt: reservationExpiresAt,
+          revisionVersion: nextVersion,
+          revisionMutationToken: mutationToken,
+          idempotencyKey:
+            "reservation:" + revisionId + ":v" + nextVersion,
+          createdAt: now,
+        },
+      );
+      statements.push(...reservation.statements);
+    }
+
     statements.push(
       db.prepare(
         `UPDATE order_revisions
@@ -785,10 +865,18 @@ export async function transitionOrderRevision(
     );
     statements.push(
       db.prepare(
-        `UPDATE order_revisions
-        SET state = 'SENT', sent_at = ?
-        WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DRAFT'`,
-      ).bind(now, revisionId, nextVersion, mutationToken),
+        options.inventoryReservations
+          ? `UPDATE order_revisions
+            SET state = 'SENT', sent_at = ?, expires_at = ?
+            WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DRAFT'`
+          : `UPDATE order_revisions
+            SET state = 'SENT', sent_at = ?
+            WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DRAFT'`,
+      ).bind(
+        ...(options.inventoryReservations
+          ? [now, reservationExpiresAt, revisionId, nextVersion, mutationToken]
+          : [now, revisionId, nextVersion, mutationToken]),
+      ),
     );
     statements.push(
       db.prepare(
@@ -802,6 +890,29 @@ export async function transitionOrderRevision(
       ).bind(now, now, revision.orderId, revisionId, nextVersion, mutationToken),
     );
   } else {
+    if (
+      action === "decline" &&
+      options.inventoryReservations &&
+      currentReservation
+    ) {
+      const release = prepareReservationReleaseMutation(
+        db,
+        currentReservation,
+        {
+          actorEmail,
+          reason: "Reviewed quote declined",
+          createdAt: now,
+          externalGuard: {
+            revisionId,
+            version: nextVersion,
+            mutationToken,
+            state: "SENT",
+          },
+        },
+      );
+      statements.push(...release.statements);
+    }
+
     const nextState = action === "accept" ? "ACCEPTED" : "DECLINED";
     const timestampColumn = action === "accept" ? "accepted_at" : "declined_at";
     statements.push(
@@ -843,6 +954,10 @@ export async function transitionOrderRevision(
         revisionId,
         revisionNumber: revision.revisionNumber,
         version: nextVersion,
+        inventoryReservations: Boolean(options.inventoryReservations),
+        ...(action === "send" && options.inventoryReservations
+          ? { reservationExpiresAt }
+          : {}),
       }),
       now,
       revisionId,
@@ -852,10 +967,22 @@ export async function transitionOrderRevision(
     ),
   );
 
-  const results = await db.batch(statements);
+  let results: unknown[];
+  try {
+    results = await db.batch(statements);
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : String(cause);
+    if (
+      options.inventoryReservations &&
+      message.includes("inventory_reservations.mutation_token")
+    ) {
+      throw new Error("reservation_concurrency_conflict");
+    }
+    throw cause;
+  }
+
   return verifyMutationResult(db, orderReference, revisionId, results);
 }
-
 
 export interface AddRevisionCatalogItemInput {
   expectedVersion: number;
