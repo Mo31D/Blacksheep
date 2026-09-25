@@ -9,8 +9,8 @@ export interface OrderNotificationContext {
 }
 
 export interface OrderNotifier {
-  notifyOwner(context: OrderNotificationContext): Promise<void>;
-  acknowledgeCustomer(context: OrderNotificationContext): Promise<void>;
+  notifyOwner(context: OrderNotificationContext): Promise<unknown>;
+  acknowledgeCustomer(context: OrderNotificationContext): Promise<unknown>;
 }
 
 export interface SendEmailBindingLike {
