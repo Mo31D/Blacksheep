@@ -668,24 +668,32 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
   - production webhook remains disabled
   - Admin page verification was skipped because health gate failed
 
+- [x] Production health diagnosis run `36159322097`, job `108151658720`: PASS.
+  - custom domain health: `status=ok`, `environment=production`, `database=bound`, `webhookConfigured=true`
+  - Workers.dev health: identical PASS
+  - custom-domain Admin page: reachable
+  - Workers.dev Admin page: reachable
+  - initial missing `webhookConfigured` was a propagation/timing issue, not a routing or secret-retention defect
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — STEP 3A IN PROGRESS: diagnose post-deploy health routing/binding mismatch.**
+**PHASE 13 EXECUTION — STEP 4 IN PROGRESS: enable the production Resend webhook.**
 
-Known facts:
-- pinned Worker deploy succeeded: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`
-- production health response is otherwise healthy: `status=ok`, `environment=production`, `database=bound`, Resend provider/from/key checks pass
-- health response omitted `webhookConfigured`
-- pinned source definitely includes `notifications.webhookConfigured`
-- production secret `RESEND_WEBHOOK_SECRET` was installed before deploy
-- production webhook remains disabled
+Verified production state:
+- Worker version `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`: deployed
+- production D1 migrations `0000–0008`: complete
+- `RESEND_WEBHOOK_SECRET`: present
+- custom-domain health: PASS with `webhookConfigured=true`
+- Workers.dev health: PASS with `webhookConfigured=true`
+- Admin page: reachable on both endpoints
+- production webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0`
+- production webhook status: disabled
 
 Current step:
-1. verify the secret still exists after deploy,
-2. inspect current Worker deployment/version,
-3. inspect production custom-domain/routes for `api.theblacksheepshop.co.uk`,
-4. compare custom-domain health with the direct Workers.dev endpoint,
-5. determine whether this is secret retention or routing/propagation,
-6. update this checklist before any remediation.
+1. enable the production Resend webhook,
+2. verify its endpoint/status/event set,
+3. record the final production Worker deployment/version,
+4. verify production D1 migration level remains `0000–0008`,
+5. update checklist + session handoff with the completed release state.
 
-**Do not enable the production webhook until the health response proves `webhookConfigured=true`.**
+**No further code or database mutation is planned after webhook enable unless verification finds a defect.**
