@@ -229,8 +229,10 @@ Evidence:
 - [x] Reservation foundation invariant script added and wired into Commerce CI.
 - [x] Staging-only `0011` release gate — workflow `36188861211` SUCCESS.
 - [x] Direct Cloudflare D1 verification — latest migration `0011_order_reservations.sql`; 0 reservations; 0 reservation items; existing Inventory Core state preserved.
-- [~] Reviewed quote reservation — Product resolution, aggregate availability planning and atomic guarded hold builder implemented; revision Send integration active.
+- [~] Reviewed quote reservation — Product resolution, aggregate availability planning, atomic guarded hold builder and reservation-aware revision transition path implemented; transition CI pending.
 - [x] Reservation planning/builder tests — Commerce CI `36189521854` SUCCESS.
+- [x] Supersede overlap correction — replacement reservation rebases Available + balance version after releasing the old hold.
+- [~] Review-token expiry alignment — source + tests added; CI pending.
 - [ ] Reservation release.
 - [ ] Reservation expiry policy.
 - [ ] Payment transition.
@@ -308,18 +310,16 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 5 — integrate reservation into reviewed revision Send
+## Phase 5 — customer decline/release safety
 
-Reservation planning and guarded hold construction now pass CI.
+Before enabling reservation-aware Send in any Worker:
 
-Current sub-step:
-1. Lock the DRAFT revision by expected revision version/mutation token.
-2. Build the live reservation plan from the exact reviewed lines.
-3. Reject insufficient tracked inventory before Send.
-4. Append guarded balance holds + reservation group/items + `ORDER_RESERVATION` movements into the same D1 batch as revision Send.
-5. Stamp revision expiry to the reservation expiry.
-6. Preserve all-untracked orders with current behaviour.
-7. Do not deploy this Send integration until release/supersede safety is in place or the workflow explicitly proves it cannot strand a hold.
-8. Add regression tests for SQL/batch ownership and concurrency guards.
+1. Keep reservation mode opt-in and OFF by default.
+2. Make customer-review **Decline** release an ACTIVE reservation atomically.
+3. Preserve Production compatibility when reservation mode is OFF; Production does not have `0011`.
+4. Attribute customer-triggered release movements correctly.
+5. Ensure a failed/concurrent release rolls back the decline transition.
+6. Add tests for customer decline with and without reservation mode.
+7. Then implement lazy expiry release before availability-sensitive operations.
 
-Production and Phase 6 remain locked.
+Current source is still dormant: no Worker has reservation mode enabled.
