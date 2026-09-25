@@ -103,12 +103,14 @@ interface VariantInventoryRow {
   lowStockThreshold: number | null;
   variantVersion: number;
   variantUpdatedAt: string;
+  variantMutationToken: string | null;
   publicationStatus: string;
   sellStatus: string;
   onHand: number | null;
   reserved: number | null;
   safetyStock: number | null;
   balanceVersion: number | null;
+  balanceMutationToken: string | null;
   balanceUpdatedAt: string | null;
   incoming: number;
 }
@@ -124,10 +126,11 @@ async function variantInventoryRow(
         "SELECT v.id AS variantId, v.product_id AS productId,",
         "pv.title, v.sku, v.track_inventory AS trackInventory,",
         "v.low_stock_threshold AS lowStockThreshold, v.version AS variantVersion,",
-        "v.updated_at AS variantUpdatedAt, p.publication_status AS publicationStatus,",
+        "v.updated_at AS variantUpdatedAt, v.inventory_mutation_token AS variantMutationToken,",
+        "p.publication_status AS publicationStatus,",
         "p.sell_status AS sellStatus, b.on_hand AS onHand, b.reserved,",
         "b.safety_stock AS safetyStock, b.version AS balanceVersion,",
-        "b.updated_at AS balanceUpdatedAt,",
+        "b.mutation_token AS balanceMutationToken, b.updated_at AS balanceUpdatedAt,",
         "COALESCE((",
         "SELECT SUM(ii.expected_quantity - ii.received_quantity)",
         "FROM inventory_incoming ii",
@@ -516,6 +519,7 @@ export async function initialInventoryCount(
   }
 
   const timestamp = now();
+  const mutationToken = uid("imut");
   const movementId = uid("imv");
   const nextVariantVersion = Number(row.variantVersion) + 1;
 
@@ -525,28 +529,30 @@ export async function initialInventoryCount(
         .prepare(
           q(
             "UPDATE product_variants",
-            "SET track_inventory = 1, version = version + 1, updated_at = ?",
+            "SET track_inventory = 1, version = version + 1,",
+            "inventory_mutation_token = ?, updated_at = ?",
             "WHERE id = ? AND track_inventory = 0 AND version = ?",
           ),
         )
-        .bind(timestamp, variantId, row.variantVersion),
+        .bind(mutationToken, timestamp, variantId, row.variantVersion),
       db
         .prepare(
           q(
             "INSERT INTO inventory_balances (",
-            "variant_id, location_id, on_hand, reserved, safety_stock, version, updated_at",
-            ") SELECT ?, ?, ?, 0, 0, 1, ?",
-            "FROM product_variants WHERE id = ? AND version = ? AND updated_at = ?",
+            "variant_id, location_id, on_hand, reserved, safety_stock, version, mutation_token, updated_at",
+            ") SELECT ?, ?, ?, 0, 0, 1, ?, ?",
+            "FROM product_variants WHERE id = ? AND version = ? AND inventory_mutation_token = ?",
           ),
         )
         .bind(
           variantId,
           locationId,
           quantity,
+          mutationToken,
           timestamp,
           variantId,
           nextVariantVersion,
-          timestamp,
+          mutationToken,
         ),
       db
         .prepare(
@@ -559,7 +565,7 @@ export async function initialInventoryCount(
             ") SELECT ?, ?, ?, 'INITIAL_COUNT', ?, 0, 0, 'INITIAL_COUNT', ?,",
             "NULL, NULL, NULL, NULL, ?, ?, 'ADMIN', ?, ?, ?, 0, 0",
             "FROM inventory_balances b",
-            "WHERE b.variant_id = ? AND b.location_id = ? AND b.version = 1 AND b.updated_at = ?",
+            "WHERE b.variant_id = ? AND b.location_id = ? AND b.version = 1 AND b.mutation_token = ?",
           ),
         )
         .bind(
@@ -575,12 +581,16 @@ export async function initialInventoryCount(
           quantity,
           variantId,
           locationId,
-          timestamp,
+          mutationToken,
         ),
     ]);
   } catch (cause) {
     const replay = await movementByKey(db, key);
     if (replay) return replaySnapshot(db, replay);
+    const current = await variantInventoryRow(db, variantId, locationId);
+    if (current && Number(current.trackInventory) === 1) {
+      throw new Error("inventory_already_tracked");
+    }
     throw cause;
   }
 
@@ -589,7 +599,8 @@ export async function initialInventoryCount(
     !verified ||
     Number(verified.trackInventory) !== 1 ||
     Number(verified.balanceVersion) !== 1 ||
-    verified.balanceUpdatedAt !== timestamp
+    verified.variantMutationToken !== mutationToken ||
+    verified.balanceMutationToken !== mutationToken
   ) {
     throw new Error("inventory_concurrency_conflict");
   }
@@ -692,6 +703,7 @@ export async function adjustInventory(
   if (nextOnHand < 0) throw new Error("inventory_negative_on_hand");
 
   const timestamp = now();
+  const mutationToken = uid("imut");
   const movementId = uid("imv");
   const nextBalanceVersion = expectedBalanceVersion + 1;
 
@@ -701,12 +713,13 @@ export async function adjustInventory(
         .prepare(
           q(
             "UPDATE inventory_balances",
-            "SET on_hand = ?, version = version + 1, updated_at = ?",
+            "SET on_hand = ?, version = version + 1, mutation_token = ?, updated_at = ?",
             "WHERE variant_id = ? AND location_id = ? AND version = ?",
           ),
         )
         .bind(
           nextOnHand,
+          mutationToken,
           timestamp,
           variantId,
           locationId,
@@ -723,7 +736,7 @@ export async function adjustInventory(
             ") SELECT ?, ?, ?, ?, ?, 0, 0, ?, ?, NULL, NULL, NULL, NULL, ?, ?,",
             "'ADMIN', ?, ?, b.on_hand, b.reserved, b.safety_stock",
             "FROM inventory_balances b",
-            "WHERE b.variant_id = ? AND b.location_id = ? AND b.version = ? AND b.updated_at = ?",
+            "WHERE b.variant_id = ? AND b.location_id = ? AND b.version = ? AND b.mutation_token = ?",
           ),
         )
         .bind(
@@ -741,7 +754,7 @@ export async function adjustInventory(
           variantId,
           locationId,
           nextBalanceVersion,
-          timestamp,
+          mutationToken,
         ),
     ]);
   } catch (cause) {
@@ -754,7 +767,7 @@ export async function adjustInventory(
   if (
     !verified ||
     Number(verified.balanceVersion) !== nextBalanceVersion ||
-    verified.balanceUpdatedAt !== timestamp
+    verified.balanceMutationToken !== mutationToken
   ) {
     throw new Error("inventory_balance_version_conflict");
   }
@@ -823,6 +836,7 @@ export async function physicalInventoryCount(
   const currentSafety = Number(row.safetyStock ?? 0);
   const delta = countedOnHand - currentOnHand;
   const timestamp = now();
+  const mutationToken = uid("imut");
   const movementId = uid("imv");
   const nextBalanceVersion = expectedBalanceVersion + 1;
 
@@ -832,12 +846,13 @@ export async function physicalInventoryCount(
         .prepare(
           q(
             "UPDATE inventory_balances",
-            "SET on_hand = ?, version = version + 1, updated_at = ?",
+            "SET on_hand = ?, version = version + 1, mutation_token = ?, updated_at = ?",
             "WHERE variant_id = ? AND location_id = ? AND version = ?",
           ),
         )
         .bind(
           countedOnHand,
+          mutationToken,
           timestamp,
           variantId,
           locationId,
@@ -854,7 +869,7 @@ export async function physicalInventoryCount(
             ") SELECT ?, ?, ?, 'CORRECTION', ?, 0, 0, 'PHYSICAL_COUNT', ?,",
             "NULL, NULL, NULL, NULL, ?, ?, 'ADMIN', ?, ?, b.on_hand, b.reserved, b.safety_stock",
             "FROM inventory_balances b",
-            "WHERE b.variant_id = ? AND b.location_id = ? AND b.version = ? AND b.updated_at = ?",
+            "WHERE b.variant_id = ? AND b.location_id = ? AND b.version = ? AND b.mutation_token = ?",
           ),
         )
         .bind(
@@ -870,7 +885,7 @@ export async function physicalInventoryCount(
           variantId,
           locationId,
           nextBalanceVersion,
-          timestamp,
+          mutationToken,
         ),
     ]);
   } catch (cause) {
@@ -883,7 +898,7 @@ export async function physicalInventoryCount(
   if (
     !verified ||
     Number(verified.balanceVersion) !== nextBalanceVersion ||
-    verified.balanceUpdatedAt !== timestamp
+    verified.balanceMutationToken !== mutationToken
   ) {
     throw new Error("inventory_balance_version_conflict");
   }
