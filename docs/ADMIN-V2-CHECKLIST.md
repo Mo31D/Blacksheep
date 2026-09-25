@@ -590,20 +590,20 @@ Status: **READY — all staging exit gates are closed. Production release has no
 
 - [x] Phase 13 source-equivalence check: `8c5462388648235acd3a41b853d1adee057a11a7...main` contains only docs, one staging E2E script and one staging-only workflow. No runtime source, migration or production config changed after the verified staging deployment.
 
+- [x] Production release source SHA pinned: `8c5462388648235acd3a41b853d1adee057a11a7`. Later `main` commits are non-runtime docs/tests/staging-workflow only.
+
 # EXACT NEXT ACTION
 
-**PHASE 13 PRE-FLIGHT — STEP 2 IN PROGRESS: pin the production release source SHA.**
+**PHASE 13 PRE-FLIGHT — STEP 3 IN PROGRESS: capture production recovery/current state.**
 
-Step 1 result:
-- verified staging deployment source: `8c5462388648235acd3a41b853d1adee057a11a7`
-- current `main` is ahead only by docs/test/staging-workflow files
-- runtime source equivalence: PASS
-- migration equivalence: PASS
-- production config equivalence: PASS
+Pinned release source:
+- `8c5462388648235acd3a41b853d1adee057a11a7`
 
 Current step:
-1. pin `8c5462388648235acd3a41b853d1adee057a11a7` as the production release source SHA,
-2. record that later `main` commits are non-runtime only,
-3. update this checklist before reading production recovery/current-state data.
+1. read current production Worker deployment/version state,
+2. read production D1 migration level,
+3. discover and capture a D1 recovery/bookmark/time-travel point if supported,
+4. record production database identity and current state,
+5. update this checklist before reviewing migrations `0003–0008`.
 
-**No production mutation.**
+**Read-only only. No production migration, deploy, secret or data mutation.**
