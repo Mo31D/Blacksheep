@@ -567,24 +567,27 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Generate one webhook event through the staging Worker, not direct Resend send-email.**
+**STEP IN PROGRESS — Build a single-message staging generator for webhook verification.**
 
-Reason:
-- the Resend connector requires explicit user confirmation for the `From` address before direct sending,
-- the staging Worker already has the verified sender configuration and Resend API key,
-- generating the notification through the Worker better matches the real production path.
+Completed inspection:
+- webhook route verifies Svix signature and requires `email_id`,
+- `applyResendDeliveryEvent` persists `email_webhook_events`,
+- matching `order_messages.provider_message_id` is updated to delivery status,
+- matching order receives `EMAIL_<STATUS>` audit events,
+- duplicate webhook events are ignored by `webhook_event_id`,
+- Admin `mark_paid` sends exactly one Payment received transactional email.
 
 Current step:
-1. inspect the current staging webhook handler and notification route/data persistence,
-2. build a minimal staging-only synthetic order/action that emits exactly one transactional email,
-3. run it against staging,
-4. wait for the corresponding signed webhook event,
+1. create a staging-only synthetic order/session,
+2. call Admin `mark_paid` once to send one email,
+3. preserve the synthetic row long enough for webhook delivery verification,
+4. record the provider message ID and wait for a signed webhook event,
 5. update this checklist before replay/idempotency verification.
 
 Safety:
 - staging Worker/D1 only,
-- no production mutation,
-- synthetic test order only,
-- one transactional message target.
+- one synthetic order,
+- one transactional email,
+- no production mutation.
 
-**Do not replay until the first real webhook delivery is confirmed.**
+**Do not replay or clean the synthetic row until the first signed webhook delivery is verified.**
