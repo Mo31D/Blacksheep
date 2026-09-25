@@ -45,6 +45,7 @@ class RevisionDb implements D1DatabaseLike {
     if (query.includes("FROM orders") && query.includes("public_reference")) {
       firstValue = {
         id: "order-1",
+        status: "UNDER_REVIEW",
         currency: "GBP",
         fulfilmentMethod: "collection",
         deliveryAmountMinor: null,
