@@ -32,6 +32,7 @@ describe("commerce worker", () => {
         provider: "unconfigured",
         fromConfigured: false,
         ownerConfigured: false,
+        webhookConfigured: false,
         keyFormatValid: false,
         keyWhitespaceNormalized: false,
       },
