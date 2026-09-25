@@ -581,21 +581,21 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 - [x] Pre-replay staging D1 baseline for `msg_3JpG91ewU6zzT5jBiqLe8YvqRvL`: `email_webhook_events=1`, `EMAIL_DELIVERED=1`, message status `DELIVERED`.
 
+- [x] Replay attempt for `msg_3JpG91ewU6zzT5jBiqLe8YvqRvL`: HTTP 200, response `{"ok":true,"duplicate":true,"tracked":false,"status":"DELIVERED"}`.
+
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Replay the exact delivered webhook event once.**
+**STEP IN PROGRESS — Verify post-replay idempotency in staging D1.**
 
-Pre-replay baseline:
-- webhook event row count: 1
-- `EMAIL_DELIVERED` order-event count: 1
-- message delivery status: `DELIVERED`
-- original endpoint response: `duplicate=false`
+Replay evidence:
+- original attempt: HTTP 200, `duplicate=false`, `tracked=true`
+- replay attempt: HTTP 200, `duplicate=true`, `tracked=false`
 
 Current step:
-1. replay `msg_3JpG91ewU6zzT5jBiqLe8YvqRvL` exactly once,
-2. inspect the new delivery attempt,
-3. require HTTP 200 and `duplicate=true`,
-4. then re-query staging D1 and confirm protected counts remain unchanged,
-5. update this checklist before cleanup.
+1. re-query the staging D1 baseline rows,
+2. require `email_webhook_events` count to remain 1,
+3. require `EMAIL_DELIVERED` order-event count to remain 1,
+4. require message delivery status to remain `DELIVERED`,
+5. update this checklist before cleaning synthetic staging data.
 
-**No production mutation.**
+**No cleanup or production mutation before this verification passes.**
