@@ -139,7 +139,8 @@ jobs:
             health.environment !== "staging" ||
             health.database !== "bound" ||
             health.features?.orderReservations !== true ||
-            health.features?.publicCatalog !== true
+            health.features?.publicCatalog !== true ||
+            health.features?.publicCatalogContract !== "d1-published-v1"
           ) {
             process.exit(1);
           }
@@ -199,6 +200,23 @@ jobs:
             purchasable: products.filter((p) => p.purchasable).length,
             tracked: products.filter((p) => p.inventory?.tracked).length,
           });
+          NODE
+
+      - name: Verify public catalogue semantic contract before parity
+        shell: bash
+        run: |
+          PRODUCT="$(curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-all-errors --max-time 30 https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/v1/catalog/ICE-WEB-001)"
+          echo "$PRODUCT"
+          node - "$PRODUCT" <<'NODE'
+          const payload = JSON.parse(process.argv[2]);
+          if (
+            payload.product?.id !== "ICE-WEB-001" ||
+            payload.product?.nonPurchasableReason !== "price_unavailable"
+          ) {
+            console.error("Phase 6 semantic propagation gate failed.", payload);
+            process.exit(1);
+          }
+          console.log("Phase 6 semantic propagation gate passed.");
           NODE
 
       - name: Verify generated-static versus D1 public catalogue parity
