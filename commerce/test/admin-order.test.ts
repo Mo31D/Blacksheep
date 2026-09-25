@@ -27,6 +27,15 @@ describe("admin order state machine", () => {
     expect(action.deliveryAmountMinor).toBe(495);
   });
 
+  it("does not allow a legacy quote to overwrite an active reviewed revision", () => {
+    expect(() =>
+      validateAdminOrderAction(
+        { ...deliveryOrder, activeRevisionId: "rev-1" },
+        { action: "quote", deliveryAmountMinor: 495 },
+      ),
+    ).toThrow("admin_quote_revision_active");
+  });
+
   it("requires zero delivery for collection quotes", () => {
     expect(() =>
       validateAdminOrderAction(
