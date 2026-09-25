@@ -768,6 +768,38 @@ export async function transitionOrderRevision(
 
   const revision = await findRevision(db, orderReference, revisionId);
   if (!revision) throw new Error("revision_not_found");
+
+  if (
+    action === "send" &&
+    revision.state === "SENT" &&
+    (revision.version === expectedVersion ||
+      revision.version === expectedVersion + 1)
+  ) {
+    if (options.inventoryReservations) {
+      const existingReservation = await db
+        .prepare(
+          `SELECT id
+          FROM inventory_reservations
+          WHERE revision_id = ?
+            AND state IN ('ACTIVE','COMMITTED','CONSUMED')
+          LIMIT 1`,
+        )
+        .bind(revisionId)
+        .first<{ id: string }>();
+      if (!existingReservation) {
+        throw new Error("revision_send_requires_draft");
+      }
+    }
+
+    const replay = await getOrderRevisionDetail(
+      db,
+      orderReference,
+      revisionId,
+    );
+    if (!replay) throw new Error("revision_not_found");
+    return { ...replay, idempotentReplay: true };
+  }
+
   if (revision.version !== expectedVersion) throw new Error("revision_version_conflict");
 
   const expectedState = action === "send" ? "DRAFT" : "SENT";
