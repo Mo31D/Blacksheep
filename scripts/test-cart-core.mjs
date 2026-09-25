@@ -128,7 +128,7 @@ assert.match(checkoutHtml,/name="fulfilmentMethod" value="delivery"/);
 assert.match(checkoutHtml,/name="fulfilmentMethod" value="collection"/);
 assert.match(checkoutHtml,/id="checkoutReviewStep"/);
 assert.match(checkoutHtml,/id="checkoutTurnstile"/);
-assert.match(checkoutHtml,/0x4AAAAAAFChkRt-LzNQw9bK/);
+assert.match(checkoutHtml,/0x4AAAAAAFCyMDurtExV8uI0/);
 assert.match(checkoutHtml,/data-order-submit-ready="(?:true|false)"/);
 assert.match(checkoutHtml,/name="robots" content="noindex,follow"/);
 console.log("Checkout page contract checks passed.");
