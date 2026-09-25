@@ -6,36 +6,40 @@
 >
 > **Live execution tracker:** `docs/ADMIN-V2-CHECKLIST.md`.
 >
-> Current verified state:
-> - GitHub `main`: `59c632a601f165871ae273422c1b735f2748e8cc`.
-> - All staging exit gates: CLOSED.
-> - Phase 13 production pre-flight: COMPLETE / GO.
-> - Pinned production release source SHA: `8c5462388648235acd3a41b853d1adee057a11a7`.
-> - Source-equivalence check: later `main` commits after the pinned SHA are docs/tests/staging-workflow only; no runtime/migration/production-config change.
-> - Staging Worker Version ID: `e84f43fc-c9bc-4f8d-a259-f8d8646f5df7`.
-> - Staging D1: migrations `0000–0008`.
-> - Admin V2 core + edge E2E: PASS.
-> - Admin desktop Chromium + mobile WebKit QA: PASS.
-> - Real production Delivery/Turnstile lifecycle: PASS.
-> - Resend signed webhook delivery + exact-event replay/idempotency: PASS.
-> - SPF/DKIM: verified.
-> - DMARC: configured at `p=none`.
-> - Production Worker baseline:
->   - deployment ID `f1ff4d67-bda6-4330-b4ae-961ea8d55f95`
->   - version `938f0651-20b5-48df-a8d4-f84defbb263d`
-> - Production D1 baseline:
->   - name `black-sheep-commerce-prod`
->   - ID `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
->   - region `WEUR`
->   - migrations `0000–0002`
->   - recovery bookmark `00000026-00000000-000050f1-4416edcc1a9b9a288fa8099919e4b5be`
-> - Migration review `0003–0008`: GO — additive only, no DROP/DELETE/rename/table rebuild/destructive backfill; production schema conflict check passed.
-> - Production currently contains 3 orders.
-> - Production runtime has **not** yet been migrated or redeployed.
+> **Phase 13 production release is COMPLETE and verified.**
 >
-> **EXACT NEXT ACTION:** apply production migrations `0003–0008` under the recorded recovery bookmark, verify migration/schema state, and only then deploy pinned source SHA `8c5462388648235acd3a41b853d1adee057a11a7`.
+> Final production state:
+> - Release source SHA: `8c5462388648235acd3a41b853d1adee057a11a7`
+> - Production Worker deployment: `2e629bc4-99e9-41cf-b15e-0b087ec8a33b`
+> - Production Worker version: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac` at 100%
+> - Production D1: `black-sheep-commerce-prod`
+> - Production D1 ID: `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
+> - Production migrations: `0000–0008`
+> - Existing production orders preserved: 3
+> - Production health: PASS
+> - Production Admin page: reachable
+> - `RESEND_WEBHOOK_SECRET`: installed
+> - Production Resend webhook: enabled at `https://api.theblacksheepshop.co.uk/webhooks/resend`
+> - Staging Resend webhook remains separate and enabled
+> - SPF: verified
+> - DKIM: verified
+> - DMARC: `v=DMARC1; p=none; pct=100; adkim=r; aspf=r`
+> - Recovery Time Travel bookmark captured before production mutation: `00000028-00000000-000050f1-68842c17a511b740b3b28bcc859c1042`
 >
-> **Do not restart earlier phases. Do not deploy the Worker before production migration verification succeeds.**
+> Production release sequence completed:
+> 1. pinned source equivalence verified,
+> 2. recovery point captured,
+> 3. migrations `0003–0008` applied and verified,
+> 4. production webhook created disabled,
+> 5. webhook signing secret installed,
+> 6. pinned Worker source deployed,
+> 7. health/Admin checks passed after propagation,
+> 8. production webhook enabled,
+> 9. final read-only production smoke check passed.
+>
+> **Do not repeat Phase 13 migrations or redeploy this release.**
+>
+> Next session should start from post-release operational validation / real Admin V2 use, or from a newly reviewed release if code changes are required.
 
 ---
 
