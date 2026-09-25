@@ -658,6 +658,7 @@ export interface ReservationReleaseInput {
   actorEmail: string;
   actorType?: "ADMIN" | "CUSTOMER" | "SYSTEM";
   reason: string;
+  terminalState?: "RELEASED" | "EXPIRED";
   createdAt?: string;
   externalGuard?: ReservationExternalGuard;
 }
@@ -837,6 +838,7 @@ export function prepareReservationReleaseMutation(
     "reservation_actor_required",
   );
   const actorType = input.actorType ?? "ADMIN";
+  const terminalState = input.terminalState ?? "RELEASED";
   const reason = requiredMutationText(
     input.reason,
     "reservation_release_reason_required",
@@ -922,7 +924,7 @@ export function prepareReservationReleaseMutation(
     db
       .prepare(
         `UPDATE inventory_reservations
-        SET state = 'RELEASED',
+        SET state = ?,
             released_at = ?,
             release_reason = ?,
             version = version + 1,
@@ -938,6 +940,7 @@ export function prepareReservationReleaseMutation(
           AND ${extSql}`,
       )
       .bind(
+        terminalState,
         createdAt,
         reason,
         ...balanceGuardValues,
@@ -978,7 +981,7 @@ export function prepareReservationReleaseMutation(
               SELECT 1
               FROM inventory_reservations r
               WHERE r.id = ?
-                AND r.state = 'RELEASED'
+                AND r.state = ?
                 AND r.mutation_token = ?
             )`,
         )
@@ -1003,6 +1006,7 @@ export function prepareReservationReleaseMutation(
           requirement.balanceVersion + 1,
           balanceMutationTokens[requirement.variantId],
           plan.reservationId,
+          terminalState,
           releaseMutationToken,
         ),
     );
