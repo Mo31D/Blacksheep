@@ -30,6 +30,7 @@ describe("commerce worker", () => {
       database: "bound",
       features: {
         orderReservations: false,
+        publicCatalog: false,
       },
       notifications: {
         provider: "unconfigured",
@@ -38,6 +39,21 @@ describe("commerce worker", () => {
         webhookConfigured: false,
         keyFormatValid: false,
         keyWhitespaceNormalized: false,
+      },
+    });
+  });
+
+  it("reports the public D1 catalogue only when its explicit flag is true", async () => {
+    const response = await worker.fetch(
+      new Request("https://api.example.test/health"),
+      { ...env, D1_PUBLIC_CATALOG_ENABLED: "true" },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      features: {
+        publicCatalog: true,
+        orderReservations: false,
       },
     });
   });
