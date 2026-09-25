@@ -251,6 +251,13 @@ Status: IN PROGRESS; production API/admin verified and public checkout enabled. 
 - [ ] Verify duplicate protection and API-error cart preservation.
 - [x] Verify production owner/customer order-submission notifications for `BSR-260925-REZJU5DE`.
 - [ ] Complete the controlled low-value production order lifecycle for `BSR-260925-REZJU5DE`.
+  - [x] Review started.
+  - [x] Collection quote saved with delivery £0 and final total £1.50.
+  - [x] Payment request sent; customer email received.
+  - [x] Marked paid; payment-confirmed customer email received.
+  - [x] Moved to PREPARING.
+  - [x] Moved to READY_FOR_COLLECTION.
+  - [ ] Final `Complete` action still to be confirmed.
 - [x] Search Readiness PASS for production-checkout commit `33ff084b18fabd2b211995aa7450171916784c29` (run `36081015683`).
 - [x] Commerce CI PASS for production-checkout commit `33ff084b18fabd2b211995aa7450171916784c29` (run `36081015696`).
 - [x] GitHub Pages deployment PASS for production-checkout commit `33ff084b18fabd2b211995aa7450171916784c29` (run `36081015383`).
@@ -290,7 +297,7 @@ Completed in the production setup:
 Next:
 1. Public checkout is now enabled on GitHub Pages with the production Turnstile Site Key and API base `https://api.theblacksheepshop.co.uk`.
 2. Collection submission is verified in production with order `BSR-260925-REZJU5DE`; it appeared in admin and both customer and owner notifications arrived.
-3. Continue that order through quote/payment/preparing/ready/completed. For collection, delivery must remain £0. A payment request also requires a real order-specific HTTPS payment URL plus a delivery/collection timing message.
+3. Production collection lifecycle is verified through `READY_FOR_COLLECTION` for `BSR-260925-REZJU5DE`, including payment-request and payment-confirmed customer emails. Press `Complete` once and verify the final `ORDER_COMPLETED` event.
 4. Then run a separate delivery test and a desktop checkout test.
 5. Verify duplicate protection by retrying the same submission path without creating a duplicate order, and verify an API/network failure preserves the basket.
 6. After those live checks pass, mark Phase 14 complete and update the session handoff with final production resources.
