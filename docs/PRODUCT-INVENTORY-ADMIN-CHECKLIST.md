@@ -53,29 +53,47 @@ Exact Phase 1 start:
 
 # PHASE 1 — PRODUCT CORE / READ ONLY
 
-- [ ] Add D1 product core migrations.
-- [ ] Add categories.
-- [ ] Add default variants.
-- [ ] Add product audit foundation.
-- [ ] Build deterministic legacy catalogue importer.
-- [ ] Import all current products into staging.
-- [ ] Prove ID/slug/SKU uniqueness.
-- [ ] Build D1-vs-current-catalogue parity verifier.
-- [ ] Add Admin product-list API.
-- [ ] Add Admin product-detail API.
-- [ ] Add read-only Products workspace.
-- [ ] Add search/filter.
-- [ ] Mobile QA.
-- [ ] No storefront behaviour changes.
+- [x] Add D1 Product Core migration `0009_product_inventory_foundation.sql`.
+- [x] Add normalized categories.
+- [x] Add one deterministic default variant for each current product.
+- [x] Add Product audit foundation.
+- [x] Build deterministic legacy catalogue importer.
+- [x] Guard importer to staging + frozen catalogue blob.
+- [x] Import all 146 current products into staging D1.
+- [x] Prove ID / slug / populated SKU / populated barcode uniqueness.
+- [x] Build D1-vs-frozen-catalogue parity verifier.
+- [x] Achieve staging parity: **PASS, 0 mismatches**.
+- [x] Add authenticated Admin product-list API.
+- [x] Add authenticated Admin product-detail API.
+- [x] Keep Product POST/PATCH write routes absent.
+- [x] Add premium read-only Products workspace.
+- [x] Add product search, quality filters and sorting.
+- [x] Add responsive Product detail behaviour and generated-script regression coverage.
+- [x] Deploy Product Core/Admin to **staging only**.
+- [x] Verify staging Worker health and Admin sign-in shell.
+- [x] Preserve storefront/checkout authority; no public commerce cutover.
+- [x] Verify Production D1 remains at `0000–0008` and order count remains 3.
+- [~] Manual visual QA of the new authenticated Products workspace on iPhone Safari + desktop.
 
-Exit gate:
-- every current product represented,
-- no price/status loss,
-- Admin read-only output matches current source.
+Technical exit gate:
+- every current product represented: **PASS**
+- no price/status/category/media loss: **PASS**
+- staging parity verifier: **PASS**
+- Admin read-only data path: **PASS**
+- Production untouched: **PASS**
+- owner visual sign-off of new Products view: **PENDING**
+
+Evidence:
+- workflow run `36169256499`
+- job `108184497969`
+- parity artifact `10879232734`
+- `docs/PRODUCT-CORE-STAGING-PARITY-2026-09-25.md`
+
+**Status: TECHNICALLY COMPLETE; manual visual sign-off remains before Phase 2 write access.**
 
 ---
 
-# PHASE 2 — PRODUCT EDITING
+# PHASE 2 — PRODUCT EDITING# PHASE 2 — PRODUCT EDITING
 
 - [ ] Add product.
 - [ ] Edit product basics.
@@ -215,15 +233,18 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-Begin **PHASE 1 — PRODUCT CORE / READ ONLY**.
+Complete the **manual visual sign-off** of the new staging Products workspace on iPhone Safari and desktop.
 
-Do not start Product write access or inventory quantity mutation yet.
+Staging Admin:
+`https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/admin#products`
 
-Sequence:
-1. create additive Product Core D1 migration,
-2. build deterministic importer against frozen catalogue blob b382d8e161f165f7291da34b1cb23bef06c2742d,
-3. import to staging only,
-4. produce parity report,
-5. build read-only Product APIs and Products workspace,
-6. verify iPhone + desktop,
-7. keep public storefront/checkout on current authority until parity/cutover is explicitly approved.
+Verify:
+1. Products navigation and metrics,
+2. search/filter/sort,
+3. product images,
+4. split-view product detail on desktop,
+5. full-screen product detail/back behaviour on iPhone,
+6. no horizontal overflow,
+7. clear Read-only / Untracked / Out of stock / Arriving / data-warning states.
+
+After owner sign-off, begin **PHASE 2 — PRODUCT EDITING**. Do not apply Product Core migration to Production merely for visual QA.

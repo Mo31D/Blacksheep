@@ -2,7 +2,7 @@
 
 **Date:** 25 September 2026  
 **Repository:** `Mo31D/Blacksheep`  
-**Status:** PLANNING APPROVED IN PRINCIPLE — implementation not started  
+**Status:** PHASE 1 STAGING READ-ONLY IMPLEMENTED — visual sign-off pending  
 **Purpose:** Define the next major platform phase before changing production product/inventory architecture.
 
 ---
@@ -27,6 +27,29 @@ Key lock:
 - price/status/inventory are immediate audited operations.
 - reviewed-order reservations are created when the reviewed version is sent.
 - no Product/Inventory production migration has been created or applied.
+
+## Phase 1 staging implementation — 25 September 2026
+
+The Product Core / Read Only implementation is now live on **staging** and has passed deterministic parity.
+
+Verified:
+- `0009_product_inventory_foundation.sql` applied to staging only.
+- 146 products / 146 default variants imported.
+- 22 categories.
+- 136 mapped media records.
+- 499 structured product attributes.
+- 146 legacy provenance records + 86 official provenance records.
+- 4 explicit Out of stock + 14 Arriving soon preserved.
+- 14 missing prices + 14 missing images preserved rather than invented.
+- inventory tracked count = 0.
+- parity result = **PASS / 0 mismatches**.
+- staging Product Admin read-only list/detail/search/filter deployed.
+- no Product write route exists.
+- Production D1 remains `0000–0008` with 3 existing orders.
+
+Evidence: [Product Core staging parity report](./PRODUCT-CORE-STAGING-PARITY-2026-09-25.md).
+
+Remaining Phase 1 gate: manual visual inspection of the authenticated staging Products workspace on iPhone + desktop before Phase 2 write access.
 
 ## 1. Product vision
 
