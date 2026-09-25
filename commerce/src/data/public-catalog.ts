@@ -253,6 +253,39 @@ export async function listPublicCommerceProducts(
   };
 }
 
+export async function getPublicCommerceProductsByIds(
+  db: D1DatabaseLike,
+  publicIds: readonly string[],
+): Promise<PublicCommerceProduct[]> {
+  const ids = [...new Set(
+    publicIds
+      .map((value) => String(value ?? "").trim())
+      .filter(Boolean),
+  )];
+
+  if (!ids.length) return [];
+  if (ids.length > 99) {
+    throw new Error("catalog_product_batch_too_large");
+  }
+
+  const placeholders = ids.map(() => "?").join(",");
+  const rows = await allRows<PublicCommerceRow>(
+    db
+      .prepare(
+        PUBLIC_PRODUCT_SELECT +
+          ` WHERE p.publication_status = 'ACTIVE'
+            AND p.current_published_version_id IS NOT NULL
+            AND (
+              p.legacy_catalog_id IN (${placeholders})
+              OR p.id IN (${placeholders})
+            )`,
+      )
+      .bind(...ids, ...ids),
+  );
+
+  return rows.map(toPublicCommerceProduct);
+}
+
 export async function getPublicCommerceProduct(
   db: D1DatabaseLike,
   publicId: string,
