@@ -571,22 +571,20 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Trigger and observe the single-message staging webhook E2E.**
+**STEP IN PROGRESS — Close Point 2: real Delivery order verification.**
 
-Pre-step state:
-- generator script exists,
-- staging-only workflow exists,
-- staging webhook is ENABLED,
-- staging health reports `webhookConfigured=true`,
-- production remains unchanged.
+Evidence supplied by the user:
+- public checkout completed on a real device,
+- order reference: `BSR-260925-2X63954D`,
+- customer acknowledgement email received,
+- checkout confirmation shows `Method: Delivery`,
+- Admin view shows delivery address, £10.00 delivery charge and £54.90 final total.
 
 Current step:
-1. trigger the workflow,
-2. verify the synthetic order reaches `READY_FOR_COLLECTION`,
-3. verify exactly one outbound Resend message is audited,
-4. wait for signed webhook delivery,
-5. require `order_messages.delivery_status=DELIVERED`,
-6. capture the delivered webhook event ID,
-7. update this checklist before replaying that event.
+1. query production D1 **read-only** for this reference,
+2. confirm `fulfilment_method='delivery'`,
+3. confirm the order exists in the real production lifecycle,
+4. record its current status/payment state,
+5. mark the Delivery release gate complete if the evidence matches.
 
-**Do not clean the synthetic row before replay/idempotency verification.**
+**No production mutation is authorized in this step.**
