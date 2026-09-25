@@ -133,7 +133,7 @@ Evidence:
 
 - [x] Provision media storage — isolated staging bucket `black-sheep-product-media-staging` created in WEUR / Standard.
 - [x] Staging-only R2 binding declared as `PRODUCT_MEDIA` / `black-sheep-product-media-staging`.
-- [~] Verify staging-only `PRODUCT_MEDIA` binding and release gate before deploy.
+- [x] Verify staging-only `PRODUCT_MEDIA` binding: source config points only staging to `black-sheep-product-media-staging`.
 - [x] Secure authenticated multipart upload route implemented.
 - [x] 8 MB upload limit.
 - [x] JPEG / PNG / WebP allow-list.
@@ -156,7 +156,7 @@ Evidence:
 - [x] Immutable media-delivery route tests.
 - [x] Full Commerce CI: **PASS** — latest run `36176490850` after Replace + coexistence hardening.
 - [x] Dedicated `Product Media Staging Phase 3` deployment workflow with R2 existence gate.
-- [ ] Deploy Product Media to staging — blocked until R2 is enabled and the staging bucket can be created.
+- [~] Deploy Product Media to staging — R2 enabled and bucket created; gated Phase 3 release starting now.
 - [!] iPhone photo upload QA — blocked until the same R2 activation.
 - [x] Legacy-image coexistence — regression test verifies `LEGACY_REPO` + `R2` in one Draft gallery; live real-R2 E2E remains blocked.
 
