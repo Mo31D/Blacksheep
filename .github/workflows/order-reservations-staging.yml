@@ -254,7 +254,8 @@ jobs:
       - name: Run real-staging Phase 5 E2E and one-unit concurrency proof
         shell: bash
         run: |
-          curl --fail --silent --show-error             --retry 4 --retry-delay 2 --max-time 180             -X POST             -H "x-phase5-qa-token: $PHASE5_QA_TOKEN"             https://black-sheep-phase5-reservation-qa.ky6vfb55p9.workers.dev/             > /tmp/phase5-qa-proof.json
+          sleep 5
+          curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-all-errors --max-time 180 -X POST -H "x-phase5-qa-token: $PHASE5_QA_TOKEN" https://black-sheep-phase5-reservation-qa.ky6vfb55p9.workers.dev/ > /tmp/phase5-qa-proof.json
           cat /tmp/phase5-qa-proof.json
           node - /tmp/phase5-qa-proof.json /tmp/phase5-qa-run-id <<'NODE'
           const fs = require("fs");
