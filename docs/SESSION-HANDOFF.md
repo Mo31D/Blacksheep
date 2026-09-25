@@ -7,38 +7,35 @@
 > **Live execution tracker:** `docs/ADMIN-V2-CHECKLIST.md`.
 >
 > Current verified state:
-> - Current GitHub `main`: `5acdf0f5bfa7467e2f22539c599e0b3f34f31dd4`.
-> - Commerce CI baseline on the fixed Admin source: **PASS — 106/106 tests**.
+> - GitHub `main`: `59c632a601f165871ae273422c1b735f2748e8cc`.
+> - All staging exit gates: CLOSED.
+> - Phase 13 production pre-flight: COMPLETE / GO.
+> - Pinned production release source SHA: `8c5462388648235acd3a41b853d1adee057a11a7`.
+> - Source-equivalence check: later `main` commits after the pinned SHA are docs/tests/staging-workflow only; no runtime/migration/production-config change.
 > - Staging Worker Version ID: `e84f43fc-c9bc-4f8d-a259-f8d8646f5df7`.
-> - Staging D1: migrations `0000_initial_orders.sql` through `0008_concurrency_guards.sql`.
-> - Core Admin V2 staging E2E: PASS.
-> - Customer-review decline/superseded/current-token/cross-order edge E2E: PASS.
-> - Checkout browser regression: PASS for delivery review UI, CORS, real staging idempotent replay and network-failure basket preservation.
-> - Admin UI browser QA: PASS on Chromium desktop + WebKit mobile, including order list/detail, revision controls, adjustment controls and responsive layout.
-> - Real production Delivery/Turnstile path: PASS using order `BSR-260925-2X63954D`; D1 verified `delivery / PAID / COMPLETED`.
-> - Resend transactional delivery: provider-confirmed delivered.
-> - Staging `RESEND_WEBHOOK_SECRET`: present.
-> - Staging Resend webhook: enabled.
-> - Staging `/health`: `notifications.webhookConfigured=true`.
-> - Signed webhook delivery event `msg_3JpG91ewU6zzT5jBiqLe8YvqRvL`: original attempt HTTP 200 with `duplicate=false`.
-> - Exact-event replay: HTTP 200 with `duplicate=true`, `tracked=false`.
-> - Post-replay D1 verification: one webhook persistence row and one `EMAIL_DELIVERED` audit row only; no duplicate rows were created.
-> - Synthetic staging webhook test data: cleaned and verified absent.
-> - SPF: verified.
-> - DKIM: verified.
-> - DMARC: configured at `_dmarc.theblacksheepshop.co.uk` with `v=DMARC1; p=none; pct=100; adkim=r; aspf=r`.
-> - Production remains intentionally unchanged: Worker `938f0651-20b5-48df-a8d4-f84defbb263d`; production D1 remains through `0002_order_fulfilment_message.sql`.
+> - Staging D1: migrations `0000–0008`.
+> - Admin V2 core + edge E2E: PASS.
+> - Admin desktop Chromium + mobile WebKit QA: PASS.
+> - Real production Delivery/Turnstile lifecycle: PASS.
+> - Resend signed webhook delivery + exact-event replay/idempotency: PASS.
+> - SPF/DKIM: verified.
+> - DMARC: configured at `p=none`.
+> - Production Worker baseline:
+>   - deployment ID `f1ff4d67-bda6-4330-b4ae-961ea8d55f95`
+>   - version `938f0651-20b5-48df-a8d4-f84defbb263d`
+> - Production D1 baseline:
+>   - name `black-sheep-commerce-prod`
+>   - ID `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
+>   - region `WEUR`
+>   - migrations `0000–0002`
+>   - recovery bookmark `00000026-00000000-000050f1-4416edcc1a9b9a288fa8099919e4b5be`
+> - Migration review `0003–0008`: GO — additive only, no DROP/DELETE/rename/table rebuild/destructive backfill; production schema conflict check passed.
+> - Production currently contains 3 orders.
+> - Production runtime has **not** yet been migrated or redeployed.
 >
-> **All pre-production/staging exit gates are closed. Phase 13 — Guarded Production Release is READY but has not started.**
+> **EXACT NEXT ACTION:** apply production migrations `0003–0008` under the recorded recovery bookmark, verify migration/schema state, and only then deploy pinned source SHA `8c5462388648235acd3a41b853d1adee057a11a7`.
 >
-> Next session must begin with Phase 13 pre-flight only:
-> 1. compare current `main` with the source that produced the verified staging Worker and confirm later changes are docs/tests/workflows only,
-> 2. pin the exact production release source SHA,
-> 3. record production recovery/bookmark + current Worker/D1 state,
-> 4. review migrations `0003–0008`,
-> 5. only then perform production migrations/deployment.
->
-> **Do not restart earlier Commerce/Admin phases. Do not mutate production before the Phase 13 pre-flight is complete.**
+> **Do not restart earlier phases. Do not deploy the Worker before production migration verification succeeds.**
 
 ---
 
