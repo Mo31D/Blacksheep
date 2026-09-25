@@ -340,7 +340,7 @@ export async function handleAdminRequest(
       const raw = await readProductJson(request);
       const created = await deps.createAdminProductFn(
         env.DB,
-        raw as Parameters<typeof createAdminProduct>[1],
+        raw as unknown as Parameters<typeof createAdminProduct>[1],
         identity.email,
       );
       const product = await deps.getAdminProductDetailFn(env.DB, created.id);
@@ -367,7 +367,7 @@ export async function handleAdminRequest(
       await deps.updateAdminProductOperationsFn(
         env.DB,
         productId,
-        raw as Parameters<typeof updateAdminProductOperations>[2],
+        raw as unknown as Parameters<typeof updateAdminProductOperations>[2],
         identity.email,
       );
       const product = await deps.getAdminProductDetailFn(env.DB, productId);
@@ -387,7 +387,7 @@ export async function handleAdminRequest(
       await deps.saveAdminProductDraftFn(
         env.DB,
         productId,
-        raw as Parameters<typeof saveAdminProductDraft>[2],
+        raw as unknown as Parameters<typeof saveAdminProductDraft>[2],
         identity.email,
       );
       const product = await deps.getAdminProductDetailFn(env.DB, productId);
@@ -407,7 +407,7 @@ export async function handleAdminRequest(
       await deps.publishAdminProductFn(
         env.DB,
         productId,
-        raw as Parameters<typeof publishAdminProduct>[2],
+        raw as unknown as Parameters<typeof publishAdminProduct>[2],
         identity.email,
       );
       const product = await deps.getAdminProductDetailFn(env.DB, productId);
@@ -427,7 +427,7 @@ export async function handleAdminRequest(
       const updated = await deps.updateAdminVariantFn(
         env.DB,
         variantId,
-        raw as Parameters<typeof updateAdminVariant>[2],
+        raw as unknown as Parameters<typeof updateAdminVariant>[2],
         identity.email,
       );
       const product = await deps.getAdminProductDetailFn(
