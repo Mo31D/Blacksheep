@@ -196,12 +196,40 @@ function seedOrder() {
   );
 }
 
+async function verifyInjectedSessionAndOrder() {
+  const response = await fetch(BASE + "/admin/api/orders", {
+    headers: {
+      cookie: "bs_admin_session=" + sessionToken,
+    },
+  });
+  const text = await response.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {}
+
+  assert(
+    response.ok,
+    "Injected staging admin session failed API verification: HTTP " +
+      response.status +
+      " " +
+      text.slice(0, 500),
+  );
+  assert(
+    Array.isArray(data?.orders) &&
+      data.orders.some((order) => order.publicReference === REF),
+    "Synthetic Admin UI order is not visible through the authenticated staging orders API.",
+  );
+}
+
 async function addAdminCookie(context) {
+  const hostname = new URL(BASE).hostname;
   await context.addCookies([
     {
       name: "bs_admin_session",
       value: sessionToken,
-      url: BASE,
+      domain: hostname,
+      path: "/admin",
       secure: true,
       httpOnly: true,
       sameSite: "Strict",
@@ -209,26 +237,56 @@ async function addAdminCookie(context) {
   ]);
 }
 
-async function waitForOrderList(page) {
+async function waitForOrderList(page, label) {
+  const apiResponses = [];
+  page.on("response", (response) => {
+    if (response.url().includes("/admin/api/orders")) {
+      apiResponses.push({
+        url: response.url(),
+        status: response.status(),
+      });
+    }
+  });
+
   await page.goto(BASE + "/admin", {
     waitUntil: "domcontentloaded",
     timeout: 60_000,
   });
 
   await page.waitForSelector("#orders", { timeout: 20_000 });
-  await page.waitForFunction(
-    (reference) =>
-      Boolean(
-        document.querySelector(
-          '#orders [data-ref="' + CSS.escape(String(reference)) + '"]',
-        ),
+
+  const row = page.locator('#orders [data-ref="' + REF + '"]');
+
+  try {
+    await row.waitFor({ state: "visible", timeout: 20_000 });
+  } catch (error) {
+    const diagnostic = await page.evaluate(() => ({
+      url: location.href,
+      ordersText: document.getElementById("orders")?.textContent || "",
+      bodyText: document.body?.innerText?.slice(0, 1600) || "",
+    }));
+
+    console.error(
+      "ADMIN UI ORDER LIST DIAGNOSTIC:",
+      JSON.stringify({ label, apiResponses, diagnostic }),
+    );
+
+    await page.screenshot({
+      path: path.join(
+        ARTIFACT_DIR,
+        label.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-order-list-failure.png",
       ),
-    REF,
-    { timeout: 30_000 },
-  );
+      fullPage: true,
+    });
+
+    throw error;
+  }
 
   const heading = await page.locator("#view-orders h1").textContent();
-  assert(heading?.trim() === "Orders", "Authenticated Admin Orders view did not load.");
+  assert(
+    heading?.trim() === "Orders",
+    "Authenticated Admin Orders view did not load.",
+  );
 }
 
 async function assertNoHorizontalOverflow(page, label) {
@@ -260,7 +318,7 @@ async function desktopQa() {
 
   try {
     await addAdminCookie(context);
-    await waitForOrderList(page);
+    await waitForOrderList(page, "desktop");
     await assertNoHorizontalOverflow(page, "Desktop order list");
 
     await page.locator('#orders [data-ref="' + REF + '"]').click();
@@ -357,7 +415,7 @@ async function mobileWebkitQa() {
 
   try {
     await addAdminCookie(context);
-    await waitForOrderList(page);
+    await waitForOrderList(page, "mobile-webkit");
     await assertNoHorizontalOverflow(page, "Mobile order list");
 
     await page.locator('#orders [data-ref="' + REF + '"]').click();
@@ -433,6 +491,7 @@ fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
 try {
   seedOrder();
   seedSession();
+  await verifyInjectedSessionAndOrder();
 
   await desktopQa();
   await mobileWebkitQa();
