@@ -49,6 +49,14 @@ import {
   getAdminProductDetail,
   listAdminProducts,
 } from "../data/products";
+import {
+  createAdminProduct,
+  listAdminCategories,
+  publishAdminProduct,
+  saveAdminProductDraft,
+  updateAdminProductOperations,
+  updateAdminVariant,
+} from "../data/product-editor";
 
 export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
   DB?: D1DatabaseLike;
@@ -72,6 +80,12 @@ interface AdminDependencies {
   createCustomerReviewTokenFn: typeof createCustomerReviewToken;
   listAdminProductsFn: typeof listAdminProducts;
   getAdminProductDetailFn: typeof getAdminProductDetail;
+  listAdminCategoriesFn: typeof listAdminCategories;
+  createAdminProductFn: typeof createAdminProduct;
+  saveAdminProductDraftFn: typeof saveAdminProductDraft;
+  publishAdminProductFn: typeof publishAdminProduct;
+  updateAdminProductOperationsFn: typeof updateAdminProductOperations;
+  updateAdminVariantFn: typeof updateAdminVariant;
 }
 
 const defaults: AdminDependencies = {
@@ -92,6 +106,12 @@ const defaults: AdminDependencies = {
   createCustomerReviewTokenFn: createCustomerReviewToken,
   listAdminProductsFn: listAdminProducts,
   getAdminProductDetailFn: getAdminProductDetail,
+  listAdminCategoriesFn: listAdminCategories,
+  createAdminProductFn: createAdminProduct,
+  saveAdminProductDraftFn: saveAdminProductDraft,
+  publishAdminProductFn: publishAdminProduct,
+  updateAdminProductOperationsFn: updateAdminProductOperations,
+  updateAdminVariantFn: updateAdminVariant,
 };
 
 function json(body: unknown, status = 200): Response {
@@ -107,6 +127,45 @@ function json(body: unknown, status = 200): Response {
 
 function error(code: string, status: number, message = code): Response {
   return json({ error: { code, message } }, status);
+}
+function productMutationError(cause: unknown): Response {
+  const code = cause instanceof Error ? cause.message : "product_update_failed";
+  const conflictCodes = new Set([
+    "product_version_conflict",
+    "product_variant_version_conflict",
+    "product_sku_conflict",
+    "product_barcode_conflict",
+    "product_no_draft",
+    "product_publish_requires_category",
+    "product_publish_requires_price",
+  ]);
+  const notFoundCodes = new Set([
+    "product_not_found",
+    "product_variant_not_found",
+    "product_category_not_found",
+  ]);
+  const status = notFoundCodes.has(code) ? 404 : conflictCodes.has(code) ? 409 : 400;
+  const messages: Record<string, string> = {
+    product_version_conflict: "This product changed while you were editing it. Reload and try again.",
+    product_variant_version_conflict: "Price or product code changed while you were editing it. Reload and try again.",
+    product_sku_conflict: "That SKU is already used by another product.",
+    product_barcode_conflict: "That barcode is already used by another product.",
+    product_no_draft: "There are no draft changes to publish.",
+    product_publish_requires_category: "Add at least one category before publishing.",
+    product_publish_requires_price: "Add a price or disable online ordering before publishing.",
+    product_not_found: "Product not found.",
+    product_variant_not_found: "Product variant not found.",
+    product_category_not_found: "One of the selected categories no longer exists.",
+  };
+  return error(code, status, messages[code] ?? "Unable to update product.");
+}
+
+async function readProductJson(request: Request): Promise<Record<string, unknown>> {
+  const raw = await readJson(request);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("product_invalid_request");
+  }
+  return raw as Record<string, unknown>;
 }
 
 async function readJson(request: Request): Promise<unknown> {
@@ -269,6 +328,116 @@ export async function handleAdminRequest(
       limit: Number(url.searchParams.get("limit") ?? "60"),
     });
     return json(result);
+  }
+
+  if (url.pathname === "/admin/api/categories" && request.method === "GET") {
+    const categories = await deps.listAdminCategoriesFn(env.DB);
+    return json({ categories });
+  }
+
+  if (url.pathname === "/admin/api/products" && request.method === "POST") {
+    try {
+      const raw = await readProductJson(request);
+      const created = await deps.createAdminProductFn(
+        env.DB,
+        raw as Parameters<typeof createAdminProduct>[1],
+        identity.email,
+      );
+      const product = await deps.getAdminProductDetailFn(env.DB, created.id);
+      return json({ product }, 201);
+    } catch (cause) {
+      if (cause instanceof Error && cause.message.startsWith("admin_")) {
+        return error(
+          cause.message,
+          cause.message === "admin_payload_too_large" ? 413 : 400,
+          "Invalid product request.",
+        );
+      }
+      return productMutationError(cause);
+    }
+  }
+
+  const productOperationsMatch = url.pathname.match(
+    /^\/admin\/api\/products\/([^/]+)\/operations$/,
+  );
+  if (productOperationsMatch && request.method === "PATCH") {
+    const productId = decodeURIComponent(productOperationsMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      await deps.updateAdminProductOperationsFn(
+        env.DB,
+        productId,
+        raw as Parameters<typeof updateAdminProductOperations>[2],
+        identity.email,
+      );
+      const product = await deps.getAdminProductDetailFn(env.DB, productId);
+      return json({ product });
+    } catch (cause) {
+      return productMutationError(cause);
+    }
+  }
+
+  const productDraftMatch = url.pathname.match(
+    /^\/admin\/api\/products\/([^/]+)\/draft$/,
+  );
+  if (productDraftMatch && request.method === "PATCH") {
+    const productId = decodeURIComponent(productDraftMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      await deps.saveAdminProductDraftFn(
+        env.DB,
+        productId,
+        raw as Parameters<typeof saveAdminProductDraft>[2],
+        identity.email,
+      );
+      const product = await deps.getAdminProductDetailFn(env.DB, productId);
+      return json({ product });
+    } catch (cause) {
+      return productMutationError(cause);
+    }
+  }
+
+  const productPublishMatch = url.pathname.match(
+    /^\/admin\/api\/products\/([^/]+)\/publish$/,
+  );
+  if (productPublishMatch && request.method === "POST") {
+    const productId = decodeURIComponent(productPublishMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      await deps.publishAdminProductFn(
+        env.DB,
+        productId,
+        raw as Parameters<typeof publishAdminProduct>[2],
+        identity.email,
+      );
+      const product = await deps.getAdminProductDetailFn(env.DB, productId);
+      return json({ product });
+    } catch (cause) {
+      return productMutationError(cause);
+    }
+  }
+
+  const variantUpdateMatch = url.pathname.match(
+    /^\/admin\/api\/variants\/([^/]+)$/,
+  );
+  if (variantUpdateMatch && request.method === "PATCH") {
+    const variantId = decodeURIComponent(variantUpdateMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      const updated = await deps.updateAdminVariantFn(
+        env.DB,
+        variantId,
+        raw as Parameters<typeof updateAdminVariant>[2],
+        identity.email,
+      );
+      const product = await deps.getAdminProductDetailFn(
+        env.DB,
+        updated.productId,
+      );
+      return json({ product });
+    } catch (cause) {
+      return productMutationError(cause);
+    }
   }
 
   const productDetailMatch = url.pathname.match(
