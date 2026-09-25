@@ -1,4 +1,4 @@
-# Phase 4 staging release — 2026-09-25
+# Phase 4 staging release — 2026-09-25 · rerunnable after 0010
 name: Inventory Core Staging Phase 4
 
 on:
@@ -71,7 +71,7 @@ jobs:
             console.error("Product Core baseline is incomplete.", baseline);
             process.exit(1);
           }
-          if (baseline.latestMigration !== "0009_product_inventory_foundation.sql") {
+          if (!["0009_product_inventory_foundation.sql", "0010_inventory_core.sql"].includes(baseline.latestMigration)) {
             console.error("Unexpected staging migration baseline.", baseline);
             process.exit(1);
           }
@@ -109,8 +109,12 @@ jobs:
           if (after.products !== before.products) failures.push("product count changed");
           if (after.imported !== 146) failures.push("import baseline changed");
           if (after.tracked !== before.tracked) failures.push("migration changed tracking state");
-          if (before.tracked === 0 && (after.balances !== 0 || after.movements !== 0 || after.incoming !== 0)) {
-            failures.push("migration invented inventory rows");
+          if (
+            before.latestMigration === "0009_product_inventory_foundation.sql" &&
+            before.tracked === 0 &&
+            (after.balances !== 0 || after.movements !== 0 || after.incoming !== 0)
+          ) {
+            failures.push("first 0010 migration invented inventory rows");
           }
           if (after.trackedWithoutBalance !== 0) failures.push("tracked variant lacks balance");
           if (after.invalidBalance !== 0) failures.push("invalid balance");
