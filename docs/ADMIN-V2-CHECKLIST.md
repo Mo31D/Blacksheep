@@ -649,21 +649,30 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
   - subscribed delivery events: configured
   - production Worker secret `RESEND_WEBHOOK_SECRET`: absent
 
+- [x] Production webhook secret installed successfully as `RESEND_WEBHOOK_SECRET`.
+  - production secret names now include `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `TURNSTILE_SECRET_KEY`
+  - Cloudflare created secret-triggered Worker version `ff7e85cf-ed04-4b19-889a-d0a3c41a55e7` at 100% with the previous runtime code
+  - production Resend webhook remains disabled pending new Worker health verification
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — PRE-DEPLOY CONFIG GATE: production webhook secret setup.**
+**PHASE 13 EXECUTION — STEP 3 IN PROGRESS: deploy the pinned Worker source to production.**
 
-Current production state:
-- D1 migrations `0000–0008`: COMPLETE
-- Worker version: still `938f0651-20b5-48df-a8d4-f84defbb263d`
-- production Resend webhook: EXISTS / DISABLED
-- production `RESEND_WEBHOOK_SECRET`: MISSING
+Ready state:
+- production D1 migrations `0000–0008`: PASS
+- existing orders preserved: 3
+- production webhook: CREATED + DISABLED
+- production `RESEND_WEBHOOK_SECRET`: INSTALLED
+- current secret-triggered Worker version: `ff7e85cf-ed04-4b19-889a-d0a3c41a55e7`
+- pinned release source: `8c5462388648235acd3a41b853d1adee057a11a7`
 
 Current step:
-1. retrieve the existing production webhook signing secret from Resend,
-2. store it as Cloudflare production Worker secret `RESEND_WEBHOOK_SECRET` without exposing it,
-3. verify the secret binding exists,
-4. keep webhook disabled until the new Worker is deployed and health confirms `webhookConfigured=true`,
-5. update this checklist before Worker deployment.
+1. run a deploy-only workflow that checks out the pinned release SHA,
+2. verify there are no pending production migrations,
+3. deploy with `wrangler deploy` only,
+4. verify public production health,
+5. require `status=ok`, production environment, bound database and `webhookConfigured=true`,
+6. verify the Admin page is reachable,
+7. update this checklist before enabling the production Resend webhook.
 
-**Do not deploy the Worker until this gate passes.**
+**Do not enable the production webhook until post-deploy health passes.**
