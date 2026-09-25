@@ -114,6 +114,63 @@ describe("admin order revision routes", () => {
     });
   });
 
+  it("attaches reservation inventory detail only when the Phase 5 feature is enabled", async () => {
+    const getRevisionReservationAdminViewFn = vi.fn(async () => ({
+      reservation: {
+        id: "res-1",
+        state: "ACTIVE",
+        expiresAt: "2026-10-01T20:00:00.000Z",
+        committedAt: null,
+        releasedAt: null,
+        consumedAt: null,
+        returnedAt: null,
+        releaseReason: null,
+      },
+      lines: [
+        {
+          revisionItemId: 1,
+          lineNumber: 1,
+          catalogProductId: "P-1",
+          confirmedQuantity: 1,
+          productId: "prd-1",
+          variantId: "var-1",
+          resolved: true,
+          tracked: true,
+          onHand: 2,
+          reserved: 1,
+          safetyStock: 0,
+          available: 1,
+          balanceVersion: 3,
+          sufficient: true,
+          reservationQuantity: 1,
+        },
+      ],
+    }));
+
+    const response = await handleAdminRequest(
+      new Request(
+        "https://admin.example.com/admin/api/orders/BSR-1/revisions/rev-1",
+      ),
+      { DB: new Db(), ORDER_RESERVATIONS_ENABLED: "true" },
+      { ...baseDependencies, getRevisionReservationAdminViewFn } as any,
+    );
+
+    expect(response.status).toBe(200);
+    expect(getRevisionReservationAdminViewFn).toHaveBeenCalledWith(
+      expect.any(Db),
+      "rev-1",
+    );
+    await expect(response.json()).resolves.toMatchObject({
+      revision: {
+        id: "rev-1",
+        inventory: {
+          reservation: { state: "ACTIVE" },
+          lines: [{ available: 1, reservationQuantity: 1 }],
+        },
+      },
+    });
+  });
+
   it("creates a draft revision through a same-origin admin POST", async () => {
     const createDraftRevisionFromOriginalFn = vi.fn(
       baseDependencies.createDraftRevisionFromOriginalFn,
