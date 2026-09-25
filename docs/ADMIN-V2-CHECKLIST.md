@@ -313,7 +313,7 @@ Status: CORE SECURITY/RACE/DECLINE/SUPERSEDED-TOKEN STAGING E2E VERIFIED; TOKEN 
 
 - [x] Duplicate webhook automated tests, including concurrent claim loser.
 - [!] Staging Resend webhook has now been created for sent/delivered/delayed/complained/bounced/failed/suppressed events, but remains disabled until its real signing secret is stored in the staging Worker.
-- [!] Real staging webhook signing secret exists in Resend, but automatic connector-to-connector transfer into Cloudflare was blocked by the platform safety layer. `RESEND_WEBHOOK_SECRET` is still absent from the staging Worker; no production secret was touched.
+- [x] `RESEND_WEBHOOK_SECRET` is now present in the **staging** Worker and remains absent from the production Worker. The user added it manually; Cloudflare was independently checked before enabling the webhook.
 - [ ] Confirm production webhook secret.
 - [x] SPF verified in Resend domain configuration (`rsend` and `send` CNAME records both verified).
 - [x] DKIM verified in Resend domain configuration (`resend._domainkey`).
@@ -564,34 +564,21 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**AUTOMATED IMPLEMENTATION/QA IS COMPLETE UP TO THE REMAINING MANUAL/SECURITY GATES.**
+**STEP IN PROGRESS — Verify and activate the staging Resend webhook.**
 
-Current repository/control state:
-- GitHub `main`: `b3bef05f51997a5b25a1b79da37cb59d43ee90c5`
-- Commerce CI on fixed Admin source: PASS — 106/106 tests
-- staging Worker: `22752fa1-3ef2-459c-9ff4-03172535af7b`
-- staging D1: `0000–0008`
-- Admin V2 core E2E: PASS
-- customer-review edge E2E: PASS
-- checkout browser regression: PASS
-- Admin UI Chromium desktop + WebKit mobile QA: PASS
-- transactional email delivery: confirmed
-- SPF/DKIM: verified
-- DMARC: absent
-- production Worker/D1: unchanged and intentionally frozen
+Pre-step verification:
+- staging Worker has `RESEND_WEBHOOK_SECRET`: YES
+- production Worker has `RESEND_WEBHOOK_SECRET`: NO
+- staging Resend webhook exists and is currently disabled
+- production remains frozen; no production secret, Worker or D1 mutation is authorized in this step
 
-Release blockers that require explicit manual/security action:
-1. **Webhook secret gate** — place the existing Resend staging signing secret into Cloudflare staging as secret `RESEND_WEBHOOK_SECRET`. Automatic transfer was blocked by the platform safety layer. After the secret is present, re-enable the existing staging webhook and verify one signed event + duplicate idempotency.
-2. **Real Delivery checkout gate** — submit one real-device Delivery order through the public checkout/Turnstile path. Production audit currently shows zero Delivery orders.
-3. **DMARC decision** — choose whether to add a DMARC TXT policy before release; none currently exists.
+Current step:
+1. verify staging `/health` reports `notifications.webhookConfigured=true`,
+2. enable the existing staging Resend webhook,
+3. replay/send one real webhook event,
+4. verify the event reaches the staging endpoint successfully,
+5. verify D1 delivery-state persistence,
+6. replay the same event again and confirm duplicate/idempotent handling,
+7. record the result here before moving to the final Delivery/manual gate.
 
-After gates 1–2 are closed (and DMARC is either added or explicitly deferred), move to **Phase 13 — Guarded Production Release**:
-- confirm recovery/bookmark,
-- apply only production migrations `0003–0008`,
-- deploy the exact audited source,
-- verify health/OTP/admin mobile+desktop,
-- run one controlled revised-order/payment/refund scenario,
-- record final production Worker version + D1 migration level,
-- update this checklist and session handoff.
-
-**No production migration or deployment has been performed yet.**
+**Do not modify production in this step.**
