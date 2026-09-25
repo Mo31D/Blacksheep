@@ -8,6 +8,10 @@ on:
       - "commerce/src/data/public-catalog.ts"
       - "commerce/src/routes/catalog.ts"
       - "commerce/src/index.ts"
+      - "commerce/src/data/commerce-pricing.ts"
+      - "commerce/src/routes/orders.ts"
+      - "commerce/test/d1-commerce-pricing.test.ts"
+      - "commerce/test/orders-route.test.ts"
       - "commerce/test/public-catalog.test.ts"
       - "commerce/test/public-catalog-route.test.ts"
       - "commerce/test/health.test.ts"
@@ -69,7 +73,11 @@ jobs:
             console.error("Production D1 checkout authority must remain disabled.");
             process.exit(1);
           }
-          console.log("Phase 6 config gate passed: public D1 catalogue staging-only.");
+          if (staging.D1_COMMERCE_AUTHORITY_ENABLED !== "true") {
+            console.error("Staging D1 checkout authority must be explicitly enabled.", staging);
+            process.exit(1);
+          }
+          console.log("Phase 6 config gate passed: D1 catalogue + checkout authority are staging-only.");
           NODE
 
       - name: Run full Commerce validation
@@ -122,7 +130,12 @@ jobs:
           console.log("Production isolation passed.", { latest, orders });
           NODE
 
-      - name: Deploy public D1 catalogue to staging only
+      - name: Re-confirm 146-product parity before authority deployment
+        env:
+          PHASE6_PUBLIC_CATALOG_ENDPOINT: https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev
+        run: npm run phase6:catalog-parity
+
+      - name: Deploy Phase 6 D1 catalogue + checkout authority to staging only
         run: npx wrangler deploy --env staging
 
       - name: Verify staging health feature gates after deployment propagation
@@ -140,7 +153,8 @@ jobs:
             health.database !== "bound" ||
             health.features?.orderReservations !== true ||
             health.features?.publicCatalog !== true ||
-            health.features?.publicCatalogContract !== "d1-published-v1"
+            health.features?.publicCatalogContract !== "d1-published-v1" ||
+            health.features?.commerceAuthority !== true
           ) {
             process.exit(1);
           }
@@ -244,7 +258,7 @@ jobs:
       - name: Safety statement
         if: always()
         run: |
-          echo "Phase 6 public catalogue target: staging only."
+          echo "Phase 6 D1 catalogue + checkout pricing authority target: staging only."
           echo "Production migration and Worker deploy are not run."
           echo "Production checkout remains on the generated static commerce catalogue."
-          echo "No storefront authority switch is performed."
+          echo "No Production storefront authority switch is performed."
