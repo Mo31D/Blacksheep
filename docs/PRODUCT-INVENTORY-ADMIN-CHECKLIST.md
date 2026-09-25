@@ -234,7 +234,7 @@ Evidence:
 - [x] Supersede overlap correction — replacement reservation rebases Available + balance version after releasing the old hold.
 - [~] Review-token expiry alignment — source + tests added; CI pending.
 - [ ] Reservation release.
-- [ ] Reservation expiry policy.
+- [~] Reservation expiry policy — lazy expiry release implementation active.
 - [ ] Payment transition.
 - [ ] Fulfilment SALE movement.
 - [ ] Cancellation release.
@@ -310,16 +310,17 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 5 — customer decline/release safety
+## Phase 5 — lazy reservation expiry
 
-Before enabling reservation-aware Send in any Worker:
+Customer-decline release source/tests are in place behind an OFF-by-default feature flag.
 
-1. Keep reservation mode opt-in and OFF by default.
-2. Make customer-review **Decline** release an ACTIVE reservation atomically.
-3. Preserve Production compatibility when reservation mode is OFF; Production does not have `0011`.
-4. Attribute customer-triggered release movements correctly.
-5. Ensure a failed/concurrent release rolls back the decline transition.
-6. Add tests for customer decline with and without reservation mode.
-7. Then implement lazy expiry release before availability-sensitive operations.
+Current sub-step:
+1. Add explicit `EXPIRED` terminal release support.
+2. Find ACTIVE reservations whose `expires_at <= now`.
+3. Release their reserved quantities with guarded balance versions.
+4. Record `RESERVATION_RELEASE` ledger movements attributed to SYSTEM.
+5. Make concurrent expiry workers idempotent/tolerant when another worker already released the hold.
+6. Run lazy expiry immediately before reservation-aware revision Send so stale holds cannot cause false stock shortages.
+7. Add tests before any runtime feature enablement.
 
-Current source is still dormant: no Worker has reservation mode enabled.
+No environment has `ORDER_RESERVATIONS_ENABLED=true` yet.
