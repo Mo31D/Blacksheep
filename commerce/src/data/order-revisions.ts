@@ -16,6 +16,7 @@ import {
   getSupersededReservationReleasePlan,
   prepareReservationMutation,
   prepareReservationReleaseMutation,
+  rebaseReservationPlanAfterRelease,
   type ActiveReservationReleasePlan,
   type RevisionReservationPlan,
 } from "./order-reservations";
@@ -831,6 +832,12 @@ export async function transitionOrderRevision(
         },
       );
       statements.push(...release.statements);
+      if (reservationPlan) {
+        reservationPlan = rebaseReservationPlanAfterRelease(
+          reservationPlan,
+          supersededReservation,
+        );
+      }
     }
 
     if (options.inventoryReservations && reservationPlan) {
