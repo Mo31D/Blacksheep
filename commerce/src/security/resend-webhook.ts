@@ -87,7 +87,7 @@ export async function verifyResendWebhookSignature(
   const expected = toBase64(digest);
 
   const candidates = signatureHeader
-    .split(/s+/)
+    .split(/\\s+/)
     .map((value) => value.trim())
     .filter(Boolean)
     .map((value) => {
