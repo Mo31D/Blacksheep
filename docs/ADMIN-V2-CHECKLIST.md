@@ -539,7 +539,7 @@ Only after staging exit gates pass:
 - [ ] Record final production D1 migration level.
 - [ ] Update this checklist and session handoff.
 
-Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA is pinned, production recovery bookmark is recorded, and migrations `0003–0008` are approved for guarded execution. Production mutation has not started yet.**
+Status: **PHASE 13 PRODUCTION RELEASE COMPLETE — migrations, pinned Worker deployment, health/Admin verification, production webhook configuration and final read-only smoke checks all passed.**
 
 ---
 
@@ -697,23 +697,33 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
   - events: `email.sent`, `email.delivered`, `email.delivery_delayed`, `email.complained`, `email.bounced`, `email.failed`, `email.suppressed`
   - staging webhook remains separate and enabled
 
+- [x] Final production smoke verification: PASS.
+  - Worker deployment `2e629bc4-99e9-41cf-b15e-0b087ec8a33b`
+  - Worker version `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac` at 100%
+  - D1 binding points to `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
+  - `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, and `TURNSTILE_SECRET_KEY` present
+  - D1 migrations `0000–0008`
+  - existing production orders remain 3
+  - public health PASS with `webhookConfigured=true`
+  - production Admin page reachable
+  - production Resend webhook enabled at `https://api.theblacksheepshop.co.uk/webhooks/resend`
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — STEP 5 IN PROGRESS: final production smoke verification.**
+**PHASE 13 COMPLETE — production release is live and verified.**
 
-Production release state:
-- D1 migrations `0000–0008`: complete
+Final production state:
+- release source SHA: `8c5462388648235acd3a41b853d1adee057a11a7`
 - Worker version: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`
+- D1 migrations: `0000–0008`
+- existing production orders preserved: 3
 - public health: PASS
 - production Admin page: reachable
+- `RESEND_WEBHOOK_SECRET`: installed
 - production Resend webhook: ENABLED
-- DMARC/SPF/DKIM: configured/verified
+- SPF/DKIM: verified
+- DMARC: `p=none`
+- recovery bookmark captured before production mutation: `00000028-00000000-000050f1-68842c17a511b740b3b28bcc859c1042`
 
-Current step:
-1. run read-only production smoke checks,
-2. verify Worker deployment/version and current bindings,
-3. verify D1 migration level and existing order count,
-4. verify public health and Admin page again,
-5. update this checklist and session handoff with the final Phase 13 production state.
+Next session should **not** repeat migrations or redeploy this release. Start from post-release operational validation / Admin V2 live usage, and only change production again for a new explicitly reviewed release.
 
-**No new production order, refund, email, or destructive mutation is required for this smoke check.**
