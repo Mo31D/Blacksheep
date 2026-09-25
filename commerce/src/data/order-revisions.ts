@@ -1,4 +1,8 @@
-import type { D1DatabaseLike, D1PreparedStatementLike } from "./d1";
+import {
+  d1StatementChanged,
+  type D1DatabaseLike,
+  type D1PreparedStatementLike,
+} from "./d1";
 import {
   calculateRevisionTotals,
   validateRevisionItem,
@@ -38,6 +42,7 @@ interface RevisionRow {
   revisionNumber: number;
   state: RevisionState;
   version: number;
+  mutationToken: string | null;
   currency: string;
   itemsSubtotalMinor: number;
   deliveryAmountMinor: number | null;
@@ -152,6 +157,7 @@ async function findRevision(
         r.revision_number AS revisionNumber,
         r.state,
         r.version,
+        r.mutation_token AS mutationToken,
         r.currency,
         r.items_subtotal_minor AS itemsSubtotalMinor,
         r.delivery_amount_minor AS deliveryAmountMinor,
@@ -625,11 +631,13 @@ export async function updateDraftRevision(
 
   const now = new Date().toISOString();
   const nextVersion = revision.version + 1;
+  const mutationToken = crypto.randomUUID();
   const statements: D1PreparedStatementLike[] = [
     db
       .prepare(
         `UPDATE order_revisions
         SET version = ?,
+            mutation_token = ?,
             items_subtotal_minor = ?,
             delivery_amount_minor = ?,
             final_total_minor = ?,
@@ -646,6 +654,7 @@ export async function updateDraftRevision(
       )
       .bind(
         nextVersion,
+        mutationToken,
         totals.itemsSubtotalMinor,
         totals.deliveryAmountMinor,
         totals.finalTotalMinor,
@@ -678,7 +687,7 @@ export async function updateDraftRevision(
           WHERE revision_id = ? AND line_number = ?
             AND EXISTS (
               SELECT 1 FROM order_revisions
-              WHERE id = ? AND version = ? AND state = 'DRAFT'
+              WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DRAFT'
             )`,
         )
         .bind(
@@ -693,6 +702,7 @@ export async function updateDraftRevision(
           item.lineNumber,
           revisionId,
           nextVersion,
+          mutationToken,
         ),
     );
   }
@@ -707,7 +717,7 @@ export async function updateDraftRevision(
         SELECT ?, 'ORDER_REVISION_UPDATED', NULL, NULL, 'admin', ?, NULL, ?, ?
         WHERE EXISTS (
           SELECT 1 FROM order_revisions
-          WHERE id = ? AND version = ? AND state = 'DRAFT'
+          WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DRAFT'
         )`,
       )
       .bind(
@@ -721,17 +731,12 @@ export async function updateDraftRevision(
         now,
         revisionId,
         nextVersion,
+        mutationToken,
       ),
   );
 
-  await db.batch(statements);
-
-  const updated = await findRevision(db, orderReference, revisionId);
-  if (!updated || updated.version !== nextVersion) {
-    throw new Error("revision_version_conflict");
-  }
-
-  return (await getOrderRevisionDetail(db, orderReference, revisionId))!;
+  const results = await db.batch(statements);
+  return verifyMutationResult(db, orderReference, revisionId, results);
 }
 
 export async function transitionOrderRevision(
@@ -742,70 +747,69 @@ export async function transitionOrderRevision(
   expectedVersion: number,
   actorEmail: string,
 ): Promise<Record<string, unknown>> {
-  if (!Number.isInteger(expectedVersion) || expectedVersion < 1) {
-    throw new Error("revision_expected_version_required");
-  }
+  requireExpectedVersion(expectedVersion);
 
   const revision = await findRevision(db, orderReference, revisionId);
   if (!revision) throw new Error("revision_not_found");
   if (revision.version !== expectedVersion) throw new Error("revision_version_conflict");
 
+  const expectedState = action === "send" ? "DRAFT" : "SENT";
+  if (action === "send" && revision.state !== "DRAFT") throw new Error("revision_send_requires_draft");
+  if (action === "accept" && revision.state !== "SENT") throw new Error("revision_accept_requires_sent");
+  if (action === "decline" && revision.state !== "SENT") throw new Error("revision_decline_requires_sent");
+  if (action === "send" && revision.finalTotalMinor === null) throw new Error("revision_total_required");
+
   const now = new Date().toISOString();
   const nextVersion = revision.version + 1;
-  const statements: D1PreparedStatementLike[] = [];
+  const mutationToken = crypto.randomUUID();
+  const statements: D1PreparedStatementLike[] = [
+    db.prepare(
+      `UPDATE order_revisions
+      SET version = ?, mutation_token = ?
+      WHERE id = ? AND version = ? AND state = ?`,
+    ).bind(nextVersion, mutationToken, revisionId, revision.version, expectedState),
+  ];
 
   if (action === "send") {
-    if (revision.state !== "DRAFT") throw new Error("revision_send_requires_draft");
-    if (revision.finalTotalMinor === null) throw new Error("revision_total_required");
-
     statements.push(
-      db
-        .prepare(
-          `UPDATE order_revisions
-          SET state = 'SUPERSEDED', superseded_at = ?, version = version + 1
-          WHERE order_id = ? AND state = 'SENT' AND id <> ?`,
-        )
-        .bind(now, revision.orderId, revisionId),
+      db.prepare(
+        `UPDATE order_revisions
+        SET state = 'SUPERSEDED', superseded_at = ?, version = version + 1
+        WHERE order_id = ? AND state = 'SENT' AND id <> ?
+          AND EXISTS (
+            SELECT 1 FROM order_revisions target
+            WHERE target.id = ? AND target.version = ?
+              AND target.mutation_token = ? AND target.state = 'DRAFT'
+          )`,
+      ).bind(now, revision.orderId, revisionId, revisionId, nextVersion, mutationToken),
     );
     statements.push(
-      db
-        .prepare(
-          `UPDATE order_revisions
-          SET state = 'SENT', sent_at = ?, version = ?
-          WHERE id = ? AND version = ? AND state = 'DRAFT'`,
-        )
-        .bind(now, nextVersion, revisionId, revision.version),
+      db.prepare(
+        `UPDATE order_revisions
+        SET state = 'SENT', sent_at = ?
+        WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DRAFT'`,
+      ).bind(now, revisionId, nextVersion, mutationToken),
     );
     statements.push(
-      db
-        .prepare(
-          `UPDATE orders
-          SET status = 'QUOTED', updated_at = ?, quoted_at = COALESCE(quoted_at, ?)
-          WHERE id = ? AND status IN ('UNDER_REVIEW', 'QUOTED')`,
-        )
-        .bind(now, now, revision.orderId),
-    );
-  } else if (action === "accept") {
-    if (revision.state !== "SENT") throw new Error("revision_accept_requires_sent");
-    statements.push(
-      db
-        .prepare(
-          `UPDATE order_revisions
-          SET state = 'ACCEPTED', accepted_at = ?, version = ?
-          WHERE id = ? AND version = ? AND state = 'SENT'`,
-        )
-        .bind(now, nextVersion, revisionId, revision.version),
+      db.prepare(
+        `UPDATE orders
+        SET status = 'QUOTED', updated_at = ?, quoted_at = COALESCE(quoted_at, ?)
+        WHERE id = ? AND status IN ('UNDER_REVIEW', 'QUOTED')
+          AND EXISTS (
+            SELECT 1 FROM order_revisions
+            WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'SENT'
+          )`,
+      ).bind(now, now, revision.orderId, revisionId, nextVersion, mutationToken),
     );
   } else {
-    if (revision.state !== "SENT") throw new Error("revision_decline_requires_sent");
+    const nextState = action === "accept" ? "ACCEPTED" : "DECLINED";
+    const timestampColumn = action === "accept" ? "accepted_at" : "declined_at";
     statements.push(
-      db
-        .prepare(
-          `UPDATE order_revisions
-          SET state = 'DECLINED', declined_at = ?, version = ?
-          WHERE id = ? AND version = ? AND state = 'SENT'`,
-        )
-        .bind(now, nextVersion, revisionId, revision.version),
+      db.prepare(
+        `UPDATE order_revisions
+        SET state = '${nextState}', ${timestampColumn} = ?
+        WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'SENT'`,
+      ).bind(now, revisionId, nextVersion, mutationToken),
     );
   }
 
@@ -815,45 +819,41 @@ export async function transitionOrderRevision(
       : action === "accept"
         ? "ORDER_REVISION_ACCEPTED"
         : "ORDER_REVISION_DECLINED";
+  const finalState =
+    action === "send" ? "SENT" : action === "accept" ? "ACCEPTED" : "DECLINED";
 
   statements.push(
-    db
-      .prepare(
-        `INSERT INTO order_events (
-          order_id, event_type, from_status, to_status,
-          actor_type, actor_id, note, metadata_json, created_at
-        )
-        SELECT ?, ?, ?, ?, 'admin', ?, NULL, ?, ?
-        WHERE EXISTS (
-          SELECT 1 FROM order_revisions
-          WHERE id = ? AND version = ?
-        )`,
+    db.prepare(
+      `INSERT INTO order_events (
+        order_id, event_type, from_status, to_status,
+        actor_type, actor_id, note, metadata_json, created_at
       )
-      .bind(
-        revision.orderId,
-        eventType,
-        action === "send" ? revision.orderStatus : null,
-        action === "send" ? "QUOTED" : null,
-        actorEmail,
-        JSON.stringify({
-          revisionId,
-          revisionNumber: revision.revisionNumber,
-          version: nextVersion,
-        }),
-        now,
+      SELECT ?, ?, ?, ?, 'admin', ?, NULL, ?, ?
+      WHERE EXISTS (
+        SELECT 1 FROM order_revisions
+        WHERE id = ? AND version = ? AND mutation_token = ? AND state = ?
+      )`,
+    ).bind(
+      revision.orderId,
+      eventType,
+      action === "send" ? revision.orderStatus : null,
+      action === "send" ? "QUOTED" : null,
+      actorEmail,
+      JSON.stringify({
         revisionId,
-        nextVersion,
-      ),
+        revisionNumber: revision.revisionNumber,
+        version: nextVersion,
+      }),
+      now,
+      revisionId,
+      nextVersion,
+      mutationToken,
+      finalState,
+    ),
   );
 
-  await db.batch(statements);
-
-  const updated = await findRevision(db, orderReference, revisionId);
-  if (!updated || updated.version !== nextVersion) {
-    throw new Error("revision_version_conflict");
-  }
-
-  return (await getOrderRevisionDetail(db, orderReference, revisionId))!;
+  const results = await db.batch(statements);
+  return verifyMutationResult(db, orderReference, revisionId, results);
 }
 
 
@@ -882,17 +882,18 @@ function requireQuantity(value: number): void {
   }
 }
 
-async function verifyMutationVersion(
+async function verifyMutationResult(
   db: D1DatabaseLike,
   orderReference: string,
   revisionId: string,
-  expectedVersion: number,
+  results: unknown[],
 ): Promise<Record<string, unknown>> {
-  const updated = await findRevision(db, orderReference, revisionId);
-  if (!updated || updated.version !== expectedVersion) {
+  if (d1StatementChanged(results[0]) === false) {
     throw new Error("revision_version_conflict");
   }
-  return (await getOrderRevisionDetail(db, orderReference, revisionId))!;
+  const detail = await getOrderRevisionDetail(db, orderReference, revisionId);
+  if (!detail) throw new Error("revision_not_found");
+  return detail;
 }
 
 export async function addCatalogItemToDraftRevision(
