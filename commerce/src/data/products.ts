@@ -92,14 +92,14 @@ function listWhere(filters: AdminProductListFilters): {
 
   const q = (filters.q ?? "").trim().toLowerCase();
   if (q) {
-    conditions.push(\`(
+    conditions.push(`(
       LOWER(pv.title) LIKE ? OR
       LOWER(COALESCE(v.sku, '')) LIKE ? OR
       LOWER(COALESCE(v.barcode, '')) LIKE ? OR
       LOWER(COALESCE(p.legacy_catalog_id, '')) LIKE ? OR
       LOWER(p.current_slug) LIKE ? OR
       LOWER(COALESCE(pv.brand, '')) LIKE ?
-    )\`);
+    )`);
     const like = "%" + q + "%";
     values.push(like, like, like, like, like, like);
   }
@@ -115,12 +115,12 @@ function listWhere(filters: AdminProductListFilters): {
   }
 
   if (filters.category) {
-    conditions.push(\`EXISTS (
+    conditions.push(`EXISTS (
       SELECT 1
       FROM product_version_categories pvc_filter
       JOIN categories c_filter ON c_filter.id = pvc_filter.category_id
       WHERE pvc_filter.product_version_id = pv.id AND c_filter.slug = ?
-    )\`);
+    )`);
     values.push(filters.category);
   }
 
@@ -132,12 +132,12 @@ function listWhere(filters: AdminProductListFilters): {
       conditions.push("v.price_minor IS NULL");
       break;
     case "source-warning":
-      conditions.push(\`EXISTS (
+      conditions.push(`EXISTS (
         SELECT 1 FROM product_source_records ps_filter
         WHERE ps_filter.product_id = p.id
           AND ps_filter.source_status IS NOT NULL
           AND TRIM(ps_filter.source_status) <> ''
-      )\`);
+      )`);
       break;
     case "draft":
       conditions.push("p.current_draft_version_id IS NOT NULL");
@@ -261,7 +261,7 @@ export async function listAdminProducts(
 
   const summary =
     (await db
-      .prepare(\`
+      .prepare(`
         SELECT
           COUNT(*) AS total,
           SUM(CASE WHEN p.sell_status = 'OUT_OF_STOCK' THEN 1 ELSE 0 END) AS outOfStock,
@@ -282,7 +282,7 @@ export async function listAdminProducts(
         FROM products p
         JOIN product_variants v
           ON v.product_id = p.id AND v.is_default = 1 AND v.active = 1
-      \`)
+      `)
       .first<{
         total: number;
         outOfStock: number;
@@ -321,7 +321,7 @@ export async function getAdminProductDetail(
   productId: string,
 ): Promise<Record<string, unknown> | null> {
   const core = await db
-    .prepare(\`
+    .prepare(`
       SELECT
         p.id,
         p.legacy_catalog_id AS legacyId,
@@ -361,7 +361,7 @@ export async function getAdminProductDetail(
         ON v.product_id = p.id AND v.is_default = 1 AND v.active = 1
       WHERE p.id = ?
       LIMIT 1
-    \`)
+    `)
     .bind(productId)
     .first<Record<string, unknown>>();
 
@@ -370,18 +370,18 @@ export async function getAdminProductDetail(
   const [categories, media, attributes, sources, history] = await Promise.all([
     allRows<Record<string, unknown>>(
       db
-        .prepare(\`
+        .prepare(`
           SELECT c.id, c.slug, c.name, pvc.is_primary AS isPrimary, pvc.position
           FROM product_version_categories pvc
           JOIN categories c ON c.id = pvc.category_id
           WHERE pvc.product_version_id = ?
           ORDER BY pvc.position, c.name
-        \`)
+        `)
         .bind(core.publishedVersionId),
     ),
     allRows<Record<string, unknown>>(
       db
-        .prepare(\`
+        .prepare(`
           SELECT pm.id, pm.storage_provider AS storageProvider,
                  pm.storage_key AS storageKey, pm.public_url AS publicUrl,
                  pm.mime_type AS mimeType, pm.width, pm.height,
@@ -391,23 +391,23 @@ export async function getAdminProductDetail(
           JOIN product_media pm ON pm.id = pvm.media_id
           WHERE pvm.product_version_id = ? AND pm.deleted_at IS NULL
           ORDER BY pvm.position
-        \`)
+        `)
         .bind(core.publishedVersionId),
     ),
     allRows<Record<string, unknown>>(
       db
-        .prepare(\`
+        .prepare(`
           SELECT attribute_key AS attributeKey, label, value_text AS valueText,
                  value_json AS valueJson, visibility, position
           FROM product_attributes
           WHERE product_version_id = ?
           ORDER BY position, label
-        \`)
+        `)
         .bind(core.publishedVersionId),
     ),
     allRows<Record<string, unknown>>(
       db
-        .prepare(\`
+        .prepare(`
           SELECT id, source_type AS sourceType, source_name AS sourceName,
                  source_url AS sourceUrl, supplier_url AS supplierUrl,
                  external_product_code AS externalProductCode,
@@ -416,19 +416,19 @@ export async function getAdminProductDetail(
           FROM product_source_records
           WHERE product_id = ?
           ORDER BY source_type, created_at
-        \`)
+        `)
         .bind(productId),
     ),
     allRows<Record<string, unknown>>(
       db
-        .prepare(\`
+        .prepare(`
           SELECT id, event_type AS eventType, actor_type AS actorType,
                  actor_id AS actorId, reason, created_at AS createdAt
           FROM product_audit_events
           WHERE product_id = ?
           ORDER BY created_at DESC, id DESC
           LIMIT 20
-        \`)
+        `)
         .bind(productId),
     ),
   ]);
