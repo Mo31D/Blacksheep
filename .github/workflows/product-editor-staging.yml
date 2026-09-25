@@ -1,0 +1,118 @@
+name: Product Editor Staging Phase 2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "commerce/src/data/product-editor.ts"
+      - "commerce/src/data/products.ts"
+      - "commerce/src/routes/admin.ts"
+      - "commerce/src/admin/ui.ts"
+      - "commerce/test/admin-products-readonly.test.ts"
+      - "commerce/test/admin-html-script.test.ts"
+      - ".github/workflows/product-editor-staging.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-product-editor-staging:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[product-editor-staging]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: commerce
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: commerce/package.json
+
+      - name: Install commerce dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Require Cloudflare staging credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Run full Commerce validation
+        run: npm run check
+
+      - name: Confirm staging Product Core schema
+        run: npm run db:migrate:staging
+
+      - name: Guard staging Product Core baseline
+        shell: bash
+        run: |
+          npx wrangler d1 execute black-sheep-commerce-staging \
+            --remote --env staging --json \
+            --command "SELECT COUNT(*) AS product_count FROM products; SELECT COUNT(*) AS tracked_count FROM product_variants WHERE track_inventory=1;" \
+            > /tmp/product-core-guard.json
+          cat /tmp/product-core-guard.json
+          node - /tmp/product-core-guard.json <<'NODE'
+          const fs = require("fs");
+          const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const products = Number(blocks?.[0]?.results?.[0]?.product_count ?? -1);
+          const tracked = Number(blocks?.[1]?.results?.[0]?.tracked_count ?? -1);
+          if (products !== 146) {
+            console.error("Refusing Phase 2 deploy: expected 146 staging products, got", products);
+            process.exit(1);
+          }
+          if (tracked !== 0) {
+            console.error("Refusing Phase 2 deploy: inventory tracking unexpectedly active:", tracked);
+            process.exit(1);
+          }
+          console.log("Staging Product Core gate passed.");
+          NODE
+
+      - name: Deploy Product Editor to staging only
+        run: npx wrangler deploy --env staging
+
+      - name: Verify staging Worker health
+        shell: bash
+        run: |
+          HEALTH="$(curl --fail --silent --show-error --max-time 30 https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/health)"
+          echo "$HEALTH"
+          node - "$HEALTH" <<'NODE'
+          const health = JSON.parse(process.argv[2]);
+          const failures = [];
+          if (health.status !== "ok") failures.push("status");
+          if (health.environment !== "staging") failures.push("environment");
+          if (health.database !== "bound") failures.push("database");
+          if (failures.length) {
+            console.error("Staging health gate failed:", failures.join(", "));
+            process.exit(1);
+          }
+          console.log("Staging health gate passed.");
+          NODE
+
+      - name: Verify staging Admin shell
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --max-time 30 \
+            https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/admin \
+            > /tmp/admin.html
+          test -s /tmp/admin.html
+          grep -qi "Black Sheep" /tmp/admin.html
+          grep -qi "Admin sign in" /tmp/admin.html
+          echo "Staging Admin sign-in shell is reachable."
+
+      - name: Safety statement
+        if: always()
+        run: |
+          echo "Phase 2 target: staging only."
+          echo "No production D1 migration is run by this workflow."
+          echo "No production Worker deploy is run by this workflow."
+          echo "No storefront or checkout cutover is performed."
+          echo "Inventory tracking remains disabled."
