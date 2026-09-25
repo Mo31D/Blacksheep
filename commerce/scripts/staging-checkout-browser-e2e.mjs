@@ -68,7 +68,8 @@ function seedIdempotentReplayOrder() {
       ";" +
       "INSERT INTO orders (" +
       "id,public_reference,idempotency_key,status,currency,fulfilment_method," +
-      "customer_name,customer_email,items_subtotal_minor,created_at,updated_at" +
+      "customer_name,customer_email,delivery_address_line1,delivery_town," +
+      "delivery_postcode,delivery_country,items_subtotal_minor,created_at,updated_at" +
       ") VALUES (" +
       [
         sqlQuote(REPLAY_ORDER_ID),
@@ -79,6 +80,10 @@ function seedIdempotentReplayOrder() {
         "'delivery'",
         "'Browser Replay E2E'",
         "'orders@theblacksheepshop.co.uk'",
+        "'1 Staging Test Street'",
+        "'Ambleside'",
+        "'LA22 9ZZ'",
+        "'GB'",
         "500",
         sqlQuote(NOW),
         sqlQuote(NOW),
