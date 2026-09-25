@@ -77,6 +77,7 @@ describe("Phase 2 Product Admin", () => {
     expect(html).toContain("Manage images");
     expect(html).toContain("Maximum 8 MB");
     expect(html).toContain('accept="image/jpeg,image/png,image/webp"');
+    expect(html).toContain("Replace");
   });
 
   it("returns actionable quality metrics without treating in-store pricing as missing", async () => {
@@ -426,6 +427,73 @@ describe("Phase 2 Product Admin", () => {
       mimeType: "image/png",
       altText: "Peter Rabbit gift",
     });
+  });
+
+  it("replaces a draft image while preserving the media slot", async () => {
+    let replaced: Record<string, unknown> | null = null;
+    let deletedKey = "";
+    const png = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      0x00, 0x00, 0x00, 0x00,
+    ]);
+    const form = new FormData();
+    form.append("expectedVersion", "4");
+    form.append("altText", "Replacement image");
+    form.append("file", new File([png], "replacement.png", { type: "image/png" }));
+
+    const response = await handleAdminRequest(
+      new Request(
+        "https://admin.example.com/admin/api/products/prd-1/media/med-old/replace",
+        {
+          method: "POST",
+          headers: { origin: "https://admin.example.com" },
+          body: form,
+        },
+      ),
+      {
+        DB: new Db(),
+        PRODUCT_MEDIA: {
+          async put() {
+            return {};
+          },
+          async get() {
+            return null;
+          },
+          async delete(key: string) {
+            deletedKey = key;
+          },
+        },
+      },
+      {
+        verifyAccessFn: identity,
+        getAdminProductDetailFn: async () => ({
+          ...product,
+          draftVersionId: "pver-draft",
+          media: [],
+        }),
+        replaceAdminProductMediaFn: async (_db, _productId, oldMediaId, raw) => {
+          replaced = {
+            oldMediaId,
+            ...(raw as unknown as Record<string, unknown>),
+          };
+          return {
+            mediaId: String((raw as { mediaId?: string }).mediaId),
+            oldStorageProvider: "R2",
+            oldStorageKey: "products/prd-1/old.webp",
+            shouldDeleteOldObject: true,
+          };
+        },
+      },
+    );
+
+    expect(response.status).toBe(201);
+    expect(replaced).toMatchObject({
+      oldMediaId: "med-old",
+      expectedVersion: 4,
+      mimeType: "image/png",
+      altText: "Replacement image",
+    });
+    expect(deletedKey).toBe("products/prd-1/old.webp");
   });
 
   it("rejects image content that does not match its declared type", async () => {
