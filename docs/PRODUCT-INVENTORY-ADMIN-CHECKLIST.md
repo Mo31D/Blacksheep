@@ -109,8 +109,8 @@ Evidence:
 - [x] Staging Product Core baseline guard: PASS.
 - [x] Staging health/Admin shell: PASS.
 - [x] Verify Production D1 remains `0000–0008`.
-- [ ] Duplicate product.
-- [ ] Archive product.
+- [~] Duplicate product — implementation in progress.
+- [~] Archive product — implementation in progress.
 - [~] Owner mutation smoke-test in authenticated staging UI.
 
 Current exit status:
@@ -246,7 +246,14 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-Perform the owner **Phase 2 staging mutation smoke-test** in the authenticated Products workspace:
+Complete the final Phase 2 owner-safety controls before the mutation smoke-test:
+
+1. Duplicate product → safe private draft with no copied SKU/barcode.
+2. Archive product → non-destructive, confirmed action with audit trail.
+3. Add Archived filter so archived records remain recoverable/auditable.
+4. Run CI and staging deployment.
+
+Then perform the owner **Phase 2 staging mutation smoke-test** in the authenticated Products workspace:
 
 1. Add a temporary Draft product.
 2. Quick Edit price / SKU / barcode / selling status.
