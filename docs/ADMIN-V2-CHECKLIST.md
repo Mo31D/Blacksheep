@@ -335,7 +335,7 @@ This is the next code milestone.
 - [x] Duplicate webhook test, including insert-race loser.
 - [x] Migration clean-install through `0008` is exercised by `npm run check` → `db:migrate:local`.
 - [x] Pre-`0008` upgrade-path test: apply `0000–0007`, then apply `0008` to the same isolated local D1 and verify new guard columns/index.
-- [x] `npm run check` PASS on `fafdcac6a4e0ab82e81954ea6f5fa1d8841df1c1` (Commerce CI run 36134835149).
+- [x] `npm run check` PASS on `1208892221271be6f0dfe320e408aafaef1e18d7` (Commerce CI run `36135410328`).
 
 Exit gate:
 - no money-affecting action can be duplicated by a stale version/race in the tested model,
@@ -475,43 +475,30 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 **Phase 9 — Release-state discovery.**
 
-Start by auditing the actual mutation SQL in:
+Phase 8 is closed at source baseline:
 
-- `commerce/src/data/order-revisions.ts`
-- `commerce/src/data/refunds.ts`
-- `commerce/src/data/customer-review.ts`
-- `commerce/src/data/email-delivery.ts`
+- `1208892221271be6f0dfe320e408aafaef1e18d7`
+- Commerce CI run `36135410328`: PASS
+- Search Readiness run `36135410128`: PASS
+- GitHub Pages run `36135410095`: PASS
+- Clean local migration path through `0008`: PASS
+- Production-equivalent schema upgrade path `0000–0007 → 0008`: PASS
+- Revision/update/add/remove/restore/adjustment race guards: PASS in automated coverage
+- Refund concurrency + idempotent replay: PASS
+- Customer review accept/decline concurrency: PASS
+- Resend duplicate webhook race: PASS
 
-Then add tests proving stale/concurrent operations cannot produce duplicate money/state side effects.
+Next session/work must **not** repeat Phase 8.
 
-Minimum first milestone:
+Proceed with Phase 9 in this order:
 
-1. same-version revision write race,
-2. adjustment race,
-3. refund race,
-4. review accept/decline race,
-5. duplicate Resend webhook handling.
+1. identify the currently deployed staging Worker/version,
+2. identify the currently deployed production Worker/version,
+3. read staging D1 migration state,
+4. read production D1 migration state,
+5. compare both environments with source baseline `1208892221271be6f0dfe320e408aafaef1e18d7`,
+6. write the exact migration/deployment delta into this checklist,
+7. deploy/migrate **staging only** once the delta is understood,
+8. do not change production until the Phase 10 staging E2E gate passes.
 
-Current hardened source baseline:
-- `fafdcac6a4e0ab82e81954ea6f5fa1d8841df1c1`
-- Commerce CI: PASS
-- Search Readiness: PASS
-- GitHub Pages: PASS
-- `npm run check` includes local D1 migrations and therefore applied migrations through `0008_concurrency_guards.sql` on the clean CI database.
-
-Phase 8 closing evidence:
-- Reviewed-order update/add/remove/restore concurrency coverage: PASS.
-- Adjustment concurrency coverage: PASS.
-- Refund CAS + retry idempotency coverage: PASS.
-- Customer accept/decline race coverage: PASS.
-- Resend duplicate webhook race coverage: PASS.
-- Clean local migration path through `0008`: PASS.
-- Incremental local upgrade `0000–0007 → 0008`: PASS.
-- `npm run check`: PASS in Commerce CI run `36135410328` on `1208892221271be6f0dfe320e408aafaef1e18d7`.
-
-Phase 9 next:
-1. Find the strongest available evidence for staging Worker deployment SHA/version.
-2. Find the strongest available evidence for production Worker deployment SHA/version.
-3. Establish staging and production D1 migration levels directly; do not infer from repository files.
-4. Compare remote state to the hardened source and build an exact staging-first deployment delta.
-5. Do not deploy or migrate production before the staging evidence and E2E gate are complete.
+If an environment fact cannot be verified from available credentials/tools, mark it explicitly as **UNVERIFIED** rather than guessing.
