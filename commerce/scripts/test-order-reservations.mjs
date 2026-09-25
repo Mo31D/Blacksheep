@@ -131,6 +131,18 @@ try {
       'collection', 'revision-mutation-token'
     );
 
+    INSERT INTO order_revisions (
+      id, order_id, revision_number, state, version, currency,
+      items_subtotal_minor, delivery_amount_minor, adjustment_amount_minor,
+      final_total_minor, customer_message, internal_note, created_by,
+      created_at, expires_at, fulfilment_method, mutation_token
+    ) VALUES (
+      'rev_res_test_2', 'ord_res_test', 2, 'DRAFT', 1, 'GBP',
+      1000, 0, 0, 1000, NULL, NULL, 'owner@example.com',
+      '2026-09-25T00:00:01.500Z', '2026-09-26T00:00:00.000Z',
+      'collection', 'revision-mutation-token-2'
+    );
+
     INSERT INTO order_revision_items (
       revision_id, line_number, source_order_item_id, catalog_product_id,
       sku, slug, product_name, unit_price_minor, requested_quantity,
@@ -216,7 +228,7 @@ try {
       id, order_id, revision_id, location_id, state, expires_at,
       version, mutation_token, idempotency_key, created_by, created_at, updated_at
     ) VALUES (
-      'res_test_duplicate_idem', 'ord_res_test', 'missing-revision',
+      'res_test_duplicate_idem', 'ord_res_test', 'rev_res_test_2',
       'loc_ambleside', 'ACTIVE', '2026-09-26T00:00:00.000Z',
       1, 'res-mutation-3', 'reservation:test:1', 'owner@example.com',
       '2026-09-25T00:00:04.000Z', '2026-09-25T00:00:04.000Z'
