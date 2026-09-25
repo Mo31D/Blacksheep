@@ -562,7 +562,7 @@ export function prepareReservationMutation(
             0, ?, 0,
             'ORDER_RESERVATION', 'Reviewed order reservation',
             ?, ?, ?, NULL, NULL, ?,
-            'ADMIN', ?, ?,
+            ?, ?, ?,
             b.on_hand, b.reserved, b.safety_stock
           FROM inventory_balances b
           WHERE b.variant_id = ?
@@ -651,11 +651,12 @@ export interface ReservationExternalGuard {
   revisionId: string;
   version: number;
   mutationToken: string;
-  state: "DRAFT" | "SENT" | "ACCEPTED";
+  state: "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED";
 }
 
 export interface ReservationReleaseInput {
   actorEmail: string;
+  actorType?: "ADMIN" | "CUSTOMER" | "SYSTEM";
   reason: string;
   createdAt?: string;
   externalGuard?: ReservationExternalGuard;
@@ -835,6 +836,7 @@ export function prepareReservationReleaseMutation(
     input.actorEmail,
     "reservation_actor_required",
   );
+  const actorType = input.actorType ?? "ADMIN";
   const reason = requiredMutationText(
     input.reason,
     "reservation_release_reason_required",
@@ -993,6 +995,7 @@ export function prepareReservationReleaseMutation(
             plan.version +
             ":variant:" +
             requirement.variantId,
+          actorType,
           actorEmail,
           createdAt,
           requirement.variantId,
