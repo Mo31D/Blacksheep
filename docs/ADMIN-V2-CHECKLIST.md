@@ -510,12 +510,12 @@ Status: **CODE BEHAVIOUR IS PRESENT AND UNIT-VERIFIED; REAL PUBLIC CHECKOUT/TURN
 # PHASE 12 — DOCUMENTATION RESET
 
 - [x] README aligned to current basket/order-request + commerce runtime boundary.
-- [~] `SESSION-HANDOFF.md` now begins with one current authoritative handoff and clearly labels older content as historical archive; full physical compaction can wait until after release.
-- [ ] Archive/label `WORK-CHECKLIST.md` as historical for current engineering work.
+- [x] `SESSION-HANDOFF.md` synchronized to the verified current Admin V2 state and historical material clearly isolated.
+- [x] `WORK-CHECKLIST.md` explicitly labelled historical/non-authoritative for current engineering work.
 - [x] Keep this file as the single live V2 execution tracker.
 - [ ] Record exact staging/prod Worker versions and migration levels after release work.
 
-Status: STARTED BY THIS CHECKLIST RECONSTRUCTION.
+Status: COMPLETE FOR PRE-RELEASE CONTROL PLANE — current checklist is authoritative, session handoff is synchronized, legacy work checklist is historical.
 
 ---
 
@@ -564,34 +564,34 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Final release-gate reconciliation before any production deployment.**
+**AUTOMATED IMPLEMENTATION/QA IS COMPLETE UP TO THE REMAINING MANUAL/SECURITY GATES.**
 
-Verified:
-- Commerce CI: PASS, 106/106 tests.
-- staging Worker: `22752fa1-3ef2-459c-9ff4-03172535af7b`.
-- staging D1: `0000–0008`.
-- core Admin V2 E2E: PASS.
-- review-edge E2E: PASS.
-- Admin UI browser QA: PASS on Chromium desktop + WebKit mobile.
-- checkout browser regression/idempotency/basket recovery: PASS.
-- controlled production collection lifecycle: PASS/read-only.
-- production has zero real Delivery orders.
-- Resend transactional delivery: confirmed.
-- SPF: verified.
-- DKIM: verified.
-- DMARC: **absent** in live Cloudflare DNS.
-- staging Resend webhook exists but remains disabled.
-- staging `RESEND_WEBHOOK_SECRET`: still absent because automatic secret transfer was blocked by the platform safety layer.
-- production Worker/D1 remain unchanged.
+Current repository/control state:
+- GitHub `main`: `b3bef05f51997a5b25a1b79da37cb59d43ee90c5`
+- Commerce CI on fixed Admin source: PASS — 106/106 tests
+- staging Worker: `22752fa1-3ef2-459c-9ff4-03172535af7b`
+- staging D1: `0000–0008`
+- Admin V2 core E2E: PASS
+- customer-review edge E2E: PASS
+- checkout browser regression: PASS
+- Admin UI Chromium desktop + WebKit mobile QA: PASS
+- transactional email delivery: confirmed
+- SPF/DKIM: verified
+- DMARC: absent
+- production Worker/D1: unchanged and intentionally frozen
 
-Current reconciliation task:
-1. synchronize the current session handoff with this verified state,
-2. identify the exact manual/security-gated actions still required,
-3. prepare the guarded production-release sequence but **do not execute it** until those gates are closed.
+Release blockers that require explicit manual/security action:
+1. **Webhook secret gate** — place the existing Resend staging signing secret into Cloudflare staging as secret `RESEND_WEBHOOK_SECRET`. Automatic transfer was blocked by the platform safety layer. After the secret is present, re-enable the existing staging webhook and verify one signed event + duplicate idempotency.
+2. **Real Delivery checkout gate** — submit one real-device Delivery order through the public checkout/Turnstile path. Production audit currently shows zero Delivery orders.
+3. **DMARC decision** — choose whether to add a DMARC TXT policy before release; none currently exists.
 
-Manual/security-gated release blockers:
-- install the existing Resend staging webhook signing secret in Cloudflare staging, then verify signed webhook replay/idempotency,
-- perform one real-device Delivery checkout through Turnstile,
-- choose and add a DMARC policy if email-authentication hardening is required before release.
+After gates 1–2 are closed (and DMARC is either added or explicitly deferred), move to **Phase 13 — Guarded Production Release**:
+- confirm recovery/bookmark,
+- apply only production migrations `0003–0008`,
+- deploy the exact audited source,
+- verify health/OTP/admin mobile+desktop,
+- run one controlled revised-order/payment/refund scenario,
+- record final production Worker version + D1 migration level,
+- update this checklist and session handoff.
 
-**Production deployment remains blocked until the above gates are explicitly resolved or consciously accepted.**
+**No production migration or deployment has been performed yet.**
