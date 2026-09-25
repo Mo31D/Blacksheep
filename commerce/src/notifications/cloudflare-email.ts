@@ -18,7 +18,7 @@ export class CloudflareEmailOrderNotifier implements OrderNotifier {
     private readonly ownerEmail: string,
   ) {}
 
-  async notifyOwner(context: OrderNotificationContext): Promise<void> {
+  async notifyOwner(context: OrderNotificationContext): Promise<unknown> {
     const method =
       context.request.fulfilmentMethod === "collection" ? "Collection" : "Delivery";
     const subject = `New Black Sheep order request ${context.order.publicReference}`;
@@ -50,7 +50,7 @@ export class CloudflareEmailOrderNotifier implements OrderNotifier {
       `,
     });
 
-    await this.email.send({
+    return this.email.send({
       from: { email: this.fromEmail, name: "The Black Sheep Shop" },
       to: this.ownerEmail,
       replyTo: {
@@ -63,7 +63,7 @@ export class CloudflareEmailOrderNotifier implements OrderNotifier {
     });
   }
 
-  async acknowledgeCustomer(context: OrderNotificationContext): Promise<void> {
+  async acknowledgeCustomer(context: OrderNotificationContext): Promise<unknown> {
     const subject = `We received your order request ${context.order.publicReference}`;
     const method =
       context.request.fulfilmentMethod === "collection" ? "Collection" : "Delivery";
@@ -95,7 +95,7 @@ export class CloudflareEmailOrderNotifier implements OrderNotifier {
       `,
     });
 
-    await this.email.send({
+    return this.email.send({
       from: { email: this.fromEmail, name: "The Black Sheep Shop" },
       to: {
         email: context.request.customerEmail,
