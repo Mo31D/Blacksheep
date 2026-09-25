@@ -30,6 +30,7 @@ import {
 } from "../security/admin-access";
 import { adminHtml, adminLoginHtml } from "../admin/ui";
 import { notifyPaymentConfirmed, notifyPaymentRequest, type PaymentNotificationEnv } from "../notifications/payment";
+import { notifyLifecycleUpdate } from "../notifications/status";
 
 export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
   DB?: D1DatabaseLike;
@@ -475,13 +476,32 @@ export async function handleAdminRequest(
 
       if (raw && typeof raw === "object" && !Array.isArray(raw)) {
         const actionName = (raw as Record<string, unknown>).action;
-        if (actionName === "send_payment_request" || actionName === "mark_paid") {
+        const notificationActions = new Set([
+          "send_payment_request",
+          "mark_paid",
+          "ready_for_collection",
+          "mark_shipped",
+          "cancel",
+          "record_refund",
+          "refund_and_cancel",
+        ]);
+        if (typeof actionName === "string" && notificationActions.has(actionName)) {
           const snapshot = await getPaymentNotificationSnapshot(env.DB, reference);
           if (snapshot) {
             if (actionName === "send_payment_request") {
               await notifyPaymentRequest(env, snapshot);
-            } else {
+            } else if (actionName === "mark_paid") {
               await notifyPaymentConfirmed(env, snapshot);
+            } else if (actionName === "ready_for_collection") {
+              await notifyLifecycleUpdate(env, snapshot, "ready_for_collection");
+            } else if (actionName === "mark_shipped") {
+              await notifyLifecycleUpdate(env, snapshot, "shipped");
+            } else if (actionName === "cancel") {
+              await notifyLifecycleUpdate(env, snapshot, "cancelled");
+            } else if (actionName === "record_refund") {
+              await notifyLifecycleUpdate(env, snapshot, "refunded");
+            } else if (actionName === "refund_and_cancel") {
+              await notifyLifecycleUpdate(env, snapshot, "refunded_and_cancelled");
             }
           }
         }
