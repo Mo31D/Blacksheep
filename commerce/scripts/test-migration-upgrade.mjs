@@ -73,7 +73,7 @@ try {
 
   if (!latestMigration?.startsWith("0012_")) {
     throw new Error(
-      `Expected latest migration to be 0011, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0012, found ${latestMigration ?? "none"}.`,
     );
   }
   if (baselineMigrations.at(-1)?.startsWith("0011_") !== true) {
@@ -151,7 +151,7 @@ try {
     "--persist-to",
     persistDir,
     "--command",
-    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant') ORDER BY name",
+    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned') ORDER BY name",
   ]);
 
   for (const required of [
@@ -165,6 +165,7 @@ try {
     "idx_inventory_reservations_idempotency",
     "idx_inventory_reservations_state_expiry",
     "idx_inventory_reservation_items_variant",
+    "idx_inventory_reservations_returned",
   ]) {
     if (!indexOutput.includes(required)) {
       throw new Error(`Required index missing after upgrade: ${required}`);
