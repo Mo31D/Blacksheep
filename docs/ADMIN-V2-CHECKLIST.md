@@ -573,27 +573,25 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 - [x] DMARC record created and verified in Cloudflare authoritative DNS (record ID `3e3ea2ad99f99ec71b5e732add6ce525`).
 
+- [x] Webhook generator run `36154963645`, job `108137139676`: SUCCESS.
+- [x] Synthetic order `E2E-WEBHOOK-36154963645` produced provider message `01a0d933-a6f9-7436-9306-bc028d4fcb55`.
+- [x] Signed delivery webhook event `msg_3JpG91ewU6zzT5jBiqLe8YvqRvL` reached staging; D1 message status became `DELIVERED`; replay is ready.
+
 # EXACT NEXT ACTION
 
-**NEXT RELEASE GATE — finish webhook replay/idempotency verification, then prepare Phase 13 production release.**
+**STEP IN PROGRESS — Inspect the delivered Resend webhook event before replay.**
 
-Closed now:
-- real Delivery checkout/Turnstile production gate: CLOSED
-- real Delivery order `BSR-260925-2X63954D`: `delivery / PAID / COMPLETED`
-- SPF: verified
-- DKIM: verified
-- DMARC: configured in monitoring mode
-- Admin UI browser QA: PASS
-- staging health: `webhookConfigured=true`
-- staging Resend webhook: ENABLED
+Verified:
+- synthetic order: `E2E-WEBHOOK-36154963645`
+- provider message ID: `01a0d933-a6f9-7436-9306-bc028d4fcb55`
+- delivered webhook event ID: `msg_3JpG91ewU6zzT5jBiqLe8YvqRvL`
+- staging D1 delivery status: `DELIVERED`
+- replay-ready flag: true
 
-Remaining before Phase 13:
-1. inspect the successful single-message staging webhook E2E run and capture its delivered webhook event ID,
-2. replay that exact event once,
-3. verify duplicate/idempotent handling in staging D1,
-4. clean the synthetic staging webhook test order,
-5. record final pre-production staging state in this checklist/handoff.
+Current step:
+1. confirm the event exists in the Resend webhook event list,
+2. inspect its existing delivery attempt(s),
+3. require the original attempt to have succeeded against the staging endpoint,
+4. update this checklist before replaying the exact same event.
 
-After those checks pass, Phase 13 can begin with guarded production migrations `0003–0008` and deployment of the exact audited source.
-
-**No production Worker/D1 deployment has been performed yet.**
+**Do not replay yet. Do not touch production.**
