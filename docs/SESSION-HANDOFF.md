@@ -55,28 +55,26 @@
 > - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 > - target: D1-backed Product + Inventory source of truth, premium Products/Stock Admin, managed media, order reservations and storefront/checkout integration.
 >
-> **PRODUCT / INVENTORY PHASE 1 — STAGING PRODUCT CORE LIVE**
-> - Phase 0 Architecture Lock: COMPLETE.
-> - Phase 1 technical/data implementation: COMPLETE on staging; owner visual sign-off pending.
-> - source workflow commit: `cd6c5c2f528ad105115e893c02a0e0c7b7c04b9d`
-> - staging workflow: `36169256499` / job `108184497969` — SUCCESS
-> - frozen catalogue blob: `b382d8e161f165f7291da34b1cb23bef06c2742d`
-> - staging D1: migrations `0000–0009`
-> - staging Product Core: 146 products, 146 variants, 22 categories, 136 media, 499 attributes
-> - parity: PASS, 0 mismatches
-> - states preserved: AUTO 128 / OUT_OF_STOCK 4 / ARRIVING_SOON 14
-> - data gaps preserved: missing price 14 / missing image 14
-> - inventory tracked: 0; no quantities invented
-> - staging Worker deployment: `64c113d8-8ef7-4178-a772-eb25899641a5`
-> - staging Worker version: `ca47249a-b70a-46f6-8c13-147ed5a8c174`
-> - read-only Products workspace + list/detail/search/filter APIs are live on staging
-> - Product POST/PATCH write routes are intentionally absent
-> - Production remains untouched: D1 migrations `0000–0008`, 3 orders
-> - storefront/checkout still use the existing catalogue authority
-> - evidence: `docs/PRODUCT-CORE-STAGING-PARITY-2026-09-25.md`
-> - execution tracker: `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
+> **PRODUCT / INVENTORY PHASE 2 — STAGING EDITOR LIVE**
+> - Phase 1 Product Core + mobile polish: COMPLETE.
+> - Phase 2 core editing capabilities: DEPLOYED TO STAGING.
+> - final release commit: `545df3d8f59f03d4a714693d991cef92344ace6d`
+> - workflow `36172797078` / job `108196158387`: SUCCESS
+> - staging deployment: `376e151f-0a0f-44b5-b91e-c0081cc8296b`
+> - staging version: `f79d2e06-858c-4e98-a579-2cc8a03f4d07`
+> - Product Core still contains 146 imported products; tracked inventory = 0.
+> - Add Product creates a private draft.
+> - Quick Edit atomically covers price / SKU / barcode / selling status / online ordering.
+> - descriptive edits use Draft → Publish.
+> - categories are editable.
+> - human-readable audit history is visible.
+> - Needs data is corrected to 15 unique actionable products; actionable Missing price = 2.
+> - public storefront/checkout are NOT cut over to D1.
+> - Production D1 remains `0000–0008`; 3 Production orders remain intact.
+> - read: `docs/PRODUCT-EDITOR-PHASE2-STAGING-2026-09-25.md`
+> - tracker: `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 
-> **NEXT WORK: owner visual sign-off of the staging Products workspace, then Phase 2 Product Editing.**
+> **NEXT WORK: Phase 2 owner mutation smoke-test, then Duplicate/Archive and Phase 3 Product Media.**
 > 1. Owner opens production `/admin` on desktop and iPhone and confirms the real UX.
 > 2. Perform one fresh production owner OTP login.
 > 3. Verify the next natural production transactional email records delivery telemetry through the enabled webhook.

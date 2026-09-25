@@ -2,7 +2,7 @@
 
 **Date:** 25 September 2026  
 **Repository:** `Mo31D/Blacksheep`  
-**Status:** PHASE 1 STAGING READ-ONLY IMPLEMENTED — visual sign-off pending  
+**Status:** PHASE 2 PRODUCT EDITOR DEPLOYED TO STAGING — owner mutation smoke-test pending  
 **Purpose:** Define the next major platform phase before changing production product/inventory architecture.
 
 ---
@@ -50,6 +50,23 @@ Verified:
 Evidence: [Product Core staging parity report](./PRODUCT-CORE-STAGING-PARITY-2026-09-25.md).
 
 Remaining Phase 1 gate: manual visual inspection of the authenticated staging Products workspace on iPhone + desktop before Phase 2 write access.
+
+## Phase 2 staging implementation — 25 September 2026
+
+The premium Product Editor is now deployed on staging.
+
+Implemented:
+- Add Product → private Draft,
+- atomic Quick Edit for price / SKU / barcode / selling status / online ordering,
+- descriptive Draft editor for name / brand / type / description / categories,
+- explicit Publish,
+- Product and Variant optimistic concurrency,
+- audit before/after history,
+- Phase 1 iPhone polish and corrected actionable data-quality metrics.
+
+Release evidence: [Phase 2 staging report](./PRODUCT-EDITOR-PHASE2-STAGING-2026-09-25.md).
+
+Production remains intentionally isolated from Product Core.
 
 ## 1. Product vision
 

@@ -54,64 +54,77 @@ Exact Phase 1 start:
 # PHASE 1 — PRODUCT CORE / READ ONLY
 
 - [x] Add D1 Product Core migration `0009_product_inventory_foundation.sql`.
-- [x] Add normalized categories.
-- [x] Add one deterministic default variant for each current product.
-- [x] Add Product audit foundation.
+- [x] Add normalized categories and deterministic default variants.
 - [x] Build deterministic legacy catalogue importer.
-- [x] Guard importer to staging + frozen catalogue blob.
 - [x] Import all 146 current products into staging D1.
-- [x] Prove ID / slug / populated SKU / populated barcode uniqueness.
-- [x] Build D1-vs-frozen-catalogue parity verifier.
-- [x] Achieve staging parity: **PASS, 0 mismatches**.
-- [x] Add authenticated Admin product-list API.
-- [x] Add authenticated Admin product-detail API.
-- [x] Keep Product POST/PATCH write routes absent.
-- [x] Add premium read-only Products workspace.
-- [x] Add product search, quality filters and sorting.
-- [x] Add responsive Product detail behaviour and generated-script regression coverage.
-- [x] Deploy Product Core/Admin to **staging only**.
-- [x] Verify staging Worker health and Admin sign-in shell.
-- [x] Preserve storefront/checkout authority; no public commerce cutover.
-- [x] Verify Production D1 remains at `0000–0008` and order count remains 3.
-- [~] Manual visual QA of the new authenticated Products workspace on iPhone Safari + desktop.
+- [x] Achieve frozen-catalogue parity: **PASS, 0 mismatches**.
+- [x] Add authenticated Product list/detail APIs.
+- [x] Add premium Products workspace/search/filter/sort.
+- [x] Deploy read-only Product Core to staging.
+- [x] Verify Production remains untouched.
+- [x] Owner iPhone QA completed from supplied screenshots.
+- [x] Polish KPI cards to 2×2 mobile grid.
+- [x] Correct Needs data from naive 28 to **15 unique actionable products**.
+- [x] Exclude scoop-priced/in-store Ice Cream flavours from actionable Missing price.
+- [x] Add compact mobile product header after scroll.
+- [x] Reset scroll when changing Admin sections.
+- [x] Add horizontal-filter scroll cue.
+- [x] Move technical identity fields into Advanced details.
+- [x] Preserve desktop split-view architecture and generated-script regression coverage.
 
-Technical exit gate:
-- every current product represented: **PASS**
-- no price/status/category/media loss: **PASS**
-- staging parity verifier: **PASS**
-- Admin read-only data path: **PASS**
-- Production untouched: **PASS**
-- owner visual sign-off of new Products view: **PENDING**
+**Status: COMPLETE. Owner explicitly requested progression to Phase 2 after the mobile review/polish.**
 
 Evidence:
-- workflow run `36169256499`
-- job `108184497969`
-- parity artifact `10879232734`
+- initial parity workflow: `36169256499`
 - `docs/PRODUCT-CORE-STAGING-PARITY-2026-09-25.md`
-
-**Status: TECHNICALLY COMPLETE; manual visual sign-off remains before Phase 2 write access.**
+- direct post-polish D1 check: actionable missing price 2 / missing image 14 / unique Needs data 15.
 
 ---
 
-# PHASE 2 — PRODUCT EDITING# PHASE 2 — PRODUCT EDITING
+# PHASE 2 — PRODUCT EDITING
 
-- [ ] Add product.
-- [ ] Edit product basics.
-- [ ] Edit price.
-- [ ] Edit SKU/barcode.
-- [ ] Edit categories.
-- [ ] Edit storefront status.
-- [ ] Draft/publish state.
-- [ ] Optimistic concurrency.
-- [ ] Audit before/after values.
-- [ ] Quick Edit sheet.
-- [ ] Full editor.
-- [ ] Duplicate/archive.
-- [ ] Product completeness warnings.
-- [ ] Staging E2E.
+- [x] Add Product as a private draft.
+- [x] Generate immutable Product UUID + safe unique slug.
+- [x] Edit product basics: name / brand / type / description.
+- [x] Edit price.
+- [x] Edit SKU / barcode with uniqueness protection.
+- [x] Edit categories.
+- [x] Edit selling status.
+- [x] Enable / disable online ordering.
+- [x] Implement Draft / Publish content state.
+- [x] Show Draft changes clearly in Product list/detail.
+- [x] Add optimistic Product concurrency.
+- [x] Add optimistic Variant concurrency.
+- [x] Make Quick Edit atomic across Product + Variant state.
+- [x] Add audit before/after payloads.
+- [x] Render human-readable Audit history.
+- [x] Add Premium Quick Edit sheet.
+- [x] Add Premium full content editor sheet.
+- [x] Add Product completeness warnings.
+- [x] Add actionable Missing price semantics.
+- [x] Protect mutations with existing Admin auth + same-origin guard.
+- [x] Add Phase 2 route/UI regression tests.
+- [x] Full Commerce CI: PASS.
+- [x] Deploy Phase 2 Product Editor to staging.
+- [x] Staging Product Core baseline guard: PASS.
+- [x] Staging health/Admin shell: PASS.
+- [x] Verify Production D1 remains `0000–0008`.
+- [ ] Duplicate product.
+- [ ] Archive product.
+- [~] Owner mutation smoke-test in authenticated staging UI.
 
-Exit gate:
-- owner no longer needs GitHub for normal text/price/status product edits.
+Current exit status:
+- normal text / price / status / SKU / barcode / category edits no longer require GitHub on staging,
+- Product editing remains isolated from the Production storefront,
+- Media upload is intentionally Phase 3,
+- numeric inventory remains intentionally disabled.
+
+Evidence:
+- staging workflow `36172797078`
+- job `108196158387`
+- staging deployment `376e151f-0a0f-44b5-b91e-c0081cc8296b`
+- staging Worker version `f79d2e06-858c-4e98-a579-2cc8a03f4d07`
+- `docs/PRODUCT-EDITOR-PHASE2-STAGING-2026-09-25.md`
 
 ---
 
@@ -233,18 +246,16 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-Complete the **manual visual sign-off** of the new staging Products workspace on iPhone Safari and desktop.
+Perform the owner **Phase 2 staging mutation smoke-test** in the authenticated Products workspace:
 
-Staging Admin:
-`https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/admin#products`
+1. Add a temporary Draft product.
+2. Quick Edit price / SKU / barcode / selling status.
+3. Edit name / description / categories as Draft.
+4. Confirm Draft changes appears.
+5. Confirm Audit history records the before/after changes.
+6. Publish the Draft inside staging Product Core.
 
-Verify:
-1. Products navigation and metrics,
-2. search/filter/sort,
-3. product images,
-4. split-view product detail on desktop,
-5. full-screen product detail/back behaviour on iPhone,
-6. no horizontal overflow,
-7. clear Read-only / Untracked / Out of stock / Arriving / data-warning states.
-
-After owner sign-off, begin **PHASE 2 — PRODUCT EDITING**. Do not apply Product Core migration to Production merely for visual QA.
+Then:
+- finish Duplicate / Archive controls,
+- proceed to **PHASE 3 — PRODUCT MEDIA** so a product can be completed from iPhone with real image upload,
+- keep Production Product Core / inventory cutover locked until later gates.
