@@ -1196,3 +1196,270 @@ export async function substituteDraftRevisionLine(
     nextVersion,
   );
 }
+
+
+export async function removeAddedRevisionLine(
+  db: D1DatabaseLike,
+  orderReference: string,
+  revisionId: string,
+  lineNumber: number,
+  expectedVersion: number,
+  actorEmail: string,
+): Promise<Record<string, unknown>> {
+  requireExpectedVersion(expectedVersion);
+  if (!Number.isInteger(lineNumber) || lineNumber < 1) {
+    throw new Error("revision_invalid_line_number");
+  }
+
+  const revision = await findRevision(db, orderReference, revisionId);
+  if (!revision) throw new Error("revision_not_found");
+  if (revision.state !== "DRAFT") throw new Error("revision_not_draft");
+  if (revision.version !== expectedVersion) {
+    throw new Error("revision_version_conflict");
+  }
+
+  const items = await revisionItems(db, revisionId);
+  const target = items.find((item) => item.lineNumber === lineNumber);
+  if (!target) throw new Error("revision_unknown_line");
+  if (target.availabilityStatus !== "ADDED" || target.sourceOrderItemId !== null) {
+    throw new Error("revision_remove_requires_added_item");
+  }
+
+  const remaining = items.filter((item) => item.lineNumber !== lineNumber);
+  if (remaining.length === 0) throw new Error("revision_cannot_remove_all_items");
+
+  const totals = calculateRevisionTotals({
+    items: remaining.map((item) => ({
+      unitPriceMinor: item.unitPriceMinor,
+      requestedQuantity: item.requestedQuantity,
+      confirmedQuantity: item.confirmedQuantity,
+      availabilityStatus: item.availabilityStatus,
+    })),
+    deliveryAmountMinor:
+      revision.fulfilmentMethod === "collection" ? 0 : revision.deliveryAmountMinor,
+    adjustmentAmountMinor: revision.adjustmentAmountMinor,
+  });
+
+  const now = new Date().toISOString();
+  const nextVersion = revision.version + 1;
+
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE order_revisions
+        SET version = ?, items_subtotal_minor = ?, final_total_minor = ?
+        WHERE id = ? AND version = ? AND state = 'DRAFT'`,
+      )
+      .bind(
+        nextVersion,
+        totals.itemsSubtotalMinor,
+        totals.finalTotalMinor,
+        revisionId,
+        revision.version,
+      ),
+    db
+      .prepare(
+        `DELETE FROM order_revision_items
+        WHERE revision_id = ? AND line_number = ?
+          AND EXISTS (
+            SELECT 1 FROM order_revisions
+            WHERE id = ? AND version = ? AND state = 'DRAFT'
+          )`,
+      )
+      .bind(revisionId, lineNumber, revisionId, nextVersion),
+    db
+      .prepare(
+        `INSERT INTO order_events (
+          order_id, event_type, from_status, to_status,
+          actor_type, actor_id, note, metadata_json, created_at
+        )
+        SELECT ?, 'ORDER_REVISION_ITEM_REMOVED', NULL, NULL, 'admin', ?, NULL, ?, ?
+        WHERE EXISTS (
+          SELECT 1 FROM order_revisions
+          WHERE id = ? AND version = ?
+        )`,
+      )
+      .bind(
+        revision.orderId,
+        actorEmail,
+        JSON.stringify({
+          revisionId,
+          revisionNumber: revision.revisionNumber,
+          lineNumber,
+          catalogProductId: target.catalogProductId,
+          version: nextVersion,
+        }),
+        now,
+        revisionId,
+        nextVersion,
+      ),
+  ]);
+
+  return verifyMutationVersion(
+    db,
+    orderReference,
+    revisionId,
+    nextVersion,
+  );
+}
+
+export async function restoreOriginalRevisionLine(
+  db: D1DatabaseLike,
+  orderReference: string,
+  revisionId: string,
+  lineNumber: number,
+  expectedVersion: number,
+  actorEmail: string,
+): Promise<Record<string, unknown>> {
+  requireExpectedVersion(expectedVersion);
+  if (!Number.isInteger(lineNumber) || lineNumber < 1) {
+    throw new Error("revision_invalid_line_number");
+  }
+
+  const revision = await findRevision(db, orderReference, revisionId);
+  if (!revision) throw new Error("revision_not_found");
+  if (revision.state !== "DRAFT") throw new Error("revision_not_draft");
+  if (revision.version !== expectedVersion) {
+    throw new Error("revision_version_conflict");
+  }
+
+  const items = await revisionItems(db, revisionId);
+  const target = items.find((item) => item.lineNumber === lineNumber);
+  if (!target) throw new Error("revision_unknown_line");
+  if (target.sourceOrderItemId === null) {
+    throw new Error("revision_restore_requires_original_item");
+  }
+
+  const original = await db
+    .prepare(
+      `SELECT
+        id,
+        line_number AS lineNumber,
+        catalog_product_id AS catalogProductId,
+        sku,
+        slug,
+        product_name AS productName,
+        unit_price_minor AS unitPriceMinor,
+        quantity
+      FROM order_items
+      WHERE id = ? AND order_id = ?
+      LIMIT 1`,
+    )
+    .bind(target.sourceOrderItemId, revision.orderId)
+    .first<OriginalOrderItemRow>();
+
+  if (!original) throw new Error("revision_original_item_not_found");
+
+  const restored = {
+    unitPriceMinor: original.unitPriceMinor,
+    requestedQuantity: original.quantity,
+    confirmedQuantity: original.quantity,
+    availabilityStatus: "CONFIRMED" as const,
+  };
+  validateRevisionItem(restored);
+
+  const totals = calculateRevisionTotals({
+    items: items.map((item) =>
+      item.lineNumber === lineNumber
+        ? restored
+        : {
+            unitPriceMinor: item.unitPriceMinor,
+            requestedQuantity: item.requestedQuantity,
+            confirmedQuantity: item.confirmedQuantity,
+            availabilityStatus: item.availabilityStatus,
+          },
+    ),
+    deliveryAmountMinor:
+      revision.fulfilmentMethod === "collection" ? 0 : revision.deliveryAmountMinor,
+    adjustmentAmountMinor: revision.adjustmentAmountMinor,
+  });
+
+  const now = new Date().toISOString();
+  const nextVersion = revision.version + 1;
+
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE order_revisions
+        SET version = ?, items_subtotal_minor = ?, final_total_minor = ?
+        WHERE id = ? AND version = ? AND state = 'DRAFT'`,
+      )
+      .bind(
+        nextVersion,
+        totals.itemsSubtotalMinor,
+        totals.finalTotalMinor,
+        revisionId,
+        revision.version,
+      ),
+    db
+      .prepare(
+        `UPDATE order_revision_items
+        SET catalog_product_id = ?,
+            sku = ?,
+            slug = ?,
+            product_name = ?,
+            unit_price_minor = ?,
+            requested_quantity = ?,
+            confirmed_quantity = ?,
+            availability_status = 'CONFIRMED',
+            reason_code = NULL,
+            customer_note = NULL,
+            internal_note = NULL,
+            line_total_minor = ?,
+            updated_at = ?
+        WHERE revision_id = ? AND line_number = ?
+          AND EXISTS (
+            SELECT 1 FROM order_revisions
+            WHERE id = ? AND version = ? AND state = 'DRAFT'
+          )`,
+      )
+      .bind(
+        original.catalogProductId,
+        original.sku,
+        original.slug,
+        original.productName,
+        original.unitPriceMinor,
+        original.quantity,
+        original.quantity,
+        original.unitPriceMinor * original.quantity,
+        now,
+        revisionId,
+        lineNumber,
+        revisionId,
+        nextVersion,
+      ),
+    db
+      .prepare(
+        `INSERT INTO order_events (
+          order_id, event_type, from_status, to_status,
+          actor_type, actor_id, note, metadata_json, created_at
+        )
+        SELECT ?, 'ORDER_REVISION_ITEM_RESTORED', NULL, NULL, 'admin', ?, NULL, ?, ?
+        WHERE EXISTS (
+          SELECT 1 FROM order_revisions
+          WHERE id = ? AND version = ?
+        )`,
+      )
+      .bind(
+        revision.orderId,
+        actorEmail,
+        JSON.stringify({
+          revisionId,
+          revisionNumber: revision.revisionNumber,
+          lineNumber,
+          catalogProductId: original.catalogProductId,
+          version: nextVersion,
+        }),
+        now,
+        revisionId,
+        nextVersion,
+      ),
+  ]);
+
+  return verifyMutationVersion(
+    db,
+    orderReference,
+    revisionId,
+    nextVersion,
+  );
+}
