@@ -154,6 +154,8 @@ Evidence:
 - [x] Product Media audit events.
 - [x] Phase 3 Admin UI + upload-validation tests.
 - [x] Immutable media-delivery route tests.
+- [x] Real R2 → Worker delivery smoke: HTTP 200 through `/media/:id` (run `36178979258`).
+- [~] Remove temporary smoke object / D1 row / temporary workflow and verify clean staging state.
 - [x] Full Commerce CI: **PASS** — latest run `36176490850` after Replace + coexistence hardening.
 - [x] Dedicated `Product Media Staging Phase 3` deployment workflow with R2 existence gate.
 - [x] Deploy Product Media to staging — workflow `36178631127` / job `108215277892` SUCCESS.
