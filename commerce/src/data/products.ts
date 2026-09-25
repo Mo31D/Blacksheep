@@ -1,4 +1,5 @@
 import type { D1DatabaseLike, D1PreparedStatementLike } from "./d1";
+import { getInventorySnapshot } from "./inventory";
 
 export interface AdminProductListFilters {
   q?: string;
@@ -27,10 +28,15 @@ export interface AdminProductSummary {
   onlineOrderingEnabled: boolean;
   inventory: {
     tracked: boolean;
-    onHand: null;
-    reserved: null;
-    available: null;
+    onHand: number | null;
+    reserved: number | null;
+    safetyStock: number | null;
+    available: number | null;
     incoming: number;
+    lowStockThreshold: number | null;
+    low: boolean;
+    out: boolean;
+    balanceVersion: number | null;
   };
   qualityFlags: string[];
   version: number;
@@ -155,18 +161,24 @@ function listWhere(filters: AdminProductListFilters): {
       conditions.push("v.track_inventory = 0");
       break;
     case "out":
-      conditions.push("p.sell_status = 'OUT_OF_STOCK'");
+      conditions.push(
+        "(p.sell_status = 'OUT_OF_STOCK' OR (v.track_inventory = 1 AND MAX(0, COALESCE(ib.on_hand,0)-COALESCE(ib.reserved,0)-COALESCE(ib.safety_stock,0)) <= 0))",
+      );
       break;
     case "incoming":
-      conditions.push("p.sell_status = 'ARRIVING_SOON'");
+      conditions.push(
+        "(p.sell_status = 'ARRIVING_SOON' OR EXISTS (SELECT 1 FROM inventory_incoming ii_filter WHERE ii_filter.variant_id=v.id AND ii_filter.location_id='loc_ambleside' AND ii_filter.status IN ('OPEN','PARTIAL') AND ii_filter.expected_quantity > ii_filter.received_quantity))",
+      );
       break;
     case "in-stock":
       conditions.push(
-        "p.sell_status = 'AUTO' AND p.online_ordering_enabled = 1 AND v.active = 1 AND v.price_minor IS NOT NULL",
+        "p.sell_status = 'AUTO' AND p.online_ordering_enabled = 1 AND v.active = 1 AND v.price_minor IS NOT NULL AND (v.track_inventory = 0 OR MAX(0, COALESCE(ib.on_hand,0)-COALESCE(ib.reserved,0)-COALESCE(ib.safety_stock,0)) > 0)",
       );
       break;
     case "low":
-      conditions.push("1 = 0");
+      conditions.push(
+        "v.track_inventory = 1 AND v.low_stock_threshold IS NOT NULL AND MAX(0, COALESCE(ib.on_hand,0)-COALESCE(ib.reserved,0)-COALESCE(ib.safety_stock,0)) > 0 AND MAX(0, COALESCE(ib.on_hand,0)-COALESCE(ib.reserved,0)-COALESCE(ib.safety_stock,0)) <= v.low_stock_threshold",
+      );
       break;
   }
 
@@ -204,12 +216,16 @@ export async function listAdminProducts(
     "p.online_ordering_enabled AS onlineOrderingEnabled, p.version, p.updated_at AS updatedAt, " +
     "p.current_draft_version_id IS NOT NULL AS hasDraft, pv.title, " +
     "v.sku, v.barcode, v.price_minor AS priceMinor, v.currency, v.track_inventory AS trackInventory, " +
+    "v.low_stock_threshold AS lowStockThreshold, ib.on_hand AS onHand, ib.reserved, " +
+    "ib.safety_stock AS safetyStock, ib.version AS balanceVersion, " +
+    "COALESCE((SELECT SUM(ii.expected_quantity-ii.received_quantity) FROM inventory_incoming ii WHERE ii.variant_id=v.id AND ii.location_id='loc_ambleside' AND ii.status IN ('OPEN','PARTIAL')),0) AS incoming, " +
     "pm.public_url AS thumbnailUrl, " +
     "EXISTS (SELECT 1 FROM product_source_records ps WHERE ps.product_id = p.id " +
     "AND ps.source_status IS NOT NULL AND TRIM(ps.source_status) <> '') AS hasSourceWarning " +
     "FROM products p " +
     "JOIN product_versions pv ON pv.id = COALESCE(p.current_draft_version_id, p.current_published_version_id) " +
     "JOIN product_variants v ON v.product_id = p.id AND v.is_default = 1 AND v.active = 1 " +
+    "LEFT JOIN inventory_balances ib ON ib.variant_id = v.id AND ib.location_id = 'loc_ambleside' " +
     "LEFT JOIN product_version_media pvm ON pvm.product_version_id = pv.id AND pvm.is_primary = 1 " +
     "LEFT JOIN product_media pm ON pm.id = pvm.media_id AND pm.deleted_at IS NULL " +
     where.sql +
@@ -233,6 +249,12 @@ export async function listAdminProducts(
     priceMinor: number | null;
     currency: string;
     trackInventory: number;
+    lowStockThreshold: number | null;
+    onHand: number | null;
+    reserved: number | null;
+    safetyStock: number | null;
+    balanceVersion: number | null;
+    incoming: number;
     thumbnailUrl: string | null;
     hasSourceWarning: number;
   }>(
@@ -253,13 +275,36 @@ export async function listAdminProducts(
     publicationStatus: row.publicationStatus,
     sellStatus: row.sellStatus,
     onlineOrderingEnabled: Number(row.onlineOrderingEnabled) === 1,
-    inventory: {
-      tracked: Number(row.trackInventory) === 1,
-      onHand: null,
-      reserved: null,
-      available: null,
-      incoming: 0,
-    },
+    inventory: (() => {
+      const tracked = Number(row.trackInventory) === 1;
+      const onHand = tracked ? Number(row.onHand ?? 0) : null;
+      const reserved = tracked ? Number(row.reserved ?? 0) : null;
+      const safetyStock = tracked ? Number(row.safetyStock ?? 0) : null;
+      const available =
+        tracked && onHand !== null && reserved !== null && safetyStock !== null
+          ? Math.max(0, onHand - reserved - safetyStock)
+          : null;
+      const lowStockThreshold =
+        row.lowStockThreshold === null ? null : Number(row.lowStockThreshold);
+      return {
+        tracked,
+        onHand,
+        reserved,
+        safetyStock,
+        available,
+        incoming: Number(row.incoming ?? 0),
+        lowStockThreshold,
+        low:
+          tracked &&
+          available !== null &&
+          available > 0 &&
+          lowStockThreshold !== null &&
+          available <= lowStockThreshold,
+        out: tracked && available !== null && available <= 0,
+        balanceVersion:
+          row.balanceVersion === null ? null : Number(row.balanceVersion),
+      };
+    })(),
     qualityFlags: qualityFlags(row),
     version: Number(row.version),
     updatedAt: row.updatedAt,
@@ -386,7 +431,7 @@ export async function getAdminProductDetail(
 
   if (!core) return null;
 
-  const [categories, media, attributes, sources, history] = await Promise.all([
+  const [categories, media, attributes, sources, history, inventory] = await Promise.all([
     allRows<Record<string, unknown>>(
       db
         .prepare(`
@@ -451,6 +496,7 @@ export async function getAdminProductDetail(
         `)
         .bind(productId),
     ),
+    getInventorySnapshot(db, String(core.variantId), "loc_ambleside"),
   ]);
 
   const priceMinor =
@@ -516,12 +562,21 @@ export async function getAdminProductDetail(
       };
     }),
     qualityFlags: quality,
-    inventory: {
-      tracked: Number(core.trackInventory) === 1,
-      onHand: null,
-      reserved: null,
-      available: null,
-      incoming: 0,
-    },
+    inventory:
+      inventory ?? {
+        tracked: Number(core.trackInventory) === 1,
+        onHand: null,
+        reserved: null,
+        safetyStock: null,
+        available: null,
+        incoming: 0,
+        lowStockThreshold:
+          core.lowStockThreshold == null ? null : Number(core.lowStockThreshold),
+        low: false,
+        out: false,
+        balanceVersion: null,
+        variantVersion: Number(core.variantVersion),
+        locationId: "loc_ambleside",
+      },
   };
 }
