@@ -105,6 +105,7 @@ Premium Admin Media Manager supports:
 - Make Primary,
 - alt text,
 - reorder with up/down controls,
+- **one-click Replace** while preserving gallery position / Primary state / alt text,
 - remove from Draft,
 - audit history.
 
@@ -134,7 +135,7 @@ The route:
 
 Latest complete Media code validation:
 
-- Commerce CI run: `36174836076` — SUCCESS
+- Commerce CI run: `36176490850` — SUCCESS
 - Search readiness: SUCCESS
 - Pages build/deployment checks: SUCCESS
 
@@ -143,6 +144,8 @@ Coverage includes:
 - valid PNG upload,
 - invalid declared-type/signature rejection,
 - immutable media delivery,
+- one-click image replacement,
+- explicit Legacy repository + R2 gallery coexistence,
 - R2-unbound failure behavior,
 - existing Commerce regressions,
 - TypeScript,
@@ -182,6 +185,6 @@ After R2 is enabled, the remaining work can continue programmatically:
 5. Perform one controlled iPhone upload.
 6. Verify Primary / reorder / alt text / remove.
 7. Verify legacy-image + R2 coexistence.
-8. Decide whether a dedicated one-click Replace action adds value beyond upload-new + remove-old.
+8. Verify the already-implemented one-click Replace flow on real R2.
 
 Production remains untouched.

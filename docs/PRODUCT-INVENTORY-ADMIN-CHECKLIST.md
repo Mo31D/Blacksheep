@@ -149,15 +149,15 @@ Evidence:
 - [x] Remove image non-destructively from the Draft.
 - [x] Preserve published-version media when Draft removes an image.
 - [x] Avoid deleting shared R2 objects still referenced by another media row.
-- [~] Replace image — implementing dedicated one-click replacement with D1-safe swap and R2 cleanup.
+- [x] Replace image — dedicated one-click replacement with atomic D1 swap, position/Primary/alt preservation and safe old-object cleanup.
 - [x] Product Media audit events.
 - [x] Phase 3 Admin UI + upload-validation tests.
 - [x] Immutable media-delivery route tests.
-- [x] Full Commerce CI: **PASS** — run `36174836076`.
+- [x] Full Commerce CI: **PASS** — latest run `36176490850` after Replace + coexistence hardening.
 - [x] Dedicated `Product Media Staging Phase 3` deployment workflow with R2 existence gate.
 - [ ] Deploy Product Media to staging — blocked until R2 is enabled and the staging bucket can be created.
 - [!] iPhone photo upload QA — blocked until the same R2 activation.
-- [~] Legacy-image coexistence — architecture supports `LEGACY_REPO` and `R2` together; live R2 E2E remains blocked.
+- [x] Legacy-image coexistence — regression test verifies `LEGACY_REPO` + `R2` in one Draft gallery; live real-R2 E2E remains blocked.
 
 Exit gate:
 - owner can create a complete product including imagery from Admin,
@@ -286,7 +286,7 @@ Do **not** create a bucket manually unless desired. Once R2 is enabled, the next
 6. Upload one controlled image from iPhone.
 7. Verify gallery / Primary / reorder / alt text / remove.
 8. Verify Legacy + R2 image coexistence.
-9. Dedicated one-click Replace is being completed in source now; live iPhone verification still waits for R2.
+9. One-click Replace is complete in source; only live R2/iPhone verification remains.
 
 Production remains locked:
 - Product Core migration `0009` is not applied to Production.

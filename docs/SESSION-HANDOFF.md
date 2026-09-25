@@ -65,9 +65,11 @@
 > - current staging deployment: `7984e631-902e-470b-bb0f-447bdb031b3b`
 > - current staging Worker version: `cdcfe773-b6cc-4910-8c86-a74f28bde66c`
 > - staging Product Core: 146 original imported products; tracked inventory = 0.
-> - Phase 3 Product Media core code is implemented and Commerce CI `36174836076` is green.
-> - Media includes secure multipart upload, 8 MB limit, JPEG/PNG/WebP magic-byte validation, SHA-256, Draft gallery, Primary, reorder, alt text, remove and audit.
+> - Phase 3 Product Media core code is implemented and latest Commerce CI `36176490850` is green.
+> - Media includes secure multipart upload, 8 MB limit, JPEG/PNG/WebP magic-byte validation, SHA-256, Draft gallery, Primary, reorder, alt text, one-click Replace, remove and audit.
 > - same-origin immutable delivery route `/media/<mediaId>` is implemented.
+> - Legacy repository images and R2 images are regression-tested in the same Draft gallery.
+> - duplicated R2 media now receives an independent media URL while safely sharing the underlying R2 object.
 > - dedicated staging release workflow: `.github/workflows/product-media-staging.yml`.
 > - **BLOCKER:** Cloudflare R2 is not enabled on the account. API returns `10042 — Please enable R2 through the Cloudflare Dashboard.`
 > - staging R2 target once enabled: `black-sheep-product-media-staging`.
