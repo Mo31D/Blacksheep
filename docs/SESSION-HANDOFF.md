@@ -55,7 +55,23 @@
 > - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 > - target: D1-backed Product + Inventory source of truth, premium Products/Stock Admin, managed media, order reservations and storefront/checkout integration.
 >
-> **NEXT WORK: post-release validation/polish only.**
+> **PRODUCT / INVENTORY NEXT PHASE — ARCHITECTURE LOCK COMPLETE**
+> - Phase 0 is complete and documented.
+> - No Product/Inventory production migration has been created or applied.
+> - Frozen catalogue baseline: 146 products at blob `b382d8e161f165f7291da34b1cb23bef06c2742d`.
+> - D1 is the planned operational product/inventory source of truth.
+> - Current catalogue/storefront remains authoritative until staging parity and explicit cutover.
+> - All migrated products start inventory-untracked; no quantity is inferred.
+> - Content uses Draft → Publish; price/status/stock are immediate audited operations.
+> - Reviewed-order reservations will be created when a reviewed version is sent and will share the current 168-hour secure-review expiry.
+> - Phase 1 is Product Core / Read Only: additive schema → deterministic importer → staging import → parity report → read-only Products Admin.
+> - Read first:
+>   - `docs/PRODUCT-INVENTORY-ARCHITECTURE-LOCK-2026-09-25.md`
+>   - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
+>   - `docs/PRODUCT-INVENTORY-D1-SCHEMA-SPEC-2026-09-25.md`
+>   - `docs/PRODUCT-STOCK-ADMIN-UX-SPEC-2026-09-25.md`
+>
+> **NEXT WORK: Phase 1 Product Core / Read Only.**
 > 1. Owner opens production `/admin` on desktop and iPhone and confirms the real UX.
 > 2. Perform one fresh production owner OTP login.
 > 3. Verify the next natural production transactional email records delivery telemetry through the enabled webhook.
