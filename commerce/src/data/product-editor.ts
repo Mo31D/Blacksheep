@@ -573,6 +573,173 @@ export async function updateAdminVariant(
   return { productId: current.productId };
 }
 
+
+export interface ProductQuickEditInput {
+  expectedVersion: unknown;
+  expectedVariantVersion: unknown;
+  priceMinor?: unknown;
+  sku?: unknown;
+  barcode?: unknown;
+  sellStatus?: unknown;
+  onlineOrderingEnabled?: unknown;
+}
+
+export async function quickEditAdminProduct(
+  db: D1DatabaseLike,
+  productId: string,
+  raw: ProductQuickEditInput,
+  actorEmail: string,
+): Promise<void> {
+  const expectedProductVersion = expectedVersion(raw.expectedVersion);
+  const expectedVariantVersion = expectedVersion(raw.expectedVariantVersion);
+
+  const current = await db
+    .prepare(
+      q(
+        "SELECT p.id, p.version AS productVersion, p.sell_status AS sellStatus,",
+        "p.online_ordering_enabled AS onlineOrderingEnabled, v.id AS variantId,",
+        "v.version AS variantVersion, v.price_minor AS priceMinor, v.sku, v.barcode",
+        "FROM products p JOIN product_variants v",
+        "ON v.product_id = p.id AND v.is_default = 1 AND v.active = 1",
+        "WHERE p.id = ? LIMIT 1",
+      ),
+    )
+    .bind(productId)
+    .first<{
+      id: string;
+      productVersion: number;
+      sellStatus: string;
+      onlineOrderingEnabled: number;
+      variantId: string;
+      variantVersion: number;
+      priceMinor: number | null;
+      sku: string | null;
+      barcode: string | null;
+    }>();
+
+  if (!current) throw new Error("product_not_found");
+  if (Number(current.productVersion) !== expectedProductVersion) {
+    throw new Error("product_version_conflict");
+  }
+  if (Number(current.variantVersion) !== expectedVariantVersion) {
+    throw new Error("product_variant_version_conflict");
+  }
+
+  const priceMinor = intMoney(raw.priceMinor, "price");
+  const sku = textValue(raw.sku, "sku", { max: 80, nullable: true });
+  const barcode = textValue(raw.barcode, "barcode", {
+    max: 80,
+    nullable: true,
+  });
+
+  let sellStatus = current.sellStatus;
+  if (raw.sellStatus !== undefined) {
+    sellStatus = String(raw.sellStatus);
+    if (!SELL_STATUSES.has(sellStatus)) {
+      throw new Error("product_sell_status_invalid");
+    }
+  }
+
+  const onlineOrderingEnabled =
+    boolValue(raw.onlineOrderingEnabled, "online_ordering") ??
+    (Number(current.onlineOrderingEnabled) === 1);
+
+  const next = {
+    priceMinor: priceMinor === undefined ? current.priceMinor : priceMinor,
+    sku: sku === undefined ? current.sku : sku,
+    barcode: barcode === undefined ? current.barcode : barcode,
+    sellStatus,
+    onlineOrderingEnabled,
+  };
+
+  await assertSkuBarcodeUnique(
+    db,
+    current.variantId,
+    next.sku,
+    next.barcode,
+  );
+
+  const token = now();
+  const nextProductVersion = expectedProductVersion + 1;
+  const nextVariantVersion = expectedVariantVersion + 1;
+  const before = {
+    priceMinor: current.priceMinor,
+    sku: current.sku,
+    barcode: current.barcode,
+    sellStatus: current.sellStatus,
+    onlineOrderingEnabled: Number(current.onlineOrderingEnabled) === 1,
+  };
+
+  try {
+    await db.batch([
+      db
+        .prepare(
+          q(
+            "UPDATE products SET sell_status = ?, online_ordering_enabled = ?,",
+            "version = version + 1, updated_at = ?",
+            "WHERE id = ? AND version = ?",
+          ),
+        )
+        .bind(
+          next.sellStatus,
+          next.onlineOrderingEnabled ? 1 : 0,
+          token,
+          productId,
+          expectedProductVersion,
+        ),
+      db
+        .prepare(
+          q(
+            "UPDATE product_variants SET price_minor = ?, sku = ?, barcode = ?,",
+            "version = version + 1, updated_at = ?",
+            "WHERE id = ? AND version = ? AND EXISTS (",
+            "SELECT 1 FROM products WHERE id = ? AND version = ? AND updated_at = ?)",
+          ),
+        )
+        .bind(
+          next.priceMinor,
+          next.sku,
+          next.barcode,
+          token,
+          current.variantId,
+          expectedVariantVersion,
+          productId,
+          nextProductVersion,
+          token,
+        ),
+      auditStatement(db, {
+        productId,
+        variantId: current.variantId,
+        eventType: "PRODUCT_QUICK_EDITED",
+        actorEmail,
+        before,
+        after: next,
+        reason: "Owner quick edit",
+        resultVersion: nextProductVersion,
+        token,
+      }),
+    ]);
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message.toLowerCase() : "";
+    if (message.includes("product_variants.sku")) {
+      throw new Error("product_sku_conflict");
+    }
+    if (message.includes("product_variants.barcode")) {
+      throw new Error("product_barcode_conflict");
+    }
+    throw cause;
+  }
+
+  await verifyProductToken(db, productId, nextProductVersion, token);
+  const variantCheck = await db
+    .prepare(
+      "SELECT id FROM product_variants WHERE id = ? AND version = ? AND updated_at = ? LIMIT 1",
+    )
+    .bind(current.variantId, nextVariantVersion, token)
+    .first<{ id: string }>();
+  if (!variantCheck) throw new Error("product_variant_version_conflict");
+}
+
 export interface ProductDraftInput {
   expectedVersion: unknown;
   changes?: Record<string, unknown>;
