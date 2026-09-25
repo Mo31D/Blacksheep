@@ -178,11 +178,13 @@ assert.match(source,/PHASE 6 LIVE COMMERCE OVERLAY LOADER START/);
 assert.match(source,/commerce-preview/);
 assert.match(source,/black-sheep-commerce-api-staging/);
 assert.match(source,/config\.liveCatalog===true/);
+assert.match(source,/previewBlocked=window\.BLACK_SHEEP_LIVE_COMMERCE\?\.preview===true/);
 assert.match(liveCommerceSource,/\/v1\/catalog\?limit=200/);
 assert.match(liveCommerceSource,/cache:'no-store'/);
 assert.match(liveCommerceSource,/commercePurchasable/);
 assert.match(liveCommerceSource,/commerceAvailable/);
 assert.match(liveCommerceSource,/dataset\.commerceLive='fallback'/);
+assert.match(liveCommerceSource,/Order submission is disabled in preview mode/);
 assert.doesNotMatch(liveCommerceSource,/rel=["']canonical|history\.replaceState|location\.pathname\s*=/);
 console.log("Phase 6 live commerce overlay contract checks passed.");
 
