@@ -74,6 +74,38 @@ describe("payment notifications", () => {
     expect(db.statements[0].values[1]).toBe("PAYMENT_REQUEST_EMAIL_SENT");
   });
 
+  it("uses the secure customer review page as the primary CTA for revised orders", async () => {
+    const db = new Db();
+    const sent: any[] = [];
+    const reviewUrl =
+      "https://api.theblacksheepshop.co.uk/review/abcdefghijklmnopqrstuvwxyzABCDEFGH";
+
+    await notifyPaymentRequest(
+      {
+        DB: db,
+        EMAIL: {
+          async send(message) {
+            sent.push(message);
+            return {};
+          },
+        },
+        ORDER_EMAIL_FROM: "orders@theblacksheepshop.co.uk",
+      },
+      {
+        ...order,
+        revisionNumber: 2,
+        reviewUrl,
+        customerMessage: "One requested item was unavailable, so we updated the order.",
+      },
+    );
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0].text).toContain(reviewUrl);
+    expect(sent[0].text).toContain("Review the confirmed version");
+    expect(sent[0].html).toContain("Review changes &amp; pay");
+    expect(sent[0].html).toContain(reviewUrl);
+  });
+
   it("does not send a payment request without a final total and URL", async () => {
     const db = new Db();
     let sends = 0;
