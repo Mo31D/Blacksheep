@@ -1,0 +1,67 @@
+name: Commerce Production Order Readonly Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/commerce-production-order-readonly-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  readonly-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: commerce
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: commerce/package.json
+
+      - name: Install commerce dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Require Cloudflare credentials
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare Actions credentials are unavailable."
+            exit 1
+          fi
+
+      - name: Read controlled production order state
+        shell: bash
+        run: |
+          SQL="SELECT public_reference AS reference,status,payment_status AS paymentStatus,fulfilment_method AS fulfilmentMethod,items_subtotal_minor AS itemsSubtotalMinor,delivery_amount_minor AS deliveryAmountMinor,final_total_minor AS finalTotalMinor,created_at AS createdAt,quoted_at AS quotedAt,paid_at AS paidAt,shipped_at AS shippedAt,completed_at AS completedAt,cancelled_at AS cancelledAt FROM orders WHERE public_reference IN ('BSR-260925-XHWRY3CV','BSR-260925-REZJU5DE','BSR-260924-2JAYTWT7') ORDER BY created_at DESC;"
+          npx wrangler d1 execute black-sheep-commerce-prod --remote --command "$SQL" --json
+
+      - name: Read controlled production order events
+        shell: bash
+        run: |
+          SQL="SELECT o.public_reference AS reference,e.event_type AS eventType,e.to_status AS toStatus,e.created_at AS createdAt FROM order_events e INNER JOIN orders o ON o.id=e.order_id WHERE o.public_reference IN ('BSR-260925-XHWRY3CV','BSR-260925-REZJU5DE','BSR-260924-2JAYTWT7') ORDER BY o.public_reference,e.created_at;"
+          npx wrangler d1 execute black-sheep-commerce-prod --remote --command "$SQL" --json
+
+      - name: Check same references in staging
+        shell: bash
+        run: |
+          SQL="SELECT public_reference AS reference,status,payment_status AS paymentStatus,fulfilment_method AS fulfilmentMethod,created_at AS createdAt,paid_at AS paidAt,completed_at AS completedAt,cancelled_at AS cancelledAt FROM orders WHERE public_reference IN ('BSR-260925-XHWRY3CV','BSR-260925-REZJU5DE','BSR-260924-2JAYTWT7') ORDER BY created_at DESC;"
+          npx wrangler d1 execute black-sheep-commerce-staging --remote --env staging --command "$SQL" --json
+
+      - name: Safety statement
+        if: always()
+        run: |
+          echo "READ-ONLY AUDIT ONLY."
+          echo "This workflow contains SELECT statements only."
+          echo "No production deploy, migration, INSERT, UPDATE, DELETE, or secret mutation command is present."
