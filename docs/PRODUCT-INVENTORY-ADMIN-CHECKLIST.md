@@ -186,7 +186,10 @@ Exit gate:
 - [x] Out-of-stock behavior inside Inventory Core — tracked Available=0 is surfaced as Out; checkout/storefront cutover remains Phase 6.
 - [x] Staging concurrency/idempotency test suite in source — UUID mutation tokens, balance versions, unique Initial Count, unique idempotency keys.
 - [x] Full Commerce CI after Phase 4 implementation — run `36182963561` SUCCESS.
-- [~] Apply `0010` + deploy Stock workspace to staging through dedicated `Inventory Core Staging Phase 4` workflow — release gate created; execution next.
+- [x] Direct post-release integrity — 147 products / 146 imported / 0 tracked / 0 balances / 0 movements / 0 incoming; 2 ledger triggers + 2 key ledger indexes present.
+- [x] Product detail ↔ Stock integration polish — actual Low/Out state, quantities and `Stock` deep-link; CI run `36183681792` SUCCESS.
+- [~] Re-deploy latest integration polish through reusable Phase 4 release gate.
+- [x] `0010` applied + Stock workspace deployed to staging — workflow `36183361766` SUCCESS.
 - [ ] Controlled owner Phase 4 stock smoke-test on a staging QA product.
 
 Exit gate:
@@ -279,7 +282,8 @@ Exit gate:
 Phase 4 source is CI-clean. Next:
 
 1. [x] Create dedicated `Inventory Core Staging Phase 4` workflow.
-2. [~] Before migration, record current staging Product/Inventory baseline and execute release.
+2. [x] Capture baseline, apply `0010`, verify no inferred stock, deploy initial Phase 4 release.
+3. [~] Make the release gate safely rerunnable after `0010` and deploy the final Product↔Stock polish.
 3. Re-run full Commerce CI.
 4. Apply forward-only `0010_inventory_core.sql` to **staging only**.
 5. Verify migration itself did not infer or enable any stock quantity.
