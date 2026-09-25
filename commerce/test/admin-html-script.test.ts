@@ -23,10 +23,15 @@ function compileInlineScripts(html: string): void {
 
 describe("generated Admin HTML scripts", () => {
   it("emits syntactically valid authenticated Admin JavaScript", () => {
-    compileInlineScripts(adminHtml("owner@example.com"));
+    const html = adminHtml("owner@example.com");
+    compileInlineScripts(html);
+    expect(html).toContain("URLSearchParams(location.search).get('order')");
+    expect(html).toContain("openOrder(requestedOrder)");
   });
 
   it("emits syntactically valid Admin login JavaScript", () => {
-    compileInlineScripts(adminLoginHtml());
+    const html = adminLoginHtml();
+    compileInlineScripts(html);
+    expect(html).toContain("location.href='/admin'+location.search+'#orders'");
   });
 });

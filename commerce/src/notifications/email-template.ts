@@ -142,3 +142,98 @@ export function itemsText(
     )
     .join("\n");
 }
+
+
+export interface OwnerOperationalEmailInput {
+  preheader: string;
+  eyebrow: string;
+  title: string;
+  reference?: string;
+  intro?: string;
+  bodyHtml?: string;
+  bodyText?: string;
+  cta?: EmailCta;
+  secondaryCta?: EmailCta;
+  privacyNote?: string;
+}
+
+export function adminOrderUrl(adminBaseUrl: string, reference: string): string {
+  const base = adminBaseUrl.trim().replace(/\/+$/, "");
+  const separator = base.includes("?") ? "&" : "?";
+  return `${base}${separator}order=${encodeURIComponent(reference)}#orders`;
+}
+
+export function renderOwnerOperationalEmail(
+  input: OwnerOperationalEmailInput,
+): { html: string; text: string } {
+  const privacyNote =
+    input.privacyNote ??
+    "Private owner notification. Customer information is shown only to help you fulfil this order.";
+
+  const text = [
+    "THE BLACK SHEEP SHOP · OWNER ADMIN",
+    "",
+    input.title,
+    input.reference ? `Order ${input.reference}` : null,
+    "",
+    input.intro,
+    input.intro ? "" : null,
+    input.bodyText,
+    input.bodyText ? "" : null,
+    input.cta ? `${input.cta.label}: ${input.cta.url}` : null,
+    input.secondaryCta
+      ? `${input.secondaryCta.label}: ${input.secondaryCta.url}`
+      : null,
+    input.cta || input.secondaryCta ? "" : null,
+    privacyNote,
+    "",
+    "The Black Sheep Shop · Ambleside",
+  ]
+    .filter((line) => line !== null && line !== undefined)
+    .join("\n");
+
+  const button = (cta: EmailCta, secondary = false) =>
+    `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="display:inline-table;margin:0 ${secondary ? "0" : "8px"} 8px 0"><tr><td style="border-radius:11px;background:${secondary ? "#fffdf9" : "#171713"};border:1px solid ${secondary ? "#cfc5b4" : "#171713"}"><a href="${escapeEmailHtml(cta.url)}" style="display:inline-block;padding:13px 18px;color:${secondary ? "#171713" : "#ffffff"};text-decoration:none;font-weight:800;font-size:14px">${escapeEmailHtml(cta.label)}</a></td></tr></table>`;
+
+  const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeEmailHtml(input.title)}</title>
+</head>
+<body style="margin:0;padding:0;background:#eee9df;color:#171713;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">${escapeEmailHtml(input.preheader)}</div>
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#eee9df">
+<tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:680px;background:#fffdf9;border:1px solid #d8cfbf;border-radius:20px;overflow:hidden;box-shadow:0 12px 32px rgba(40,31,19,.08)">
+<tr><td style="padding:20px 24px;background:#171713;color:#fff">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
+    <td>
+      <div style="font-family:Georgia,'Times New Roman',serif;font-size:25px;font-weight:700;line-height:1.05">The Black Sheep Shop</div>
+      <div style="margin-top:5px;color:#c8b382;font-size:11px;text-transform:uppercase;letter-spacing:.16em;font-weight:800">Owner operations · Ambleside</div>
+    </td>
+    <td align="right" style="vertical-align:top"><span style="display:inline-block;border:1px solid #514b40;border-radius:999px;padding:6px 9px;color:#e5dccb;font-size:10px;font-weight:700">PRIVATE ADMIN</span></td>
+  </tr></table>
+</td></tr>
+<tr><td style="padding:28px 26px">
+  <div style="font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#8a7140;font-weight:800;margin-bottom:8px">${escapeEmailHtml(input.eyebrow)}</div>
+  <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:1.08;margin:0 0 15px;color:#171713">${escapeEmailHtml(input.title)}</h1>
+  ${input.reference ? `<div style="display:inline-block;background:#f1eadc;border:1px solid #e1d6c2;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:800;margin:0 0 19px">Order ${escapeEmailHtml(input.reference)}</div>` : ""}
+  ${input.intro ? `<p style="font-size:15px;line-height:1.65;margin:0 0 18px;color:#4e493f">${escapeEmailHtml(input.intro)}</p>` : ""}
+  ${input.bodyHtml ?? ""}
+  ${input.cta || input.secondaryCta ? `<div style="margin-top:22px">${input.cta ? button(input.cta) : ""}${input.secondaryCta ? button(input.secondaryCta, true) : ""}</div>` : ""}
+</td></tr>
+<tr><td style="padding:18px 26px;background:#f7f2e8;border-top:1px solid #e8dfd0;color:#6f685d;font-size:12px;line-height:1.55">
+  <strong style="color:#171713">Owner note</strong><br>
+  ${escapeEmailHtml(privacyNote)}
+  <div style="margin-top:9px;color:#8a8378">The Black Sheep Shop · 2 Lancaster House, Lake Road, Ambleside, LA22 0AD</div>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+  return { html, text };
+}

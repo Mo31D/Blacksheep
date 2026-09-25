@@ -1,10 +1,12 @@
 import type { D1DatabaseLike } from "../data/d1";
 import { resolveEmailSender, type EmailProviderEnv } from "../notifications/email-provider";
+import { renderOwnerOperationalEmail } from "../notifications/email-template";
 
 export interface AdminAccessEnv extends EmailProviderEnv {
   DB?: D1DatabaseLike;
   ORDER_EMAIL_FROM?: string;
   ORDER_OWNER_EMAIL?: string;
+  ADMIN_BASE_URL?: string;
 }
 
 export interface AdminIdentity {
@@ -155,12 +157,37 @@ export async function requestAdminLoginCode(
   ]);
 
   try {
+    const adminUrl =
+      env.ADMIN_BASE_URL ?? "https://api.theblacksheepshop.co.uk/admin";
+    const loginEmail = renderOwnerOperationalEmail({
+      preheader: "Your Black Sheep Admin security code",
+      eyebrow: "Secure Admin sign in",
+      title: "Your one-time login code",
+      intro:
+        "Use this code to sign in to the private Black Sheep Shop Admin. It expires automatically in 10 minutes.",
+      bodyText:
+        "Login code: " +
+        code +
+        "\nExpires in: 10 minutes\n\nIf you did not request this code, ignore this email.",
+      bodyHtml:
+        '<div style="border:1px solid #d8cfbf;border-radius:16px;background:#faf6ee;padding:20px;text-align:center;margin:18px 0">' +
+        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.13em;color:#8a7140;font-weight:800">Login code</div>' +
+        '<div style="font-size:34px;letter-spacing:8px;font-weight:800;margin:9px 0 5px">' +
+        code +
+        "</div>" +
+        '<div style="font-size:12px;color:#655f56">Expires in 10 minutes</div></div>' +
+        '<p style="font-size:13px;line-height:1.6;color:#655f56;margin:0">If you did not request this code, ignore this email. Never forward or share this code.</p>',
+      cta: { label: "Open Admin", url: adminUrl },
+      privacyNote:
+        "Security message for the store owner. Never forward or share a login code.",
+    });
+
     await resolved.sender.send({
       from: { email: env.ORDER_EMAIL_FROM, name: "The Black Sheep Shop" },
-      to: email,
-      subject: `Black Sheep admin login code: ${code}`,
-      text: `Your Black Sheep admin login code is ${code}. It expires in 10 minutes.`,
-      html: `<p>Your Black Sheep admin login code is <strong style="font-size:24px;letter-spacing:4px">${code}</strong>.</p><p>It expires in 10 minutes. If you did not request this code, ignore this email.</p>`,
+      to: { email, name: "The Black Sheep Shop Owner" },
+      subject: `Black Sheep Admin code · ${code}`,
+      text: loginEmail.text,
+      html: loginEmail.html,
     });
   } catch {
     await env.DB

@@ -8,7 +8,9 @@ import {
   escapeEmailHtml,
   itemsText,
   renderItemsTable,
+  renderOwnerOperationalEmail,
   renderTransactionalEmail,
+  adminOrderUrl,
 } from "./email-template";
 
 export class CloudflareEmailOrderNotifier implements OrderNotifier {
@@ -16,43 +18,97 @@ export class CloudflareEmailOrderNotifier implements OrderNotifier {
     private readonly email: SendEmailBindingLike,
     private readonly fromEmail: string,
     private readonly ownerEmail: string,
+    private readonly adminBaseUrl: string,
   ) {}
 
   async notifyOwner(context: OrderNotificationContext): Promise<unknown> {
     const method =
       context.request.fulfilmentMethod === "collection" ? "Collection" : "Delivery";
-    const subject = `New Black Sheep order request ${context.order.publicReference}`;
-    const message = renderTransactionalEmail({
-      preheader: `${method} request · ${emailMoney(context.request.itemsSubtotalMinor)}`,
-      eyebrow: "New order request",
-      title: "A new order needs review",
+    const subject =
+      `New order · ${context.order.publicReference} · ${method} · ${emailMoney(context.request.itemsSubtotalMinor)}`;
+    const orderUrl = adminOrderUrl(
+      this.adminBaseUrl,
+      context.order.publicReference,
+    );
+    const address = context.request.deliveryAddress;
+    const addressText =
+      method === "Delivery" && address
+        ? [
+            address.line1,
+            address.line2,
+            address.town,
+            address.county,
+            address.postcode,
+            address.country,
+          ]
+            .filter(Boolean)
+            .join(", ")
+        : "Collection from Ambleside";
+    const note = context.request.customerNote?.trim() || null;
+
+    const message = renderOwnerOperationalEmail({
+      preheader: `${method} · ${context.request.customerName} · ${emailMoney(context.request.itemsSubtotalMinor)}`,
+      eyebrow: "New order · Action required",
+      title: "A new order is waiting for review",
       reference: context.order.publicReference,
-      intro: `${context.request.customerName} has submitted a ${method.toLowerCase()} request. Check availability before sending the final total.`,
+      intro:
+        "Everything below is the customer's original request. Review stock and fulfilment in Admin before sending the confirmed version.",
       bodyText: [
         `Customer: ${context.request.customerName}`,
         `Email: ${context.request.customerEmail}`,
         `Phone: ${context.request.customerPhone || "Not provided"}`,
-        `Requested fulfilment: ${method}`,
+        `Fulfilment: ${method}`,
+        `Address: ${addressText}`,
         `Items subtotal: ${emailMoney(context.request.itemsSubtotalMinor)}`,
+        note ? `Customer note: ${note}` : null,
         "",
         itemsText(context.request.items),
-      ].join("\n"),
+        "",
+        "Next action: open this order in Admin, confirm availability and prepare the reviewed quote.",
+      ]
+        .filter((line) => line !== null)
+        .join("\n"),
       bodyHtml: `
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;font-size:14px">
-          <tr><td style="padding:7px 0;color:#756f64">Customer</td><td align="right" style="padding:7px 0;font-weight:700">${escapeEmailHtml(context.request.customerName)}</td></tr>
-          <tr><td style="padding:7px 0;color:#756f64">Email</td><td align="right" style="padding:7px 0;font-weight:700">${escapeEmailHtml(context.request.customerEmail)}</td></tr>
-          <tr><td style="padding:7px 0;color:#756f64">Phone</td><td align="right" style="padding:7px 0;font-weight:700">${escapeEmailHtml(context.request.customerPhone || "Not provided")}</td></tr>
-          <tr><td style="padding:7px 0;color:#756f64">Fulfilment</td><td align="right" style="padding:7px 0;font-weight:700">${method}</td></tr>
-          <tr><td style="padding:7px 0;color:#756f64">Items subtotal</td><td align="right" style="padding:7px 0;font-weight:700">${emailMoney(context.request.itemsSubtotalMinor)}</td></tr>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:0;border:1px solid #ddd3c3;border-radius:15px;overflow:hidden;background:#faf6ee">
+          <tr>
+            <td width="50%" style="padding:14px 16px;border-right:1px solid #e4dacb;border-bottom:1px solid #e4dacb">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:.11em;color:#8a7140;font-weight:800">Customer</div>
+              <div style="font-size:16px;font-weight:800;margin-top:4px">${escapeEmailHtml(context.request.customerName)}</div>
+              <div style="font-size:12px;color:#655f56;margin-top:4px">${escapeEmailHtml(context.request.customerEmail)}</div>
+              <div style="font-size:12px;color:#655f56;margin-top:2px">${escapeEmailHtml(context.request.customerPhone || "No phone supplied")}</div>
+            </td>
+            <td width="50%" style="padding:14px 16px;border-bottom:1px solid #e4dacb">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:.11em;color:#8a7140;font-weight:800">Fulfilment</div>
+              <div style="font-size:16px;font-weight:800;margin-top:4px">${method}</div>
+              <div style="font-size:12px;line-height:1.45;color:#655f56;margin-top:4px">${escapeEmailHtml(addressText)}</div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding:14px 16px">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
+                <td style="font-size:12px;color:#655f56">Requested items subtotal</td>
+                <td align="right" style="font-size:24px;font-weight:800">${emailMoney(context.request.itemsSubtotalMinor)}</td>
+              </tr></table>
+            </td>
+          </tr>
         </table>
         ${renderItemsTable(context.request.items)}
-        <p style="font-size:14px;line-height:1.6;color:#655f56;margin:18px 0 0">Open the private owner dashboard to review availability, any changes and delivery before contacting the customer.</p>
+        ${note ? `<div style="border-left:4px solid #b98d47;background:#f7f2e8;border-radius:0 12px 12px 0;padding:13px 15px;margin:16px 0"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.11em;color:#8a7140;font-weight:800;margin-bottom:5px">Customer note</div><div style="font-size:14px;line-height:1.6;white-space:pre-wrap">${escapeEmailHtml(note)}</div></div>` : ""}
+        <div style="border:1px solid #d9e1d8;border-radius:13px;background:#f1f7f2;padding:13px 15px;margin:18px 0 0">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.11em;color:#52705e;font-weight:800">Next action</div>
+          <div style="font-size:14px;line-height:1.55;margin-top:5px">Open this order in Admin, confirm availability, then prepare the reviewed quote for the customer.</div>
+        </div>
       `,
+      cta: { label: "Open order in Admin", url: orderUrl },
+      secondaryCta: {
+        label: "Reply to customer",
+        url: `mailto:${context.request.customerEmail}`,
+      },
     });
 
     return this.email.send({
       from: { email: this.fromEmail, name: "The Black Sheep Shop" },
-      to: this.ownerEmail,
+      to: { email: this.ownerEmail, name: "The Black Sheep Shop Owner" },
       replyTo: {
         email: context.request.customerEmail,
         name: context.request.customerName,

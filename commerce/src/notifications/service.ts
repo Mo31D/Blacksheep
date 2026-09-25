@@ -16,6 +16,7 @@ export interface NotificationEnv extends EmailProviderEnv {
   DB?: D1DatabaseLike;
   ORDER_EMAIL_FROM?: string;
   ORDER_OWNER_EMAIL?: string;
+  ADMIN_BASE_URL?: string;
 }
 
 async function attemptNotification(
@@ -112,6 +113,7 @@ export async function notifyOrderSubmitted(
     resolved.sender,
     env.ORDER_EMAIL_FROM,
     env.ORDER_OWNER_EMAIL,
+    env.ADMIN_BASE_URL ?? "https://api.theblacksheepshop.co.uk/admin",
   );
   const context = { request, order };
 
