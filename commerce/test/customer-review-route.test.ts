@@ -36,7 +36,11 @@ class ReviewDb implements D1DatabaseLike {
   readonly prepared: Statement[] = [];
   readonly batched: Statement[][] = [];
 
-  constructor(private readonly available = true) {}
+  constructor(
+    private readonly available = true,
+    private readonly mutationChanged = true,
+    private readonly revisionState = "SENT",
+  ) {}
 
   prepare(query: string): Statement {
     let firstValue: unknown = null;
@@ -56,7 +60,8 @@ class ReviewDb implements D1DatabaseLike {
             customerEmail: "jane@example.com",
             revisionId: "rev-1",
             revisionNumber: 2,
-            revisionState: "SENT",
+            revisionVersion: 4,
+            revisionState: this.revisionState,
             customerMessage:
               "One requested item was unavailable, so we updated the order.",
             fulfilmentMethod: "collection",
@@ -98,8 +103,13 @@ class ReviewDb implements D1DatabaseLike {
   }
 
   async batch<T>(statements: D1PreparedStatementLike[]): Promise<T[]> {
-    this.batched.push(statements as Statement[]);
-    return [] as T[];
+    const batch = statements as Statement[];
+    this.batched.push(batch);
+    return batch.map((_, index) => ({
+      meta: {
+        changes: index === 0 ? (this.mutationChanged ? 1 : 0) : 1,
+      },
+    })) as T[];
   }
 }
 
@@ -136,7 +146,7 @@ describe("customer review route", () => {
     );
   });
 
-  it("accepts the current reviewed version and returns only an HTTPS payment target", async () => {
+  it("accepts the current reviewed version with mutation-token guarded side effects", async () => {
     const db = new ReviewDb();
     const response = await handleCustomerReviewRequest(
       new Request("https://api.example.com/review/" + token + "/accept", {
@@ -152,7 +162,67 @@ describe("customer review route", () => {
       paymentRequestUrl: "https://pay.example.test/order-1",
       reference: "BSR-260925-TEST",
     });
-    expect(db.batched.length).toBeGreaterThan(0);
+
+    expect(db.batched).toHaveLength(1);
+    expect(db.batched[0][0].sql).toContain("mutation_token");
+    expect(db.batched[0][1].sql).toContain("mutation_token");
+    expect(db.batched[0][2].sql).toContain("mutation_token");
+  });
+
+  it("returns a conflict when an accept loses a concurrent revision race", async () => {
+    const db = new ReviewDb(true, false, "SENT");
+    const response = await handleCustomerReviewRequest(
+      new Request("https://api.example.com/review/" + token + "/accept", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+      { DB: db },
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "review_conflict" },
+    });
+  });
+
+  it("returns a conflict when a decline loses a concurrent revision race", async () => {
+    const db = new ReviewDb(true, false, "SENT");
+    const response = await handleCustomerReviewRequest(
+      new Request("https://api.example.com/review/" + token + "/decline", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+      { DB: db },
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "review_conflict" },
+    });
+
+    expect(db.batched[0][1].sql).toContain("mutation_token");
+    expect(db.batched[0][2].sql).toContain("mutation_token");
+    expect(db.batched[0][3].sql).toContain("mutation_token");
+  });
+
+  it("treats an already accepted review as an idempotent accept", async () => {
+    const db = new ReviewDb(true, true, "ACCEPTED");
+    const response = await handleCustomerReviewRequest(
+      new Request("https://api.example.com/review/" + token + "/accept", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+      { DB: db },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      reference: "BSR-260925-TEST",
+    });
+    expect(db.batched).toHaveLength(0);
   });
 
   it("records a customer question against the order and revision", async () => {
