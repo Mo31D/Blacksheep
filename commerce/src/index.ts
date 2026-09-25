@@ -3,6 +3,8 @@ import { handleCreateOrder, type RateLimiterLike } from "./routes/orders";
 import { handleAdminRequest } from "./routes/admin";
 import { handleCustomerReviewRequest } from "./routes/customer-review";
 import { handleResendWebhook } from "./routes/resend-webhook";
+import { handleProductMediaRequest } from "./routes/product-media";
+import type { R2BucketLike } from "./data/product-media";
 
 interface Env {
   ENVIRONMENT?: string;
@@ -16,6 +18,7 @@ interface Env {
   RESEND_WEBHOOK_SECRET?: string;
   ORDER_EMAIL_FROM?: string;
   ORDER_OWNER_EMAIL?: string;
+  PRODUCT_MEDIA?: R2BucketLike;
 }
 
 const SERVICE = "black-sheep-commerce-api";
@@ -73,6 +76,10 @@ function preflight(request: Request, env: Env): Response {
 
 async function route(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
+
+  if (url.pathname.startsWith("/media/")) {
+    return handleProductMediaRequest(request, env);
+  }
 
   if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
     return handleAdminRequest(request, env);
