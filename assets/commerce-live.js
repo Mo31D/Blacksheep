@@ -48,6 +48,11 @@
     const ready=rows.length>0&&blackSheepCart.canCheckout();
     if(guard)guard.hidden=ready;
     if(flow)flow.hidden=!ready;
+    const submitError=document.getElementById('checkoutSubmitError');
+    if(config.preview===true&&submitError){
+      submitError.hidden=false;
+      submitError.textContent='Staging commerce preview is active. Order submission is disabled in preview mode.';
+    }
     if(typeof checkoutTurnstileChanged==='function')checkoutTurnstileChanged();
     if(ready&&window.__blackSheepCheckoutData&&typeof renderCheckoutReview==='function'){
       renderCheckoutReview(window.__blackSheepCheckoutData);
