@@ -23,6 +23,7 @@ interface Env {
   PRODUCT_MEDIA?: R2BucketLike;
   ORDER_RESERVATIONS_ENABLED?: string;
   D1_PUBLIC_CATALOG_ENABLED?: string;
+  D1_COMMERCE_AUTHORITY_ENABLED?: string;
 }
 
 const SERVICE = "black-sheep-commerce-api";
