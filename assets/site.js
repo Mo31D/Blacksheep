@@ -11,7 +11,7 @@ function cardCategories(item,type){const cats=[...(item.categories||[])];if(type
 function formatPrice(value){return typeof value==='number'?'£'+value.toFixed(2):''}
 function card(item,type){const url=itemUrl(item,type);const brand=item.brand?`<span class="brand-line">${item.brand}</span>`:'';const cats=cardCategories(item,type);const fit=item.imageFit==='contain'?' contain':'';const ph=item.placeholder===true;const out=item.stockStatus==='out-of-stock'&&item.availabilityStatus!=='arriving-soon';const arrivingSoon=item.availabilityStatus==='arriving-soon';const media=ph||!item.img?`<a class="product-img contain product-img--placeholder" href="${url}" aria-label="${item.name}"><span class="product-placeholder-media" aria-hidden="true"><strong>${ph?'Image coming soon':'Product image being added'}</strong><small>${item.sku||''}</small></span></a>`:`<a class="product-img${fit}" href="${url}" aria-label="${item.name}"><img loading="lazy" src="images/${item.img}" alt="${item.name}"></a>`;const price=typeof item.price==='number'?`<span class="product-price">${formatPrice(item.price)}</span>`:'<span class="product-price product-price--ask">Ask in store</span>';const state=arrivingSoon?'<span class="stock-card-label arriving-soon">Arriving soon</span>':(out?'<span class="stock-card-label">Out of stock</span>':'');return `<article class="product-card${out?' is-out-of-stock':''}${ph?' is-placeholder':''}" data-url="${url}" role="link" tabindex="0" data-categories="${cats.join(' ')}" data-name="${(item.name+' '+item.label+' '+(item.brand||'')+' '+(item.sku||'')).toLowerCase()}">${media}<div class="product-info"><div class="kicker">${item.label}</div><a class="product-title" href="${url}">${item.name}</a>${brand}<p class="product-desc">${item.desc}</p><div class="product-buyline">${price}${state}</div><div class="card-actions"><button class="list-add" type="button" aria-label="Add ${item.name} to basket" onclick="addToBlackSheepList(event,'${type}','${item.slug}')" >Add to basket</button></div></div></article>`}
 
-function syncCatalogCardState(root=document){if(!window.CATALOG)return;const bySlug=new Map();Object.values(window.CATALOG).forEach(list=>(list||[]).forEach(item=>bySlug.set(item.slug,item)));root.querySelectorAll('.product-card').forEach(card=>{const href=card.dataset.url||card.querySelector('.product-title,.product-img')?.getAttribute('href')||'';const m=href.match(/\/products\/([^/?#]+)\.html/);const item=m?bySlug.get(decodeURIComponent(m[1])):null;if(!item)return;const buy=card.querySelector('.product-buyline');const meta=card.querySelector('.product-meta');let priceEl=card.querySelector('.product-price');if(typeof item.price==='number'){const val=formatPrice(item.price);if(priceEl){priceEl.className='product-price';priceEl.textContent=val}else if(buy)buy.insertAdjacentHTML('afterbegin','<span class="product-price">'+val+'</span>');else if(meta)meta.insertAdjacentHTML('afterbegin','<span class="product-price">'+val+'</span>')}card.querySelectorAll('.stock-card-label,.availability-card-label').forEach(el=>el.remove());const arrivingSoon=item.availabilityStatus==='arriving-soon';const out=item.stockStatus==='out-of-stock'&&!arrivingSoon;card.classList.toggle('is-out-of-stock',out);if(buy&&arrivingSoon)buy.insertAdjacentHTML('beforeend','<span class="stock-card-label arriving-soon">Arriving soon</span>');else if(buy&&out)buy.insertAdjacentHTML('beforeend','<span class="stock-card-label">Out of stock</span>')})}
+function syncCatalogCardState(root=document){if(!window.CATALOG)return;const bySlug=new Map();Object.values(window.CATALOG).forEach(list=>(list||[]).forEach(item=>bySlug.set(item.slug,item)));root.querySelectorAll('.product-card').forEach(card=>{const href=card.dataset.url||card.querySelector('.product-title,.product-img')?.getAttribute('href')||'';const m=href.match(/\/products\/([^/?#]+)\.html/);const item=m?bySlug.get(decodeURIComponent(m[1])):null;if(!item)return;const buy=card.querySelector('.product-buyline');const meta=card.querySelector('.product-meta');let priceEl=card.querySelector('.product-price');if(typeof item.price==='number'){const val=formatPrice(item.price);if(priceEl){priceEl.className='product-price';priceEl.textContent=val}else if(buy)buy.insertAdjacentHTML('afterbegin','<span class="product-price">'+val+'</span>');else if(meta)meta.insertAdjacentHTML('afterbegin','<span class="product-price">'+val+'</span>')}else if(priceEl){priceEl.className='product-price product-price--ask';priceEl.textContent='Ask in store'}card.querySelectorAll('.stock-card-label,.availability-card-label').forEach(el=>el.remove());const arrivingSoon=item.availabilityStatus==='arriving-soon';const out=item.stockStatus==='out-of-stock'&&!arrivingSoon;const liveBlocked=item.commercePurchasable===false&&!arrivingSoon&&!out&&item.commerceUnavailableReason!=='price_unavailable';card.classList.toggle('is-out-of-stock',out);if(buy&&arrivingSoon)buy.insertAdjacentHTML('beforeend','<span class="stock-card-label arriving-soon">Arriving soon</span>');else if(buy&&out)buy.insertAdjacentHTML('beforeend','<span class="stock-card-label">Out of stock</span>');else if(buy&&liveBlocked)buy.insertAdjacentHTML('beforeend','<span class="stock-card-label">Not available online</span>')})}
 
 function productAvailabilityRank(item){if(!item)return 0;if(item.availabilityStatus==='arriving-soon')return 1;if(item.stockStatus==='out-of-stock')return 2;return 0}
 function sortProductCardsByAvailability(root=document){if(!window.CATALOG)return;const bySlug=new Map();Object.values(window.CATALOG).forEach(list=>(list||[]).forEach(item=>bySlug.set(item.slug,item)));const parents=new Set();root.querySelectorAll('.product-card').forEach(card=>{if(card.parentElement)parents.add(card.parentElement)});parents.forEach(parent=>{const cards=[...parent.children].filter(el=>el.classList?.contains('product-card'));if(cards.length<2)return;const ranked=cards.map((card,index)=>{const href=card.dataset.url||card.querySelector('.product-title,.product-img')?.getAttribute('href')||'';const m=href.match(/\/products\/([^/?#]+)\.html/);const item=m?bySlug.get(decodeURIComponent(m[1])):null;return{card,index,rank:productAvailabilityRank(item)}});ranked.sort((a,b)=>a.rank-b.rank||a.index-b.index);if(ranked.every((x,i)=>x.card===cards[i]))return;const marker=document.createComment('availability-order');parent.insertBefore(marker,cards[0]);const frag=document.createDocumentFragment();ranked.forEach(x=>frag.appendChild(x.card));marker.after(frag);marker.remove()})}
@@ -38,7 +38,7 @@ function polishListButtons(root=document){
   });
 }
 function polishProductDetails(){document.querySelectorAll('.romneys-detail .info-row').forEach(row=>{const label=row.querySelector('strong')?.textContent.trim().toLowerCase();const value=row.querySelector('span');if(!label)return;if(label==='black sheep price'||label==='price'){if(document.querySelector('.romneys-price'))row.remove();return}if(label==='availability'&&value)value.textContent=row.classList.contains('stock-row')?'Out of stock':'Check in store'});const rows=[...document.querySelectorAll('.romneys-detail .info-row')];const brand=rows.find(r=>r.querySelector('strong')?.textContent.trim().toLowerCase()==='brand')?.querySelector('span')?.textContent.trim();const manufacturer=rows.find(r=>r.querySelector('strong')?.textContent.trim().toLowerCase()==='manufacturer');if(brand&&manufacturer?.querySelector('span')?.textContent.trim()===brand)manufacturer.remove();document.querySelectorAll('.romneys-verified-note').forEach(el=>el.remove())}
-function syncStaticProductAvailability(){if(!window.CATALOG||!document.querySelector('.product-static'))return;const match=location.pathname.match(/\/products\/([^/]+)\.html$/);if(!match)return;const slug=decodeURIComponent(match[1]);let item=null;for(const list of Object.values(window.CATALOG)){item=(list||[]).find(x=>x.slug===slug);if(item)break}if(!item)return;const arriving=item.availabilityStatus==='arriving-soon';const out=item.stockStatus==='out-of-stock'&&!arriving;if(!arriving&&!out)return;const row=[...document.querySelectorAll('.product-static .info-row')].find(x=>x.querySelector('strong')?.textContent.trim().toLowerCase()==='availability');const value=row?.querySelector('span');if(row)row.classList.add('stock-row');if(value)value.textContent=arriving?'Arriving soon':'Out of stock'}
+function syncStaticProductAvailability(){if(!window.CATALOG||!document.querySelector('.product-static'))return;const match=location.pathname.match(/\/products\/([^/]+)\.html$/);if(!match)return;const slug=decodeURIComponent(match[1]);let item=null;for(const list of Object.values(window.CATALOG)){item=(list||[]).find(x=>x.slug===slug);if(item)break}if(!item)return;const rows=[...document.querySelectorAll('.product-static .info-row')];const priceRow=rows.find(x=>{const l=x.querySelector('strong')?.textContent.trim().toLowerCase();return l==='shop price'||l==='price'});if(priceRow?.querySelector('span')&&item.commerceLive===true)priceRow.querySelector('span').textContent=typeof item.price==='number'?formatPrice(item.price):'Ask in store';const row=rows.find(x=>x.querySelector('strong')?.textContent.trim().toLowerCase()==='availability');const value=row?.querySelector('span');if(!row||!value)return;const arriving=item.availabilityStatus==='arriving-soon';const out=item.stockStatus==='out-of-stock'&&!arriving;const reason=String(item.commerceUnavailableReason||'');if(item.commerceLive===true){row.classList.toggle('stock-row',arriving||out||item.commercePurchasable===false);if(arriving)value.textContent='Arriving soon';else if(out)value.textContent='Out of stock';else if(reason==='online_ordering_disabled'||reason==='not_for_sale')value.textContent='Not available to order online';else if(item.commerceInventoryTracked===true&&Number.isFinite(item.commerceAvailable))value.textContent=item.commerceAvailable>0?'Available to order · '+item.commerceAvailable+' available':'Out of stock';else value.textContent='Available to order';return}if(arriving||out){row.classList.add('stock-row');value.textContent=arriving?'Arriving soon':'Out of stock'}}
 document.addEventListener('DOMContentLoaded',()=>{wireProductCards();syncCatalogCardState();sortProductCardsByAvailability();polishListButtons();polishProductDetails();syncStaticProductAvailability()});
 function renderRomneysRange(rootId='catalog'){const root=document.getElementById(rootId);if(!root||!window.CATALOG)return;if(root.querySelector('.product-card')){initFilters();return}const romneys=(window.CATALOG.romneys||[]).map(x=>({item:x,type:'romneys'}));const own=(window.CATALOG.gifts||[]).filter(x=>(x.categories||[]).includes('local-food')).map(x=>({item:x,type:'gifts'}));root.innerHTML=[...romneys,...own].map(x=>card(x.item,x.type)).join('');initFilters()}
 function renderAllProducts(rootId='catalog'){const root=document.getElementById(rootId);if(!root||!window.CATALOG)return;if(root.querySelector('.product-card')){initFilters();return}const rows=[];for(const type of ['gifts','icecream','romneys','hawkshead','fragrances'])for(const item of (window.CATALOG[type]||[]))rows.push({item,type});root.innerHTML=rows.map(x=>card(x.item,x.type)).join('');initFilters()}
@@ -63,8 +63,18 @@ function createBlackSheepCartCore(storage,resolveProduct){
     try{return JSON.parse(value)}catch{return fallback}
   }
 
-  function productState(item){
+  function productState(item,quantity=1){
     if(!item)return{purchasable:false,reason:'missing-product'};
+    const liveReason=String(item.commerceUnavailableReason||'');
+    if(item.commercePurchasable===false){
+      if(liveReason==='arriving_soon')return{purchasable:false,reason:'arriving-soon'};
+      if(liveReason==='out_of_stock')return{purchasable:false,reason:'out-of-stock'};
+      if(liveReason==='price_unavailable')return{purchasable:false,reason:'price-unavailable'};
+      if(liveReason==='online_ordering_disabled')return{purchasable:false,reason:'not-available-online'};
+      if(liveReason==='not_for_sale')return{purchasable:false,reason:'not-for-sale'};
+      return{purchasable:false,reason:'not-available'};
+    }
+    if(item.commerceInventoryTracked===true&&Number.isFinite(item.commerceAvailable)&&Number(quantity)>item.commerceAvailable)return{purchasable:false,reason:'out-of-stock'};
     if(item.availabilityStatus==='arriving-soon')return{purchasable:false,reason:'arriving-soon'};
     if(item.stockStatus==='out-of-stock')return{purchasable:false,reason:'out-of-stock'};
     if(typeof item.price!=='number'||!Number.isFinite(item.price))return{purchasable:false,reason:'price-unavailable'};
@@ -125,7 +135,7 @@ function createBlackSheepCartCore(storage,resolveProduct){
     return getItems().map(row=>{
       const item=resolveProduct(row.type,row.slug,row.productId);
       if(!item)return null;
-      const state=productState(item);
+      const state=productState(item,row.quantity);
       const unitPrice=typeof item.price==='number'&&Number.isFinite(item.price)?item.price:null;
       return{...row,item,purchasable:state.purchasable,unavailableReason:state.reason,unitPrice,lineTotal:unitPrice===null?null:unitPrice*row.quantity};
     }).filter(Boolean);
@@ -133,7 +143,7 @@ function createBlackSheepCartCore(storage,resolveProduct){
 
   function add(type,slug,quantity=1){
     const item=resolveProduct(type,slug);
-    const state=productState(item);
+    const state=productState(item,quantity);
     if(!item||!state.purchasable)return{ok:false,reason:state.reason,item:item||null};
     const rows=getItems();
     const key=String(item.id||type+':'+slug);
@@ -151,7 +161,11 @@ function createBlackSheepCartCore(storage,resolveProduct){
     const row=rows.find(x=>x.type===type&&x.slug===slug);
     if(!row)return false;
     if(!Number.isFinite(q)||q<=0)return remove(type,slug);
-    row.quantity=Math.min(maxQuantity,Math.max(1,q));
+    const next=Math.min(maxQuantity,Math.max(1,q));
+    const item=resolveProduct(type,slug,row.productId);
+    const state=productState(item,next);
+    if(!state.purchasable)return false;
+    row.quantity=next;
     writeItems(rows);
     return true;
   }
@@ -233,6 +247,8 @@ function blackSheepUnavailableMessage(reason){
   if(reason==='arriving-soon')return'Awaiting delivery';
   if(reason==='out-of-stock')return'Currently out of stock';
   if(reason==='price-unavailable')return'Price not confirmed';
+  if(reason==='not-available-online')return'Not available to order online';
+  if(reason==='not-for-sale')return'Not available to order';
   return'Not available to order';
 }
 function addToBlackSheepList(event,type,slug){
@@ -621,3 +637,48 @@ function initCommerceLegalFooter(){
   });
 }
 document.addEventListener('DOMContentLoaded',initCommerceLegalFooter);
+
+
+/* PHASE 6 LIVE COMMERCE OVERLAY LOADER START */
+const blackSheepCommercePreviewKey='black-sheep-commerce-preview-v1';
+function blackSheepLiveCommerceConfig(){
+  const params=new URLSearchParams(location.search);
+  const requested=params.get('commerce-preview');
+  try{
+    if(requested==='staging')sessionStorage.setItem(blackSheepCommercePreviewKey,'staging');
+    else if(requested==='off')sessionStorage.removeItem(blackSheepCommercePreviewKey);
+  }catch{}
+  let preview='';
+  try{preview=sessionStorage.getItem(blackSheepCommercePreviewKey)||''}catch{}
+  if(preview==='staging'){
+    return{
+      enabled:true,
+      preview:true,
+      mode:'staging',
+      apiBase:'https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev'
+    };
+  }
+  const config=window.BLACK_SHEEP_COMMERCE_CONFIG||{};
+  if(config.liveCatalog===true&&config.apiBase){
+    return{
+      enabled:true,
+      preview:false,
+      mode:'live',
+      apiBase:String(config.apiBase)
+    };
+  }
+  return{enabled:false,preview:false,mode:'static',apiBase:''};
+}
+function loadBlackSheepLiveCommerceOverlay(){
+  const config=blackSheepLiveCommerceConfig();
+  window.BLACK_SHEEP_LIVE_COMMERCE=config;
+  if(!config.enabled||!config.apiBase)return;
+  if(document.querySelector('script[data-black-sheep-live-commerce]'))return;
+  const script=document.createElement('script');
+  script.src='/assets/commerce-live.js';
+  script.async=true;
+  script.dataset.blackSheepLiveCommerce='1';
+  document.head.appendChild(script);
+}
+document.addEventListener('DOMContentLoaded',loadBlackSheepLiveCommerceOverlay);
+/* PHASE 6 LIVE COMMERCE OVERLAY LOADER END */
