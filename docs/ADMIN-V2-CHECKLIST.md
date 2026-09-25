@@ -577,21 +577,23 @@ Status: BLOCKED UNTIL STAGING PASS.
 - [x] Synthetic order `E2E-WEBHOOK-36154963645` produced provider message `01a0d933-a6f9-7436-9306-bc028d4fcb55`.
 - [x] Signed delivery webhook event `msg_3JpG91ewU6zzT5jBiqLe8YvqRvL` reached staging; D1 message status became `DELIVERED`; replay is ready.
 
+- [x] Original Resend attempt for `msg_3JpG91ewU6zzT5jBiqLe8YvqRvL`: HTTP 200, response `{"ok":true,"duplicate":false,"tracked":true,"status":"DELIVERED"}`.
+
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Inspect the delivered Resend webhook event before replay.**
+**STEP IN PROGRESS — Capture staging D1 baseline, then replay the exact delivered webhook once.**
 
-Verified:
-- synthetic order: `E2E-WEBHOOK-36154963645`
-- provider message ID: `01a0d933-a6f9-7436-9306-bc028d4fcb55`
-- delivered webhook event ID: `msg_3JpG91ewU6zzT5jBiqLe8YvqRvL`
-- staging D1 delivery status: `DELIVERED`
-- replay-ready flag: true
+Verified before replay:
+- webhook event: `msg_3JpG91ewU6zzT5jBiqLe8YvqRvL`
+- original Resend delivery attempt: HTTP 200
+- original endpoint response: `duplicate=false`, `tracked=true`, `status=DELIVERED`
 
 Current step:
-1. confirm the event exists in the Resend webhook event list,
-2. inspect its existing delivery attempt(s),
-3. require the original attempt to have succeeded against the staging endpoint,
-4. update this checklist before replaying the exact same event.
+1. capture staging D1 baseline for this webhook event and synthetic order,
+2. record counts for `email_webhook_events` and `EMAIL_DELIVERED` order events,
+3. replay the exact same Resend event once,
+4. inspect the replay attempt response,
+5. verify D1 counts remain unchanged for duplicate-protected rows,
+6. update this checklist before cleanup.
 
-**Do not replay yet. Do not touch production.**
+**Do not clean the synthetic order before post-replay verification. Do not touch production.**
