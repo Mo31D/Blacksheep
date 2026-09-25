@@ -494,8 +494,15 @@ export async function getPaymentNotificationSnapshot(
   paymentRequestUrl: string | null;
   fulfilmentMethod: string;
   fulfilmentMessage: string | null;
+  revisionNumber: number | null;
+  customerMessage: string | null;
+  items: Array<{
+    productName: string;
+    quantity: number;
+    lineTotalMinor: number;
+  }>;
 } | null> {
-  return db
+  const order = await db
     .prepare(
       `SELECT
         o.id,
@@ -523,13 +530,87 @@ export async function getPaymentNotificationSnapshot(
           ),
           o.fulfilment_method
         ) AS fulfilmentMethod,
-        o.fulfilment_message AS fulfilmentMessage
+        o.fulfilment_message AS fulfilmentMessage,
+        (
+          SELECT r.id
+          FROM order_revisions r
+          WHERE r.order_id = o.id AND r.state IN ('SENT', 'ACCEPTED')
+          ORDER BY r.revision_number DESC
+          LIMIT 1
+        ) AS activeRevisionId,
+        (
+          SELECT r.revision_number
+          FROM order_revisions r
+          WHERE r.order_id = o.id AND r.state IN ('SENT', 'ACCEPTED')
+          ORDER BY r.revision_number DESC
+          LIMIT 1
+        ) AS revisionNumber,
+        (
+          SELECT r.customer_message
+          FROM order_revisions r
+          WHERE r.order_id = o.id AND r.state IN ('SENT', 'ACCEPTED')
+          ORDER BY r.revision_number DESC
+          LIMIT 1
+        ) AS customerMessage
       FROM orders o
       WHERE o.public_reference = ?
       LIMIT 1`,
     )
     .bind(reference)
-    .first();
+    .first<{
+      id: string;
+      publicReference: string;
+      customerName: string;
+      customerEmail: string;
+      finalTotalMinor: number | null;
+      paymentRequestUrl: string | null;
+      fulfilmentMethod: string;
+      fulfilmentMessage: string | null;
+      activeRevisionId: string | null;
+      revisionNumber: number | null;
+      customerMessage: string | null;
+    }>();
+
+  if (!order) return null;
+
+  const items = order.activeRevisionId
+    ? await allRows<{
+        productName: string;
+        quantity: number;
+        lineTotalMinor: number;
+      }>(
+        db
+          .prepare(
+            `SELECT
+              product_name AS productName,
+              confirmed_quantity AS quantity,
+              line_total_minor AS lineTotalMinor
+            FROM order_revision_items
+            WHERE revision_id = ? AND confirmed_quantity > 0
+            ORDER BY line_number ASC`,
+          )
+          .bind(order.activeRevisionId),
+      )
+    : await allRows<{
+        productName: string;
+        quantity: number;
+        lineTotalMinor: number;
+      }>(
+        db
+          .prepare(
+            `SELECT
+              product_name AS productName,
+              quantity,
+              line_total_minor AS lineTotalMinor
+            FROM order_items
+            WHERE order_id = ?
+            ORDER BY line_number ASC`,
+          )
+          .bind(order.id),
+      );
+
+  const { activeRevisionId: _activeRevisionId, ...snapshot } = order;
+  return { ...snapshot, items };
 }
 
 export async function getAdminReports(
