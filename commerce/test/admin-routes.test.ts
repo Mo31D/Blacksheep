@@ -29,7 +29,7 @@ class Statement implements D1PreparedStatementLike {
 
 class Db implements D1DatabaseLike {
   prepare(query: string): Statement {
-    if (query.includes("FROM orders") && query.includes("ORDER BY")) {
+    if (query.includes("FROM orders") && query.includes("ORDER BY created_at DESC LIMIT 100")) {
       return new Statement(query, null, []);
     }
     return new Statement(query);
@@ -55,7 +55,10 @@ describe("admin routes", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("x-robots-tag")).toContain("noindex");
-    expect(await response.text()).toContain("Black Sheep Shop");
+    const html = await response.text();
+    expect(html).toContain("Black Sheep Shop");
+    expect(html).toContain("Reports");
+    expect(html).toContain("Record refund");
   });
 
   it("returns an authenticated order list", async () => {
@@ -67,6 +70,23 @@ describe("admin routes", () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ orders: [] });
+  });
+
+  it("returns authenticated report data with a safe default period", async () => {
+    const response = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/reports?days=31"),
+      { DB: new Db() },
+      { verifyAccessFn: identity },
+    );
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      periodDays: number;
+      summary: { orderCount: number; revenueMinor: number };
+    };
+    expect(payload.periodDays).toBe(30);
+    expect(payload.summary.orderCount).toBe(0);
+    expect(payload.summary.revenueMinor).toBe(0);
   });
 
   it("shows the login page for an unauthenticated admin page request", async () => {
