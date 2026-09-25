@@ -476,15 +476,28 @@ Status: **CORE + REVIEW-EDGE ADMIN V2 STAGING E2E PASSED, and key transactional 
 
 # PHASE 11 — COMMERCE V1 REMAINING QA
 
-Historical production gaps that should be closed while V2 is staged:
+Historical production gaps that should be closed while V2 is staged.
 
-- [ ] Delivery checkout.
-- [ ] Repeat desktop checkout.
-- [ ] Duplicate order submission against real API.
-- [ ] API/network failure preserves basket.
+## Code/test state already verified
+
+- [x] Customer-facing delivery checkout fields and delivery/collection switching exist in `checkout.html`.
+- [x] Server route accepts delivery and collection and enforces the current GB-only delivery rule.
+- [x] Client keeps one UUID idempotency key in `sessionStorage` across retry attempts and removes it only after successful order creation.
+- [x] Server-side idempotent retry returns the existing order **before reusing Turnstile**; covered in `commerce/test/orders-route.test.ts`.
+- [x] Turnstile failure / replayed-token rejection is covered.
+- [x] Turnstile hostname and action mismatch checks are covered.
+- [x] Client network/API failure path does not clear the basket and explicitly tells the customer the basket is safe.
+- [x] Basket is cleared only after a successful order response.
+
+## Runtime/browser gates still open
+
+- [ ] Real delivery checkout submission through the public checkout with a valid Turnstile token.
+- [ ] Repeat desktop checkout through the live customer flow.
+- [ ] Duplicate order submission against the **real** API with one real order/idempotency key.
+- [ ] Browser-runtime verification that API/network failure preserves basket state after a failed submit.
 - [ ] Confirm controlled production test order final lifecycle state.
 
-Status: REMAINS.
+Status: **CODE BEHAVIOUR IS PRESENT AND UNIT-VERIFIED; REAL PUBLIC CHECKOUT/TURNSTILE BROWSER QA REMAINS.**
 
 ---
 
@@ -559,7 +572,7 @@ Next work, in order:
 1. obtain the **real** staging Resend webhook signing secret from the configured Resend webhook and set it as staging `RESEND_WEBHOOK_SECRET`; do not invent or derive a fake secret,
 2. run one real signed Resend webhook through staging and verify delivery-state persistence + duplicate idempotency in real D1,
 3. complete browser QA: desktop Admin workspace and iPhone Safari Admin/mobile layout; email rendering on iPhone is already verified, but Admin UI Safari QA remains open,
-4. close Phase 11 public checkout/Turnstile items (real order submission, duplicate submit, network failure basket preservation),
+4. close Phase 11 **runtime** checkout/Turnstile items only: real delivery submission, real duplicate/idempotent replay, failed-submit basket persistence and repeat desktop checkout; the underlying code/unit tests are already present,
 5. only after those gates pass, prepare the guarded production migration/deploy plan.
 
 **Do not migrate or deploy production yet.**
