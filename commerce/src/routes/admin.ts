@@ -13,6 +13,7 @@ import {
   getOrderRefundSummary,
   recordManualRefund,
 } from "../data/refunds";
+import { createCustomerReviewToken } from "../data/customer-review";
 import {
   addCatalogItemToDraftRevision,
   createDraftRevisionFromOriginal,
@@ -52,6 +53,7 @@ interface AdminDependencies {
   transitionOrderRevisionFn: typeof transitionOrderRevision;
   getOrderRefundSummaryFn: typeof getOrderRefundSummary;
   recordManualRefundFn: typeof recordManualRefund;
+  createCustomerReviewTokenFn: typeof createCustomerReviewToken;
 }
 
 const defaults: AdminDependencies = {
@@ -65,6 +67,7 @@ const defaults: AdminDependencies = {
   transitionOrderRevisionFn: transitionOrderRevision,
   getOrderRefundSummaryFn: getOrderRefundSummary,
   recordManualRefundFn: recordManualRefund,
+  createCustomerReviewTokenFn: createCustomerReviewToken,
 };
 
 function json(body: unknown, status = 200): Response {
@@ -578,7 +581,21 @@ export async function handleAdminRequest(
           const snapshot = await getPaymentNotificationSnapshot(env.DB, reference);
           if (snapshot) {
             if (actionName === "send_payment_request") {
-              await notifyPaymentRequest(env, snapshot);
+              if (snapshot.revisionNumber) {
+                const review = await deps.createCustomerReviewTokenFn(
+                  env.DB,
+                  reference,
+                );
+                await notifyPaymentRequest(env, {
+                  ...snapshot,
+                  reviewUrl:
+                    url.origin +
+                    "/review/" +
+                    encodeURIComponent(review.token),
+                });
+              } else {
+                await notifyPaymentRequest(env, snapshot);
+              }
             } else if (actionName === "mark_paid") {
               await notifyPaymentConfirmed(env, snapshot);
             } else if (actionName === "ready_for_collection") {
