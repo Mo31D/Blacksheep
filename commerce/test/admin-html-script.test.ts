@@ -1,3 +1,4 @@
+import { Script } from "node:vm";
 import { describe, expect, it } from "vitest";
 import { adminHtml, adminLoginHtml } from "../src/admin/ui";
 
@@ -12,12 +13,16 @@ function compileInlineScripts(html: string): void {
   const scripts = inlineScripts(html);
   expect(scripts.length).toBeGreaterThan(0);
 
-  for (const script of scripts) {
-    // Parse/compile exactly the JavaScript emitted into the browser.
-    // This catches template-string escaping mistakes that TypeScript
-    // cannot see because they only exist after adminHtml() renders.
-    // eslint-disable-next-line no-new-func
-    new Function(script);
+  for (const [index, script] of scripts.entries()) {
+    try {
+      new Script(script, { filename: `admin-inline-${index + 1}.js` });
+    } catch (error) {
+      const stack =
+        error instanceof Error ? error.stack ?? error.message : String(error);
+      throw new Error(
+        `Generated Admin inline script ${index + 1} does not compile.\n${stack}`,
+      );
+    }
   }
 }
 
