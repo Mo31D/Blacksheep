@@ -32,6 +32,7 @@ describe("commerce worker", () => {
         orderReservations: false,
         publicCatalog: false,
         publicCatalogContract: null,
+        commerceAuthority: false,
       },
       notifications: {
         provider: "unconfigured",
@@ -55,7 +56,23 @@ describe("commerce worker", () => {
       features: {
         publicCatalog: true,
         publicCatalogContract: "d1-published-v1",
+        commerceAuthority: false,
         orderReservations: false,
+      },
+    });
+  });
+
+  it("reports D1 checkout authority only when its explicit flag is true", async () => {
+    const response = await worker.fetch(
+      new Request("https://api.example.test/health"),
+      { ...env, D1_COMMERCE_AUTHORITY_ENABLED: "true" },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      features: {
+        commerceAuthority: true,
+        publicCatalog: false,
       },
     });
   });
