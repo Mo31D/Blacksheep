@@ -229,7 +229,8 @@ Evidence:
 - [x] Reservation foundation invariant script added and wired into Commerce CI.
 - [x] Staging-only `0011` release gate — workflow `36188861211` SUCCESS.
 - [x] Direct Cloudflare D1 verification — latest migration `0011_order_reservations.sql`; 0 reservations; 0 reservation items; existing Inventory Core state preserved.
-- [~] Reviewed quote reservation — Product Core resolution + tracked/untracked availability planning implemented; transactional hold builder next.
+- [~] Reviewed quote reservation — Product resolution, aggregate availability planning and atomic guarded hold builder implemented; revision Send integration active.
+- [x] Reservation planning/builder tests — Commerce CI `36189521854` SUCCESS.
 - [ ] Reservation release.
 - [ ] Reservation expiry policy.
 - [ ] Payment transition.
@@ -307,23 +308,18 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 5 — concurrency-safe reservation mutation builder
+## Phase 5 — integrate reservation into reviewed revision Send
 
-Completed in source:
-- legacy Product ID → Product Core resolution,
-- Product UUID fallback,
-- default active variant resolution,
-- no SKU fuzzy matching,
-- untracked/unresolved compatibility,
-- aggregate tracked-variant quantity calculation,
-- exact insufficient-stock conflict detection.
+Reservation planning and guarded hold construction now pass CI.
 
 Current sub-step:
-1. Build guarded balance reservation updates using expected balance versions.
-2. Aggregate multiple reviewed lines for the same variant into one balance mutation.
-3. Create reservation group only after every tracked balance mutation is proven to have won.
-4. Use a DB constraint assertion so a lost concurrent balance race rolls the D1 batch back instead of leaving a partial hold.
-5. Insert immutable reservation-line provenance and `ORDER_RESERVATION` movements.
-6. Add unit tests before connecting the builder to revision Send.
+1. Lock the DRAFT revision by expected revision version/mutation token.
+2. Build the live reservation plan from the exact reviewed lines.
+3. Reject insufficient tracked inventory before Send.
+4. Append guarded balance holds + reservation group/items + `ORDER_RESERVATION` movements into the same D1 batch as revision Send.
+5. Stamp revision expiry to the reservation expiry.
+6. Preserve all-untracked orders with current behaviour.
+7. Do not deploy this Send integration until release/supersede safety is in place or the workflow explicitly proves it cannot strand a hold.
+8. Add regression tests for SQL/batch ownership and concurrency guards.
 
-No Worker release will occur at this sub-step.
+Production and Phase 6 remain locked.
