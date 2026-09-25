@@ -235,9 +235,11 @@ Evidence:
 - [~] Review-token expiry alignment — source + tests added; CI pending.
 - [ ] Reservation release.
 - [~] Reservation expiry policy — lazy expiry release implementation active.
-- [~] Payment transition — COMMITTED builder milestone active.
-- [~] Fulfilment SALE movement — consume builder milestone active.
-- [~] Cancellation release — ACTIVE/COMMITTED release integration planned in same order-action transaction.
+- [x] Payment transition — ACTIVE → COMMITTED implemented atomically; no quantity change.
+- [x] Fulfilment SALE movement — COMMITTED → CONSUMED implemented; On hand + Reserved decrement together with immutable SALE ledger movement.
+- [x] Cancellation release — ACTIVE pre-payment and COMMITTED pre-fulfilment release paths integrated atomically.
+- [x] Reservation-aware Send / supersede / customer decline / lazy expiry / payment / fulfilment lifecycle source tests — Commerce CI `36191827360` SUCCESS.
+- [~] Staging runtime activation + E2E proof — active milestone.
 - [ ] Explicit return-to-stock workflow.
 - [ ] Revision/substitution inventory integration.
 - [ ] Concurrency protection.
@@ -310,18 +312,29 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 5 — payment / fulfilment reservation lifecycle
+## Phase 5 — guarded staging runtime activation
 
-Expiry source/tests are in place; reservation mode remains OFF.
+The full reservation lifecycle source is green in Commerce CI `36191827360`.
+Runtime reservation mode is still OFF.
 
-Current sub-step:
-1. Add order-state guard primitives for atomic Admin order + reservation transitions.
-2. `ACTIVE → COMMITTED` on Mark paid, with no quantity change.
-3. `COMMITTED → CONSUMED` on delivery Shipped or collection Completed.
-4. Consumption updates both `on_hand -= quantity` and `reserved -= quantity`.
-5. Record immutable `SALE` movement only at consumption.
-6. Allow cancellation to release ACTIVE or COMMITTED holds before consumption.
-7. Keep already-consumed stock unchanged on refund/cancel; return-to-stock remains explicit.
-8. Add tests before enabling the feature flag.
+Release sequence:
 
-Production remains isolated and the flag is OFF everywhere.
+1. Add an explicit feature-off route/runtime regression guard.
+2. Add `ORDER_RESERVATIONS_ENABLED=true` to **staging vars only**.
+3. Keep Production vars without the flag.
+4. Extend the dedicated Phase 5 staging workflow to:
+   - run full Commerce validation,
+   - verify staging migration ends at `0011_order_reservations.sql`,
+   - verify Production remains `0008_concurrency_guards.sql`,
+   - assert Production config does not enable reservations,
+   - deploy staging Worker only,
+   - verify staging /health reports reservation mode enabled.
+5. Run a controlled staging E2E reservation lifecycle.
+6. Run the one-unit/two-orders concurrency proof.
+7. Clean all synthetic QA rows and verify ledger/inventory integrity.
+
+Safety locks:
+- no Production Worker deploy,
+- no Production D1 migration,
+- no Phase 6 storefront/checkout inventory authority,
+- Phase 4 owner UX re-test remains separately open.
