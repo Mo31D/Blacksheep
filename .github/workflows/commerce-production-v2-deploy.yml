@@ -20,13 +20,13 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      RELEASE_SHA: 8c5462388648235acd3a41b853d1adee057a11a7
+      RELEASE_SHA: 43757734376c3c4b7f8a139ee096927bbb09a251
 
     steps:
       - name: Checkout pinned release source
         uses: actions/checkout@v4
         with:
-          ref: 8c5462388648235acd3a41b853d1adee057a11a7
+          ref: 43757734376c3c4b7f8a139ee096927bbb09a251
           fetch-depth: 1
 
       - name: Verify pinned release SHA
@@ -108,4 +108,4 @@ jobs:
           echo "Pinned source: $RELEASE_SHA"
           echo "This workflow performs Worker deploy only."
           echo "It does not apply production migrations."
-          echo "Production webhook remains disabled until this workflow passes."
+          echo "This release does not change the enabled production Resend webhook configuration."
