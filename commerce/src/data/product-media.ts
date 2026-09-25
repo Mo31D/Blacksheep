@@ -632,6 +632,215 @@ export async function removeAdminProductMedia(
   };
 }
 
+
+export interface ReplaceProductMediaInput {
+  expectedVersion: unknown;
+  mediaId?: string;
+  storageKey: string;
+  publicUrl: string;
+  mimeType: string;
+  width?: number | null;
+  height?: number | null;
+  fileSize: number;
+  checksumSha256: string;
+  altText?: unknown;
+}
+
+export async function replaceAdminProductMedia(
+  db: D1DatabaseLike,
+  productId: string,
+  oldMediaId: string,
+  raw: ReplaceProductMediaInput,
+  actorEmail: string,
+): Promise<{
+  mediaId: string;
+  oldStorageProvider: string;
+  oldStorageKey: string;
+  shouldDeleteOldObject: boolean;
+}> {
+  const expected = expectedVersion(raw.expectedVersion);
+  const current = await db
+    .prepare(
+      q(
+        "SELECT p.version, p.current_draft_version_id AS draftVersionId,",
+        "pm.storage_provider AS storageProvider, pm.storage_key AS storageKey,",
+        "pvm.position, pvm.is_primary AS isPrimary, pvm.alt_text AS altText,",
+        "pvm.display_fit AS displayFit",
+        "FROM products p",
+        "JOIN product_version_media pvm",
+        "ON pvm.product_version_id = p.current_draft_version_id",
+        "JOIN product_media pm ON pm.id = pvm.media_id AND pm.product_id = p.id",
+        "WHERE p.id = ? AND pvm.media_id = ? AND pm.deleted_at IS NULL LIMIT 1",
+      ),
+    )
+    .bind(productId, oldMediaId)
+    .first<{
+      version: number;
+      draftVersionId: string;
+      storageProvider: string;
+      storageKey: string;
+      position: number;
+      isPrimary: number;
+      altText: string | null;
+      displayFit: string | null;
+    }>();
+
+  if (!current) throw new Error("product_media_not_found");
+  if (Number(current.version) !== expected) {
+    throw new Error("product_version_conflict");
+  }
+
+  const newMediaId = raw.mediaId?.trim() || uid("med");
+  const altText =
+    raw.altText === undefined
+      ? current.altText
+      : textValue(raw.altText, "alt_text", 240);
+  const token = now();
+  const resultVersion = expected + 1;
+
+  await db.batch([
+    db
+      .prepare(
+        "UPDATE products SET version = version + 1, updated_at = ? WHERE id = ? AND version = ?",
+      )
+      .bind(token, productId, expected),
+    db
+      .prepare(
+        q(
+          "INSERT INTO product_media (",
+          "id, product_id, variant_id, storage_provider, storage_key, public_url,",
+          "mime_type, width, height, file_size, checksum_sha256, created_by,",
+          "created_at, deleted_at",
+          ") SELECT ?, ?, NULL, 'R2', ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL",
+          "FROM products WHERE id = ? AND version = ? AND updated_at = ?",
+        ),
+      )
+      .bind(
+        newMediaId,
+        productId,
+        raw.storageKey,
+        raw.publicUrl,
+        raw.mimeType,
+        raw.width ?? null,
+        raw.height ?? null,
+        raw.fileSize,
+        raw.checksumSha256,
+        actorEmail,
+        token,
+        productId,
+        resultVersion,
+        token,
+      ),
+    db
+      .prepare(
+        q(
+          "DELETE FROM product_version_media",
+          "WHERE product_version_id = ? AND media_id = ?",
+          "AND EXISTS (SELECT 1 FROM products WHERE id = ? AND version = ? AND updated_at = ?)",
+        ),
+      )
+      .bind(
+        current.draftVersionId,
+        oldMediaId,
+        productId,
+        resultVersion,
+        token,
+      ),
+    db
+      .prepare(
+        q(
+          "INSERT INTO product_version_media (",
+          "product_version_id, media_id, position, is_primary, alt_text, display_fit",
+          ") SELECT ?, ?, ?, ?, ?, ? FROM products",
+          "WHERE id = ? AND version = ? AND updated_at = ?",
+        ),
+      )
+      .bind(
+        current.draftVersionId,
+        newMediaId,
+        current.position,
+        Number(current.isPrimary) === 1 ? 1 : 0,
+        altText,
+        current.displayFit ?? "CONTAIN",
+        productId,
+        resultVersion,
+        token,
+      ),
+    db
+      .prepare(
+        q(
+          "UPDATE product_media SET deleted_at = ?",
+          "WHERE id = ? AND NOT EXISTS (",
+          "SELECT 1 FROM product_version_media WHERE media_id = ?",
+          ") AND EXISTS (",
+          "SELECT 1 FROM products WHERE id = ? AND version = ? AND updated_at = ?",
+          ")",
+        ),
+      )
+      .bind(
+        token,
+        oldMediaId,
+        oldMediaId,
+        productId,
+        resultVersion,
+        token,
+      ),
+    auditStatement(db, {
+      productId,
+      eventType: "PRODUCT_MEDIA_REPLACED",
+      actorEmail,
+      before: {
+        mediaId: oldMediaId,
+        storageProvider: current.storageProvider,
+        storageKey: current.storageKey,
+        position: current.position,
+        isPrimary: Number(current.isPrimary) === 1,
+        altText: current.altText,
+      },
+      after: {
+        mediaId: newMediaId,
+        storageProvider: "R2",
+        storageKey: raw.storageKey,
+        position: current.position,
+        isPrimary: Number(current.isPrimary) === 1,
+        altText,
+        mimeType: raw.mimeType,
+        fileSize: raw.fileSize,
+      },
+      reason: "Owner replaced product image in draft gallery",
+      resultVersion,
+      token,
+    }),
+  ]);
+
+  await verifyProductToken(db, productId, resultVersion, token);
+
+  const oldMediaRow = await db
+    .prepare(
+      "SELECT deleted_at AS deletedAt FROM product_media WHERE id = ? LIMIT 1",
+    )
+    .bind(oldMediaId)
+    .first<{ deletedAt: string | null }>();
+
+  let shouldDeleteOldObject = false;
+  if (oldMediaRow?.deletedAt && current.storageProvider === "R2") {
+    const remaining = await db
+      .prepare(
+        "SELECT COUNT(*) AS count FROM product_media WHERE storage_provider = 'R2' AND storage_key = ? AND deleted_at IS NULL",
+      )
+      .bind(current.storageKey)
+      .first<{ count: number }>();
+    shouldDeleteOldObject = Number(remaining?.count ?? 0) === 0;
+  }
+
+  return {
+    mediaId: newMediaId,
+    oldStorageProvider: current.storageProvider,
+    oldStorageKey: current.storageKey,
+    shouldDeleteOldObject,
+  };
+}
+
 export async function getR2MediaStorage(
   db: D1DatabaseLike,
   mediaId: string,
