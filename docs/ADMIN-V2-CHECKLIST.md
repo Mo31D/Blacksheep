@@ -592,18 +592,30 @@ Status: **READY — all staging exit gates are closed. Production release has no
 
 - [x] Production release source SHA pinned: `8c5462388648235acd3a41b853d1adee057a11a7`. Later `main` commits are non-runtime docs/tests/staging-workflow only.
 
+- [x] Production pre-flight recovery snapshot captured:
+  - Worker deployment ID: `f1ff4d67-bda6-4330-b4ae-961ea8d55f95`
+  - Worker version: `938f0651-20b5-48df-a8d4-f84defbb263d` at 100%
+  - D1 database: `black-sheep-commerce-prod`
+  - D1 ID: `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
+  - D1 region: `WEUR`
+  - current migration level: `0000–0002`
+  - Time Travel bookmark: `00000026-00000000-000050f1-4416edcc1a9b9a288fa8099919e4b5be`
+
 # EXACT NEXT ACTION
 
-**PHASE 13 PRE-FLIGHT — STEP 3 IN PROGRESS: capture production recovery/current state.**
+**PHASE 13 PRE-FLIGHT — STEP 4 IN PROGRESS: final review of migrations 0003–0008.**
 
-Pinned release source:
-- `8c5462388648235acd3a41b853d1adee057a11a7`
+Production baseline:
+- release source SHA: `8c5462388648235acd3a41b853d1adee057a11a7`
+- Worker version: `938f0651-20b5-48df-a8d4-f84defbb263d`
+- D1 currently through `0002_order_fulfilment_message.sql`
+- recovery bookmark: `00000026-00000000-000050f1-4416edcc1a9b9a288fa8099919e4b5be`
 
 Current step:
-1. read current production Worker deployment/version state,
-2. read production D1 migration level,
-3. discover and capture a D1 recovery/bookmark/time-travel point if supported,
-4. record production database identity and current state,
-5. update this checklist before reviewing migrations `0003–0008`.
+1. read migration files `0003–0008` from the pinned release source,
+2. verify ordering and dependencies,
+3. identify destructive operations, table rebuilds, data backfills, irreversible changes or assumptions,
+4. confirm the exact production migration set is only `0003–0008`,
+5. update this checklist with a go/no-go result.
 
-**Read-only only. No production migration, deploy, secret or data mutation.**
+**Review only. Do not apply migrations or deploy production in this step.**
