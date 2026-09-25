@@ -22,6 +22,8 @@ import {
   createDraftRevisionFromOriginal,
   getOrderRevisionDetail,
   listOrderRevisions,
+  removeAddedRevisionLine,
+  restoreOriginalRevisionLine,
   substituteDraftRevisionLine,
   transitionOrderRevision,
   updateDraftRevision,
@@ -54,6 +56,8 @@ interface AdminDependencies {
   updateDraftRevisionFn: typeof updateDraftRevision;
   addCatalogItemToDraftRevisionFn: typeof addCatalogItemToDraftRevision;
   substituteDraftRevisionLineFn: typeof substituteDraftRevisionLine;
+  removeAddedRevisionLineFn: typeof removeAddedRevisionLine;
+  restoreOriginalRevisionLineFn: typeof restoreOriginalRevisionLine;
   transitionOrderRevisionFn: typeof transitionOrderRevision;
   getOrderRefundSummaryFn: typeof getOrderRefundSummary;
   recordManualRefundFn: typeof recordManualRefund;
@@ -68,6 +72,8 @@ const defaults: AdminDependencies = {
   updateDraftRevisionFn: updateDraftRevision,
   addCatalogItemToDraftRevisionFn: addCatalogItemToDraftRevision,
   substituteDraftRevisionLineFn: substituteDraftRevisionLine,
+  removeAddedRevisionLineFn: removeAddedRevisionLine,
+  restoreOriginalRevisionLineFn: restoreOriginalRevisionLine,
   transitionOrderRevisionFn: transitionOrderRevision,
   getOrderRefundSummaryFn: getOrderRefundSummary,
   recordManualRefundFn: recordManualRefund,
@@ -411,6 +417,98 @@ export async function handleAdminRequest(
               ? 409
               : 400;
       return error(code, status, status === 409 ? "The draft changed or that substitute cannot be used." : "Unable to substitute product.");
+    }
+  }
+
+  const revisionLineMutationMatch = url.pathname.match(
+    /^\/admin\/api\/orders\/([^/]+)\/revisions\/([^/]+)\/items\/(\d+)\/(reset)$/,
+  );
+  if (revisionLineMutationMatch && request.method === "POST") {
+    const reference = decodeURIComponent(revisionLineMutationMatch[1]);
+    const revisionId = decodeURIComponent(revisionLineMutationMatch[2]);
+    const lineNumber = Number(revisionLineMutationMatch[3]);
+
+    let raw: unknown;
+    try {
+      raw = await readJson(request);
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "admin_invalid_request";
+      return error(code, code === "admin_payload_too_large" ? 413 : 400, "Invalid revision reset.");
+    }
+
+    const expectedVersion =
+      raw && typeof raw === "object" && !Array.isArray(raw)
+        ? Number((raw as Record<string, unknown>).expectedVersion)
+        : NaN;
+
+    try {
+      const revision = await deps.restoreOriginalRevisionLineFn(
+        env.DB,
+        reference,
+        revisionId,
+        lineNumber,
+        expectedVersion,
+        identity.email,
+      );
+      return json({ revision });
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "revision_restore_failed";
+      const status =
+        code === "revision_not_found" ||
+        code === "revision_unknown_line" ||
+        code === "revision_original_item_not_found"
+          ? 404
+          : code === "revision_version_conflict" ||
+              code === "revision_not_draft" ||
+              code === "revision_restore_requires_original_item"
+            ? 409
+            : 400;
+      return error(code, status, status === 409 ? "The reviewed version changed. Reload and try again." : "Unable to restore requested item.");
+    }
+  }
+
+  const revisionLineDeleteMatch = url.pathname.match(
+    /^\/admin\/api\/orders\/([^/]+)\/revisions\/([^/]+)\/items\/(\d+)$/,
+  );
+  if (revisionLineDeleteMatch && request.method === "DELETE") {
+    const reference = decodeURIComponent(revisionLineDeleteMatch[1]);
+    const revisionId = decodeURIComponent(revisionLineDeleteMatch[2]);
+    const lineNumber = Number(revisionLineDeleteMatch[3]);
+
+    let raw: unknown;
+    try {
+      raw = await readJson(request);
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "admin_invalid_request";
+      return error(code, code === "admin_payload_too_large" ? 413 : 400, "Invalid revision item removal.");
+    }
+
+    const expectedVersion =
+      raw && typeof raw === "object" && !Array.isArray(raw)
+        ? Number((raw as Record<string, unknown>).expectedVersion)
+        : NaN;
+
+    try {
+      const revision = await deps.removeAddedRevisionLineFn(
+        env.DB,
+        reference,
+        revisionId,
+        lineNumber,
+        expectedVersion,
+        identity.email,
+      );
+      return json({ revision });
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "revision_remove_failed";
+      const status =
+        code === "revision_not_found" || code === "revision_unknown_line"
+          ? 404
+          : code === "revision_version_conflict" ||
+              code === "revision_not_draft" ||
+              code === "revision_remove_requires_added_item"
+            ? 409
+            : 400;
+      return error(code, status, status === 409 ? "The reviewed version changed. Reload and try again." : "Unable to remove reviewed item.");
     }
   }
 
