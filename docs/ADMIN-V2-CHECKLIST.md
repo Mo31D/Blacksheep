@@ -675,25 +675,25 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
   - Workers.dev Admin page: reachable
   - initial missing `webhookConfigured` was a propagation/timing issue, not a routing or secret-retention defect
 
+- [!] Post-deploy health gate first attempt: Worker deploy succeeded to version `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`, but the immediate public health response omitted `webhookConfigured`; production webhook therefore remains disabled.
+- [x] Routing/binding diagnosis: `api.theblacksheepshop.co.uk` is attached to `black-sheep-commerce-api` production, current deployment is `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac` at 100%, and `RESEND_WEBHOOK_SECRET` is present in current Worker bindings.
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — STEP 4 IN PROGRESS: enable the production Resend webhook.**
+**PHASE 13 EXECUTION — STEP 3A IN PROGRESS: health-only propagation recheck.**
 
-Verified production state:
-- Worker version `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`: deployed
-- production D1 migrations `0000–0008`: complete
-- `RESEND_WEBHOOK_SECRET`: present
-- custom-domain health: PASS with `webhookConfigured=true`
-- Workers.dev health: PASS with `webhookConfigured=true`
-- Admin page: reachable on both endpoints
-- production webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0`
-- production webhook status: disabled
+Confirmed:
+- production deploy succeeded
+- current Worker version: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`
+- custom domain routes to the correct Worker
+- `RESEND_WEBHOOK_SECRET` is present in current bindings
+- production Resend webhook remains disabled
 
 Current step:
-1. enable the production Resend webhook,
-2. verify its endpoint/status/event set,
-3. record the final production Worker deployment/version,
-4. verify production D1 migration level remains `0000–0008`,
-5. update checklist + session handoff with the completed release state.
+1. perform a health-only recheck with no Worker/D1 mutation,
+2. require `status=ok`, `environment=production`, `database=bound`,
+3. require Resend configured and `webhookConfigured=true`,
+4. verify `/admin` is reachable,
+5. update this checklist before enabling the production webhook.
 
-**No further code or database mutation is planned after webhook enable unless verification finds a defect.**
+**Do not redeploy or re-add the secret during this step.**
