@@ -1,0 +1,94 @@
+name: Commerce Staging V2 Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/commerce-staging-v2-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: commerce
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: commerce/package.json
+
+      - name: Install commerce dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Require Cloudflare deployment credentials
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare Actions credentials are unavailable."
+            exit 1
+          fi
+
+      - name: Full pre-deploy validation
+        run: npm run check
+
+      - name: Record staging migrations before deploy
+        run: npm run db:migrations:list:staging
+
+      - name: Apply staging migrations only
+        run: npm run db:migrate:staging
+
+      - name: Confirm staging migrations after apply
+        run: npm run db:migrations:list:staging
+
+      - name: Deploy staging Worker only
+        id: deploy
+        shell: bash
+        run: |
+          set -o pipefail
+          npx wrangler deploy --env staging 2>&1 | tee /tmp/staging-deploy.log
+          STAGING_URL="$(grep -Eo 'https://[^[:space:]]+\.workers\.dev' /tmp/staging-deploy.log | tail -1 || true)"
+          echo "url=$STAGING_URL" >> "$GITHUB_OUTPUT"
+          if [ -n "$STAGING_URL" ]; then
+            echo "Staging URL detected: $STAGING_URL"
+          else
+            echo "::warning::Staging workers.dev URL was not detected in Wrangler output."
+          fi
+
+      - name: Record deployed staging Worker state
+        run: |
+          npx wrangler deployments status --env staging --json
+          npx wrangler deployments list --env staging --json
+
+      - name: Verify staging health
+        if: steps.deploy.outputs.url != ''
+        env:
+          STAGING_URL: ${{ steps.deploy.outputs.url }}
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --max-time 20 "$STAGING_URL/health" | tee /tmp/staging-health.json
+          echo
+          node - <<'NODE'
+          const fs = require("fs");
+          const health = JSON.parse(fs.readFileSync("/tmp/staging-health.json", "utf8"));
+          if (health.status !== "ok") throw new Error("staging health status is not ok");
+          if (health.environment !== "staging") throw new Error("staging environment marker is incorrect");
+          if (health.database !== "bound") throw new Error("staging D1 binding is not active");
+          console.log("Staging health verified.");
+          NODE
+
+      - name: Safety confirmation
+        run: |
+          echo "Staging-only deployment completed."
+          echo "Production Worker and production D1 were not modified by this workflow."
