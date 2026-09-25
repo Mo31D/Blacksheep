@@ -77,7 +77,10 @@ import {
   listInventoryLocations,
   physicalInventoryCount,
 } from "../data/inventory";
-import { expireDueReservations } from "../data/order-reservations";
+import {
+  expireDueReservations,
+  getRevisionReservationAdminView,
+} from "../data/order-reservations";
 
 export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
   DB?: D1DatabaseLike;
@@ -90,6 +93,7 @@ interface AdminDependencies {
   listOrderRevisionsFn: typeof listOrderRevisions;
   createDraftRevisionFromOriginalFn: typeof createDraftRevisionFromOriginal;
   getOrderRevisionDetailFn: typeof getOrderRevisionDetail;
+  getRevisionReservationAdminViewFn: typeof getRevisionReservationAdminView;
   updateDraftRevisionFn: typeof updateDraftRevision;
   addCatalogItemToDraftRevisionFn: typeof addCatalogItemToDraftRevision;
   addDraftRevisionAdjustmentFn: typeof addDraftRevisionAdjustment;
@@ -131,6 +135,7 @@ const defaults: AdminDependencies = {
   listOrderRevisionsFn: listOrderRevisions,
   createDraftRevisionFromOriginalFn: createDraftRevisionFromOriginal,
   getOrderRevisionDetailFn: getOrderRevisionDetail,
+  getRevisionReservationAdminViewFn: getRevisionReservationAdminView,
   updateDraftRevisionFn: updateDraftRevision,
   addCatalogItemToDraftRevisionFn: addCatalogItemToDraftRevision,
   addDraftRevisionAdjustmentFn: addDraftRevisionAdjustment,
@@ -1143,9 +1148,16 @@ export async function handleAdminRequest(
     const reference = decodeURIComponent(revisionDetailMatch[1]);
     const revisionId = decodeURIComponent(revisionDetailMatch[2]);
     const revision = await deps.getOrderRevisionDetailFn(env.DB, reference, revisionId);
-    return revision
-      ? json({ revision })
-      : error("revision_not_found", 404, "Revision not found.");
+    if (!revision) {
+      return error("revision_not_found", 404, "Revision not found.");
+    }
+    const inventory =
+      env.ORDER_RESERVATIONS_ENABLED === "true"
+        ? await deps.getRevisionReservationAdminViewFn(env.DB, revisionId)
+        : null;
+    return json({
+      revision: inventory ? { ...revision, inventory } : revision,
+    });
   }
 
   if (revisionDetailMatch && request.method === "PATCH") {
