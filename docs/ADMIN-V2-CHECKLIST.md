@@ -658,31 +658,34 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
 - [x] Production Resend webhook already exists at `https://api.theblacksheepshop.co.uk/webhooks/resend`, ID `db1d278b-aea6-4b52-90f4-b233252f5cf0`, currently disabled.
 - [!] Production Worker still lacks `RESEND_WEBHOOK_SECRET`; this is the only blocker before Worker deployment.
 
+- [~] Production deploy run `36158808691`, job `108149918754`:
+  - pinned source checkout: PASS
+  - release checks: PASS
+  - production migrations already complete: PASS
+  - Worker deploy: PASS
+  - deployed Worker Version ID: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`
+  - post-deploy health gate: FAIL because `webhookConfigured` was missing from the response
+  - production webhook remains disabled
+  - Admin page verification was skipped because health gate failed
+
 # EXACT NEXT ACTION
 
-**MANUAL SECURITY GATE — add the existing production Resend webhook signing secret to the production Worker.**
+**PHASE 13 EXECUTION — STEP 3A IN PROGRESS: diagnose post-deploy health routing/binding mismatch.**
 
-Current state:
-- production D1 migrations `0000–0008`: COMPLETE / VERIFIED
-- production Worker version: still `938f0651-20b5-48df-a8d4-f84defbb263d`
-- production webhook: EXISTS / DISABLED
-- production `RESEND_WEBHOOK_SECRET`: MISSING
-- automatic connector transfer: BLOCKED by safety layer
-- production deploy: NOT STARTED
+Known facts:
+- pinned Worker deploy succeeded: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`
+- production health response is otherwise healthy: `status=ok`, `environment=production`, `database=bound`, Resend provider/from/key checks pass
+- health response omitted `webhookConfigured`
+- pinned source definitely includes `notifications.webhookConfigured`
+- production secret `RESEND_WEBHOOK_SECRET` was installed before deploy
+- production webhook remains disabled
 
-Manual action required:
-1. Resend → Webhooks → production endpoint `https://api.theblacksheepshop.co.uk/webhooks/resend`,
-2. copy its Signing Secret,
-3. Cloudflare → Workers & Pages → `black-sheep-commerce-api` → Production → Settings → Variables and Secrets,
-4. add **Secret** named `RESEND_WEBHOOK_SECRET`,
-5. paste the signing secret and save.
+Current step:
+1. verify the secret still exists after deploy,
+2. inspect current Worker deployment/version,
+3. inspect production custom-domain/routes for `api.theblacksheepshop.co.uk`,
+4. compare custom-domain health with the direct Workers.dev endpoint,
+5. determine whether this is secret retention or routing/propagation,
+6. update this checklist before any remediation.
 
-After the user confirms this is done:
-- verify the production secret binding exists,
-- deploy pinned source SHA `8c5462388648235acd3a41b853d1adee057a11a7`,
-- verify production `/health`,
-- enable the production Resend webhook,
-- perform production Admin/OTP/browser smoke checks,
-- update this checklist and handoff.
-
-**Do not deploy before the secret binding is confirmed.**
+**Do not enable the production webhook until the health response proves `webhookConfigured=true`.**
