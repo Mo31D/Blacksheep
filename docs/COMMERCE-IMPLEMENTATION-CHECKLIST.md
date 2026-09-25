@@ -242,7 +242,7 @@ Status: IN PROGRESS; production shell/configuration prepared, public checkout st
 - [x] Confirm Cloudflare DNS has `api.theblacksheepshop.co.uk` as a proxied Worker record targeting `black-sheep-commerce-api`.
 - [x] Verify `/health` on `api.theblacksheepshop.co.uk` over an external mobile network: environment=`production`, database=`bound`, Resend configured, owner configured.
 - [x] Verify production `/admin` UI loads on the production `workers.dev` URL.
-- [ ] Verify production owner OTP login and order list.
+- [x] Verify production owner OTP login on `api.theblacksheepshop.co.uk` and confirm the production order list loads successfully (currently empty, as expected for the new production D1).
 - [x] Verify `api.theblacksheepshop.co.uk` is reachable over HTTPS from an external mobile network. Any remaining failure on the original Wi-Fi/device path is local resolver/cache propagation, not a production API or Cloudflare routing failure.
 - [ ] Point checkout config to production API and switch public feature gates ON.
 - [ ] Test delivery + collection on mobile/desktop.
@@ -288,8 +288,8 @@ Completed in the production setup:
 Next:
 1. Production health is verified on `https://black-sheep-commerce-api.ky6vfb55p9.workers.dev/health` with environment=`production`, D1 bound and Resend/owner configuration present.
 2. `https://api.theblacksheepshop.co.uk/health` is now verified from an external mobile network and returns the correct production health JSON. Any failure on the original Wi-Fi/device path is local DNS/cache propagation only.
-3. Production `/admin` UI is confirmed to load on the `workers.dev` URL. Complete owner OTP login, preferably on the Custom Domain over the working mobile network, and confirm the production order list loads.
-4. Only after production API/admin checks pass on the intended Custom Domain, update the storefront with the production Turnstile Site Key, point checkout to `https://api.theblacksheepshop.co.uk`, and switch the public feature gates ON.
+3. Production owner OTP login and the production order list are now verified on `https://api.theblacksheepshop.co.uk/admin`. The empty list is expected because the production D1 is newly initialized.
+4. Next, update the storefront with the production Turnstile Site Key, point checkout to `https://api.theblacksheepshop.co.uk`, and switch the public feature gates ON.
 5. Complete delivery/collection, duplicate-protection, cart-preservation, notification and controlled low-value production lifecycle QA.
 6. Record final production SHA/resources in the handoff.
 
