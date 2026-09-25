@@ -1413,7 +1413,9 @@ export async function duplicateAdminProduct(
           newProductId,
           item.storageProvider,
           item.storageKey,
-          item.publicUrl,
+          item.storageProvider === "R2"
+            ? "/media/" + encodeURIComponent(mediaId)
+            : item.publicUrl,
           item.mimeType,
           item.width,
           item.height,
