@@ -53,6 +53,7 @@ import {
   createAdminProduct,
   listAdminCategories,
   publishAdminProduct,
+  quickEditAdminProduct,
   saveAdminProductDraft,
   updateAdminProductOperations,
   updateAdminVariant,
@@ -84,6 +85,7 @@ interface AdminDependencies {
   createAdminProductFn: typeof createAdminProduct;
   saveAdminProductDraftFn: typeof saveAdminProductDraft;
   publishAdminProductFn: typeof publishAdminProduct;
+  quickEditAdminProductFn: typeof quickEditAdminProduct;
   updateAdminProductOperationsFn: typeof updateAdminProductOperations;
   updateAdminVariantFn: typeof updateAdminVariant;
 }
@@ -110,6 +112,7 @@ const defaults: AdminDependencies = {
   createAdminProductFn: createAdminProduct,
   saveAdminProductDraftFn: saveAdminProductDraft,
   publishAdminProductFn: publishAdminProduct,
+  quickEditAdminProductFn: quickEditAdminProduct,
   updateAdminProductOperationsFn: updateAdminProductOperations,
   updateAdminVariantFn: updateAdminVariant,
 };
@@ -353,6 +356,26 @@ export async function handleAdminRequest(
           "Invalid product request.",
         );
       }
+      return productMutationError(cause);
+    }
+  }
+
+  const productQuickEditMatch = url.pathname.match(
+    /^\/admin\/api\/products\/([^/]+)\/quick-edit$/,
+  );
+  if (productQuickEditMatch && request.method === "PATCH") {
+    const productId = decodeURIComponent(productQuickEditMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      await deps.quickEditAdminProductFn(
+        env.DB,
+        productId,
+        raw as unknown as Parameters<typeof quickEditAdminProduct>[2],
+        identity.email,
+      );
+      const product = await deps.getAdminProductDetailFn(env.DB, productId);
+      return json({ product });
+    } catch (cause) {
       return productMutationError(cause);
     }
   }
