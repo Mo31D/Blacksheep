@@ -741,6 +741,24 @@ Status: **PHASE 13 PRODUCTION RELEASE COMPLETE — migrations, pinned Worker dep
   - production secrets include `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `TURNSTILE_SECRET_KEY`
   - post-release D1 Time Travel bookmark: `0000002b-00000000-000050f1-c99de2cbd416b44cc1ae27080bb939db`
 
+# POST-RELEASE OWNER EMAIL POLISH — COMPLETE
+
+- [x] Add premium Owner Operations email template.
+- [x] Rebuild new-order owner notification hierarchy.
+- [x] Include customer / fulfilment / subtotal / items / customer note.
+- [x] Add direct `Open order in Admin` CTA.
+- [x] Add owner email deep-link handling after OTP authentication.
+- [x] Add Reply-to-customer action/link.
+- [x] Apply owner template to customer-question notifications.
+- [x] Apply owner template to Admin OTP email.
+- [x] Add environment-specific `ADMIN_BASE_URL`.
+- [x] Add owner-notification and generated-Admin-script regression tests.
+- [x] Commerce CI: PASS.
+- [x] Production deploy run `36165501995`: PASS.
+- [x] Production health/Admin gate: PASS.
+- [x] No production migration applied.
+- [x] Production D1 remains `0000–0008`; order count remains 3.
+
 # POST-RELEASE STOREFRONT PATCH — COMPLETE
 
 - [x] Make all five homepage quick-category tiles navigable.

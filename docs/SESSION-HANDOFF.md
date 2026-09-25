@@ -37,6 +37,24 @@
 > - migrations `0003–0008` were additive and must not be rerun
 > - the original Admin V2 runtime release was `8c5462388648235acd3a41b853d1adee057a11a7`; it has now been superseded by the stock-sync runtime patch above
 >
+> **Owner-email polish release — 25 September 2026**
+> - source commit: `ecc05a588cbb2a07210661d4c34cf5b9bb8afb62`
+> - production deploy run: `36165501995` / job `108172137498` — SUCCESS
+> - production Worker deployment: `97549177-a3c5-4334-8968-d1dec7cd4db7`
+> - production Worker version: `2c9a0a9d-7eb7-46b1-81cd-e02db425aaef`
+> - no D1 migration applied; migration ledger remains `0000–0008`
+> - existing production order count remains 3
+> - owner new-order emails now use the premium Owner Operations template
+> - customer-question owner emails use the same owner template
+> - Admin OTP email now uses the owner template
+> - owner emails include environment-correct Admin CTA links
+> - new-order/customer-question CTAs deep-link to the exact order after authentication
+>
+> **Next major project is now planned, not yet implemented:**
+> - `docs/PRODUCT-INVENTORY-ADMIN-MASTERPLAN-2026-09-25.md`
+> - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
+> - target: D1-backed Product + Inventory source of truth, premium Products/Stock Admin, managed media, order reservations and storefront/checkout integration.
+>
 > **NEXT WORK: post-release validation/polish only.**
 > 1. Owner opens production `/admin` on desktop and iPhone and confirms the real UX.
 > 2. Perform one fresh production owner OTP login.
