@@ -80,6 +80,7 @@ import {
 import {
   expireDueReservations,
   getRevisionReservationAdminView,
+  returnConsumedReservationToStock,
 } from "../data/order-reservations";
 
 export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
@@ -94,6 +95,7 @@ interface AdminDependencies {
   createDraftRevisionFromOriginalFn: typeof createDraftRevisionFromOriginal;
   getOrderRevisionDetailFn: typeof getOrderRevisionDetail;
   getRevisionReservationAdminViewFn: typeof getRevisionReservationAdminView;
+  returnConsumedReservationToStockFn: typeof returnConsumedReservationToStock;
   updateDraftRevisionFn: typeof updateDraftRevision;
   addCatalogItemToDraftRevisionFn: typeof addCatalogItemToDraftRevision;
   addDraftRevisionAdjustmentFn: typeof addDraftRevisionAdjustment;
@@ -136,6 +138,7 @@ const defaults: AdminDependencies = {
   createDraftRevisionFromOriginalFn: createDraftRevisionFromOriginal,
   getOrderRevisionDetailFn: getOrderRevisionDetail,
   getRevisionReservationAdminViewFn: getRevisionReservationAdminView,
+  returnConsumedReservationToStockFn: returnConsumedReservationToStock,
   updateDraftRevisionFn: updateDraftRevision,
   addCatalogItemToDraftRevisionFn: addCatalogItemToDraftRevision,
   addDraftRevisionAdjustmentFn: addDraftRevisionAdjustment,
@@ -1674,6 +1677,48 @@ export async function handleAdminRequest(
         status === 502
           ? "The customer message could not be sent."
           : "Invalid customer message.",
+      );
+    }
+  }
+
+  const returnStockMatch = url.pathname.match(
+    /^\/admin\/api\/orders\/([^/]+)\/return-stock$/,
+  );
+  if (returnStockMatch && request.method === "POST") {
+    if (env.ORDER_RESERVATIONS_ENABLED !== "true") {
+      return error(
+        "return_to_stock_unavailable",
+        409,
+        "Return to stock is not enabled in this environment.",
+      );
+    }
+    const reference = decodeURIComponent(returnStockMatch[1]);
+    try {
+      const result = await deps.returnConsumedReservationToStockFn(
+        env.DB,
+        reference,
+        identity.email,
+      );
+      const order = await getAdminOrderDetail(env.DB, reference);
+      return json({ result, order });
+    } catch (cause) {
+      const code =
+        cause instanceof Error ? cause.message : "return_to_stock_failed";
+      const status =
+        code === "return_to_stock_not_available"
+          ? 404
+          : code === "return_to_stock_requires_refund" ||
+              code === "return_to_stock_conflict"
+            ? 409
+            : 400;
+      return error(
+        code,
+        status,
+        code === "return_to_stock_requires_refund"
+          ? "Refund the order before returning fulfilled stock."
+          : code === "return_to_stock_conflict"
+            ? "Stock changed while the return was being recorded. Reload and try again."
+            : "Unable to return this order to stock.",
       );
     }
   }
