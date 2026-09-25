@@ -67,8 +67,8 @@ class ReviewDb implements D1DatabaseLike {
             fulfilmentMethod: "collection",
             itemsSubtotalMinor: 150,
             deliveryAmountMinor: 0,
-            adjustmentAmountMinor: 0,
-            finalTotalMinor: 150,
+            adjustmentAmountMinor: -100,
+            finalTotalMinor: 50,
             expiresAt: "2099-09-30T00:00:00.000Z",
           }
         : null;
@@ -93,6 +93,14 @@ class ReviewDb implements D1DatabaseLike {
           customerNote: "Only one is available today.",
           unitPriceMinor: 150,
           lineTotalMinor: 150,
+        },
+      ];
+    } else if (query.includes("FROM order_adjustments")) {
+      rows = [
+        {
+          kind: "DISCOUNT",
+          label: "Stock correction",
+          amountMinor: -100,
         },
       ];
     }
@@ -130,7 +138,10 @@ describe("customer review route", () => {
     expect(html).toContain("Review your order");
     expect(html).toContain("Only one is available today.");
     expect(html).toContain("Accept changes &amp; pay securely");
-    expect(html).toContain("£1.50");
+    expect(html).toContain("Stock correction");
+    expect(html).toContain("Discount");
+    expect(html).toContain("-£1.00");
+    expect(html).toContain("£0.50");
     expect(html).not.toContain("jane@example.com");
   });
 
