@@ -470,6 +470,7 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] Cross-order reference/content isolation verified with separate synthetic orders.
 - [x] Checkout browser QA run `36146604387`, job `108109223048`: **SUCCESS** — delivery review UI, production Turnstile widget render, production-origin→staging CORS, staging idempotent replay and network-failure basket recovery.
 - [x] Production order read-only audit run `36146984153`, job `108110486489`: **SUCCESS** — controlled collection orders ended `COMPLETED / PAID`; no production write command was executed.
+- [x] Aggregate production delivery audit run `36147282538`, job `108111475317`: **SUCCESS / READ-ONLY** — `deliveryOrderCount=0`, so no real delivery-order submission can be claimed yet.
 - [x] Deployed production source `19418b02473e4d8122b0214021cc1196e84daa3d` confirms `/v1/orders` required Turnstile verification before creating a new order.
 - [ ] iPhone Safari UI QA.
 - [ ] Desktop browser UI QA.
@@ -562,28 +563,26 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**Close the last staging/external release gates without production writes.**
+**Automate Admin UI browser QA on staging; keep Delivery submission and webhook secret as explicit external/manual gates.**
 
 Verified now:
 - core Admin V2 staging E2E: PASS
-- customer-review edge E2E: PASS
-- checkout browser QA: PASS
-- controlled production lifecycle read-only audit: PASS
-- two known production collection orders reached `COMPLETED / PAID`
-- deployed production order route required real Turnstile verification before order creation
-- real staging API idempotent replay: PASS
-- network failure preserves basket + idempotency key: PASS
+- review-edge E2E: PASS
+- checkout browser regression: PASS
+- production controlled collection lifecycle: PASS
+- deployed production route required real Turnstile
+- aggregate production delivery audit: `deliveryOrderCount=0`
+- therefore: real Delivery submission is **not yet verified**
 - Resend delivery records: delivered
 - SPF + DKIM: verified
-- staging Resend webhook: created, intentionally disabled pending secure secret installation
+- staging Resend webhook exists but is disabled pending secure secret installation
 - production Admin V2 remains frozen
 
 Next work, in order:
-1. run a read-only aggregate audit for existing production **delivery** orders; if a delivery order exists, use only non-PII aggregate/state evidence to determine whether the real delivery path has already been exercised,
-2. if delivery has not been exercised, leave one manual real-device delivery checkout as the final Commerce V1 gate; do not automate around Turnstile,
-3. securely install the existing Resend staging webhook signing secret as `RESEND_WEBHOOK_SECRET`, then enable/replay the webhook and verify D1 telemetry/idempotency,
-4. complete Admin UI desktop + iPhone Safari QA,
-5. verify DMARC independently,
-6. only after those gates are closed, prepare guarded production Admin V2 migration/deploy.
+1. automate staging Admin UI QA in Chromium desktop + WebKit mobile viewport using a staging-only synthetic order/session; verify order list/detail, revision controls and responsive layout without production writes,
+2. keep one real-device Delivery checkout through Turnstile as a manual Commerce V1 release gate,
+3. securely install the existing Resend webhook signing secret as staging `RESEND_WEBHOOK_SECRET`; then enable/replay webhook and verify D1 telemetry/idempotency,
+4. verify DMARC independently,
+5. only after these gates are closed, prepare guarded production Admin V2 migration/deploy.
 
 **Do not migrate or deploy production yet.**
