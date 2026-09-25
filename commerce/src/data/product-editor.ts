@@ -1185,6 +1185,396 @@ export async function publishAdminProduct(
   await verifyProductToken(db, productId, resultVersion, token);
 }
 
+
+export interface DuplicateProductInput {
+  expectedVersion: unknown;
+}
+
+export async function duplicateAdminProduct(
+  db: D1DatabaseLike,
+  productId: string,
+  raw: DuplicateProductInput,
+  actorEmail: string,
+): Promise<{ id: string }> {
+  const expected = expectedVersion(raw.expectedVersion);
+  const source = await db
+    .prepare(
+      q(
+        "SELECT p.id, p.version, p.current_slug AS slug,",
+        "pv.id AS effectiveVersionId, pv.title, pv.short_description AS shortDescription,",
+        "pv.long_description AS longDescription, pv.brand,",
+        "pv.collection_label AS collectionLabel, pv.product_type AS productType,",
+        "pv.public_note AS publicNote, pv.seo_title AS seoTitle,",
+        "pv.seo_description AS seoDescription,",
+        "v.id AS variantId, v.title AS variantTitle, v.price_minor AS priceMinor,",
+        "v.compare_at_price_minor AS compareAtPriceMinor, v.cost_minor AS costMinor,",
+        "v.currency",
+        "FROM products p",
+        "JOIN product_versions pv",
+        "ON pv.id = COALESCE(p.current_draft_version_id, p.current_published_version_id)",
+        "JOIN product_variants v",
+        "ON v.product_id = p.id AND v.is_default = 1 AND v.active = 1",
+        "WHERE p.id = ? LIMIT 1",
+      ),
+    )
+    .bind(productId)
+    .first<{
+      id: string;
+      version: number;
+      slug: string;
+      effectiveVersionId: string;
+      title: string;
+      shortDescription: string;
+      longDescription: string | null;
+      brand: string | null;
+      collectionLabel: string | null;
+      productType: string;
+      publicNote: string | null;
+      seoTitle: string | null;
+      seoDescription: string | null;
+      variantId: string;
+      variantTitle: string;
+      priceMinor: number | null;
+      compareAtPriceMinor: number | null;
+      costMinor: number | null;
+      currency: string;
+    }>();
+
+  if (!source) throw new Error("product_not_found");
+  if (Number(source.version) !== expected) {
+    throw new Error("product_version_conflict");
+  }
+
+  const [categories, media, attributes] = await Promise.all([
+    allRows<{
+      categoryId: string;
+      isPrimary: number;
+      position: number;
+    }>(
+      db
+        .prepare(
+          "SELECT category_id AS categoryId, is_primary AS isPrimary, position FROM product_version_categories WHERE product_version_id = ? ORDER BY position",
+        )
+        .bind(source.effectiveVersionId),
+    ),
+    allRows<{
+      storageProvider: string;
+      storageKey: string;
+      publicUrl: string;
+      mimeType: string | null;
+      width: number | null;
+      height: number | null;
+      fileSize: number | null;
+      checksumSha256: string | null;
+      position: number;
+      isPrimary: number;
+      altText: string | null;
+      displayFit: string | null;
+    }>(
+      db
+        .prepare(
+          q(
+            "SELECT pm.storage_provider AS storageProvider, pm.storage_key AS storageKey,",
+            "pm.public_url AS publicUrl, pm.mime_type AS mimeType, pm.width, pm.height,",
+            "pm.file_size AS fileSize, pm.checksum_sha256 AS checksumSha256,",
+            "pvm.position, pvm.is_primary AS isPrimary, pvm.alt_text AS altText,",
+            "pvm.display_fit AS displayFit",
+            "FROM product_version_media pvm",
+            "JOIN product_media pm ON pm.id = pvm.media_id",
+            "WHERE pvm.product_version_id = ? AND pm.deleted_at IS NULL",
+            "ORDER BY pvm.position",
+          ),
+        )
+        .bind(source.effectiveVersionId),
+    ),
+    allRows<{
+      attributeKey: string;
+      label: string;
+      valueText: string | null;
+      valueJson: string | null;
+      visibility: string;
+      position: number;
+    }>(
+      db
+        .prepare(
+          q(
+            "SELECT attribute_key AS attributeKey, label, value_text AS valueText,",
+            "value_json AS valueJson, visibility, position",
+            "FROM product_attributes WHERE product_version_id = ?",
+            "ORDER BY position, label",
+          ),
+        )
+        .bind(source.effectiveVersionId),
+    ),
+  ]);
+
+  const createdAt = now();
+  const newProductId = uid("prd");
+  const newVersionId = uid("pver");
+  const newVariantId = uid("var");
+  const copyTitle = (source.title + " — Copy").slice(0, 160);
+  const slug = await uniqueSlug(db, copyTitle);
+
+  const statements: D1PreparedStatementLike[] = [
+    db
+      .prepare(
+        q(
+          "INSERT INTO products (",
+          "id, legacy_catalog_id, current_slug, publication_status, sell_status,",
+          "online_ordering_enabled, featured, current_published_version_id,",
+          "current_draft_version_id, version, created_at, updated_at, archived_at",
+          ") VALUES (?, NULL, ?, 'DRAFT', 'NOT_FOR_SALE', 0, 0, NULL, ?, 1, ?, ?, NULL)",
+        ),
+      )
+      .bind(newProductId, slug, newVersionId, createdAt, createdAt),
+    db
+      .prepare(
+        q(
+          "INSERT INTO product_versions (",
+          "id, product_id, version_number, title, short_description, long_description,",
+          "brand, collection_label, product_type, public_note, seo_title, seo_description,",
+          "created_by, created_at, published_at, superseded_at",
+          ") VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)",
+        ),
+      )
+      .bind(
+        newVersionId,
+        newProductId,
+        copyTitle,
+        source.shortDescription,
+        source.longDescription,
+        source.brand,
+        source.collectionLabel,
+        source.productType,
+        source.publicNote,
+        source.seoTitle,
+        source.seoDescription,
+        actorEmail,
+        createdAt,
+      ),
+    db
+      .prepare(
+        "INSERT INTO product_slugs (product_id, slug, is_primary, created_at, retired_at) VALUES (?, ?, 1, ?, NULL)",
+      )
+      .bind(newProductId, slug, createdAt),
+    db
+      .prepare(
+        q(
+          "INSERT INTO product_variants (",
+          "id, product_id, title, sku, barcode, price_minor, compare_at_price_minor,",
+          "cost_minor, currency, track_inventory, low_stock_threshold, active, is_default,",
+          "version, created_at, updated_at",
+          ") VALUES (?, ?, ?, NULL, NULL, ?, ?, ?, ?, 0, NULL, 1, 1, 1, ?, ?)",
+        ),
+      )
+      .bind(
+        newVariantId,
+        newProductId,
+        source.variantTitle || "Default",
+        source.priceMinor,
+        source.compareAtPriceMinor,
+        source.costMinor,
+        source.currency || "GBP",
+        createdAt,
+        createdAt,
+      ),
+  ];
+
+  categories.forEach((category) => {
+    statements.push(
+      db
+        .prepare(
+          "INSERT INTO product_version_categories (product_version_id, category_id, is_primary, position) VALUES (?, ?, ?, ?)",
+        )
+        .bind(
+          newVersionId,
+          category.categoryId,
+          Number(category.isPrimary) === 1 ? 1 : 0,
+          category.position,
+        ),
+    );
+  });
+
+  media.forEach((item) => {
+    const mediaId = uid("med");
+    statements.push(
+      db
+        .prepare(
+          q(
+            "INSERT INTO product_media (",
+            "id, product_id, variant_id, storage_provider, storage_key, public_url,",
+            "mime_type, width, height, file_size, checksum_sha256, created_by,",
+            "created_at, deleted_at",
+            ") VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)",
+          ),
+        )
+        .bind(
+          mediaId,
+          newProductId,
+          item.storageProvider,
+          item.storageKey,
+          item.publicUrl,
+          item.mimeType,
+          item.width,
+          item.height,
+          item.fileSize,
+          item.checksumSha256,
+          actorEmail,
+          createdAt,
+        ),
+    );
+    statements.push(
+      db
+        .prepare(
+          "INSERT INTO product_version_media (product_version_id, media_id, position, is_primary, alt_text, display_fit) VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .bind(
+          newVersionId,
+          mediaId,
+          item.position,
+          Number(item.isPrimary) === 1 ? 1 : 0,
+          item.altText,
+          item.displayFit,
+        ),
+    );
+  });
+
+  attributes.forEach((attribute) => {
+    statements.push(
+      db
+        .prepare(
+          q(
+            "INSERT INTO product_attributes (",
+            "product_version_id, attribute_key, label, value_text, value_json,",
+            "visibility, position, source_record_id",
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, NULL)",
+          ),
+        )
+        .bind(
+          newVersionId,
+          attribute.attributeKey,
+          attribute.label,
+          attribute.valueText,
+          attribute.valueJson,
+          attribute.visibility,
+          attribute.position,
+        ),
+    );
+  });
+
+  statements.push(
+    db
+      .prepare(
+        q(
+          "INSERT INTO product_audit_events (",
+          "id, product_id, variant_id, event_type, actor_type, actor_id,",
+          "request_id, idempotency_key, before_json, after_json, reason, created_at",
+          ") VALUES (?, ?, ?, 'PRODUCT_DUPLICATED', 'ADMIN', ?, NULL, NULL, ?, ?, ?, ?)",
+        ),
+      )
+      .bind(
+        uid("pae"),
+        newProductId,
+        newVariantId,
+        actorEmail,
+        JSON.stringify({ sourceProductId: productId }),
+        JSON.stringify({
+          sourceProductId: productId,
+          title: copyTitle,
+          slug,
+          sku: null,
+          barcode: null,
+          onlineOrderingEnabled: false,
+          sellStatus: "NOT_FOR_SALE",
+        }),
+        "Owner duplicated product into a safe private draft",
+        createdAt,
+      ),
+  );
+
+  await db.batch(statements);
+  return { id: newProductId };
+}
+
+export interface ArchiveProductInput {
+  expectedVersion: unknown;
+}
+
+export async function archiveAdminProduct(
+  db: D1DatabaseLike,
+  productId: string,
+  raw: ArchiveProductInput,
+  actorEmail: string,
+): Promise<void> {
+  const expected = expectedVersion(raw.expectedVersion);
+  const current = await db
+    .prepare(
+      q(
+        "SELECT id, version, publication_status AS publicationStatus,",
+        "sell_status AS sellStatus, online_ordering_enabled AS onlineOrderingEnabled,",
+        "archived_at AS archivedAt",
+        "FROM products WHERE id = ? LIMIT 1",
+      ),
+    )
+    .bind(productId)
+    .first<{
+      id: string;
+      version: number;
+      publicationStatus: string;
+      sellStatus: string;
+      onlineOrderingEnabled: number;
+      archivedAt: string | null;
+    }>();
+
+  if (!current) throw new Error("product_not_found");
+  if (Number(current.version) !== expected) {
+    throw new Error("product_version_conflict");
+  }
+  if (current.publicationStatus === "ARCHIVED" || current.archivedAt) {
+    throw new Error("product_already_archived");
+  }
+
+  const token = now();
+  const resultVersion = expected + 1;
+  const before = {
+    publicationStatus: current.publicationStatus,
+    sellStatus: current.sellStatus,
+    onlineOrderingEnabled: Number(current.onlineOrderingEnabled) === 1,
+    archivedAt: current.archivedAt,
+  };
+  const after = {
+    publicationStatus: "ARCHIVED",
+    sellStatus: "NOT_FOR_SALE",
+    onlineOrderingEnabled: false,
+    archivedAt: token,
+  };
+
+  await db.batch([
+    db
+      .prepare(
+        q(
+          "UPDATE products SET publication_status = 'ARCHIVED',",
+          "sell_status = 'NOT_FOR_SALE', online_ordering_enabled = 0,",
+          "archived_at = ?, version = version + 1, updated_at = ?",
+          "WHERE id = ? AND version = ? AND archived_at IS NULL",
+        ),
+      )
+      .bind(token, token, productId, expected),
+    auditStatement(db, {
+      productId,
+      eventType: "PRODUCT_ARCHIVED",
+      actorEmail,
+      before,
+      after,
+      reason: "Owner archived product without deleting its history",
+      resultVersion,
+      token,
+    }),
+  ]);
+
+  await verifyProductToken(db, productId, resultVersion, token);
+}
+
 export async function listAdminCategories(
   db: D1DatabaseLike,
 ): Promise<Array<{ id: string; slug: string; name: string; sortOrder: number }>> {
