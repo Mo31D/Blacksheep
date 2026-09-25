@@ -583,19 +583,23 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 - [x] Replay attempt for `msg_3JpG91ewU6zzT5jBiqLe8YvqRvL`: HTTP 200, response `{"ok":true,"duplicate":true,"tracked":false,"status":"DELIVERED"}`.
 
+- [x] Post-replay staging D1 verification: `email_webhook_events=1`, `EMAIL_DELIVERED=1`, message status remains `DELIVERED`. Duplicate replay created no second audit/persistence row.
+
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Verify post-replay idempotency in staging D1.**
+**STEP IN PROGRESS — Clean synthetic staging webhook test data after successful idempotency verification.**
 
-Replay evidence:
-- original attempt: HTTP 200, `duplicate=false`, `tracked=true`
-- replay attempt: HTTP 200, `duplicate=true`, `tracked=false`
+Verified:
+- original signed event delivery: PASS
+- replay delivery: PASS with `duplicate=true`
+- post-replay D1 counts unchanged: PASS
+- webhook idempotency gate: CLOSED
 
 Current step:
-1. re-query the staging D1 baseline rows,
-2. require `email_webhook_events` count to remain 1,
-3. require `EMAIL_DELIVERED` order-event count to remain 1,
-4. require message delivery status to remain `DELIVERED`,
-5. update this checklist before cleaning synthetic staging data.
+1. delete only synthetic staging rows for `E2E-WEBHOOK-36154963645`,
+2. delete its synthetic webhook-event persistence row,
+3. verify the synthetic order, message, audit rows and webhook row are gone,
+4. update this checklist and session handoff,
+5. mark pre-production staging exit gates complete.
 
-**No cleanup or production mutation before this verification passes.**
+**Do not touch production.**
