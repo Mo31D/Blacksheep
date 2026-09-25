@@ -563,26 +563,24 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**Automate Admin UI browser QA on staging; keep Delivery submission and webhook secret as explicit external/manual gates.**
+**STEP IN PROGRESS — Re-run Admin UI browser QA on the current fixed staging build.**
 
-Verified now:
-- core Admin V2 staging E2E: PASS
-- review-edge E2E: PASS
-- checkout browser regression: PASS
-- production controlled collection lifecycle: PASS
-- deployed production route required real Turnstile
-- aggregate production delivery audit: `deliveryOrderCount=0`
-- therefore: real Delivery submission is **not yet verified**
-- Resend delivery records: delivered
-- SPF + DKIM: verified
-- staging Resend webhook exists but is disabled pending secure secret installation
-- production Admin V2 remains frozen
+Pre-step review:
+- GitHub `main`: `3000b41d58cbccb82212c5249da59b70a8177595`
+- last Commerce CI: PASS, 106/106 tests
+- last staging deploy: PASS
+- current staging Worker: `22752fa1-3ef2-459c-9ff4-03172535af7b`
+- staging D1: migrations `0000–0008`
+- previous Admin Browser QA runs failed **before** the generated Admin-script fix
+- production remains frozen at Worker `938f0651-20b5-48df-a8d4-f84defbb263d`, D1 through `0002`
 
-Next work, in order:
-1. automate staging Admin UI QA in Chromium desktop + WebKit mobile viewport using a staging-only synthetic order/session; verify order list/detail, revision controls and responsive layout without production writes,
-2. keep one real-device Delivery checkout through Turnstile as a manual Commerce V1 release gate,
-3. securely install the existing Resend webhook signing secret as staging `RESEND_WEBHOOK_SECRET`; then enable/replay webhook and verify D1 telemetry/idempotency,
-4. verify DMARC independently,
-5. only after these gates are closed, prepare guarded production Admin V2 migration/deploy.
+Current step:
+1. re-run `Commerce Staging Admin Browser QA` against the current fixed staging Worker,
+2. verify Chromium desktop + WebKit/mobile order list/detail/revision controls and responsive layout,
+3. record PASS/failure evidence here before moving to the webhook step.
 
-**Do not migrate or deploy production yet.**
+After this step:
+- if PASS → proceed to secure staging Resend webhook secret installation using the connected Cloudflare + Resend accounts,
+- if FAIL → fix only the first reproducible Admin UI defect, re-run CI/staging deploy, then repeat this QA.
+
+**Do not migrate or deploy production in this step.**
