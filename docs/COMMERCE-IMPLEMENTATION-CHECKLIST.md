@@ -238,7 +238,9 @@ Status: IN PROGRESS; production shell/configuration prepared, public checkout st
 - [x] Apply production D1 migrations (`0000`, `0001`, `0002`) via guarded run `36078963186`.
 - [x] Deploy production Worker from `main` commit `19418b02473e4d8122b0214021cc1196e84daa3d`.
 - [x] Production Worker deployment version: `938f0651-20b5-48df-a8d4-f84defbb263d`.
-- [ ] Verify production `/health` and `/admin`.
+- [x] Verify production `/health` on the production `workers.dev` URL: environment=`production`, database=`bound`, Resend configured, owner configured.
+- [ ] Restore/verify `api.theblacksheepshop.co.uk` Custom Domain after production deploy and verify `/health` there.
+- [ ] Verify production `/admin` owner login and order list.
 - [ ] Point checkout config to production API and switch public feature gates ON.
 - [ ] Test delivery + collection on mobile/desktop.
 - [ ] Verify duplicate protection and API-error cart preservation.
@@ -281,9 +283,10 @@ Completed in the production setup:
 - Public storefront checkout remains feature-gated OFF.
 
 Next:
-1. Verify `https://api.theblacksheepshop.co.uk/health` returns the production environment with D1 and notifications configured.
-2. Verify owner login at `https://api.theblacksheepshop.co.uk/admin` and confirm the production order list loads.
-3. Only after production API/admin checks pass, update the storefront with the production Turnstile Site Key, point checkout to `https://api.theblacksheepshop.co.uk`, and switch the public feature gates ON.
+1. Production health is verified on `https://black-sheep-commerce-api.ky6vfb55p9.workers.dev/health` with environment=`production`, D1 bound and Resend/owner configuration present.
+2. Re-check the Worker Domains screen because `https://api.theblacksheepshop.co.uk/health` is not currently reachable after the production Wrangler deploy; restore/verify the Custom Domain if necessary.
+3. Verify owner login first on the production `workers.dev` `/admin` route, then again on the Custom Domain once restored.
+4. Only after production API/admin checks pass on the intended Custom Domain, update the storefront with the production Turnstile Site Key, point checkout to `https://api.theblacksheepshop.co.uk`, and switch the public feature gates ON.
 4. Complete delivery/collection, duplicate-protection, cart-preservation, notification and controlled low-value production lifecycle QA.
 5. Record final production SHA/resources in the handoff.
 
