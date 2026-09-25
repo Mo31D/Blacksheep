@@ -7,6 +7,7 @@ import {
   assertReservationAvailability,
   buildRevisionReservationPlan,
   prepareReservationMutation,
+  prepareReservationReleaseMutation,
   ReservationAvailabilityError,
 } from "../src/data/order-reservations";
 
@@ -468,4 +469,141 @@ describe("Phase 5 guarded reservation mutation builder", () => {
     expect(db.prepared).toHaveLength(0);
   });
 });
+
+describe("Phase 5 guarded reservation release builder", () => {
+  class ReleaseDb implements D1DatabaseLike {
+    readonly prepared: Statement[] = [];
+
+    prepare(query: string): Statement {
+      const statement = new Statement(query);
+      this.prepared.push(statement);
+      return statement;
+    }
+
+    async batch<T>(): Promise<T[]> {
+      return [] as T[];
+    }
+  }
+
+  it("builds release balance updates, a guarded terminal state change and release movements", () => {
+    const db = new ReleaseDb();
+    const prepared = prepareReservationReleaseMutation(
+      db,
+      {
+        reservationId: "res-release",
+        orderId: "order-release",
+        revisionId: "rev-release",
+        locationId: "loc_ambleside",
+        expiresAt: "2026-10-02T21:00:00.000Z",
+        version: 3,
+        mutationToken: "active-res-token",
+        requirements: [
+          {
+            variantId: "var-release",
+            quantity: 2,
+            onHand: 5,
+            reserved: 2,
+            safetyStock: 0,
+            balanceVersion: 10,
+          },
+        ],
+      },
+      {
+        actorEmail: "owner@example.com",
+        reason: "Reviewed quote declined",
+        createdAt: "2026-09-25T21:10:00.000Z",
+        externalGuard: {
+          revisionId: "rev-current",
+          version: 8,
+          mutationToken: "revision-guard-token",
+          state: "SENT",
+        },
+      },
+    );
+
+    expect(prepared.statements).toHaveLength(3);
+
+    const balance = db.prepared[0];
+    expect(balance.sql).toContain("SET reserved = reserved - ?");
+    expect(balance.sql).toContain("reserved >= ?");
+    expect(balance.sql).toContain("reservation_guard.state = 'ACTIVE'");
+    expect(balance.sql).toContain("external_revision_guard.state = ?");
+    expect(balance.values).toContain(2);
+    expect(balance.values).toContain("revision-guard-token");
+
+    const release = db.prepared[1];
+    expect(release.sql).toContain("SET state = 'RELEASED'");
+    expect(release.sql).toContain("CASE");
+    expect(release.sql).toContain("ELSE NULL");
+    expect(release.sql).toContain("release_reason = ?");
+    expect(release.values).toContain("Reviewed quote declined");
+
+    const movement = db.prepared[2];
+    expect(movement.sql).toContain("'RESERVATION_RELEASE'");
+    expect(movement.values).toContain(-2);
+    expect(movement.values).toContain("res-release");
+  });
+
+  it("can release an all-untracked reservation without balance mutations", () => {
+    const db = new ReleaseDb();
+    const prepared = prepareReservationReleaseMutation(
+      db,
+      {
+        reservationId: "res-untracked",
+        orderId: "order-untracked",
+        revisionId: "rev-untracked",
+        locationId: "loc_ambleside",
+        expiresAt: "2026-10-02T21:00:00.000Z",
+        version: 1,
+        mutationToken: "active-token",
+        requirements: [],
+      },
+      {
+        actorEmail: "owner@example.com",
+        reason: "Reviewed quote superseded",
+        createdAt: "2026-09-25T21:10:00.000Z",
+      },
+    );
+
+    expect(prepared.statements).toHaveLength(1);
+    expect(db.prepared[0].sql).toContain("SET state = 'RELEASED'");
+    expect(db.prepared[0].sql).toContain("WHEN 1 = 1 THEN ?");
+  });
+
+  it("rejects impossible release state before preparing SQL", () => {
+    const db = new ReleaseDb();
+
+    expect(() =>
+      prepareReservationReleaseMutation(
+        db,
+        {
+          reservationId: "res-invalid",
+          orderId: "order-invalid",
+          revisionId: "rev-invalid",
+          locationId: "loc_ambleside",
+          expiresAt: "2026-10-02T21:00:00.000Z",
+          version: 1,
+          mutationToken: "active-token",
+          requirements: [
+            {
+              variantId: "var-invalid",
+              quantity: 3,
+              onHand: 5,
+              reserved: 2,
+              safetyStock: 0,
+              balanceVersion: 1,
+            },
+          ],
+        },
+        {
+          actorEmail: "owner@example.com",
+          reason: "",
+        },
+      ),
+    ).toThrow("reservation_release_reason_required");
+
+    expect(db.prepared).toHaveLength(0);
+  });
+});
+
 });
