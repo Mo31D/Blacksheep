@@ -34,9 +34,19 @@ class Statement implements D1PreparedStatementLike {
 class WebhookDb implements D1DatabaseLike {
   batched: Statement[] = [];
 
+  constructor(
+    private readonly claimChanged = true,
+    private readonly existingEvent = false,
+  ) {}
+
   prepare(query: string): Statement {
     if (query.includes("FROM email_webhook_events")) {
-      return new Statement(query, null);
+      return new Statement(
+        query,
+        this.existingEvent
+          ? { webhookEventId: "msg_webhook_existing" }
+          : null,
+      );
     }
     if (query.includes("FROM order_messages")) {
       return new Statement(query, {
@@ -49,7 +59,11 @@ class WebhookDb implements D1DatabaseLike {
 
   async batch<T>(statements: D1PreparedStatementLike[]): Promise<T[]> {
     this.batched = statements as Statement[];
-    return [] as T[];
+    return statements.map((_, index) => ({
+      meta: {
+        changes: index === 0 ? (this.claimChanged ? 1 : 0) : 1,
+      },
+    })) as T[];
   }
 }
 
@@ -84,6 +98,33 @@ async function signature(
   return "v1," + toBase64(new Uint8Array(signed));
 }
 
+async function signedRequest(
+  id: string,
+  type: string,
+  providerMessageId: string,
+  secretBytes: Uint8Array,
+  secret: string,
+): Promise<Request> {
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const payload = JSON.stringify({
+    type,
+    created_at: new Date().toISOString(),
+    data: { email_id: providerMessageId },
+  });
+  const sig = await signature(secretBytes, id, timestamp, payload);
+
+  return new Request("https://api.example.com/webhooks/resend", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "svix-id": id,
+      "svix-timestamp": timestamp,
+      "svix-signature": sig,
+    },
+    body: payload,
+  });
+}
+
 describe("Resend webhook receiver", () => {
   it("verifies the raw signed payload and records a delivered event", async () => {
     const db = new WebhookDb();
@@ -91,28 +132,15 @@ describe("Resend webhook receiver", () => {
       "0123456789abcdef0123456789abcdef",
     );
     const secret = "whsec_" + toBase64(secretBytes);
-    const id = "msg_webhook_123";
-    const timestamp = String(Math.floor(Date.now() / 1000));
-    const payload = JSON.stringify({
-      type: "email.delivered",
-      created_at: new Date().toISOString(),
-      data: {
-        email_id: "resend-message-123",
-      },
-    });
-    const sig = await signature(secretBytes, id, timestamp, payload);
 
     const response = await handleResendWebhook(
-      new Request("https://api.example.com/webhooks/resend", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "svix-id": id,
-          "svix-timestamp": timestamp,
-          "svix-signature": sig,
-        },
-        body: payload,
-      }),
+      await signedRequest(
+        "msg_webhook_123",
+        "email.delivered",
+        "resend-message-123",
+        secretBytes,
+        secret,
+      ),
       {
         DB: db,
         RESEND_WEBHOOK_SECRET: secret,
@@ -128,10 +156,76 @@ describe("Resend webhook receiver", () => {
     });
 
     expect(db.batched).toHaveLength(3);
-    expect(db.batched[0].sql).toContain("email_webhook_events");
-    expect(db.batched[1].sql).toContain("UPDATE order_messages");
+    expect(db.batched[0].sql).toContain("claim_token");
+    expect(db.batched[1].sql).toContain("claim_token");
+    expect(db.batched[2].sql).toContain("claim_token");
     expect(db.batched[1].values).toContain("DELIVERED");
     expect(db.batched[2].values).toContain("EMAIL_DELIVERED");
+  });
+
+  it("treats a concurrent duplicate claim as duplicate without applying side effects", async () => {
+    const db = new WebhookDb(false);
+    const secretBytes = new TextEncoder().encode(
+      "0123456789abcdef0123456789abcdef",
+    );
+    const secret = "whsec_" + toBase64(secretBytes);
+
+    const response = await handleResendWebhook(
+      await signedRequest(
+        "msg_webhook_race",
+        "email.bounced",
+        "resend-message-race",
+        secretBytes,
+        secret,
+      ),
+      {
+        DB: db,
+        RESEND_WEBHOOK_SECRET: secret,
+      },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      duplicate: true,
+      tracked: false,
+      status: "BOUNCED",
+    });
+
+    expect(db.batched).toHaveLength(3);
+    expect(db.batched[1].sql).toContain("claim_token");
+    expect(db.batched[2].sql).toContain("claim_token");
+  });
+
+  it("short-circuits an already recorded provider event before creating a batch", async () => {
+    const db = new WebhookDb(true, true);
+    const secretBytes = new TextEncoder().encode(
+      "0123456789abcdef0123456789abcdef",
+    );
+    const secret = "whsec_" + toBase64(secretBytes);
+
+    const response = await handleResendWebhook(
+      await signedRequest(
+        "msg_webhook_existing",
+        "email.delivered",
+        "resend-message-existing",
+        secretBytes,
+        secret,
+      ),
+      {
+        DB: db,
+        RESEND_WEBHOOK_SECRET: secret,
+      },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: true,
+      duplicate: true,
+      tracked: false,
+      status: "DELIVERED",
+    });
+    expect(db.batched).toHaveLength(0);
   });
 
   it("rejects a modified payload before parsing or database updates", async () => {
