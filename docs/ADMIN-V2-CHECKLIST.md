@@ -51,13 +51,14 @@ Hardened source baseline after Phase 8 work:
 
 Environment facts — direct Cloudflare audit on 25 September 2026:
 
-- [x] Staging Worker current Version ID: `95464370-9602-46a8-9509-bfd356d45677`; deployment ID `dc98a48d-cee4-467c-9777-e151c550e528`; created `2026-09-25T00:41:58Z`.
-- [x] Production Worker current Version ID: `938f0651-20b5-48df-a8d4-f84defbb263d`; deployment ID `f1ff4d67-bda6-4330-b4ae-961ea8d55f95`; created `2026-09-25T00:45:39Z`.
-- [x] Staging D1 is applied through `0002_order_fulfilment_message.sql`; remote pending migrations are `0003–0008`.
-- [x] Production D1 is applied through `0002_order_fulfilment_message.sql`; remote pending migrations are `0003–0008`.
+- [x] Staging Worker deployed from source `860e260c6bfdcc1ab2f9de14e757b95d2f155af0`; current Version ID `ce641bd3-7817-4cef-8cef-b9cb7fe29c0f`; deployment ID `287523a7-ea4d-4e4e-b666-5358b7dc7338`; created `2026-09-25T12:42:52Z`.
+- [x] Production Worker remains unchanged at Version ID `938f0651-20b5-48df-a8d4-f84defbb263d`; deployment ID `f1ff4d67-bda6-4330-b4ae-961ea8d55f95`; created `2026-09-25T00:45:39Z`.
+- [x] Staging D1 migrations `0003–0008` were applied successfully; post-deploy remote migration check reports **No migrations to apply**.
+- [x] Production D1 remains unchanged through `0002_order_fulfilment_message.sql`; remote pending migrations remain `0003–0008`.
 - [x] Production public `/health` is reachable and reports `status=ok`, `environment=production`, DB bound and Resend configured.
 - [~] Current production health payload does not yet expose `webhookConfigured`, while current source does; therefore the live Worker predates the current Admin V2 health contract. Resend webhook secret must be re-verified after staging deployment and before production release.
-- [ ] Turnstile configuration must be re-confirmed against the newly deployed staging Worker during Phase 10.
+- [~] New staging Worker exposes the expected Turnstile configuration bindings; functional Turnstile submission still requires Phase 10 E2E.
+- [!] Staging `RESEND_WEBHOOK_SECRET` is currently **not configured**: staging health reports `notifications.webhookConfigured=false`. Signed live Resend webhook E2E is blocked until the secret is configured.
 
 ---
 
@@ -363,13 +364,16 @@ Read-only audit workflow:
 
 ### Staging
 
-- [x] Current Cloudflare deployment ID: `dc98a48d-cee4-467c-9777-e151c550e528`.
-- [x] Current Worker Version ID: `95464370-9602-46a8-9509-bfd356d45677`.
-- [x] Current deployment created: `2026-09-25T00:41:58.781669Z`.
-- [x] Current version matches the last GitHub-recorded staging deployment, so no later manual Cloudflare deployment was found.
-- [x] Current remote D1 migration table reports `0003_order_revisions.sql` through `0008_concurrency_guards.sql` still pending.
-- [x] Therefore staging D1 is currently at the pre-Admin-V2 schema level through `0002`.
-- [x] Staging Worker must be redeployed from current `main` after applying the pending staging migrations.
+- [x] Staging deployment workflow run: `36136427258`; job `108075499565`; conclusion: **success**.
+- [x] Deployed source SHA: `860e260c6bfdcc1ab2f9de14e757b95d2f155af0`.
+- [x] Remote migrations `0003_order_revisions.sql` through `0008_concurrency_guards.sql` applied successfully.
+- [x] Post-migration remote check: **No migrations to apply**.
+- [x] Current Cloudflare deployment ID: `287523a7-ea4d-4e4e-b666-5358b7dc7338`.
+- [x] Current Worker Version ID: `ce641bd3-7817-4cef-8cef-b9cb7fe29c0f`.
+- [x] Current deployment created: `2026-09-25T12:42:52.348134Z`.
+- [x] Staging URL: `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev`.
+- [x] Staging health: `status=ok`, `environment=staging`, D1 bound, Resend provider/from/owner configured.
+- [!] Staging health reports `webhookConfigured=false`; live signed Resend webhook verification is blocked until `RESEND_WEBHOOK_SECRET` is added to the staging Worker.
 
 ### Production
 
@@ -396,14 +400,15 @@ Read-only audit workflow:
 - [x] Direct Cloudflare state is now verified rather than inferred.
 - [x] Staging-first delta is understood.
 - [x] Do not migrate/deploy production in Phase 9.
-- [ ] Run the guarded staging deploy from newest `main`.
-- [ ] Confirm `npm run check` passes in the staging deploy job.
-- [ ] Confirm staging migrations `0003–0008` apply successfully.
-- [ ] Confirm staging Worker deployment succeeds and record its new Version ID.
-- [ ] Verify staging `/health`.
-- [ ] Move immediately to Phase 10 staging E2E.
+- [x] Run the guarded staging deploy from newest release commit.
+- [x] Confirm `npm run check` passes in the staging deploy job.
+- [x] Confirm staging migrations `0003–0008` apply successfully.
+- [x] Confirm staging Worker deployment succeeds and record its new Version ID.
+- [x] Verify staging `/health`.
+- [x] Move to Phase 10 staging E2E.
+- [!] Configure staging `RESEND_WEBHOOK_SECRET` before the email-deliverability portion of Phase 10 can pass.
 
-Status: **DISCOVERY COMPLETE; STAGING MIGRATION + DEPLOY IS THE ACTIVE RELEASE GATE.**
+Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH ONE EMAIL-WEBHOOK SECRET BLOCKER.**
 
 ---
 
@@ -438,7 +443,7 @@ Run one complete scenario:
 - [ ] iPhone Safari.
 - [ ] Desktop.
 
-Status: WAITING FOR PHASES 8–9.
+Status: **ACTIVE — staging Worker/D1 are current. Resend signed-webhook E2E is blocked by missing staging `RESEND_WEBHOOK_SECRET`; other E2E scenarios can proceed.**
 
 ---
 
@@ -513,21 +518,24 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**Deploy Admin V2 to staging only from the newest `main`.**
+**Phase 10 — run staging E2E against the deployed Admin V2 Worker.**
 
-Known pre-deploy state:
-- staging Worker Version ID: `95464370-9602-46a8-9509-bfd356d45677`
-- staging D1: applied through `0002`
-- staging pending migrations: `0003–0008`
-- production remains untouched at Worker Version ID `938f0651-20b5-48df-a8d4-f84defbb263d` and D1 through `0002`
+Verified staging baseline:
+- source SHA: `860e260c6bfdcc1ab2f9de14e757b95d2f155af0`
+- Worker Version ID: `ce641bd3-7817-4cef-8cef-b9cb7fe29c0f`
+- deployment ID: `287523a7-ea4d-4e4e-b666-5358b7dc7338`
+- D1 migrations: current through `0008_concurrency_guards.sql`
+- health: PASS
+- staging URL: `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev`
+- known blocker: `notifications.webhookConfigured=false`
 
-Required staging gate:
-1. run `npm run check`,
-2. apply staging migrations only,
-3. deploy the staging Worker,
-4. read back the staging migration table and Worker Version ID,
-5. verify staging health,
-6. update this checklist immediately,
-7. begin Phase 10 E2E.
+Proceed in this order:
+1. audit staging-access/auth requirements and existing E2E helpers,
+2. run non-email Admin V2 staging scenarios that can be automated safely,
+3. confirm revision/add/substitute/remove/restore/adjustment/customer-review/refund/report flows against real staging D1,
+4. verify idempotency/concurrency-sensitive behavior where practical,
+5. configure or otherwise resolve staging `RESEND_WEBHOOK_SECRET` before signed webhook E2E,
+6. run email/delivery telemetry checks,
+7. update this checklist after each verified group.
 
-**Do not apply any production migration or Worker deployment until Phase 10 passes.**
+**Production remains frozen at Worker Version ID `938f0651-20b5-48df-a8d4-f84defbb263d` and D1 through `0002` until Phase 10 passes.**
