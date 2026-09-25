@@ -115,6 +115,10 @@ async function route(request: Request, env: Env): Promise<Response> {
       features: {
         orderReservations: env.ORDER_RESERVATIONS_ENABLED === "true",
         publicCatalog: env.D1_PUBLIC_CATALOG_ENABLED === "true",
+        publicCatalogContract:
+          env.D1_PUBLIC_CATALOG_ENABLED === "true"
+            ? "d1-published-v1"
+            : null,
       },
       notifications: {
         provider: env.RESEND_API_KEY ? "resend" : "unconfigured",
