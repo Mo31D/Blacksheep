@@ -246,10 +246,11 @@ Status: IN PROGRESS; production API/admin verified and public checkout enabled. 
 - [x] Verify `api.theblacksheepshop.co.uk` is reachable over HTTPS from an external mobile network. Any remaining failure on the original Wi-Fi/device path is local resolver/cache propagation, not a production API or Cloudflare routing failure.
 - [x] Point checkout config to `https://api.theblacksheepshop.co.uk` and switch public feature gates ON.
 - [x] Replace the staging Turnstile Site Key in checkout with the production Site Key.
-- [ ] Test delivery + collection on mobile/desktop.
+- [x] Verify a real mobile collection order submission in production: `BSR-260925-REZJU5DE`, 1 × Lakeland Rock, £1.50.
+- [ ] Test delivery and repeat checkout on desktop.
 - [ ] Verify duplicate protection and API-error cart preservation.
-- [ ] Verify owner/customer notifications.
-- [ ] Run one controlled low-value production order lifecycle.
+- [x] Verify production owner/customer order-submission notifications for `BSR-260925-REZJU5DE`.
+- [ ] Complete the controlled low-value production order lifecycle for `BSR-260925-REZJU5DE`.
 - [x] Search Readiness PASS for production-checkout commit `33ff084b18fabd2b211995aa7450171916784c29` (run `36081015683`).
 - [x] Commerce CI PASS for production-checkout commit `33ff084b18fabd2b211995aa7450171916784c29` (run `36081015696`).
 - [x] GitHub Pages deployment PASS for production-checkout commit `33ff084b18fabd2b211995aa7450171916784c29` (run `36081015383`).
@@ -288,10 +289,10 @@ Completed in the production setup:
 
 Next:
 1. Public checkout is now enabled on GitHub Pages with the production Turnstile Site Key and API base `https://api.theblacksheepshop.co.uk`.
-2. Run one controlled low-value production order on mobile, first with collection and then a separate delivery test if practical.
-3. Confirm the order appears in production admin, customer acknowledgement arrives, owner notification arrives, and the basket clears only after successful submission.
-4. Verify duplicate protection by retrying the same submission path without creating a duplicate order, and verify an API/network failure preserves the basket.
-5. Take the controlled order through the production admin lifecycle and confirm payment-request/payment-received notifications.
+2. Collection submission is verified in production with order `BSR-260925-REZJU5DE`; it appeared in admin and both customer and owner notifications arrived.
+3. Continue that order through quote/payment/preparing/ready/completed. For collection, delivery must remain £0. A payment request also requires a real order-specific HTTPS payment URL plus a delivery/collection timing message.
+4. Then run a separate delivery test and a desktop checkout test.
+5. Verify duplicate protection by retrying the same submission path without creating a duplicate order, and verify an API/network failure preserves the basket.
 6. After those live checks pass, mark Phase 14 complete and update the session handoff with final production resources.
 
-Guarded production deploy run `36078963186` succeeded. Production D1 migrations `0000`, `0001`, and `0002` were applied and Worker version `938f0651-20b5-48df-a8d4-f84defbb263d` was deployed. Public storefront checkout remains OFF pending production health/admin verification.
+Guarded production deploy run `36078963186` succeeded. Production D1 migrations `0000`, `0001`, and `0002` were applied and Worker version `938f0651-20b5-48df-a8d4-f84defbb263d` was deployed. Public storefront checkout is ON. First real production collection order `BSR-260925-REZJU5DE` was accepted and produced both customer and owner notifications.
