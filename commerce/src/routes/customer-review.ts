@@ -54,6 +54,20 @@ function statusLabel(status: string): string {
   return labels[status] ?? status.replace(/_/g, " ");
 }
 
+function adjustmentLabel(kind: string): string {
+  const labels: Record<string, string> = {
+    DISCOUNT: "Discount",
+    SURCHARGE: "Surcharge",
+    MANUAL_CORRECTION: "Manual correction",
+  };
+  return labels[kind] ?? kind.replace(/_/g, " ");
+}
+
+function signedMoney(minor: number): string {
+  const value = Number(minor);
+  return (value < 0 ? "-£" : "£") + (Math.abs(value) / 100).toFixed(2);
+}
+
 type ReviewSnapshot = NonNullable<Awaited<ReturnType<typeof getCustomerReview>>>;
 
 function reviewHtml(review: ReviewSnapshot, token: string): string {
@@ -118,6 +132,19 @@ function reviewHtml(review: ReviewSnapshot, token: string): string {
   const paid =
     review.paymentStatus === "PAID" || review.paymentStatus === "REFUNDED";
 
+  const adjustmentRows = review.adjustments
+    .map(
+      (adjustment) =>
+        '<div class="row"><span>' +
+        escapeHtml(adjustment.label) +
+        ' <small class="muted">(' +
+        escapeHtml(adjustmentLabel(adjustment.kind)) +
+        ")</small></span><strong>" +
+        signedMoney(adjustment.amountMinor) +
+        "</strong></div>",
+    )
+    .join("");
+
   const shopMessage = review.customerMessage
     ? [
         '<div class="shop-message"><div class="eyebrow">Message from the shop</div>',
@@ -173,6 +200,7 @@ function reviewHtml(review: ReviewSnapshot, token: string): string {
     '<div class="row"><span>Delivery</span><strong>',
     money(review.deliveryAmountMinor),
     "</strong></div>",
+    adjustmentRows,
     '<div class="row"><span>Fulfilment</span><strong>',
     escapeHtml(fulfilment),
     "</strong></div>",
