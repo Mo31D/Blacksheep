@@ -482,8 +482,9 @@ function checkoutTurnstileChanged(){
   const submit=document.getElementById('checkoutSubmitRequest');
   if(!submit)return;
   const config=window.BLACK_SHEEP_COMMERCE_CONFIG||{};
+  const previewBlocked=window.BLACK_SHEEP_LIVE_COMMERCE?.preview===true;
   const ready=document.documentElement.dataset.orderSubmitReady==='true'&&config.enabled===true&&Boolean(config.apiBase);
-  submit.disabled=!(ready&&checkoutTurnstileToken()&&blackSheepCart.canCheckout());
+  submit.disabled=!(ready&&!previewBlocked&&checkoutTurnstileToken()&&blackSheepCart.canCheckout());
 }
 function onCheckoutTurnstileSuccess(){checkoutTurnstileChanged()}
 function onCheckoutTurnstileExpired(){checkoutTurnstileChanged()}
