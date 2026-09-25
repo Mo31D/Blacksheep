@@ -111,6 +111,8 @@ function listWhere(filters: AdminProductListFilters): {
   if (filters.publication) {
     conditions.push("p.publication_status = ?");
     values.push(filters.publication);
+  } else {
+    conditions.push("p.publication_status <> 'ARCHIVED'");
   }
 
   if (filters.sellStatus) {
@@ -294,6 +296,7 @@ export async function listAdminProducts(
         FROM products p
         JOIN product_variants v
           ON v.product_id = p.id AND v.is_default = 1 AND v.active = 1
+        WHERE p.publication_status <> 'ARCHIVED'
       `)
       .first<{
         total: number;
