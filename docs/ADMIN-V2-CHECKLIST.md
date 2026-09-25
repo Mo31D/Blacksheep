@@ -654,25 +654,35 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
   - Cloudflare created secret-triggered Worker version `ff7e85cf-ed04-4b19-889a-d0a3c41a55e7` at 100% with the previous runtime code
   - production Resend webhook remains disabled pending new Worker health verification
 
+- [!] Automatic production webhook secret transfer blocked by the platform safety layer. No production secret was changed.
+- [x] Production Resend webhook already exists at `https://api.theblacksheepshop.co.uk/webhooks/resend`, ID `db1d278b-aea6-4b52-90f4-b233252f5cf0`, currently disabled.
+- [!] Production Worker still lacks `RESEND_WEBHOOK_SECRET`; this is the only blocker before Worker deployment.
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — STEP 3 IN PROGRESS: deploy the pinned Worker source to production.**
+**MANUAL SECURITY GATE — add the existing production Resend webhook signing secret to the production Worker.**
 
-Ready state:
-- production D1 migrations `0000–0008`: PASS
-- existing orders preserved: 3
-- production webhook: CREATED + DISABLED
-- production `RESEND_WEBHOOK_SECRET`: INSTALLED
-- current secret-triggered Worker version: `ff7e85cf-ed04-4b19-889a-d0a3c41a55e7`
-- pinned release source: `8c5462388648235acd3a41b853d1adee057a11a7`
+Current state:
+- production D1 migrations `0000–0008`: COMPLETE / VERIFIED
+- production Worker version: still `938f0651-20b5-48df-a8d4-f84defbb263d`
+- production webhook: EXISTS / DISABLED
+- production `RESEND_WEBHOOK_SECRET`: MISSING
+- automatic connector transfer: BLOCKED by safety layer
+- production deploy: NOT STARTED
 
-Current step:
-1. run a deploy-only workflow that checks out the pinned release SHA,
-2. verify there are no pending production migrations,
-3. deploy with `wrangler deploy` only,
-4. verify public production health,
-5. require `status=ok`, production environment, bound database and `webhookConfigured=true`,
-6. verify the Admin page is reachable,
-7. update this checklist before enabling the production Resend webhook.
+Manual action required:
+1. Resend → Webhooks → production endpoint `https://api.theblacksheepshop.co.uk/webhooks/resend`,
+2. copy its Signing Secret,
+3. Cloudflare → Workers & Pages → `black-sheep-commerce-api` → Production → Settings → Variables and Secrets,
+4. add **Secret** named `RESEND_WEBHOOK_SECRET`,
+5. paste the signing secret and save.
 
-**Do not enable the production webhook until post-deploy health passes.**
+After the user confirms this is done:
+- verify the production secret binding exists,
+- deploy pinned source SHA `8c5462388648235acd3a41b853d1adee057a11a7`,
+- verify production `/health`,
+- enable the production Resend webhook,
+- perform production Admin/OTP/browser smoke checks,
+- update this checklist and handoff.
+
+**Do not deploy before the secret binding is confirmed.**
