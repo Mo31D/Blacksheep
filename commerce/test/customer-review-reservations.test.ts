@@ -128,7 +128,8 @@ describe("Phase 5 customer decline reservation release", () => {
     const reservationRelease = batch.findIndex(
       (statement) =>
         statement.sql.includes("UPDATE inventory_reservations") &&
-        statement.sql.includes("state = 'RELEASED'"),
+        statement.sql.includes("SET state = ?") &&
+        statement.values.includes("RELEASED"),
     );
     const releaseMovement = batch.findIndex(
       (statement) =>
