@@ -1,5 +1,9 @@
 import type { D1DatabaseLike } from "../data/d1";
 import { recordOrderEvent } from "../data/order-events";
+import {
+  providerMessageIdFromResult,
+  recordOutboundEmailAudit,
+} from "../data/email-messages";
 import { resolveEmailSender, type EmailProviderEnv } from "./email-provider";
 import {
   emailMoney,
@@ -38,35 +42,64 @@ async function attempt(
   orderId: string,
   eventPrefix: string,
   provider: string,
-  send: () => Promise<void>,
+  audit: { subject: string; text: string },
+  send: () => Promise<unknown>,
 ): Promise<void> {
   if (!env.DB || !env.ORDER_EMAIL_FROM) return;
 
   for (let attemptNumber = 1; attemptNumber <= 2; attemptNumber += 1) {
+    let result: unknown;
     try {
-      await send();
+      result = await send();
+    } catch {
+      if (attemptNumber === 2) {
+        try {
+          await recordOrderEvent(env.DB, {
+            orderId,
+            eventType: `${eventPrefix}_FAILED`,
+            metadata: {
+              provider,
+              attempts: attemptNumber,
+              error: "send_failed",
+            },
+          });
+          await recordOutboundEmailAudit(env.DB, {
+            orderId,
+            subject: audit.subject,
+            body: audit.text,
+            provider,
+            deliveryStatus: "FAILED",
+          });
+        } catch {
+          // Email delivery failure must not be hidden by audit persistence failure.
+        }
+      }
+      continue;
+    }
+
+    const providerMessageId = providerMessageIdFromResult(result);
+    try {
       await recordOrderEvent(env.DB, {
         orderId,
         eventType: `${eventPrefix}_SENT`,
         metadata: {
           provider,
           attempts: attemptNumber,
+          providerMessageId,
         },
       });
-      return;
+      await recordOutboundEmailAudit(env.DB, {
+        orderId,
+        subject: audit.subject,
+        body: audit.text,
+        provider,
+        providerMessageId,
+        deliveryStatus: "SENT",
+      });
     } catch {
-      if (attemptNumber === 2) {
-        await recordOrderEvent(env.DB, {
-          orderId,
-          eventType: `${eventPrefix}_FAILED`,
-          metadata: {
-            provider,
-            attempts: attemptNumber,
-            error: "send_failed",
-          },
-        });
-      }
+      // Do not send the customer a duplicate email if audit persistence fails.
     }
+    return;
   }
 }
 
@@ -138,16 +171,26 @@ export async function notifyPaymentRequest(
       : '<p style="font-size:14px;line-height:1.65;color:#655f56;margin:4px 0 0">Paying confirms the reviewed order and final total shown above. The Black Sheep Shop does not store your card or online-banking details.</p>',
   });
 
-  await attempt(env, order.id, "PAYMENT_REQUEST_EMAIL", resolved.provider, async () => {
-    await resolved.sender.send({
-      from: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
-      to: { email: order.customerEmail, name: order.customerName },
-      replyTo: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
-      subject: `Payment request for ${order.publicReference}`,
-      text: message.text,
-      html: message.html,
-    });
-  });
+  const subject = `Payment request for ${order.publicReference}`;
+  await attempt(
+    env,
+    order.id,
+    "PAYMENT_REQUEST_EMAIL",
+    resolved.provider,
+    { subject, text: message.text },
+    () =>
+      resolved.sender.send({
+        from: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
+        to: { email: order.customerEmail, name: order.customerName },
+        replyTo: {
+          email: env.ORDER_EMAIL_FROM!,
+          name: "The Black Sheep Shop",
+        },
+        subject,
+        text: message.text,
+        html: message.html,
+      }),
+  );
 }
 
 export async function notifyPaymentConfirmed(
@@ -188,14 +231,24 @@ export async function notifyPaymentConfirmed(
     `,
   });
 
-  await attempt(env, order.id, "PAYMENT_CONFIRMED_EMAIL", resolved.provider, async () => {
-    await resolved.sender.send({
-      from: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
-      to: { email: order.customerEmail, name: order.customerName },
-      replyTo: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
-      subject: `Payment received for ${order.publicReference}`,
-      text: message.text,
-      html: message.html,
-    });
-  });
+  const subject = `Payment received for ${order.publicReference}`;
+  await attempt(
+    env,
+    order.id,
+    "PAYMENT_CONFIRMED_EMAIL",
+    resolved.provider,
+    { subject, text: message.text },
+    () =>
+      resolved.sender.send({
+        from: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
+        to: { email: order.customerEmail, name: order.customerName },
+        replyTo: {
+          email: env.ORDER_EMAIL_FROM!,
+          name: "The Black Sheep Shop",
+        },
+        subject,
+        text: message.text,
+        html: message.html,
+      }),
+  );
 }
