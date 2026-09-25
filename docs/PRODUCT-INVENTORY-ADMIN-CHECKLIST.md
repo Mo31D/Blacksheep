@@ -229,21 +229,23 @@ Evidence:
 - [x] Reservation foundation invariant script added and wired into Commerce CI.
 - [x] Staging-only `0011` release gate — workflow `36188861211` SUCCESS.
 - [x] Direct Cloudflare D1 verification — latest migration `0011_order_reservations.sql`; 0 reservations; 0 reservation items; existing Inventory Core state preserved.
-- [~] Reviewed quote reservation — Product resolution, aggregate availability planning, atomic guarded hold builder and reservation-aware revision transition path implemented; transition CI pending.
+- [~] Reviewed quote reservation — lifecycle implementation is live on staging; final Admin visibility + real-staging proof remain.
 - [x] Reservation planning/builder tests — Commerce CI `36189521854` SUCCESS.
 - [x] Supersede overlap correction — replacement reservation rebases Available + balance version after releasing the old hold.
-- [~] Review-token expiry alignment — source + tests added; CI pending.
-- [ ] Reservation release.
-- [~] Reservation expiry policy — lazy expiry release implementation active.
+- [x] Review-token expiry alignment — customer-review token reuses the reservation-aware revision expiry; regression tests pass.
+- [x] Reservation release — decline, supersede, cancellation and pre-fulfilment paid cancellation paths implemented with immutable release movements.
+- [~] Reservation expiry policy — lazy expiry implemented; scheduled-cleanup safety net still required before closure.
 - [x] Payment transition — ACTIVE → COMMITTED implemented atomically; no quantity change.
 - [x] Fulfilment SALE movement — COMMITTED → CONSUMED implemented; On hand + Reserved decrement together with immutable SALE ledger movement.
 - [x] Cancellation release — ACTIVE pre-payment and COMMITTED pre-fulfilment release paths integrated atomically.
 - [x] Reservation-aware Send / supersede / customer decline / lazy expiry / payment / fulfilment lifecycle source tests — Commerce CI `36191827360` SUCCESS.
-- [~] Staging runtime activation + E2E proof — active milestone.
-- [ ] Explicit return-to-stock workflow.
-- [ ] Revision/substitution inventory integration.
-- [ ] Concurrency protection.
-- [ ] E2E order + inventory tests.
+- [x] Staging runtime activation — workflow `36192161957` SUCCESS; feature enabled in staging only.
+- [~] Admin reservation UI — required closing gate.
+- [~] Replayed Send idempotency — required staging test/behaviour closing gate.
+- [~] Explicit return-to-stock workflow — required closing gate.
+- [x] Revision/substitution inventory integration — reservation plan resolves the exact current reviewed revision lines; supersede releases the old hold before the replacement reserves.
+- [~] Concurrency protection — optimistic guards implemented; real one-unit/two-orders staging proof required.
+- [~] E2E order + inventory tests — source lifecycle suite green; real-staging lifecycle proof required.
 
 Exit gate:
 - orders and stock cannot disagree silently.
@@ -312,29 +314,27 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 5 — guarded staging runtime activation
+## Phase 5 — closing gates
 
-The full reservation lifecycle source is green in Commerce CI `36191827360`.
-Runtime reservation mode is still OFF.
+Staging runtime is enabled and healthy. Phase 5 is **not** closed until every locked release gate below is proved.
 
-Release sequence:
+Closing sequence:
 
-1. Add an explicit feature-off route/runtime regression guard.
-2. Add `ORDER_RESERVATIONS_ENABLED=true` to **staging vars only**.
-3. Keep Production vars without the flag.
-4. Extend the dedicated Phase 5 staging workflow to:
-   - run full Commerce validation,
-   - verify staging migration ends at `0011_order_reservations.sql`,
-   - verify Production remains `0008_concurrency_guards.sql`,
-   - assert Production config does not enable reservations,
-   - deploy staging Worker only,
-   - verify staging /health reports reservation mode enabled.
-5. Run a controlled staging E2E reservation lifecycle.
-6. Run the one-unit/two-orders concurrency proof.
-7. Clean all synthetic QA rows and verify ledger/inventory integrity.
+1. Make replayed reviewed-revision **Send** idempotent.
+2. Add Reservation/Inventory visibility to Admin order detail:
+   - tracked/untracked,
+   - On hand / Reserved / Available,
+   - reservation quantity/state/expiry,
+   - insufficient stock beside the reviewed line.
+3. Add explicit owner **Return to stock** after a consumed/refunded order:
+   - append immutable `RETURN` movement,
+   - increment On hand exactly once,
+   - idempotency/concurrency protected.
+4. Add scheduled reservation-expiry cleanup as a second safety mechanism.
+5. Build and run real-staging controlled E2E proof covering all 15 locked scenarios.
+6. Run one-unit / two-orders concurrency proof: exactly one winner.
+7. Clean synthetic QA data while retaining audit/ledger evidence where appropriate.
+8. Verify final D1 invariants and Production isolation.
+9. Update this checklist + Phase 5 release report.
 
-Safety locks:
-- no Production Worker deploy,
-- no Production D1 migration,
-- no Phase 6 storefront/checkout inventory authority,
-- Phase 4 owner UX re-test remains separately open.
+Production and Phase 6 remain locked.
