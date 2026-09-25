@@ -179,13 +179,13 @@ Status: MATERIAL IMPLEMENTATION PRESENT; UX/E2E VERIFICATION REMAINS.
 
 - [ ] Build a definitive lifecycle-email matrix from current code.
 - [ ] Verify availability/revision email.
-- [~] Revised payment-request notification path returned success in staging E2E; inbox receipt/delivery telemetry still requires provider verification.
+- [~] Revised payment-request notification path returned success in staging E2E; no separate inbox screenshot was captured for this message type, and provider delivery telemetry still requires webhook verification.
 - [ ] Verify payment reminder behaviour if supported; implement only if genuinely absent.
 - [ ] Verify preparing email.
-- [~] Ready-for-collection notification path returned success in staging E2E; inbox receipt/delivery telemetry still requires provider verification.
+- [x] Ready-for-collection notification was received and visually verified on iPhone during staging E2E; provider delivery telemetry still remains separate.
 - [ ] Verify shipped email.
 - [ ] Verify cancellation email.
-- [~] Partial/full refund notification paths returned success in staging E2E; inbox receipt/delivery telemetry still requires provider verification.
+- [x] Partial-refund and refund-and-cancellation notifications were received and visually verified on iPhone during staging E2E; provider delivery telemetry still remains separate.
 - [ ] Confirm all HTML emails have a usable plain-text equivalent.
 - [ ] Confirm responsive rendering on major mobile clients.
 - [ ] Confirm `Reply-To` uses the intended shop inbox.
@@ -425,6 +425,7 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] Isolated staging E2E workflow: `.github/workflows/commerce-staging-v2-e2e.yml`.
 - [x] E2E script: `commerce/scripts/staging-v2-e2e.mjs`.
 - [x] E2E run `36142333770`, job `108094936767`: **SUCCESS**.
+- [x] Additional core E2E run `36142342245`: **SUCCESS**; its synthetic order references match the user-verified inbox screenshots.
 - [x] Edge-case E2E run `36143031389`, job `108097224317`: **SUCCESS** (decline, token revocation, superseded-token rejection, current-token enforcement, cross-order isolation).
 - [x] Synthetic edge-case data was automatically cleaned after the successful run.
 - [x] Synthetic test data was automatically cleaned after the successful run.
@@ -461,7 +462,7 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] Separate full refund-and-cancel scenario → `CANCELLED / REFUNDED`.
 - [x] Audit events verified for revision, adjustments, acceptance, payment, fulfilment and refunds.
 - [x] Reports verified to include E2E gross/refund figures.
-- [~] Payment/ready/refund/question notification calls returned successfully through the live staging Worker. Actual inbox receipt is not independently verified by this workflow.
+- [x] Payment-confirmed, ready-for-collection, partial-refund and refund-and-cancellation emails were received in the real inbox and rendered cleanly on iPhone; user-provided screenshots correspond to successful staging E2E orders including `E2E-36142333770` and `E2E-36142342245`.
 - [!] Signed Resend delivery-webhook E2E is blocked because staging health still reports `notifications.webhookConfigured=false`.
 - [x] Customer decline flow E2E: revision → `DECLINED`, order → `UNDER_REVIEW`, payment request cleared, token revoked.
 - [x] Superseded/current-revision-only review-token E2E: old token → 404, current token → 200.
@@ -469,7 +470,7 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [ ] iPhone Safari UI QA.
 - [ ] Desktop browser UI QA.
 
-Status: **CORE + REVIEW-EDGE ADMIN V2 STAGING E2E PASSED. Remaining gates are provider webhook configuration/telemetry, public checkout/Turnstile QA, and browser/device QA.**
+Status: **CORE + REVIEW-EDGE ADMIN V2 STAGING E2E PASSED, and key transactional emails are inbox-verified on iPhone. Remaining gates are provider webhook telemetry, public checkout/Turnstile QA, and Admin browser/device QA.**
 
 ---
 
@@ -557,7 +558,7 @@ Automated staging gates now green:
 Next work, in order:
 1. obtain the **real** staging Resend webhook signing secret from the configured Resend webhook and set it as staging `RESEND_WEBHOOK_SECRET`; do not invent or derive a fake secret,
 2. run one real signed Resend webhook through staging and verify delivery-state persistence + duplicate idempotency in real D1,
-3. complete browser QA: desktop Admin workspace and mobile layout; iPhone Safari remains a device/WebKit gate,
+3. complete browser QA: desktop Admin workspace and iPhone Safari Admin/mobile layout; email rendering on iPhone is already verified, but Admin UI Safari QA remains open,
 4. close Phase 11 public checkout/Turnstile items (real order submission, duplicate submit, network failure basket preservation),
 5. only after those gates pass, prepare the guarded production migration/deploy plan.
 
