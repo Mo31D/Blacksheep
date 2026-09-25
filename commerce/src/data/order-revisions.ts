@@ -1463,3 +1463,275 @@ export async function restoreOriginalRevisionLine(
     nextVersion,
   );
 }
+
+
+export interface AddRevisionAdjustmentInput {
+  expectedVersion: number;
+  kind: "DISCOUNT" | "SURCHARGE" | "MANUAL_CORRECTION";
+  label: string;
+  amountMinor: number;
+  internalReason: string;
+}
+
+function validateAdjustmentInput(input: AddRevisionAdjustmentInput): {
+  kind: "DISCOUNT" | "SURCHARGE" | "MANUAL_CORRECTION";
+  label: string;
+  amountMinor: number;
+  internalReason: string;
+} {
+  requireExpectedVersion(input.expectedVersion);
+  if (!["DISCOUNT", "SURCHARGE", "MANUAL_CORRECTION"].includes(input.kind)) {
+    throw new Error("revision_adjustment_invalid_kind");
+  }
+  if (
+    !Number.isInteger(input.amountMinor) ||
+    input.amountMinor === 0 ||
+    Math.abs(input.amountMinor) > 10_000_000
+  ) {
+    throw new Error("revision_adjustment_invalid_amount");
+  }
+  if (input.kind === "DISCOUNT" && input.amountMinor >= 0) {
+    throw new Error("revision_discount_must_be_negative");
+  }
+  if (input.kind === "SURCHARGE" && input.amountMinor <= 0) {
+    throw new Error("revision_surcharge_must_be_positive");
+  }
+
+  const label = String(input.label ?? "").trim();
+  const internalReason = String(input.internalReason ?? "").trim();
+  if (label.length < 1 || label.length > 120) {
+    throw new Error("revision_adjustment_invalid_label");
+  }
+  if (internalReason.length < 1 || internalReason.length > 500) {
+    throw new Error("revision_adjustment_reason_required");
+  }
+
+  return {
+    kind: input.kind,
+    label,
+    amountMinor: input.amountMinor,
+    internalReason,
+  };
+}
+
+export async function addDraftRevisionAdjustment(
+  db: D1DatabaseLike,
+  orderReference: string,
+  revisionId: string,
+  input: AddRevisionAdjustmentInput,
+  actorEmail: string,
+): Promise<Record<string, unknown>> {
+  const validated = validateAdjustmentInput(input);
+  const revision = await findRevision(db, orderReference, revisionId);
+  if (!revision) throw new Error("revision_not_found");
+  if (revision.state !== "DRAFT") throw new Error("revision_not_draft");
+  if (revision.version !== input.expectedVersion) {
+    throw new Error("revision_version_conflict");
+  }
+
+  const nextAdjustmentAmount =
+    revision.adjustmentAmountMinor + validated.amountMinor;
+  const nextFinal =
+    revision.deliveryAmountMinor === null
+      ? null
+      : revision.itemsSubtotalMinor +
+        revision.deliveryAmountMinor +
+        nextAdjustmentAmount;
+  if (nextFinal !== null && nextFinal < 0) {
+    throw new Error("revision_negative_final_total");
+  }
+
+  const now = new Date().toISOString();
+  const nextVersion = revision.version + 1;
+
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE order_revisions
+        SET version = ?,
+            adjustment_amount_minor = ?,
+            final_total_minor = ?
+        WHERE id = ? AND version = ? AND state = 'DRAFT'`,
+      )
+      .bind(
+        nextVersion,
+        nextAdjustmentAmount,
+        nextFinal,
+        revisionId,
+        revision.version,
+      ),
+    db
+      .prepare(
+        `INSERT INTO order_adjustments (
+          revision_id, kind, label, amount_minor,
+          internal_reason, created_by, created_at
+        )
+        SELECT ?, ?, ?, ?, ?, ?, ?
+        WHERE EXISTS (
+          SELECT 1 FROM order_revisions
+          WHERE id = ? AND version = ? AND state = 'DRAFT'
+        )`,
+      )
+      .bind(
+        revisionId,
+        validated.kind,
+        validated.label,
+        validated.amountMinor,
+        validated.internalReason,
+        actorEmail,
+        now,
+        revisionId,
+        nextVersion,
+      ),
+    db
+      .prepare(
+        `INSERT INTO order_events (
+          order_id, event_type, from_status, to_status,
+          actor_type, actor_id, note, metadata_json, created_at
+        )
+        SELECT ?, 'ORDER_REVISION_ADJUSTMENT_ADDED', NULL, NULL, 'admin', ?, NULL, ?, ?
+        WHERE EXISTS (
+          SELECT 1 FROM order_revisions
+          WHERE id = ? AND version = ?
+        )`,
+      )
+      .bind(
+        revision.orderId,
+        actorEmail,
+        JSON.stringify({
+          revisionId,
+          revisionNumber: revision.revisionNumber,
+          kind: validated.kind,
+          label: validated.label,
+          amountMinor: validated.amountMinor,
+          version: nextVersion,
+        }),
+        now,
+        revisionId,
+        nextVersion,
+      ),
+  ]);
+
+  return verifyMutationVersion(
+    db,
+    orderReference,
+    revisionId,
+    nextVersion,
+  );
+}
+
+export async function removeDraftRevisionAdjustment(
+  db: D1DatabaseLike,
+  orderReference: string,
+  revisionId: string,
+  adjustmentId: number,
+  expectedVersion: number,
+  actorEmail: string,
+): Promise<Record<string, unknown>> {
+  requireExpectedVersion(expectedVersion);
+  if (!Number.isInteger(adjustmentId) || adjustmentId < 1) {
+    throw new Error("revision_adjustment_invalid_id");
+  }
+
+  const revision = await findRevision(db, orderReference, revisionId);
+  if (!revision) throw new Error("revision_not_found");
+  if (revision.state !== "DRAFT") throw new Error("revision_not_draft");
+  if (revision.version !== expectedVersion) {
+    throw new Error("revision_version_conflict");
+  }
+
+  const adjustment = await db
+    .prepare(
+      `SELECT id, kind, label, amount_minor AS amountMinor
+      FROM order_adjustments
+      WHERE id = ? AND revision_id = ?
+      LIMIT 1`,
+    )
+    .bind(adjustmentId, revisionId)
+    .first<{
+      id: number;
+      kind: string;
+      label: string;
+      amountMinor: number;
+    }>();
+
+  if (!adjustment) throw new Error("revision_adjustment_not_found");
+
+  const nextAdjustmentAmount =
+    revision.adjustmentAmountMinor - Number(adjustment.amountMinor);
+  const nextFinal =
+    revision.deliveryAmountMinor === null
+      ? null
+      : revision.itemsSubtotalMinor +
+        revision.deliveryAmountMinor +
+        nextAdjustmentAmount;
+  if (nextFinal !== null && nextFinal < 0) {
+    throw new Error("revision_negative_final_total");
+  }
+
+  const now = new Date().toISOString();
+  const nextVersion = revision.version + 1;
+
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE order_revisions
+        SET version = ?,
+            adjustment_amount_minor = ?,
+            final_total_minor = ?
+        WHERE id = ? AND version = ? AND state = 'DRAFT'`,
+      )
+      .bind(
+        nextVersion,
+        nextAdjustmentAmount,
+        nextFinal,
+        revisionId,
+        revision.version,
+      ),
+    db
+      .prepare(
+        `DELETE FROM order_adjustments
+        WHERE id = ? AND revision_id = ?
+          AND EXISTS (
+            SELECT 1 FROM order_revisions
+            WHERE id = ? AND version = ? AND state = 'DRAFT'
+          )`,
+      )
+      .bind(adjustmentId, revisionId, revisionId, nextVersion),
+    db
+      .prepare(
+        `INSERT INTO order_events (
+          order_id, event_type, from_status, to_status,
+          actor_type, actor_id, note, metadata_json, created_at
+        )
+        SELECT ?, 'ORDER_REVISION_ADJUSTMENT_REMOVED', NULL, NULL, 'admin', ?, NULL, ?, ?
+        WHERE EXISTS (
+          SELECT 1 FROM order_revisions
+          WHERE id = ? AND version = ?
+        )`,
+      )
+      .bind(
+        revision.orderId,
+        actorEmail,
+        JSON.stringify({
+          revisionId,
+          revisionNumber: revision.revisionNumber,
+          adjustmentId,
+          kind: adjustment.kind,
+          label: adjustment.label,
+          amountMinor: Number(adjustment.amountMinor),
+          version: nextVersion,
+        }),
+        now,
+        revisionId,
+        nextVersion,
+      ),
+  ]);
+
+  return verifyMutationVersion(
+    db,
+    orderReference,
+    revisionId,
+    nextVersion,
+  );
+}
