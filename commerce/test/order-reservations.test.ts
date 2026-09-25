@@ -6,6 +6,8 @@ import type {
 import {
   assertReservationAvailability,
   buildRevisionReservationPlan,
+  prepareReservationCommitMutation,
+  prepareReservationConsumeMutation,
   prepareReservationMutation,
   prepareReservationReleaseMutation,
   rebaseReservationPlanAfterRelease,
@@ -651,7 +653,8 @@ describe("Phase 5 guarded reservation release builder", () => {
     const balance = db.prepared[0];
     expect(balance.sql).toContain("SET reserved = reserved - ?");
     expect(balance.sql).toContain("reserved >= ?");
-    expect(balance.sql).toContain("reservation_guard.state = 'ACTIVE'");
+    expect(balance.sql).toContain("reservation_guard.state = ?");
+    expect(balance.values).toContain("ACTIVE");
     expect(balance.sql).toContain("external_revision_guard.state = ?");
     expect(balance.values).toContain(2);
     expect(balance.values).toContain("revision-guard-token");
@@ -694,7 +697,8 @@ describe("Phase 5 guarded reservation release builder", () => {
     expect(prepared.statements).toHaveLength(1);
     expect(db.prepared[0].sql).toContain("SET state = ?");
     expect(db.prepared[0].values).toContain("RELEASED");
-    expect(db.prepared[0].sql).toContain("WHEN 1 = 1 THEN ?");
+    expect(db.prepared[0].sql).toContain("AND 1 = 1");
+    expect(db.prepared[0].sql).toContain("THEN ?");
   });
 
   it("rejects impossible release state before preparing SQL", () => {
@@ -730,6 +734,124 @@ describe("Phase 5 guarded reservation release builder", () => {
     ).toThrow("reservation_release_reason_required");
 
     expect(db.prepared).toHaveLength(0);
+  });
+});
+
+
+describe("Phase 5 payment and fulfilment reservation builders", () => {
+  class LifecycleDb implements D1DatabaseLike {
+    readonly prepared: Statement[] = [];
+    prepare(query: string): Statement {
+      const statement = new Statement(query);
+      this.prepared.push(statement);
+      return statement;
+    }
+    async batch<T>(): Promise<T[]> {
+      return [] as T[];
+    }
+  }
+
+  const plan = {
+    reservationId: "res-life",
+    orderId: "order-life",
+    revisionId: "rev-life",
+    locationId: "loc_ambleside",
+    expiresAt: "2026-10-02T21:00:00.000Z",
+    version: 4,
+    mutationToken: "reservation-life-token",
+    requirements: [
+      {
+        variantId: "var-life",
+        quantity: 2,
+        onHand: 5,
+        reserved: 2,
+        safetyStock: 0,
+        balanceVersion: 9,
+      },
+    ],
+  };
+
+  const orderGuard = {
+    orderId: "order-life",
+    status: "PAID",
+    paymentStatus: "PAID",
+    updatedAt: "2026-09-25T21:20:00.000Z",
+  };
+
+  it("commits a paid reservation without touching inventory quantities", () => {
+    const db = new LifecycleDb();
+    const prepared = prepareReservationCommitMutation(db, plan, {
+      actorEmail: "owner@example.com",
+      createdAt: orderGuard.updatedAt,
+      externalOrderGuard: orderGuard,
+    });
+
+    expect(prepared.statements).toHaveLength(1);
+    const statement = db.prepared[0];
+    expect(statement.sql).toContain("SET state = 'COMMITTED'");
+    expect(statement.sql).toContain("committed_at = ?");
+    expect(statement.sql).toContain("state = 'ACTIVE'");
+    expect(statement.sql).toContain("external_order_guard.status = ?");
+    expect(statement.sql).not.toContain("UPDATE inventory_balances");
+    expect(statement.values).toContain("PAID");
+    expect(statement.values).toContain("reservation-life-token");
+  });
+
+  it("consumes a committed reservation with On hand and Reserved decremented together", () => {
+    const db = new LifecycleDb();
+    const prepared = prepareReservationConsumeMutation(db, plan, {
+      actorEmail: "owner@example.com",
+      createdAt: "2026-09-25T21:30:00.000Z",
+      externalOrderGuard: {
+        ...orderGuard,
+        status: "SHIPPED",
+        updatedAt: "2026-09-25T21:30:00.000Z",
+      },
+    });
+
+    expect(prepared.statements).toHaveLength(3);
+
+    const balance = db.prepared[0];
+    expect(balance.sql).toContain("SET on_hand = on_hand - ?");
+    expect(balance.sql).toContain("reserved = reserved - ?");
+    expect(balance.sql).toContain("reservation_guard.state = 'COMMITTED'");
+    expect(balance.values.filter((value) => value === 2).length).toBeGreaterThanOrEqual(4);
+
+    const reservation = db.prepared[1];
+    expect(reservation.sql).toContain("SET state = 'CONSUMED'");
+    expect(reservation.sql).toContain("ELSE NULL");
+    expect(reservation.values).toContain("SHIPPED");
+
+    const movement = db.prepared[2];
+    expect(movement.sql).toContain("'SALE'");
+    expect(movement.values).toContain(-2);
+    expect(movement.values).toContain("res-life");
+    expect(movement.values).toContain("owner@example.com");
+  });
+
+  it("consumes an all-untracked reservation without creating stock ledger rows", () => {
+    const db = new LifecycleDb();
+    const prepared = prepareReservationConsumeMutation(
+      db,
+      { ...plan, requirements: [] },
+      {
+        actorEmail: "owner@example.com",
+        createdAt: "2026-09-25T21:30:00.000Z",
+        externalOrderGuard: {
+          ...orderGuard,
+          status: "COMPLETED",
+          updatedAt: "2026-09-25T21:30:00.000Z",
+        },
+      },
+    );
+
+    expect(prepared.statements).toHaveLength(1);
+    expect(db.prepared[0].sql).toContain("SET state = 'CONSUMED'");
+    expect(
+      db.prepared.some((statement) =>
+        statement.sql.includes("INSERT INTO inventory_movements"),
+      ),
+    ).toBe(false);
   });
 });
 
