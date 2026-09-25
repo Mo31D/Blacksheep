@@ -66,9 +66,13 @@ export async function verifyResendWebhookSignature(
   }
 
   const secretBytes = decodeSecret(webhookSecret);
+  const secretBuffer = secretBytes.buffer.slice(
+    secretBytes.byteOffset,
+    secretBytes.byteOffset + secretBytes.byteLength,
+  ) as ArrayBuffer;
   const key = await crypto.subtle.importKey(
     "raw",
-    secretBytes,
+    secretBuffer,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
