@@ -7,6 +7,27 @@
 
 ---
 
+## Architecture lock — 25 September 2026
+
+Phase 0 is complete. The detailed locked specifications are:
+
+- [Current catalogue field audit](./PRODUCT-CATALOG-FIELD-AUDIT-2026-09-25.md)
+- [D1 schema specification](./PRODUCT-INVENTORY-D1-SCHEMA-SPEC-2026-09-25.md)
+- [Inventory & reservation lifecycle](./INVENTORY-RESERVATION-LIFECYCLE-SPEC-2026-09-25.md)
+- [Admin API contracts](./PRODUCT-ADMIN-API-CONTRACTS-2026-09-25.md)
+- [Premium Product & Stock Admin UX](./PRODUCT-STOCK-ADMIN-UX-SPEC-2026-09-25.md)
+- [Architecture lock summary](./PRODUCT-INVENTORY-ARCHITECTURE-LOCK-2026-09-25.md)
+
+Key lock:
+- D1 will become the operational source of truth.
+- current static SEO URLs remain preserved during migration.
+- all 146 products migrate deterministically.
+- current products initially remain inventory-untracked until a real physical count.
+- Product content is Draft → Publish.
+- price/status/inventory are immediate audited operations.
+- reviewed-order reservations are created when the reviewed version is sent.
+- no Product/Inventory production migration has been created or applied.
+
 ## 1. Product vision
 
 The Black Sheep Admin should become the single operational cockpit for the shop.
