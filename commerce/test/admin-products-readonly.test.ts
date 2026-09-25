@@ -169,28 +169,37 @@ describe("Phase 2 Product Admin", () => {
     });
   });
 
-  it("updates variant price/codes and returns refreshed product state", async () => {
+  it("quick-edits price, SKU, barcode and selling state atomically", async () => {
+    let input: Record<string, unknown> | null = null;
     const response = await handleAdminRequest(
-      new Request("https://admin.example.com/admin/api/variants/var-1", {
+      new Request("https://admin.example.com/admin/api/products/prd-1/quick-edit", {
         method: "PATCH",
         headers: {
           origin: "https://admin.example.com",
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          expectedVersion: 2,
+          expectedVersion: 4,
+          expectedVariantVersion: 2,
           priceMinor: 1095,
           sku: "SKU-2",
+          barcode: "5022259602977",
+          sellStatus: "OUT_OF_STOCK",
+          onlineOrderingEnabled: true,
         }),
       }),
       { DB: new Db() },
       {
         verifyAccessFn: identity,
-        updateAdminVariantFn: async () => ({ productId: "prd-1" }),
+        quickEditAdminProductFn: async (_db, _id, raw) => {
+          input = raw as unknown as Record<string, unknown>;
+        },
         getAdminProductDetailFn: async () => ({
           ...product,
           priceMinor: 1095,
           sku: "SKU-2",
+          barcode: "5022259602977",
+          sellStatus: "OUT_OF_STOCK",
           version: 5,
           variantVersion: 3,
         }),
@@ -198,8 +207,20 @@ describe("Phase 2 Product Admin", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(input).toMatchObject({
+      expectedVersion: 4,
+      expectedVariantVersion: 2,
+      priceMinor: 1095,
+      sellStatus: "OUT_OF_STOCK",
+    });
     await expect(response.json()).resolves.toMatchObject({
-      product: { priceMinor: 1095, sku: "SKU-2", variantVersion: 3 },
+      product: {
+        priceMinor: 1095,
+        sku: "SKU-2",
+        sellStatus: "OUT_OF_STOCK",
+        version: 5,
+        variantVersion: 3,
+      },
     });
   });
 
