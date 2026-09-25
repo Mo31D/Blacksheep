@@ -563,25 +563,23 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 ---
 
+- [x] Staging Resend webhook enabled successfully after `/health` confirmed `webhookConfigured=true`.
+
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Enable and verify the staging Resend webhook.**
+**STEP IN PROGRESS — Inspect and verify a real staging webhook event.**
 
-Pre-step verification:
-- staging `RESEND_WEBHOOK_SECRET`: present
-- production `RESEND_WEBHOOK_SECRET`: absent
+Pre-step state:
+- staging Resend webhook: ENABLED
+- staging Worker health: `webhookConfigured=true`
 - staging Worker Version ID: `e84f43fc-c9bc-4f8d-a259-f8d8646f5df7`
-- staging `/health`: `status=ok`, `database=bound`, `notifications.webhookConfigured=true`
-- staging webhook: exists and is still disabled
 - production remains unchanged
 
 Current step:
-1. enable the existing staging Resend webhook,
-2. inspect recent webhook events,
-3. generate or replay one real staging email event if needed,
-4. confirm a successful signed delivery to the staging endpoint,
-5. replay the same event and verify duplicate/idempotent handling,
-6. verify the corresponding delivery state/audit persistence in staging D1,
-7. update this checklist before moving to the final Delivery checkout gate.
+1. list recent events delivered to this webhook,
+2. choose a real email event suitable for verification,
+3. inspect delivery attempts/status,
+4. if no suitable event exists, generate one controlled staging transactional email,
+5. update this checklist before replaying the selected event.
 
-**Do not modify production in this step.**
+**Do not touch production.**
