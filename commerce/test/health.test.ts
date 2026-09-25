@@ -54,6 +54,43 @@ describe("commerce worker", () => {
     });
   });
 
+  it("runs scheduled reservation expiry only when the staging feature flag is enabled", async () => {
+    let prepares = 0;
+    const scheduledEnv = {
+      ...env,
+      ORDER_RESERVATIONS_ENABLED: "true",
+      DB: {
+        prepare() {
+          prepares += 1;
+          return {
+            bind() {
+              return this;
+            },
+            async first() {
+              return null;
+            },
+            async all() {
+              return { results: [] };
+            },
+            async run() {
+              return {};
+            },
+          };
+        },
+        async batch() {
+          return [];
+        },
+      },
+    };
+
+    await worker.scheduled({}, scheduledEnv);
+    expect(prepares).toBeGreaterThan(0);
+
+    prepares = 0;
+    await worker.scheduled({}, { ...scheduledEnv, ORDER_RESERVATIONS_ENABLED: "false" });
+    expect(prepares).toBe(0);
+  });
+
   it("returns structured 404 responses", async () => {
     const response = await worker.fetch(
       new Request("https://api.example.test/unknown"),
