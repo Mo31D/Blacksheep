@@ -468,10 +468,11 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] Customer decline flow E2E: revision → `DECLINED`, order → `UNDER_REVIEW`, payment request cleared, token revoked.
 - [x] Superseded/current-revision-only review-token E2E: old token → 404, current token → 200.
 - [x] Cross-order reference/content isolation verified with separate synthetic orders.
+- [x] Checkout browser QA run `36146604387`, job `108109223048`: **SUCCESS** — delivery review UI, production Turnstile widget render, production-origin→staging CORS, staging idempotent replay and network-failure basket recovery.
 - [ ] iPhone Safari UI QA.
 - [ ] Desktop browser UI QA.
 
-Status: **CORE + REVIEW-EDGE ADMIN V2 STAGING E2E PASSED, and key transactional emails are inbox-verified on iPhone. Remaining gates are provider webhook telemetry, public checkout/Turnstile QA, and Admin browser/device QA.**
+Status: **CORE + REVIEW-EDGE ADMIN V2 STAGING E2E PASSED, key transactional emails are inbox/provider-verified, and desktop checkout browser regression passes. Remaining gates are webhook telemetry, real Turnstile token/device submission, and Admin browser/device QA.**
 
 ---
 
@@ -559,28 +560,29 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**Phase 10 external/runtime closeout — webhook secret + browser/public-checkout QA.**
+**Close the remaining non-production-write release gates.**
 
 Verified now:
-- core E2E runs `36142333770` and `36142342245`: PASS
-- review-edge E2E run `36143031389`: PASS
-- Resend delivery records for the core E2E emails: `delivered`
-- Resend sending domain: verified
-- SPF: verified
-- DKIM: verified
-- staging webhook: created with sent/delivered/delayed/complained/bounced/failed/suppressed events
-- webhook status: intentionally disabled until signing secret is stored in the Worker
-- staging Worker: `0f5fb208-e4a8-49b7-9721-23bab226ba1b`
-- staging D1: current through `0008`
-- production remains frozen at Worker `938f0651-20b5-48df-a8d4-f84defbb263d`, D1 through `0002`
+- core Admin V2 staging E2E: PASS
+- customer-review edge E2E: PASS
+- checkout browser QA run `36146604387`: PASS
+- delivery review UI: PASS
+- production-origin → staging CORS: PASS
+- real staging API idempotent replay: PASS
+- network failure preserves basket + idempotency key: PASS
+- production Turnstile widget renders with the expected site key
+- automated real Turnstile token issuance is intentionally **not** bypassed in headless CI
+- Resend provider confirms the main E2E transactional emails as delivered
+- SPF + DKIM verified
+- staging Resend webhook exists but remains disabled until its signing secret is securely installed in the staging Worker
+- production Worker/D1 remain frozen
 
 Next work, in order:
-1. store the existing Resend staging webhook signing secret as Cloudflare staging Worker secret `RESEND_WEBHOOK_SECRET` using a secure Cloudflare secret-management channel; never commit it or pass it as a non-secret workflow input,
-2. redeploy/reload staging, verify `/health.notifications.webhookConfigured=true`,
-3. enable the existing Resend staging webhook and replay/send one real event; verify delivery-state persistence plus duplicate idempotency in real staging D1,
-4. verify DMARC independently,
-5. complete Admin UI desktop + iPhone Safari QA,
-6. close Phase 11 public checkout/Turnstile scenarios,
-7. only then prepare guarded production migration/deployment.
+1. run a **read-only** audit of the known controlled production test order to confirm its fulfilment method and final lifecycle state without modifying production,
+2. verify real Turnstile submission on a normal browser/device (or use existing controlled-order evidence if it proves the full path),
+3. securely install the existing Resend staging webhook signing secret as `RESEND_WEBHOOK_SECRET`, then enable/replay the webhook and verify real D1 telemetry/idempotency,
+4. complete Admin UI desktop + iPhone Safari QA,
+5. verify DMARC independently,
+6. only after those gates are closed, prepare guarded production Admin V2 migration/deploy.
 
 **Do not migrate or deploy production yet.**
