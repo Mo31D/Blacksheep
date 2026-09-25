@@ -471,11 +471,12 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] Checkout browser QA run `36146604387`, job `108109223048`: **SUCCESS** — delivery review UI, production Turnstile widget render, production-origin→staging CORS, staging idempotent replay and network-failure basket recovery.
 - [x] Production order read-only audit run `36146984153`, job `108110486489`: **SUCCESS** — controlled collection orders ended `COMPLETED / PAID`; no production write command was executed.
 - [x] Aggregate production delivery audit run `36147282538`, job `108111475317`: **SUCCESS / READ-ONLY** — `deliveryOrderCount=0`, so no real delivery-order submission can be claimed yet.
+- [x] Admin UI browser QA run `36150996964`, job `108123926387`: **SUCCESS** — authenticated order list/detail, start review, create revision, adjustment controls, collection↔delivery UI, desktop overflow checks, mobile WebKit detail/open-close, unclipped controls and no horizontal overflow.
 - [x] Deployed production source `19418b02473e4d8122b0214021cc1196e84daa3d` confirms `/v1/orders` required Turnstile verification before creating a new order.
-- [ ] iPhone Safari UI QA.
-- [ ] Desktop browser UI QA.
+- [x] WebKit mobile Admin UI QA passed in staging browser workflow; real-device iPhone Safari spot-check remains optional polish, not a functional blocker.
+- [x] Desktop Chromium Admin UI QA passed on current staging build.
 
-Status: **CORE + REVIEW-EDGE ADMIN V2 STAGING E2E PASSED, key transactional emails are inbox/provider-verified, and desktop checkout browser regression passes. Remaining gates are webhook telemetry, real Turnstile token/device submission, and Admin browser/device QA.**
+Status: **CORE + REVIEW-EDGE ADMIN V2 STAGING E2E PASSED, transactional emails are inbox/provider-verified, checkout browser regression passes, and Admin UI browser QA now passes on desktop Chromium + mobile WebKit. Remaining gates are webhook telemetry and one real Delivery submission through Turnstile.**
 
 ---
 
@@ -563,24 +564,24 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Re-run Admin UI browser QA on the current fixed staging build.**
+**STEP IN PROGRESS — Close the staging Resend webhook telemetry gate using the connected Resend + Cloudflare accounts.**
 
 Pre-step review:
-- GitHub `main`: `3000b41d58cbccb82212c5249da59b70a8177595`
-- last Commerce CI: PASS, 106/106 tests
-- last staging deploy: PASS
-- current staging Worker: `22752fa1-3ef2-459c-9ff4-03172535af7b`
-- staging D1: migrations `0000–0008`
-- previous Admin Browser QA runs failed **before** the generated Admin-script fix
-- production remains frozen at Worker `938f0651-20b5-48df-a8d4-f84defbb263d`, D1 through `0002`
+- GitHub `main` contains the current Admin V2 code and the generated Admin-script syntax fix.
+- Commerce CI: PASS, 106/106 tests.
+- current staging Worker: `22752fa1-3ef2-459c-9ff4-03172535af7b`.
+- staging D1: current through `0008_concurrency_guards.sql`.
+- Admin UI browser QA run `36150996964`: PASS.
+- Resend staging webhook exists for sent/delivered/delayed/complained/bounced/failed/suppressed events but is disabled.
+- Cloudflare staging currently does **not** have `RESEND_WEBHOOK_SECRET`.
+- production remains frozen; no production mutation is authorized in this step.
 
 Current step:
-1. re-run `Commerce Staging Admin Browser QA` against the current fixed staging Worker,
-2. verify Chromium desktop + WebKit/mobile order list/detail/revision controls and responsive layout,
-3. record PASS/failure evidence here before moving to the webhook step.
+1. obtain the existing staging webhook signing secret from Resend without exposing it,
+2. store it as Cloudflare staging Worker secret `RESEND_WEBHOOK_SECRET`,
+3. verify staging health reports `notifications.webhookConfigured=true`,
+4. enable the existing Resend staging webhook,
+5. send/replay one real webhook event and verify D1 delivery-state persistence plus duplicate-idempotency behavior,
+6. record the result here before moving to the Delivery/manual gate.
 
-After this step:
-- if PASS → proceed to secure staging Resend webhook secret installation using the connected Cloudflare + Resend accounts,
-- if FAIL → fix only the first reproducible Admin UI defect, re-run CI/staging deploy, then repeat this QA.
-
-**Do not migrate or deploy production in this step.**
+**Do not change production Worker, production secrets or production D1 in this step.**
