@@ -65,11 +65,27 @@ const baseDependencies = {
     state: "DRAFT",
     version: 2,
   })),
+  addDraftRevisionAdjustmentFn: vi.fn(async () => ({
+    id: "rev-1",
+    revisionNumber: 1,
+    state: "DRAFT",
+    version: 2,
+    adjustmentAmountMinor: -100,
+    finalTotalMinor: 50,
+  })),
   substituteDraftRevisionLineFn: vi.fn(async () => ({
     id: "rev-1",
     revisionNumber: 1,
     state: "DRAFT",
     version: 2,
+  })),
+  removeDraftRevisionAdjustmentFn: vi.fn(async () => ({
+    id: "rev-1",
+    revisionNumber: 1,
+    state: "DRAFT",
+    version: 3,
+    adjustmentAmountMinor: 0,
+    finalTotalMinor: 150,
   })),
   transitionOrderRevisionFn: vi.fn(async () => ({
     id: "rev-1",
@@ -358,6 +374,112 @@ describe("admin order revision routes", () => {
       3,
       "owner@example.com",
     );
+  });
+
+  it("adds a reviewed-order adjustment through the owner API", async () => {
+    const addDraftRevisionAdjustmentFn = vi.fn(
+      baseDependencies.addDraftRevisionAdjustmentFn,
+    );
+
+    const response = await handleAdminRequest(
+      new Request(
+        "https://admin.example.com/admin/api/orders/BSR-1/revisions/rev-1/adjustments",
+        {
+          method: "POST",
+          headers: {
+            origin: "https://admin.example.com",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            expectedVersion: 1,
+            kind: "DISCOUNT",
+            label: "Stock correction",
+            amountMinor: -100,
+            internalReason: "One requested item is unavailable.",
+          }),
+        },
+      ),
+      { DB: new Db() },
+      { ...baseDependencies, addDraftRevisionAdjustmentFn } as any,
+    );
+
+    expect(response.status).toBe(201);
+    expect(addDraftRevisionAdjustmentFn).toHaveBeenCalledWith(
+      expect.any(Db),
+      "BSR-1",
+      "rev-1",
+      expect.objectContaining({
+        expectedVersion: 1,
+        kind: "DISCOUNT",
+        amountMinor: -100,
+      }),
+      "owner@example.com",
+    );
+  });
+
+  it("removes a reviewed-order adjustment with expected-version protection", async () => {
+    const removeDraftRevisionAdjustmentFn = vi.fn(
+      baseDependencies.removeDraftRevisionAdjustmentFn,
+    );
+
+    const response = await handleAdminRequest(
+      new Request(
+        "https://admin.example.com/admin/api/orders/BSR-1/revisions/rev-1/adjustments/7",
+        {
+          method: "DELETE",
+          headers: {
+            origin: "https://admin.example.com",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ expectedVersion: 2 }),
+        },
+      ),
+      { DB: new Db() },
+      { ...baseDependencies, removeDraftRevisionAdjustmentFn } as any,
+    );
+
+    expect(response.status).toBe(200);
+    expect(removeDraftRevisionAdjustmentFn).toHaveBeenCalledWith(
+      expect.any(Db),
+      "BSR-1",
+      "rev-1",
+      7,
+      2,
+      "owner@example.com",
+    );
+  });
+
+  it("maps a stale adjustment mutation to HTTP 409", async () => {
+    const addDraftRevisionAdjustmentFn = vi.fn(async () => {
+      throw new Error("revision_version_conflict");
+    });
+
+    const response = await handleAdminRequest(
+      new Request(
+        "https://admin.example.com/admin/api/orders/BSR-1/revisions/rev-1/adjustments",
+        {
+          method: "POST",
+          headers: {
+            origin: "https://admin.example.com",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            expectedVersion: 1,
+            kind: "SURCHARGE",
+            label: "Delivery correction",
+            amountMinor: 100,
+            internalReason: "Stale mutation test.",
+          }),
+        },
+      ),
+      { DB: new Db() },
+      { ...baseDependencies, addDraftRevisionAdjustmentFn } as any,
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "revision_version_conflict" },
+    });
   });
 
   it("rejects cross-origin PATCH before revision logic runs", async () => {
