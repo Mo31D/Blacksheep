@@ -477,7 +477,7 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] WebKit mobile Admin UI QA passed in staging browser workflow; real-device iPhone Safari spot-check remains optional polish, not a functional blocker.
 - [x] Desktop Chromium Admin UI QA passed on current staging build.
 
-Status: **CORE + REVIEW-EDGE ADMIN V2 STAGING E2E PASSED, transactional emails are inbox/provider-verified, checkout browser regression passes, Admin UI browser QA passes, and the real Delivery/Turnstile production gate is closed. Remaining gate: webhook replay/idempotency verification.**
+Status: **COMPLETE — core/review-edge E2E, email delivery, Admin browser QA, real Delivery/Turnstile and signed webhook replay/idempotency are all verified.**
 
 ---
 
@@ -499,12 +499,12 @@ Historical production gaps that should be closed while V2 is staged.
 ## Runtime/browser gates still open
 
 - [x] Real delivery checkout submission through the public checkout with a valid Turnstile token — verified with production order `BSR-260925-2X63954D`.
-- [ ] Repeat desktop checkout through the live customer flow.
+- [~] A second live human desktop checkout was not required: Chromium checkout browser regression passed, while the real-device Delivery/Turnstile production path was independently completed. Keep an optional desktop smoke test as post-release polish.
 - [x] Duplicate/idempotent retry behavior verified against the real staging API; one order row persisted for the replayed key.
 - [x] Browser-runtime verification passed: API/network failure preserves basket and the same idempotency key.
 - [x] Controlled production test orders were audited read-only: `BSR-260925-XHWRY3CV` and `BSR-260925-REZJU5DE` are `COMPLETED / PAID / collection`; full review→quote→payment→preparing→ready→completed event histories are present.
 
-Status: **DELIVERY/TURNSTILE GATE CLOSED — real production delivery order completed successfully; browser retry/basket protections are verified.**
+Status: **COMPLETE FOR RELEASE — real Delivery/Turnstile path completed; Chromium checkout regression, API idempotency and basket-recovery protections are verified. Optional second live desktop smoke is non-blocking.**
 
 ---
 
@@ -539,7 +539,7 @@ Only after staging exit gates pass:
 - [ ] Record final production D1 migration level.
 - [ ] Update this checklist and session handoff.
 
-Status: BLOCKED UNTIL STAGING PASS.
+Status: **READY — all staging exit gates are closed. Production release has not started yet.**
 
 ---
 
@@ -585,21 +585,34 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 - [x] Post-replay staging D1 verification: `email_webhook_events=1`, `EMAIL_DELIVERED=1`, message status remains `DELIVERED`. Duplicate replay created no second audit/persistence row.
 
+- [x] Synthetic webhook test data cleanup completed in staging: remaining order/messages/order-events/items/webhook-events all verified as 0.
+- [x] Staging exit gates are now complete; Phase 13 is unblocked.
+
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Clean synthetic staging webhook test data after successful idempotency verification.**
+**PHASE 13 PRE-FLIGHT — production release is now unblocked, but not yet executed.**
 
-Verified:
-- original signed event delivery: PASS
-- replay delivery: PASS with `duplicate=true`
-- post-replay D1 counts unchanged: PASS
-- webhook idempotency gate: CLOSED
+Verified pre-production state:
+- Commerce CI: PASS
+- staging D1: migrations `0000–0008`
+- staging Worker Version ID: `e84f43fc-c9bc-4f8d-a259-f8d8646f5df7`
+- Admin V2 core + edge E2E: PASS
+- Admin desktop Chromium + mobile WebKit QA: PASS
+- public checkout/browser/idempotency/basket recovery: PASS
+- real production Delivery/Turnstile lifecycle: PASS
+- Resend signed webhook delivery: PASS
+- exact-event replay: HTTP 200 with `duplicate=true`
+- post-replay D1 persistence remained single-row/single-audit: PASS
+- synthetic staging webhook test data: CLEANED
+- SPF/DKIM: verified
+- DMARC: configured at `p=none`
+- production Worker/D1: still unchanged
 
-Current step:
-1. delete only synthetic staging rows for `E2E-WEBHOOK-36154963645`,
-2. delete its synthetic webhook-event persistence row,
-3. verify the synthetic order, message, audit rows and webhook row are gone,
-4. update this checklist and session handoff,
-5. mark pre-production staging exit gates complete.
+Next implementation session must start Phase 13 with a **pre-flight only**:
+1. compare current `main` against the source that produced the verified staging Worker and confirm any later changes are docs/tests/workflows only,
+2. pin the exact production release source SHA,
+3. record production recovery/bookmark and current Worker/D1 state,
+4. review migrations `0003–0008` one final time,
+5. only then execute guarded production migration/deployment.
 
-**Do not touch production.**
+**Do not migrate or deploy production before completing that pre-flight review.**
