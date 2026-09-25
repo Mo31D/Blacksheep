@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "commerce/migrations/0011_order_reservations.sql"
+      - "commerce/migrations/0012_order_returns.sql"
       - "commerce/scripts/test-migration-upgrade.mjs"
       - "commerce/scripts/test-order-reservations.mjs"
       - "commerce/src/data/order-reservations.ts"
@@ -22,6 +23,8 @@ on:
       - "commerce/test/customer-review-expiry.test.ts"
       - "commerce/test/admin-order-reservations.test.ts"
       - "commerce/test/admin-revision-routes.test.ts"
+      - "commerce/test/order-return-to-stock.test.ts"
+      - "commerce/test/admin-routes.test.ts"
       - "commerce/test/health.test.ts"
       - "commerce/wrangler.jsonc"
       - "commerce/package.json"
@@ -109,23 +112,23 @@ jobs:
             console.error("Product Core baseline is incomplete.", baseline);
             process.exit(1);
           }
-          if (baseline.latestMigration !== "0011_order_reservations.sql") {
-            console.error("Staging must already be on 0011 before runtime activation.", baseline);
+          if (!["0011_order_reservations.sql", "0012_order_returns.sql"].includes(baseline.latestMigration)) {
+            console.error("Unexpected Phase 5 staging migration baseline.", baseline);
             process.exit(1);
           }
           fs.writeFileSync(process.argv[3], JSON.stringify(baseline));
           console.log("Phase 5 runtime baseline captured.", baseline);
           NODE
 
-      - name: Apply Reservation Foundation migration to staging only
+      - name: Apply Phase 5 migrations to staging only
         run: npm run db:migrate:staging
 
-      - name: Verify Reservation Foundation migration is side-effect free
+      - name: Verify Phase 5 migrations are side-effect free
         shell: bash
         run: |
           npx wrangler d1 execute black-sheep-commerce-staging \
             --remote --env staging --json \
-            --command "SELECT COUNT(*) AS products FROM products; SELECT COUNT(*) AS imported FROM product_audit_events WHERE event_type='PRODUCT_IMPORTED'; SELECT COUNT(*) AS tracked FROM product_variants WHERE track_inventory=1; SELECT COUNT(*) AS balances FROM inventory_balances; SELECT COUNT(*) AS movements FROM inventory_movements; SELECT COUNT(*) AS incoming FROM inventory_incoming; SELECT COUNT(*) AS reservations FROM inventory_reservations; SELECT COUNT(*) AS reservation_items FROM inventory_reservation_items; SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT name FROM sqlite_master WHERE type='index' AND name IN ('idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservations_location_state','idx_inventory_reservation_items_reservation','idx_inventory_reservation_items_variant') ORDER BY name; SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('inventory_reservation_items_immutable_update','inventory_reservation_items_immutable_delete') ORDER BY name;" \
+            --command "SELECT COUNT(*) AS products FROM products; SELECT COUNT(*) AS imported FROM product_audit_events WHERE event_type='PRODUCT_IMPORTED'; SELECT COUNT(*) AS tracked FROM product_variants WHERE track_inventory=1; SELECT COUNT(*) AS balances FROM inventory_balances; SELECT COUNT(*) AS movements FROM inventory_movements; SELECT COUNT(*) AS incoming FROM inventory_incoming; SELECT COUNT(*) AS reservations FROM inventory_reservations; SELECT COUNT(*) AS reservation_items FROM inventory_reservation_items; SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT name FROM sqlite_master WHERE type='index' AND name IN ('idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservations_location_state','idx_inventory_reservation_items_reservation','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned') ORDER BY name; SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('inventory_reservation_items_immutable_update','inventory_reservation_items_immutable_delete') ORDER BY name; SELECT returned_at FROM inventory_reservations LIMIT 0;" \
             > /tmp/reservation-post.json
           cat /tmp/reservation-post.json
           node - /tmp/reservation-pre-baseline.json /tmp/reservation-post.json <<'NODE'
@@ -150,13 +153,14 @@ jobs:
           for (const key of ["products","imported","tracked","balances","movements","incoming","reservations","reservationItems"]) {
             if (after[key] !== before[key]) failures.push(key + " changed during idempotent migration check");
           }
-          if (after.latestMigration !== "0011_order_reservations.sql") failures.push("0011 not latest migration");
+          if (after.latestMigration !== "0012_order_returns.sql") failures.push("0012 not latest migration");
           for (const required of [
             "idx_inventory_reservations_idempotency",
             "idx_inventory_reservations_state_expiry",
             "idx_inventory_reservations_location_state",
             "idx_inventory_reservation_items_reservation",
             "idx_inventory_reservation_items_variant",
+            "idx_inventory_reservations_returned",
           ]) {
             if (!after.indexes.includes(required)) failures.push("missing index " + required);
           }
@@ -170,7 +174,7 @@ jobs:
             console.error("Reservation Foundation staging gate failed.", { failures, before, after });
             process.exit(1);
           }
-          console.log("Reservation Foundation staging gate passed.", { before, after });
+          console.log("Phase 5 staging schema gate passed.", { before, after });
           NODE
 
       - name: Verify Production remains pre-Product-Core
@@ -222,5 +226,6 @@ jobs:
           echo "Phase 5 runtime target: staging only."
           echo "ORDER_RESERVATIONS_ENABLED=true exists only under env.staging vars."
           echo "No Production migration or Worker deploy is run."
+          echo "Staging schema target is 0012_order_returns.sql."
           echo "Production remains pre-Product-Core at migration 0008."
           echo "No Phase 6 storefront/checkout inventory cutover is performed."
