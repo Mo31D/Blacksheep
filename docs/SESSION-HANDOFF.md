@@ -6,41 +6,45 @@
 >
 > **Live execution tracker:** `docs/ADMIN-V2-CHECKLIST.md`.
 >
-> **Production Admin V2 is live. Phase 13 production release is complete.**
+> **Production Admin V2 is live. Phase 13 is complete and the first post-release storefront/stock patch is also live.**
 >
-> Final verified production release:
-> - pinned runtime source SHA: `8c5462388648235acd3a41b853d1adee057a11a7`
-> - production migration run: `36157961810` / job `108147083426`
-> - production D1 migrations: `0000–0008`
-> - production Worker deployment ID: `2e629bc4-99e9-41cf-b15e-0b087ec8a33b`
-> - production Worker version: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`
+> Current verified production state:
+> - current storefront/commerce source patch: `43757734376c3c4b7f8a139ee096927bbb09a251`
+> - production deploy workflow run: `36163025684` / job `108163975400` — SUCCESS
+> - production D1 migrations: `0000–0008` — unchanged by the patch
+> - production Worker deployment ID: `2bbc3281-a57a-4cd0-aba5-594dd4563939`
+> - production Worker version: `f4a9ba95-b144-436e-9e4d-808cc5218792`
 > - production D1 ID: `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
-> - production custom-domain health: PASS
-> - production Workers.dev health: PASS
-> - production `/admin`: reachable
-> - production secrets include `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `TURNSTILE_SECRET_KEY`
-> - production Resend webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0`
-> - production Resend webhook status: ENABLED
-> - production webhook endpoint: `https://api.theblacksheepshop.co.uk/webhooks/resend`
-> - existing production orders preserved through migration/deploy: 3
-> - SPF/DKIM: verified
+> - production order count after patch: 3
+> - production health/Admin gates: PASS in the deployment workflow
+> - production secrets remain `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `TURNSTILE_SECRET_KEY`
+> - production Resend webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0` — ENABLED
 > - DMARC: `v=DMARC1; p=none; pct=100; adkim=r; aspf=r`
-> - latest recorded post-release D1 Time Travel bookmark: `0000002b-00000000-000050f1-c99de2cbd416b44cc1ae27080bb939db`
+> - latest observed D1 Time Travel bookmark: `00000031-00000000-000050f1-2c19ebc9178ac245e54f7e8b94badfbc`
 >
-> Release notes:
-> - Production migrations `0003–0008` were additive and applied successfully; do not rerun them.
-> - The Worker was deployed from the pinned audited runtime SHA, not from later documentation/test-only `main` commits.
-> - The first immediate post-deploy health request briefly omitted `webhookConfigured`; subsequent custom-domain and Workers.dev checks both returned `webhookConfigured=true`. This was propagation timing, not a runtime defect.
-> - Production webhook activation happened only after health and Admin reachability were reverified.
+> Post-release patch content:
+> - homepage quick-category strip now links every category tile to a real destination
+> - homepage gift collections use a compact two-column mobile grid
+> - basket mobile layout has clearer order progress, tighter item cards and a lighter summary
+> - `PR-046 Peter Rabbit Hanging Ornaments (Set of 4)` is now explicitly `out-of-stock`
+> - the generated server-authoritative commerce catalogue also marks PR-046 non-purchasable
+> - no production migration was applied for this patch
+> - Search Readiness, Commerce CI, GitHub Pages and production deploy/health gates passed for the implementation/release
+> - stale failing `.github/workflows/commerce-production-migrations.yml` was removed after it produced false red workflow noise on ordinary pushes; Git history retains it
+>
+> Original Phase 13 release remains the migration foundation:
+> - migration run `36157961810` / job `108147083426`
+> - migrations `0003–0008` were additive and must not be rerun
+> - the original Admin V2 runtime release was `8c5462388648235acd3a41b853d1adee057a11a7`; it has now been superseded by the stock-sync runtime patch above
 >
 > **NEXT WORK: post-release validation/polish only.**
 > 1. Owner opens production `/admin` on desktop and iPhone and confirms the real UX.
 > 2. Perform one fresh production owner OTP login.
-> 3. Optionally run one controlled low-value live order through revision → customer review → payment recording → fulfilment.
-> 4. Verify the next natural production transactional email records delivery telemetry through the enabled webhook.
-> 5. Inspect/archive temporary release-only or stale failing workflows separately.
+> 3. Verify the next natural production transactional email records delivery telemetry through the enabled webhook.
+> 4. Optionally run one controlled low-value live order through revision → customer review → payment recording → fulfilment.
+> 5. Continue cleanup of temporary release-only workflows only where they are clearly obsolete.
 >
-> **Do not rerun migrations `0003–0008` or redeploy the same release unless intentionally shipping a new runtime change.**
+> **Do not rerun migrations `0003–0008`. Any future Worker deployment must correspond to an intentional new runtime/catalogue change and pass Commerce CI first.**
 
 ---
 

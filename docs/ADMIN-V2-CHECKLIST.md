@@ -31,6 +31,26 @@ This file is the **authoritative, resumable execution tracker for Admin V2**.
 
 # CURRENT RELEASE BASELINE
 
+## Current live production state — 25 September 2026
+
+This block supersedes the historical pre-release environment snapshot later in this section.
+
+- [x] Post-release storefront/stock implementation commit: `43757734376c3c4b7f8a139ee096927bbb09a251`.
+- [x] Search Readiness: PASS for the implementation commit.
+- [x] Commerce CI: PASS for the implementation commit.
+- [x] GitHub Pages deployment: PASS for the implementation commit.
+- [x] PR-046 Peter Rabbit Hanging Ornaments is `out-of-stock` in `assets/catalog.js`.
+- [x] Generated Commerce catalogue marks PR-046 `purchasable=false`, reason `out_of_stock`.
+- [x] Production deploy run `36163025684` / job `108163975400`: SUCCESS.
+- [x] Current production Worker deployment `2bbc3281-a57a-4cd0-aba5-594dd4563939`.
+- [x] Current production Worker version `f4a9ba95-b144-436e-9e4d-808cc5218792`.
+- [x] Production D1 remains at migrations `0000–0008`; no migration was applied by this patch.
+- [x] Production order count remains 3 after the patch.
+- [x] Production Resend/Turnstile secrets remain configured.
+- [x] Stale malformed/release-only `commerce-production-migrations.yml` removed from current main after repeated false red runs on ordinary pushes.
+- [x] Homepage quick category links, compact mobile collection grid and basket mobile polish shipped with the same storefront patch.
+
+
 Source anchor at reconstruction start:
 
 - `4fc459fa97939f4ba45cd01db5a4be8ac807d038`
@@ -49,7 +69,7 @@ Hardened source baseline after Phase 8 work:
 - New concurrency migration: `0008_concurrency_guards.sql`.
 - Revision, refund, customer-review and Resend-webhook critical mutations now use winner-owned mutation/idempotency guards.
 
-Environment facts — direct Cloudflare audit on 25 September 2026:
+Historical pre-release environment snapshot — superseded by the current live production state above:
 
 - [x] Staging Worker current Version ID `0f5fb208-e4a8-49b7-9721-23bab226ba1b`; deployed after adjustment API/UI + customer-review adjustment transparency changes; staging health verified on 25 September 2026.
 - [x] Production Worker remains unchanged at Version ID `938f0651-20b5-48df-a8d4-f84defbb263d`; deployment ID `f1ff4d67-bda6-4330-b4ae-961ea8d55f95`; created `2026-09-25T00:45:39Z`.
@@ -720,6 +740,17 @@ Status: **PHASE 13 PRODUCTION RELEASE COMPLETE — migrations, pinned Worker dep
   - production Resend webhook `db1d278b-aea6-4b52-90f4-b233252f5cf0`: ENABLED
   - production secrets include `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `TURNSTILE_SECRET_KEY`
   - post-release D1 Time Travel bookmark: `0000002b-00000000-000050f1-c99de2cbd416b44cc1ae27080bb939db`
+
+# POST-RELEASE STOREFRONT PATCH — COMPLETE
+
+- [x] Make all five homepage quick-category tiles navigable.
+- [x] Compact homepage gift collections to a two-column mobile grid.
+- [x] Polish basket mobile hierarchy, controls, progress and summary spacing.
+- [x] Mark PR-046 Peter Rabbit Hanging Ornaments (Set of 4) out of stock in storefront source.
+- [x] Regenerate the server-authoritative commerce catalogue so PR-046 cannot be ordered through the API.
+- [x] Deploy the updated commerce catalogue to production without rerunning migrations.
+- [x] Confirm production health/Admin checks after deploy.
+- [x] Remove the stale failing production migration workflow that was creating false red checks.
 
 # EXACT NEXT ACTION
 
