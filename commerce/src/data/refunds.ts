@@ -1,4 +1,8 @@
-import type { D1DatabaseLike, D1PreparedStatementLike } from "./d1";
+import {
+  d1StatementChanged,
+  type D1DatabaseLike,
+  type D1PreparedStatementLike,
+} from "./d1";
 
 export const REFUND_REASON_CODES = [
   "CUSTOMER_CANCELLED",
@@ -30,6 +34,7 @@ interface RefundOrderRow {
   paymentStatus: string;
   currency: string;
   paidAmountMinor: number | null;
+  refundVersion: number;
 }
 
 export interface RefundRecord {
@@ -50,6 +55,8 @@ export interface RefundSummary {
   remainingRefundableMinor: number;
   fullyRefunded: boolean;
   refunds: RefundRecord[];
+  recordedRefundId?: string;
+  idempotentReplay?: boolean;
 }
 
 export interface RecordRefundInput {
@@ -59,6 +66,7 @@ export interface RecordRefundInput {
   externalReference?: string | null;
   internalNote?: string | null;
   cancelOrder?: boolean;
+  idempotencyKey?: string | null;
 }
 
 function optionalText(
@@ -99,7 +107,8 @@ async function getRefundOrder(
             LIMIT 1
           ),
           o.final_total_minor
-        ) AS paidAmountMinor
+        ) AS paidAmountMinor,
+        o.refund_version AS refundVersion
       FROM orders o
       WHERE o.public_reference = ?
       LIMIT 1`,
@@ -107,6 +116,46 @@ async function getRefundOrder(
     .bind(reference)
     .first<RefundOrderRow>();
 }
+
+function validateIdempotencyKey(value: unknown): string | null {
+  const key = optionalText(value, 128, "refund_invalid_idempotency_key");
+  if (key && !/^[A-Za-z0-9._:-]{8,128}$/.test(key)) {
+    throw new Error("refund_invalid_idempotency_key");
+  }
+  return key;
+}
+
+async function findRefundByIdempotency(
+  db: D1DatabaseLike,
+  orderId: string,
+  idempotencyKey: string,
+): Promise<string | null> {
+  const row = await db
+    .prepare(
+      `SELECT id
+      FROM refunds
+      WHERE order_id = ? AND idempotency_key = ?
+      LIMIT 1`,
+    )
+    .bind(orderId, idempotencyKey)
+    .first<{ id: string }>();
+  return row?.id ?? null;
+}
+
+async function replayRefundSummary(
+  db: D1DatabaseLike,
+  reference: string,
+  refundId: string,
+): Promise<RefundSummary> {
+  const summary = await getOrderRefundSummary(db, reference);
+  if (!summary) throw new Error("refund_order_not_found");
+  return {
+    ...summary,
+    recordedRefundId: refundId,
+    idempotentReplay: true,
+  };
+}
+
 
 export async function getOrderRefundSummary(
   db: D1DatabaseLike,
@@ -180,6 +229,18 @@ export async function recordManualRefund(
     throw new Error("refund_completed_order_cannot_cancel");
   }
 
+  const idempotencyKey = validateIdempotencyKey(input.idempotencyKey);
+  if (idempotencyKey) {
+    const existing = await findRefundByIdempotency(
+      db,
+      order.id,
+      idempotencyKey,
+    );
+    if (existing) {
+      return replayRefundSummary(db, reference, existing);
+    }
+  }
+
   const current = await getOrderRefundSummary(db, reference);
   if (!current) throw new Error("refund_order_not_found");
   if (current.paidAmountMinor <= 0) throw new Error("refund_paid_amount_missing");
@@ -188,6 +249,7 @@ export async function recordManualRefund(
   }
 
   const id = crypto.randomUUID();
+  const mutationToken = crypto.randomUUID();
   const now = new Date().toISOString();
   const externalReference = optionalText(
     input.externalReference,
@@ -208,15 +270,49 @@ export async function recordManualRefund(
     : fullyRefunded
       ? "PAYMENT_REFUNDED"
       : "PAYMENT_PARTIALLY_REFUNDED";
+  const nextRefundVersion = Number(order.refundVersion || 0) + 1;
+  const cancelOrder = input.cancelOrder ? 1 : 0;
 
   const statements: D1PreparedStatementLike[] = [
+    db
+      .prepare(
+        `UPDATE orders
+        SET refund_version = ?,
+            refund_mutation_token = ?,
+            payment_status = ?,
+            status = CASE WHEN ? = 1 THEN 'CANCELLED' ELSE status END,
+            updated_at = ?,
+            cancelled_at = CASE
+              WHEN ? = 1 THEN COALESCE(cancelled_at, ?)
+              ELSE cancelled_at
+            END
+        WHERE id = ?
+          AND refund_version = ?
+          AND payment_status IN ('PAID', 'REFUNDED')`,
+      )
+      .bind(
+        nextRefundVersion,
+        mutationToken,
+        nextPaymentStatus,
+        cancelOrder,
+        now,
+        cancelOrder,
+        now,
+        order.id,
+        order.refundVersion,
+      ),
     db
       .prepare(
         `INSERT INTO refunds (
           id, order_id, amount_minor, currency, reason_code,
           refund_method, external_reference, internal_note,
-          created_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          created_by, created_at, idempotency_key
+        )
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        WHERE EXISTS (
+          SELECT 1 FROM orders
+          WHERE id = ? AND refund_version = ? AND refund_mutation_token = ?
+        )`,
       )
       .bind(
         id,
@@ -229,30 +325,22 @@ export async function recordManualRefund(
         internalNote,
         actorEmail,
         now,
-      ),
-    db
-      .prepare(
-        `UPDATE orders
-        SET payment_status = ?,
-            status = ?,
-            updated_at = ?,
-            cancelled_at = CASE WHEN ? = 'CANCELLED' THEN COALESCE(cancelled_at, ?) ELSE cancelled_at END
-        WHERE id = ?`,
-      )
-      .bind(
-        nextPaymentStatus,
-        nextOrderStatus,
-        now,
-        nextOrderStatus,
-        now,
+        idempotencyKey,
         order.id,
+        nextRefundVersion,
+        mutationToken,
       ),
     db
       .prepare(
         `INSERT INTO order_events (
           order_id, event_type, from_status, to_status,
           actor_type, actor_id, note, metadata_json, created_at
-        ) VALUES (?, ?, ?, ?, 'admin', ?, ?, ?, ?)`,
+        )
+        SELECT ?, ?, ?, ?, 'admin', ?, ?, ?, ?
+        WHERE EXISTS (
+          SELECT 1 FROM orders
+          WHERE id = ? AND refund_version = ? AND refund_mutation_token = ?
+        )`,
       )
       .bind(
         order.id,
@@ -271,18 +359,53 @@ export async function recordManualRefund(
           refundMethod: input.refundMethod,
           externalReference,
           fullyRefunded,
+          refundVersion: nextRefundVersion,
         }),
         now,
+        order.id,
+        nextRefundVersion,
+        mutationToken,
       ),
   ];
 
-  await db.batch(statements);
+  let results: unknown[];
+  try {
+    results = await db.batch(statements);
+  } catch (cause) {
+    if (idempotencyKey) {
+      const existing = await findRefundByIdempotency(
+        db,
+        order.id,
+        idempotencyKey,
+      );
+      if (existing) {
+        return replayRefundSummary(db, reference, existing);
+      }
+    }
+    throw cause;
+  }
+
+  if (d1StatementChanged(results[0]) === false) {
+    if (idempotencyKey) {
+      const existing = await findRefundByIdempotency(
+        db,
+        order.id,
+        idempotencyKey,
+      );
+      if (existing) {
+        return replayRefundSummary(db, reference, existing);
+      }
+    }
+    throw new Error("refund_version_conflict");
+  }
 
   return {
     paidAmountMinor: current.paidAmountMinor,
     refundedMinor: refundedAfter,
     remainingRefundableMinor: current.paidAmountMinor - refundedAfter,
     fullyRefunded,
+    recordedRefundId: id,
+    idempotentReplay: false,
     refunds: [
       {
         id,
