@@ -607,12 +607,12 @@ export function prepareReservationMutation(
 }
 
 
-interface ActiveReservationRow {
+interface ReservationHoldRow {
   id: string;
   orderId: string;
   revisionId: string;
   locationId: string;
-  state: "ACTIVE";
+  state: "ACTIVE" | "COMMITTED";
   expiresAt: string;
   version: number;
   mutationToken: string;
@@ -654,13 +654,22 @@ export interface ReservationExternalGuard {
   state: "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED" | "EXPIRED";
 }
 
+export interface ReservationOrderGuard {
+  orderId: string;
+  status: string;
+  paymentStatus: string;
+  updatedAt: string;
+}
+
 export interface ReservationReleaseInput {
   actorEmail: string;
   actorType?: "ADMIN" | "CUSTOMER" | "SYSTEM";
   reason: string;
+  sourceState?: "ACTIVE" | "COMMITTED";
   terminalState?: "RELEASED" | "EXPIRED";
   createdAt?: string;
   externalGuard?: ReservationExternalGuard;
+  externalOrderGuard?: ReservationOrderGuard;
 }
 
 export interface PreparedReservationRelease {
@@ -673,7 +682,7 @@ export interface PreparedReservationRelease {
 async function activeReservationRowForRevision(
   db: D1DatabaseLike,
   revisionId: string,
-): Promise<ActiveReservationRow | null> {
+): Promise<ReservationHoldRow | null> {
   return db
     .prepare(
       `SELECT
@@ -691,12 +700,12 @@ async function activeReservationRowForRevision(
       LIMIT 1`,
     )
     .bind(revisionId)
-    .first<ActiveReservationRow>();
+    .first<ReservationHoldRow>();
 }
 
 async function buildReleasePlanFromRow(
   db: D1DatabaseLike,
-  reservation: ActiveReservationRow,
+  reservation: ReservationHoldRow,
 ): Promise<ActiveReservationReleasePlan> {
   const rows = await allRows<ReservationReleaseRequirementRow>(
     db
@@ -768,12 +777,37 @@ export async function getActiveReservationReleasePlan(
   return reservation ? buildReleasePlanFromRow(db, reservation) : null;
 }
 
+export async function getCommittedReservationPlan(
+  db: D1DatabaseLike,
+  revisionId: string,
+): Promise<ActiveReservationReleasePlan | null> {
+  const reservation = await db
+    .prepare(
+      `SELECT
+        id,
+        order_id AS orderId,
+        revision_id AS revisionId,
+        location_id AS locationId,
+        state,
+        expires_at AS expiresAt,
+        version,
+        mutation_token AS mutationToken
+      FROM inventory_reservations
+      WHERE revision_id = ?
+        AND state = 'COMMITTED'
+      LIMIT 1`,
+    )
+    .bind(revisionId)
+    .first<ReservationHoldRow>();
+  return reservation ? buildReleasePlanFromRow(db, reservation) : null;
+}
+
 export async function getSupersededReservationReleasePlan(
   db: D1DatabaseLike,
   orderId: string,
   excludeRevisionId: string,
 ): Promise<ActiveReservationReleasePlan | null> {
-  const rows = await allRows<ActiveReservationRow>(
+  const rows = await allRows<ReservationHoldRow>(
     db
       .prepare(
         `SELECT
@@ -828,6 +862,29 @@ function externalGuardValues(
     : [];
 }
 
+function orderGuardSql(
+  guard: ReservationOrderGuard | undefined,
+): string {
+  return guard
+    ? `EXISTS (
+        SELECT 1
+        FROM orders external_order_guard
+        WHERE external_order_guard.id = ?
+          AND external_order_guard.status = ?
+          AND external_order_guard.payment_status = ?
+          AND external_order_guard.updated_at = ?
+      )`
+    : "1 = 1";
+}
+
+function orderGuardValues(
+  guard: ReservationOrderGuard | undefined,
+): unknown[] {
+  return guard
+    ? [guard.orderId, guard.status, guard.paymentStatus, guard.updatedAt]
+    : [];
+}
+
 export function prepareReservationReleaseMutation(
   db: D1DatabaseLike,
   plan: ActiveReservationReleasePlan,
@@ -838,6 +895,7 @@ export function prepareReservationReleaseMutation(
     "reservation_actor_required",
   );
   const actorType = input.actorType ?? "ADMIN";
+  const sourceState = input.sourceState ?? "ACTIVE";
   const terminalState = input.terminalState ?? "RELEASED";
   const reason = requiredMutationText(
     input.reason,
@@ -853,6 +911,8 @@ export function prepareReservationReleaseMutation(
   const statements: D1PreparedStatementLike[] = [];
   const extSql = externalGuardSql(input.externalGuard);
   const extValues = externalGuardValues(input.externalGuard);
+  const orderSql = orderGuardSql(input.externalOrderGuard);
+  const orderValues = orderGuardValues(input.externalOrderGuard);
 
   for (const requirement of plan.requirements) {
     const balanceMutationToken = uid("imut");
@@ -875,9 +935,10 @@ export function prepareReservationReleaseMutation(
               WHERE reservation_guard.id = ?
                 AND reservation_guard.version = ?
                 AND reservation_guard.mutation_token = ?
-                AND reservation_guard.state = 'ACTIVE'
+                AND reservation_guard.state = ?
             )
-            AND ${extSql}`,
+            AND ${extSql}
+            AND ${orderSql}`,
         )
         .bind(
           requirement.quantity,
@@ -890,7 +951,9 @@ export function prepareReservationReleaseMutation(
           plan.reservationId,
           plan.version,
           plan.mutationToken,
+          sourceState,
           ...extValues,
+          ...orderValues,
         ),
     );
   }
@@ -936,8 +999,9 @@ export function prepareReservationReleaseMutation(
         WHERE id = ?
           AND version = ?
           AND mutation_token = ?
-          AND state = 'ACTIVE'
-          AND ${extSql}`,
+          AND state = ?
+          AND ${extSql}
+          AND ${orderSql}`,
       )
       .bind(
         terminalState,
@@ -949,7 +1013,9 @@ export function prepareReservationReleaseMutation(
         plan.reservationId,
         plan.version,
         plan.mutationToken,
+        sourceState,
         ...extValues,
+        ...orderValues,
       ),
   );
 
@@ -970,7 +1036,7 @@ export function prepareReservationReleaseMutation(
             0, ?, 0,
             'RESERVATION_RELEASE', ?,
             ?, ?, ?, NULL, NULL, ?,
-            'ADMIN', ?, ?,
+            ?, ?, ?,
             b.on_hand, b.reserved, b.safety_stock
           FROM inventory_balances b
           WHERE b.variant_id = ?
@@ -1021,7 +1087,7 @@ export function prepareReservationReleaseMutation(
 }
 
 
-interface ExpiredReservationCandidate extends ActiveReservationRow {
+interface ExpiredReservationCandidate extends ReservationHoldRow {
   revisionVersion: number;
   revisionState: "SENT" | "ACCEPTED";
 }
