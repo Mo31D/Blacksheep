@@ -15,6 +15,7 @@ on:
       - "commerce/test/public-catalog.test.ts"
       - "commerce/test/public-catalog-route.test.ts"
       - "commerce/test/health.test.ts"
+      - "commerce/qa/phase6-checkout-e2e-worker.ts"
       - "commerce/scripts/phase6-catalog-parity.mjs"
       - "commerce/package.json"
       - "commerce/wrangler.jsonc"
@@ -254,6 +255,121 @@ jobs:
           }
           console.log("Public product detail gate passed.");
           NODE
+
+      - name: Prepare temporary Phase 6 checkout QA Worker
+        shell: bash
+        run: |
+          TOKEN="$(openssl rand -hex 32)"
+          echo "::add-mask::$TOKEN"
+          export PHASE6_QA_TOKEN="$TOKEN"
+          echo "PHASE6_QA_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          node - <<'NODE'
+          const fs = require("fs");
+          const config = {
+            name: "black-sheep-phase6-checkout-qa",
+            main: "qa/phase6-checkout-e2e-worker.ts",
+            compatibility_date: "2026-09-24",
+            workers_dev: true,
+            d1_databases: [
+              {
+                binding: "DB",
+                database_name: "black-sheep-commerce-staging",
+                database_id: "d442b45d-93b6-4535-b76a-4b72e62dc271",
+              },
+            ],
+            vars: {
+              QA_TOKEN: process.env.PHASE6_QA_TOKEN,
+            },
+          };
+          fs.writeFileSync("wrangler.phase6-qa.json", JSON.stringify(config, null, 2));
+          NODE
+
+      - name: Deploy temporary Phase 6 checkout QA Worker
+        run: npx wrangler deploy --config wrangler.phase6-qa.json
+
+      - name: Run real-staging D1 checkout pricing and tracked-stock proof
+        shell: bash
+        run: |
+          sleep 4
+          HTTP_CODE="000"
+          for attempt in $(seq 1 10); do
+            HTTP_CODE="$(curl --silent --show-error --max-time 180 -o /tmp/phase6-checkout-proof.json -w "%{http_code}" -X POST -H "x-phase6-qa-token: $PHASE6_QA_TOKEN" https://black-sheep-phase6-checkout-qa.ky6vfb55p9.workers.dev/ || true)"
+            if [ "$HTTP_CODE" = "404" ] || [ "$HTTP_CODE" = "000" ]; then
+              sleep 2
+              continue
+            fi
+            break
+          done
+          cat /tmp/phase6-checkout-proof.json || true
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Phase 6 checkout QA Worker returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+          node - /tmp/phase6-checkout-proof.json /tmp/phase6-checkout-run-id <<'NODE'
+          const fs = require("fs");
+          const payload = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const proof = payload.result || {};
+          if (
+            payload.ok !== true ||
+            !proof.runId ||
+            proof.publishedOnly !== true ||
+            proof.initialPriceMinor !== 777 ||
+            proof.updatedPriceMinor !== 888 ||
+            proof.trackedAvailableInitial !== 1 ||
+            proof.quantityOneAccepted !== true ||
+            proof.quantityTwoRejected !== true ||
+            proof.reservedReducedAvailableToZero !== true ||
+            proof.onlineOrderingOffRejected !== true ||
+            proof.manualOutOfStockRejected !== true ||
+            proof.archiveRemovedFromPublic !== true ||
+            proof.persistedOrders !== 2
+          ) {
+            console.error("Phase 6 real-staging checkout proof failed.", payload);
+            process.exit(1);
+          }
+          fs.writeFileSync(process.argv[3], proof.runId);
+          console.log("Phase 6 real-staging checkout proof passed.", proof);
+          NODE
+
+      - name: Verify Phase 6 checkout QA cleanup
+        shell: bash
+        run: |
+          RUN_ID="$(cat /tmp/phase6-checkout-run-id)"
+          npx wrangler d1 execute black-sheep-commerce-staging             --remote --env staging --json             --command "SELECT COUNT(*) AS qa_orders FROM orders WHERE id LIKE 'qa6_ord_${RUN_ID}_%'; SELECT COUNT(*) AS qa_products FROM products WHERE id='qa6_prd_${RUN_ID}'; SELECT COUNT(*) AS qa_variants FROM product_variants WHERE id='qa6_var_${RUN_ID}'; SELECT COUNT(*) AS qa_balances FROM inventory_balances WHERE variant_id='qa6_var_${RUN_ID}'; SELECT COUNT(*) AS active FROM products WHERE publication_status='ACTIVE'; SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1;"             > /tmp/phase6-checkout-cleanup.json
+          cat /tmp/phase6-checkout-cleanup.json
+          node - /tmp/phase6-checkout-cleanup.json <<'NODE'
+          const fs = require("fs");
+          const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const scalar = (i, key) => Number(blocks?.[i]?.results?.[0]?.[key] ?? -1);
+          const proof = {
+            qaOrders: scalar(0, "qa_orders"),
+            qaProducts: scalar(1, "qa_products"),
+            qaVariants: scalar(2, "qa_variants"),
+            qaBalances: scalar(3, "qa_balances"),
+            activeProducts: scalar(4, "active"),
+            latestMigration: String(blocks?.[5]?.results?.[0]?.name ?? ""),
+          };
+          if (
+            proof.qaOrders !== 0 ||
+            proof.qaProducts !== 0 ||
+            proof.qaVariants !== 0 ||
+            proof.qaBalances !== 0 ||
+            proof.activeProducts !== 146 ||
+            proof.latestMigration !== "0012_order_returns.sql"
+          ) {
+            console.error("Phase 6 QA cleanup gate failed.", proof);
+            process.exit(1);
+          }
+          console.log("Phase 6 QA cleanup gate passed.", proof);
+          NODE
+
+      - name: Delete temporary Phase 6 checkout QA Worker
+        if: always()
+        shell: bash
+        run: |
+          if [ -f wrangler.phase6-qa.json ]; then
+            npx wrangler delete --config wrangler.phase6-qa.json --force || true
+          fi
 
       - name: Safety statement
         if: always()
