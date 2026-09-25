@@ -70,16 +70,16 @@ Goal: make project state resumable before adding more behaviour.
 - [x] Confirmed old `ADMIN-V2-CHECKLIST.md` materially understated implementation.
 - [x] Confirmed P2/P3/P4/P5/P6/P7 code already exists in current source.
 - [x] Replace stale Admin V2 checklist with this reality-based tracker.
-- [ ] Replace the top of `docs/SESSION-HANDOFF.md` with one truthful current Admin V2 handoff.
-- [ ] Mark/archive obsolete Commerce pre-merge handoff sections so they cannot be mistaken for current state.
-- [ ] Update README current-commerce wording after runtime state is established.
+- [x] Replace the top of `docs/SESSION-HANDOFF.md` with one truthful current Admin V2 handoff.
+- [x] Mark/archive obsolete Commerce pre-merge handoff sections so they cannot be mistaken for current state.
+- [x] Update README current-commerce wording after runtime state is established.
 
 Exit gate:
 - one live checklist,
 - one current handoff,
 - no future session instructed to restart already-built V2 features.
 
-Status: IN PROGRESS.
+Status: COMPLETE — one live checklist, a current handoff header, archived stale handoff material and corrected README commerce wording are now in place.
 
 ---
 
@@ -490,10 +490,10 @@ Status: REMAINS.
 
 # PHASE 12 — DOCUMENTATION RESET
 
-- [ ] Rewrite README present architecture only.
-- [ ] Reduce `SESSION-HANDOFF.md` to one current handoff plus archive pointers.
+- [x] README aligned to current basket/order-request + commerce runtime boundary.
+- [~] `SESSION-HANDOFF.md` now begins with one current authoritative handoff and clearly labels older content as historical archive; full physical compaction can wait until after release.
 - [ ] Archive/label `WORK-CHECKLIST.md` as historical for current engineering work.
-- [ ] Keep this file as the single live V2 execution tracker.
+- [x] Keep this file as the single live V2 execution tracker.
 - [ ] Record exact staging/prod Worker versions and migration levels after release work.
 
 Status: STARTED BY THIS CHECKLIST RECONSTRUCTION.
