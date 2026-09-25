@@ -114,7 +114,7 @@ describe("owner customer messages", () => {
 
     expect(attempts).toBe(2);
     expect(db.batched).toHaveLength(1);
-    expect(db.batched[0][0].values).toContain("FAILED");
+    expect(db.batched[0][0].sql).toContain("'FAILED'");
     expect(db.batched[0][1].values).toContain("CUSTOMER_MESSAGE_EMAIL_FAILED");
   });
 });
