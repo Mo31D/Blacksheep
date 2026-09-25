@@ -632,21 +632,26 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
   - Resend currently has only the staging webhook
   - Worker deployment is intentionally paused until production webhook telemetry is configured
 
+- [x] Production migrations `0003–0008` applied successfully to `black-sheep-commerce-prod` at 16:00:58–16:00:59 UTC.
+- [x] Independent Cloudflare verification confirms migration ledger `0000–0008`, Admin V2 schema objects/columns present, and production order count remains 3.
+- [x] Production Worker remains unchanged at version `938f0651-20b5-48df-a8d4-f84defbb263d`; no Worker deploy has occurred yet.
+- [!] GitHub migration workflow reported failure after the migration phase; external Cloudflare verification confirms the database migration itself completed correctly. Do not rerun migrations.
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — STEP 2A IN PROGRESS: create production Resend webhook safely.**
+**PHASE 13 EXECUTION — PRE-DEPLOY CONFIG GATE IN PROGRESS.**
 
-Current production readiness:
-- D1 migrations `0000–0008`: PASS
-- Worker not yet redeployed
-- production `RESEND_WEBHOOK_SECRET`: MISSING
-- production Resend webhook: MISSING
+Completed:
+- production D1 migrations: `0000–0008`
+- production schema verification: PASS
+- production order count preserved: 3
+- production Worker still unchanged
 
-Current step:
-1. create a separate production webhook for `https://api.theblacksheepshop.co.uk/webhooks/resend`,
-2. subscribe to the same delivery events verified on staging,
-3. keep/return it disabled until the production Worker has the matching signing secret and health is verified,
-4. record its webhook ID,
-5. update this checklist before secret installation.
+Before deploying the pinned Worker:
+1. inspect production Resend webhook configuration,
+2. confirm whether a production webhook endpoint exists,
+3. confirm production Worker has the required `RESEND_WEBHOOK_SECRET`,
+4. if missing, configure the production webhook/secret safely,
+5. only then deploy pinned source SHA `8c5462388648235acd3a41b853d1adee057a11a7`.
 
-**Do not deploy the Worker before this step and secret installation are complete.**
+**Do not deploy the Worker until this config gate passes.**
