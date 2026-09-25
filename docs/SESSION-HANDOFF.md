@@ -1,5 +1,35 @@
 # Black Sheep — Session Handoff
 
+> **CURRENT AUTHORITATIVE HANDOFF — 25 September 2026**
+>
+> Repository: `Mo31D/Blacksheep` · branch: `main`.
+>
+> Admin V2 staging is substantially complete and verified. The live execution tracker is:
+> `docs/ADMIN-V2-CHECKLIST.md`.
+>
+> Current verified state:
+> - Staging Worker Version ID: `0f5fb208-e4a8-49b7-9721-23bab226ba1b`.
+> - Staging D1: current through `0008_concurrency_guards.sql`.
+> - Core Admin V2 staging E2E: PASS (`36142333770`) plus an additional PASS (`36142342245`).
+> - Customer-review edge E2E: PASS (`36143031389`).
+> - Revision workflow, add/substitute/remove/restore, adjustments, customer review, question/accept/decline, fulfilment changes, payment-state lifecycle, partial/full refund, refund-and-cancel and reports were exercised against real staging D1.
+> - Payment-confirmed, ready-for-collection, partial-refund and refund-and-cancellation emails were received and visually checked on iPhone.
+> - Production is intentionally frozen: Worker `938f0651-20b5-48df-a8d4-f84defbb263d`; production D1 remains through `0002_order_fulfilment_message.sql`.
+>
+> Remaining release gates:
+> 1. Configure the real staging `RESEND_WEBHOOK_SECRET` and verify one signed Resend webhook + duplicate idempotency in real staging D1.
+> 2. Complete Admin UI browser QA on desktop and iPhone Safari.
+> 3. Close public checkout/Turnstile staging QA: real submission, duplicate submit/idempotency and network-failure basket preservation.
+> 4. Only then prepare guarded production migrations/deploy.
+>
+> **Do not restart earlier Commerce/Admin phases. Do not deploy or migrate production until the live checklist says the staging gates are closed.**
+>
+> The material below this notice is retained as **historical archive only** and must not override the current checklist or this handoff.
+
+---
+
+## Historical archive
+
 > **COMMERCE UI WORK IN PROGRESS — DO NOT MERGE YET**  
 > Customer-facing Phases 6–9 are implemented on branch `commerce-v1` and tracked in draft PR #7. The branch contains the Mini Basket, `basket.html`, checkout delivery/collection flow, Turnstile, API submission/idempotent retry, and `order-requested.html`. Latest branch Commerce CI is green. Keep the live `main` storefront unchanged until one real staging Turnstile/order submission is verified and the remaining launch/operations/legal phases are ready.
 
