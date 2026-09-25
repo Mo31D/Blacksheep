@@ -4,27 +4,34 @@
 >
 > Repository: `Mo31D/Blacksheep` · branch: `main`.
 >
-> Admin V2 staging is substantially complete and verified. The live execution tracker is:
-> `docs/ADMIN-V2-CHECKLIST.md`.
+> **Live execution tracker:** `docs/ADMIN-V2-CHECKLIST.md`.  
+> Treat GitHub `main` and that checklist as authoritative; the historical material below must not override them.
 >
 > Current verified state:
-> - Staging Worker Version ID: `0f5fb208-e4a8-49b7-9721-23bab226ba1b`.
-> - Staging D1: current through `0008_concurrency_guards.sql`.
-> - Core Admin V2 staging E2E: PASS (`36142333770`) plus an additional PASS (`36142342245`).
-> - Customer-review edge E2E: PASS (`36143031389`).
-> - Revision workflow, add/substitute/remove/restore, adjustments, customer review, question/accept/decline, fulfilment changes, payment-state lifecycle, partial/full refund, refund-and-cancel and reports were exercised against real staging D1.
-> - Payment-confirmed, ready-for-collection, partial-refund and refund-and-cancellation emails were received and visually checked on iPhone.
+> - Current fixed Admin V2 source is on `main`; generated Admin inline-JavaScript syntax regression has a compile guard.
+> - Latest Commerce CI on the fixed source: **PASS — 106/106 tests**.
+> - Current staging Worker Version ID: `22752fa1-3ef2-459c-9ff4-03172535af7b`.
+> - Staging D1: migrations `0000_initial_orders.sql` through `0008_concurrency_guards.sql`.
+> - Core Admin V2 staging E2E: PASS.
+> - Customer-review decline/superseded/current-token/cross-order edge E2E: PASS.
+> - Checkout browser regression: PASS for delivery review UI, CORS, real staging idempotent replay and network-failure basket preservation.
+> - Admin UI browser QA: PASS on Chromium desktop + WebKit mobile, including order list/detail, start review, create revision, adjustment controls, collection↔delivery controls and no horizontal overflow/clipping.
+> - Resend transactional emails: provider-confirmed delivered; key templates were also visually verified on iPhone.
+> - SPF: verified. DKIM: verified.
+> - DMARC: **absent** in live Cloudflare DNS.
+> - Staging Resend webhook exists with delivery events configured but remains disabled.
+> - Staging Worker does **not** yet have `RESEND_WEBHOOK_SECRET`; automated connector-to-connector secret transfer was blocked by the platform safety layer.
+> - Production controlled collection orders were audited read-only and reached `COMPLETED / PAID`.
+> - Production currently has **zero real Delivery orders**, so one real-device Delivery checkout through Turnstile remains unverified.
 > - Production is intentionally frozen: Worker `938f0651-20b5-48df-a8d4-f84defbb263d`; production D1 remains through `0002_order_fulfilment_message.sql`.
 >
 > Remaining release gates:
-> 1. Configure the real staging `RESEND_WEBHOOK_SECRET` and verify one signed Resend webhook + duplicate idempotency in real staging D1.
-> 2. Complete Admin UI browser QA on desktop and iPhone Safari.
-> 3. Close public checkout/Turnstile staging QA: real submission, duplicate submit/idempotency and network-failure basket preservation.
-> 4. Only then prepare guarded production migrations/deploy.
+> 1. Securely install the existing staging Resend webhook signing secret as Cloudflare secret `RESEND_WEBHOOK_SECRET`, then enable/replay one real webhook event and verify D1 delivery telemetry + duplicate idempotency.
+> 2. Submit one real-device **Delivery** order through the public checkout/Turnstile path; no automatic payment is taken at order submission.
+> 3. Decide whether to add a DMARC policy before release.
+> 4. After those gates are closed or explicitly accepted, execute the guarded production migration/deployment plan only from the audited source.
 >
-> **Do not restart earlier Commerce/Admin phases. Do not deploy or migrate production until the live checklist says the staging gates are closed.**
->
-> The material below this notice is retained as **historical archive only** and must not override the current checklist or this handoff.
+> **Do not restart earlier Commerce/Admin implementation phases. Do not migrate or deploy production until the live checklist explicitly moves to Phase 13.**
 
 ---
 
