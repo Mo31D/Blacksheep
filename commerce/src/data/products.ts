@@ -47,6 +47,7 @@ export interface AdminProductListResult {
     untracked: number;
     missingImage: number;
     missingPrice: number;
+    needsData: number;
     dataWarnings: number;
   };
 }
@@ -74,9 +75,12 @@ function qualityFlags(row: {
   thumbnailUrl: string | null;
   hasSourceWarning: number;
   hasDraft: number;
+  onlineOrderingEnabled: number;
 }): string[] {
   const flags: string[] = [];
-  if (row.priceMinor === null) flags.push("MISSING_PRICE");
+  if (row.priceMinor === null && Number(row.onlineOrderingEnabled) === 1) {
+    flags.push("MISSING_PRICE");
+  }
   if (!row.thumbnailUrl) flags.push("MISSING_IMAGE");
   if (Number(row.hasSourceWarning) === 1) flags.push("SOURCE_WARNING");
   if (Number(row.hasDraft) === 1) flags.push("DRAFT_CHANGES");
@@ -129,7 +133,7 @@ function listWhere(filters: AdminProductListFilters): {
       conditions.push("pvm.media_id IS NULL");
       break;
     case "missing-price":
-      conditions.push("v.price_minor IS NULL");
+      conditions.push("v.price_minor IS NULL AND p.online_ordering_enabled = 1");
       break;
     case "source-warning":
       conditions.push(`EXISTS (
@@ -202,7 +206,7 @@ export async function listAdminProducts(
     "EXISTS (SELECT 1 FROM product_source_records ps WHERE ps.product_id = p.id " +
     "AND ps.source_status IS NOT NULL AND TRIM(ps.source_status) <> '') AS hasSourceWarning " +
     "FROM products p " +
-    "JOIN product_versions pv ON pv.id = p.current_published_version_id " +
+    "JOIN product_versions pv ON pv.id = COALESCE(p.current_draft_version_id, p.current_published_version_id) " +
     "JOIN product_variants v ON v.product_id = p.id AND v.is_default = 1 AND v.active = 1 " +
     "LEFT JOIN product_version_media pvm ON pvm.product_version_id = pv.id AND pvm.is_primary = 1 " +
     "LEFT JOIN product_media pm ON pm.id = pvm.media_id AND pm.deleted_at IS NULL " +
@@ -267,12 +271,20 @@ export async function listAdminProducts(
           SUM(CASE WHEN p.sell_status = 'OUT_OF_STOCK' THEN 1 ELSE 0 END) AS outOfStock,
           SUM(CASE WHEN p.sell_status = 'ARRIVING_SOON' THEN 1 ELSE 0 END) AS arrivingSoon,
           SUM(CASE WHEN v.track_inventory = 0 THEN 1 ELSE 0 END) AS untracked,
-          SUM(CASE WHEN v.price_minor IS NULL THEN 1 ELSE 0 END) AS missingPrice,
+          SUM(CASE WHEN v.price_minor IS NULL AND p.online_ordering_enabled = 1 THEN 1 ELSE 0 END) AS missingPrice,
           SUM(CASE WHEN NOT EXISTS (
             SELECT 1 FROM product_version_media pvm2
-            WHERE pvm2.product_version_id = p.current_published_version_id
+            WHERE pvm2.product_version_id = COALESCE(p.current_draft_version_id, p.current_published_version_id)
               AND pvm2.is_primary = 1
           ) THEN 1 ELSE 0 END) AS missingImage,
+          SUM(CASE WHEN
+            (v.price_minor IS NULL AND p.online_ordering_enabled = 1)
+            OR NOT EXISTS (
+              SELECT 1 FROM product_version_media pvm3
+              WHERE pvm3.product_version_id = COALESCE(p.current_draft_version_id, p.current_published_version_id)
+                AND pvm3.is_primary = 1
+            )
+          THEN 1 ELSE 0 END) AS needsData,
           SUM(CASE WHEN EXISTS (
             SELECT 1 FROM product_source_records ps2
             WHERE ps2.product_id = p.id
@@ -290,6 +302,7 @@ export async function listAdminProducts(
         untracked: number;
         missingPrice: number;
         missingImage: number;
+        needsData: number;
         dataWarnings: number;
       }>()) ?? {
       total: 0,
@@ -298,6 +311,7 @@ export async function listAdminProducts(
       untracked: 0,
       missingPrice: 0,
       missingImage: 0,
+      needsData: 0,
       dataWarnings: 0,
     };
 
@@ -311,6 +325,7 @@ export async function listAdminProducts(
       untracked: Number(summary.untracked ?? 0),
       missingImage: Number(summary.missingImage ?? 0),
       missingPrice: Number(summary.missingPrice ?? 0),
+      needsData: Number(summary.needsData ?? 0),
       dataWarnings: Number(summary.dataWarnings ?? 0),
     },
   };
@@ -334,8 +349,9 @@ export async function getAdminProductDetail(
         p.created_at AS createdAt,
         p.updated_at AS updatedAt,
         p.current_draft_version_id AS draftVersionId,
-        pv.id AS publishedVersionId,
-        pv.version_number AS publishedVersionNumber,
+        pv.id AS effectiveVersionId,
+        p.current_published_version_id AS publishedVersionId,
+        pv.version_number AS effectiveVersionNumber,
         pv.title,
         pv.short_description AS shortDescription,
         pv.long_description AS longDescription,
@@ -356,7 +372,7 @@ export async function getAdminProductDetail(
         v.low_stock_threshold AS lowStockThreshold,
         v.version AS variantVersion
       FROM products p
-      JOIN product_versions pv ON pv.id = p.current_published_version_id
+      JOIN product_versions pv ON pv.id = COALESCE(p.current_draft_version_id, p.current_published_version_id)
       JOIN product_variants v
         ON v.product_id = p.id AND v.is_default = 1 AND v.active = 1
       WHERE p.id = ?
@@ -377,7 +393,7 @@ export async function getAdminProductDetail(
           WHERE pvc.product_version_id = ?
           ORDER BY pvc.position, c.name
         `)
-        .bind(core.publishedVersionId),
+        .bind(core.effectiveVersionId),
     ),
     allRows<Record<string, unknown>>(
       db
@@ -392,7 +408,7 @@ export async function getAdminProductDetail(
           WHERE pvm.product_version_id = ? AND pm.deleted_at IS NULL
           ORDER BY pvm.position
         `)
-        .bind(core.publishedVersionId),
+        .bind(core.effectiveVersionId),
     ),
     allRows<Record<string, unknown>>(
       db
@@ -403,7 +419,7 @@ export async function getAdminProductDetail(
           WHERE product_version_id = ?
           ORDER BY position, label
         `)
-        .bind(core.publishedVersionId),
+        .bind(core.effectiveVersionId),
     ),
     allRows<Record<string, unknown>>(
       db
@@ -423,7 +439,8 @@ export async function getAdminProductDetail(
       db
         .prepare(`
           SELECT id, event_type AS eventType, actor_type AS actorType,
-                 actor_id AS actorId, reason, created_at AS createdAt
+                 actor_id AS actorId, before_json AS beforeJson,
+                 after_json AS afterJson, reason, created_at AS createdAt
           FROM product_audit_events
           WHERE product_id = ?
           ORDER BY created_at DESC, id DESC
@@ -438,7 +455,9 @@ export async function getAdminProductDetail(
       ? null
       : Number(core.priceMinor);
   const quality: string[] = [];
-  if (priceMinor === null) quality.push("MISSING_PRICE");
+  if (priceMinor === null && Number(core.onlineOrderingEnabled) === 1) {
+    quality.push("MISSING_PRICE");
+  }
   if (media.length === 0) quality.push("MISSING_IMAGE");
   if (sources.some((source) => Boolean(source.sourceStatus))) {
     quality.push("SOURCE_WARNING");
@@ -476,7 +495,23 @@ export async function getAdminProductDetail(
       };
     }),
     sources,
-    history,
+    history: history.map((event) => {
+      const parse = (value: unknown) => {
+        if (!value) return null;
+        try {
+          return JSON.parse(String(value));
+        } catch {
+          return value;
+        }
+      };
+      return {
+        ...event,
+        before: parse(event.beforeJson),
+        after: parse(event.afterJson),
+        beforeJson: undefined,
+        afterJson: undefined,
+      };
+    }),
     qualityFlags: quality,
     inventory: {
       tracked: Number(core.trackInventory) === 1,
