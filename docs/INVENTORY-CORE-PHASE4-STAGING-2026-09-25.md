@@ -4,7 +4,7 @@
 **Repository:** `Mo31D/Blacksheep`  
 **Branch:** `main`  
 **Environment:** Staging only  
-**Status:** **TECHNICALLY COMPLETE — owner stock mutation QA pending**  
+**Status:** **TECHNICALLY + DATA-MUTATION COMPLETE — owner authenticated Stock UX QA pending**  
 **Production inventory cutover:** **NOT PERFORMED**
 
 ---
@@ -484,3 +484,33 @@ After that succeeds, Phase 4 can be marked fully complete and work can begin on:
 **Phase 5 — Order Reservations**
 
 Phase 5 will connect reviewed-order quantities to Reserved/Available without yet performing the Phase 6 public storefront/checkout cutover.
+
+
+---
+
+## 17. Independent staging mutation proof
+
+A second, direct proof was executed against real staging D1 after release.
+
+Dedicated QA sequence:
+
+`Initial Count 10 → Threshold 3 → Damage -2 → Physical Count 9 → Stocktake correction 8 → Archive`
+
+Final QA state:
+- archived,
+- On hand 8,
+- Reserved 0,
+- Available 8,
+- 4 immutable movements.
+
+Direct UPDATE and DELETE attempts against the QA ledger were rejected by the deployed immutability triggers.
+
+The archived tracked QA variant is excluded from the normal active Stock workspace:
+- active variants 146,
+- active tracked variants 0,
+- archived tracked variants 1.
+
+Production remained at migration `0008`, with no Product/Inventory tables and 3 orders.
+
+Full evidence:
+[Phase 4 Staging Inventory Mutation Proof](./INVENTORY-CORE-PHASE4-MUTATION-PROOF-2026-09-25.md)

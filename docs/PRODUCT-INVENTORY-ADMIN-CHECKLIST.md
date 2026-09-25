@@ -191,14 +191,14 @@ Exit gate:
 - [x] Final Product↔Stock integration polish deployed — workflow `36183967251` / job `108232778002` SUCCESS.
 - [x] `0010` applied + Stock workspace deployed to staging — workflow `36183361766` SUCCESS.
 - [~] Controlled owner Phase 4 stock smoke-test on a staging QA product — final Phase 4 gate.
-- [~] Independent staging D1 mutation smoke-test — running now against a dedicated non-sale QA product to prove Initial Count → Damage → Physical Count → Stocktake → Archive without touching real stock.
+- [x] Independent staging D1 mutation smoke-test — PASS: Initial Count 10 → threshold 3 → Damage -2 → Physical Count 9 → Stocktake correction 8 → Archive; immutable UPDATE/DELETE triggers verified on real staging D1.
 
 Exit gate:
 - every quantity change is explainable from the ledger.
 
 ---
 
-**Status: TECHNICALLY COMPLETE ON STAGING — owner stock mutation QA is the only remaining Phase 4 gate.**
+**Status: TECHNICALLY + DATA-MUTATION COMPLETE ON STAGING — owner authenticated Stock UX QA is the only remaining Phase 4 gate.**
 
 Evidence:
 - source/contract CI: `36182963561` — SUCCESS
@@ -211,11 +211,13 @@ Evidence:
 - direct post-release state before owner stock QA: 147 products / 146 original imports / 0 tracked / 0 balances / 0 movements / 0 incoming
 - Production remains `0000–0008` with no Product/Inventory tables and 3 orders
 - `docs/INVENTORY-CORE-PHASE4-STAGING-2026-09-25.md`
+- `docs/INVENTORY-CORE-PHASE4-MUTATION-PROOF-2026-09-25.md`
 
 ---
 
 # PHASE 5 — ORDER RESERVATIONS
 
+- [x] Phase 5 implementation plan locked before code — `docs/ORDER-RESERVATIONS-PHASE5-IMPLEMENTATION-PLAN-2026-09-25.md`.
 - [ ] Reviewed quote reservation.
 - [ ] Reservation release.
 - [ ] Reservation expiry policy.
@@ -294,24 +296,32 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 4 — independent staging inventory mutation proof
+## Phase 4 — final owner authenticated Stock UX gate
 
-Before asking the owner to repeat the UI flow, run one isolated backend proof against a dedicated non-sale QA product:
+The independent real-staging D1 mutation proof has passed and the QA product is archived.
 
-1. Create a private staging-only QA product/variant.
-2. Initial Count = 10.
-3. Set low-stock threshold = 3.
-4. Damage adjustment = -2.
-5. Physical Count = 9.
-6. Verify an unchanged Stocktake at 9 would create no movement.
-7. Apply a controlled batch/stocktake correction to 8.
-8. Verify immutable movement history and final Available = 8.
-9. Archive the QA product.
-10. Reconfirm Production remains untouched.
+Remaining owner-facing check only:
 
-This proves the real staging D1 mutation semantics independently of the authenticated UI.
+1. Products → Archived → `STAGING QA PRODUCT` → Duplicate product.
+2. Open the copy and use **Stock**.
+3. Initial Count = 10.
+4. Low-stock threshold = 3.
+5. Adjust -2 / Damage.
+6. Physical Count = 9.
+7. Run Stocktake at 9 and confirm `Unchanged`.
+8. Optional Stocktake at 8 and confirm one update.
+9. Confirm Product ↔ Stock navigation and the movement timeline.
+10. Archive the UI QA copy.
 
-After that:
-- keep **owner authenticated iPhone/desktop stock QA** as the only remaining Phase 4 UX gate,
-- begin Phase 5 architecture/spec work only; do not enable reservations until the Phase 4 owner UX gate is accepted,
-- do not enable Phase 6 storefront/checkout inventory authority.
+Once that owner UI path is accepted:
+- mark Phase 4 fully COMPLETE,
+- begin implementation of the already locked Phase 5 plan,
+- first Phase 5 code step is additive `0011_order_reservations.sql`,
+- keep Production and Phase 6 storefront/checkout inventory authority locked.
+
+Backend proof evidence:
+- dedicated QA Product archived,
+- final On hand / Available = 8,
+- 4 immutable movements,
+- active tracked variants = 0,
+- Production = `0000–0008`, 3 orders.

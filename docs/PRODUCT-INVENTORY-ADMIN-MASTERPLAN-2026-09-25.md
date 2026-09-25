@@ -2,7 +2,7 @@
 
 **Date:** 25 September 2026  
 **Repository:** `Mo31D/Blacksheep`  
-**Status:** PHASE 3 PRODUCT MEDIA DEPLOYED TO STAGING — owner iPhone smoke-test pending  
+**Status:** PHASE 4 INVENTORY CORE TECHNICALLY + DATA-MUTATION COMPLETE ON STAGING — owner Stock UX QA pending; Phase 5 plan locked  
 **Purpose:** Define the next major platform phase before changing production product/inventory architecture.
 
 ---
@@ -89,6 +89,34 @@ Real delivery smoke: `36178979258` — SUCCESS.
 Remaining gate: owner iPhone upload/replace/reorder/remove QA in the authenticated staging Admin.
 
 See [Phase 3 Product Media staging release](./PRODUCT-MEDIA-PHASE3-STAGING-RELEASE-2026-09-25.md).
+
+## Phase 4 Inventory Core staging release — 25 September 2026
+
+Phase 4 is deployed to staging with migration `0010_inventory_core.sql`.
+
+Verified:
+- no stock inferred from catalogue status,
+- Initial Count explicitly starts tracking,
+- immutable movement ledger,
+- On hand / Reserved / Safety / Available semantics,
+- manual adjustments,
+- physical counts,
+- low-stock threshold,
+- bulk Stocktake,
+- Product ↔ Stock navigation,
+- direct real-staging mutation proof through Initial Count / Damage / Physical Count / Stocktake / Archive,
+- deployed ledger triggers reject UPDATE and DELETE.
+
+Independent proof leaves no active test stock:
+- active variants 146,
+- active tracked variants 0,
+- one archived QA tracked variant retains the audit ledger.
+
+Production remains isolated on `0000–0008` with 3 orders.
+
+Remaining gate: owner authenticated iPhone/desktop Stock UX smoke-test.
+
+Phase 5 Order Reservations planning is locked in [the implementation plan](./ORDER-RESERVATIONS-PHASE5-IMPLEMENTATION-PLAN-2026-09-25.md), but code is not yet enabled.
 
 ## 1. Product vision
 

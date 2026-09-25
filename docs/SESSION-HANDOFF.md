@@ -55,26 +55,32 @@
 > - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 > - target: D1-backed Product + Inventory source of truth, premium Products/Stock Admin, managed media, order reservations and storefront/checkout integration.
 >
-> **PRODUCT / INVENTORY — PHASE 3 PRODUCT MEDIA LIVE ON STAGING**
-> - Phase 1 Product Core/mobile polish: COMPLETE.
-> - Phase 2 Product Editor + Duplicate + Archive: DEPLOYED TO STAGING.
-> - Phase 3 Product Media: DEPLOYED TO STAGING; only owner iPhone smoke-test remains.
-> - R2 staging bucket: `black-sheep-product-media-staging` / WEUR / Standard.
-> - release workflow `36178631127` / job `108215277892`: SUCCESS.
-> - staging deployment: `119d4ceb-2678-40ce-9b43-4c2ede7b3523`
-> - staging Worker version: `19e62702-1fde-48b1-802f-6dbf66e68eb3` / version 68.
-> - Media features: authenticated upload, JPEG/PNG/WebP signature checks, 8 MB cap, SHA-256, Draft gallery, Primary, reorder, alt text, remove, one-click Replace and audit.
-> - real R2 → Worker delivery smoke `36178979258`: SUCCESS / HTTP 200.
-> - smoke object/D1 row/workflow cleaned up; staging bucket empty afterwards.
-> - Legacy/R2 coexistence proven while 136 legacy media records remained live.
-> - staging Product Core remains 146 original imported products; inventory tracked = 0.
-> - Production remains D1 `0000–0008`, 3 orders, no R2 Product Media binding.
-> - storefront/checkout are still NOT cut over to Product Core.
-> - read: `docs/PRODUCT-MEDIA-PHASE3-STAGING-RELEASE-2026-09-25.md`
+> **PRODUCT / INVENTORY — PHASE 4 INVENTORY CORE LIVE ON STAGING**
+> - Phase 1 Product Core: COMPLETE.
+> - Phase 2 Product Editor + Duplicate + Archive: COMPLETE ON STAGING.
+> - Phase 3 Product Media + R2 + owner iPhone smoke-test: COMPLETE ON STAGING.
+> - Phase 4 Inventory Core: TECHNICALLY + DATA-MUTATION COMPLETE ON STAGING.
+> - Inventory migration: `0010_inventory_core.sql`.
+> - Stock workspace: deployed with Initial Count, Adjust, Physical Count, threshold, history and Stocktake.
+> - Product ↔ Stock deep-links are deployed.
+> - release evidence: `36183361766`, `36183967251`.
+> - independent real-staging mutation proof: PASS.
+> - QA sequence: Initial 10 → threshold 3 → Damage -2 → Physical Count 9 → Stocktake 8 → Archive.
+> - final QA balance: On hand 8 / Reserved 0 / Available 8.
+> - QA ledger: 4 immutable movements; deployed UPDATE/DELETE triggers directly verified.
+> - active tracked variants after QA archive: 0.
+> - staging totals now include 148 products = 146 imported + 2 archived QA products.
+> - Production remains `0000–0008`, no Product/Inventory tables, 3 orders.
+> - **only remaining Phase 4 gate:** owner authenticated Stock UX smoke-test on iPhone/desktop.
+> - Phase 5 architecture/implementation plan is locked but code has NOT started.
+> - read:
+>   - `docs/INVENTORY-CORE-PHASE4-STAGING-2026-09-25.md`
+>   - `docs/INVENTORY-CORE-PHASE4-MUTATION-PROOF-2026-09-25.md`
+>   - `docs/ORDER-RESERVATIONS-PHASE5-IMPLEMENTATION-PLAN-2026-09-25.md`
 > - tracker: `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 >
-> **NEXT WORK: combined owner Phase 2/3 smoke-test in staging, then Phase 4 Inventory Core.**
-> Create a temporary `STAGING QA PRODUCT`, exercise Product mutations + iPhone Media Manager, inspect Audit history, Publish, then Archive it.
+> **NEXT WORK: final owner Phase 4 Stock UX smoke-test, then Phase 5 Order Reservations implementation.**
+> Do not enable reservation logic, Production Product/Inventory migrations, or Phase 6 checkout/storefront stock authority before that gate.
 
 > **Do not rerun migrations `0003–0008`. Any future Worker deployment must correspond to an intentional new runtime/catalogue change and pass Commerce CI first.**
 
