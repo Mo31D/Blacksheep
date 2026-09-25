@@ -567,19 +567,23 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Inspect and verify a real staging webhook event.**
+**STEP IN PROGRESS — Generate one controlled staging email event for webhook verification.**
 
 Pre-step state:
-- staging Resend webhook: ENABLED
-- staging Worker health: `webhookConfigured=true`
-- staging Worker Version ID: `e84f43fc-c9bc-4f8d-a259-f8d8646f5df7`
+- staging webhook: ENABLED
+- staging health: `webhookConfigured=true`
+- current webhook event list: EMPTY
 - production remains unchanged
 
 Current step:
-1. list recent events delivered to this webhook,
-2. choose a real email event suitable for verification,
-3. inspect delivery attempts/status,
-4. if no suitable event exists, generate one controlled staging transactional email,
-5. update this checklist before replaying the selected event.
+1. send one clearly-labelled staging transactional test email from the verified shop domain,
+2. wait for Resend to emit the corresponding webhook event,
+3. inspect the event status and endpoint attempt,
+4. update this checklist before replaying the event.
 
-**Do not touch production.**
+Safety:
+- one test email only,
+- no production order mutation,
+- no production Worker/D1 change.
+
+**Do not proceed to replay until a real signed webhook event is visible.**
