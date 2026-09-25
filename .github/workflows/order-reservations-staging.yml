@@ -26,6 +26,7 @@ on:
       - "commerce/test/order-return-to-stock.test.ts"
       - "commerce/test/admin-routes.test.ts"
       - "commerce/test/health.test.ts"
+      - "commerce/qa/reservation-e2e-worker.ts"
       - "commerce/wrangler.jsonc"
       - "commerce/package.json"
       - ".github/workflows/order-reservations-staging.yml"
@@ -219,6 +220,149 @@ jobs:
           }
           console.log("Staging reservation runtime gate passed.");
           NODE
+
+      - name: Prepare temporary Phase 5 QA Worker
+        shell: bash
+        run: |
+          TOKEN="$(openssl rand -hex 32)"
+          echo "::add-mask::$TOKEN"
+          echo "PHASE5_QA_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          node - <<'NODE'
+          const fs = require("fs");
+          const config = {
+            name: "black-sheep-phase5-reservation-qa",
+            main: "qa/reservation-e2e-worker.ts",
+            compatibility_date: "2026-09-24",
+            workers_dev: true,
+            d1_databases: [
+              {
+                binding: "DB",
+                database_name: "black-sheep-commerce-staging",
+                database_id: "d442b45d-93b6-4535-b76a-4b72e62dc271",
+              },
+            ],
+            vars: {
+              QA_TOKEN: process.env.PHASE5_QA_TOKEN,
+            },
+          };
+          fs.writeFileSync("wrangler.phase5-qa.json", JSON.stringify(config, null, 2));
+          NODE
+
+      - name: Deploy temporary Phase 5 QA Worker
+        run: npx wrangler deploy --config wrangler.phase5-qa.json
+
+      - name: Run real-staging Phase 5 E2E and one-unit concurrency proof
+        shell: bash
+        run: |
+          curl --fail --silent --show-error             --retry 4 --retry-delay 2 --max-time 180             -X POST             -H "x-phase5-qa-token: $PHASE5_QA_TOKEN"             https://black-sheep-phase5-reservation-qa.ky6vfb55p9.workers.dev/             > /tmp/phase5-qa-proof.json
+          cat /tmp/phase5-qa-proof.json
+          node - /tmp/phase5-qa-proof.json /tmp/phase5-qa-run-id <<'NODE'
+          const fs = require("fs");
+          const payload = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          if (payload.ok !== true || !payload.result?.runId) {
+            console.error("Phase 5 real-staging proof failed.", payload);
+            process.exit(1);
+          }
+          const required = [
+            "collectionLifecycle",
+            "deliveryLifecycle",
+            "insufficientStock",
+            "untrackedCompatibility",
+            "declineRelease",
+            "supersede",
+            "expiry",
+            "cancellation",
+            "concurrency",
+            "cleanup",
+          ];
+          for (const key of required) {
+            if (!(key in payload.result)) {
+              console.error("Missing Phase 5 proof evidence:", key, payload.result);
+              process.exit(1);
+            }
+          }
+          if (payload.result.concurrency?.winners !== 1) {
+            console.error("Concurrency proof did not produce exactly one winner.", payload.result.concurrency);
+            process.exit(1);
+          }
+          if (
+            payload.result.cleanup?.activeOrCommittedReservations !== 0 ||
+            payload.result.cleanup?.liveBalances !== 0
+          ) {
+            console.error("QA cleanup proof failed.", payload.result.cleanup);
+            process.exit(1);
+          }
+          fs.writeFileSync(process.argv[3], payload.result.runId);
+          console.log("Real-staging Phase 5 E2E proof passed for run", payload.result.runId);
+          NODE
+
+      - name: Verify Phase 5 QA cleanup and immutable evidence in staging D1
+        shell: bash
+        run: |
+          RUN_ID="$(cat /tmp/phase5-qa-run-id)"
+          npx wrangler d1 execute black-sheep-commerce-staging             --remote --env staging --json             --command "SELECT COUNT(*) AS active_holds FROM inventory_reservations r JOIN orders o ON o.id=r.order_id WHERE o.id LIKE 'qa_ord_${RUN_ID}_%' AND r.state IN ('ACTIVE','COMMITTED'); SELECT COUNT(*) AS live_balances FROM inventory_balances WHERE variant_id LIKE 'qa_var_${RUN_ID}_%'; SELECT COUNT(*) AS live_variants FROM product_variants WHERE id LIKE 'qa_var_${RUN_ID}_%' AND (track_inventory=1 OR active=1); SELECT COUNT(*) AS qa_orders FROM orders WHERE id LIKE 'qa_ord_${RUN_ID}_%'; SELECT COUNT(*) AS qa_reservations FROM inventory_reservations r JOIN orders o ON o.id=r.order_id WHERE o.id LIKE 'qa_ord_${RUN_ID}_%'; SELECT movement_type, COUNT(*) AS count FROM inventory_movements WHERE variant_id LIKE 'qa_var_${RUN_ID}_%' GROUP BY movement_type ORDER BY movement_type; SELECT COUNT(*) AS returned FROM inventory_reservations r JOIN orders o ON o.id=r.order_id WHERE o.id LIKE 'qa_ord_${RUN_ID}_%' AND r.returned_at IS NOT NULL; SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1;"             > /tmp/phase5-qa-integrity.json
+          cat /tmp/phase5-qa-integrity.json
+          node - /tmp/phase5-qa-integrity.json <<'NODE'
+          const fs = require("fs");
+          const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const scalar = (i, key) => Number(blocks?.[i]?.results?.[0]?.[key] ?? -1);
+          const movementRows = blocks?.[5]?.results || [];
+          const movementCounts = Object.fromEntries(
+            movementRows.map((row) => [row.movement_type, Number(row.count)]),
+          );
+          const proof = {
+            activeHolds: scalar(0, "active_holds"),
+            liveBalances: scalar(1, "live_balances"),
+            liveVariants: scalar(2, "live_variants"),
+            qaOrders: scalar(3, "qa_orders"),
+            qaReservations: scalar(4, "qa_reservations"),
+            movementCounts,
+            returned: scalar(6, "returned"),
+            latestMigration: String(blocks?.[7]?.results?.[0]?.name ?? ""),
+          };
+          const failures = [];
+          if (proof.activeHolds !== 0) failures.push("ACTIVE/COMMITTED QA hold remains");
+          if (proof.liveBalances !== 0) failures.push("QA inventory balance remains");
+          if (proof.liveVariants !== 0) failures.push("QA variant remains active/tracked");
+          if (proof.qaOrders < 2) failures.push("QA order evidence missing");
+          if (proof.qaReservations < 2) failures.push("QA reservation evidence missing");
+          if ((proof.movementCounts.ORDER_RESERVATION || 0) < 1) failures.push("ORDER_RESERVATION evidence missing");
+          if ((proof.movementCounts.RESERVATION_RELEASE || 0) < 1) failures.push("RESERVATION_RELEASE evidence missing");
+          if ((proof.movementCounts.SALE || 0) < 2) failures.push("SALE evidence incomplete");
+          if ((proof.movementCounts.RETURN || 0) !== 1) failures.push("RETURN evidence must be exactly one");
+          if (proof.returned !== 1) failures.push("exactly one return marker expected");
+          if (proof.latestMigration !== "0012_order_returns.sql") failures.push("staging migration drift");
+          if (failures.length) {
+            console.error("Phase 5 post-proof integrity failed.", { failures, proof });
+            process.exit(1);
+          }
+          console.log("Phase 5 post-proof integrity passed.", proof);
+          NODE
+
+      - name: Re-verify Production isolation after real-staging proof
+        shell: bash
+        run: |
+          npx wrangler d1 execute black-sheep-commerce-prod             --remote --json             --command "SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT COUNT(*) AS forbidden_tables FROM sqlite_master WHERE type='table' AND name IN ('products','inventory_balances','inventory_movements','inventory_incoming','inventory_reservations','inventory_reservation_items');"             > /tmp/production-post-proof.json
+          cat /tmp/production-post-proof.json
+          node - /tmp/production-post-proof.json <<'NODE'
+          const fs = require("fs");
+          const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const latest = String(blocks?.[0]?.results?.[0]?.name ?? "");
+          const forbidden = Number(blocks?.[1]?.results?.[0]?.forbidden_tables ?? -1);
+          if (latest !== "0008_concurrency_guards.sql" || forbidden !== 0) {
+            console.error("Production isolation changed during Phase 5 proof.", { latest, forbidden });
+            process.exit(1);
+          }
+          console.log("Production isolation still intact after Phase 5 proof.");
+          NODE
+
+      - name: Delete temporary Phase 5 QA Worker
+        if: always()
+        shell: bash
+        run: |
+          if [ -f wrangler.phase5-qa.json ]; then
+            npx wrangler delete --config wrangler.phase5-qa.json --force || true
+          fi
 
       - name: Safety statement
         if: always()
