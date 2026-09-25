@@ -240,10 +240,10 @@ Status: IN PROGRESS; production shell/configuration prepared, public checkout st
 - [x] Production Worker deployment version: `938f0651-20b5-48df-a8d4-f84defbb263d`.
 - [x] Verify production `/health` on the production `workers.dev` URL: environment=`production`, database=`bound`, Resend configured, owner configured.
 - [x] Confirm Cloudflare DNS has `api.theblacksheepshop.co.uk` as a proxied Worker record targeting `black-sheep-commerce-api`.
-- [ ] Verify `/health` on `api.theblacksheepshop.co.uk` after nameserver/DNS propagation completes.
+- [x] Verify `/health` on `api.theblacksheepshop.co.uk` over an external mobile network: environment=`production`, database=`bound`, Resend configured, owner configured.
 - [x] Verify production `/admin` UI loads on the production `workers.dev` URL.
 - [ ] Verify production owner OTP login and order list.
-- [ ] Verify `api.theblacksheepshop.co.uk` becomes reachable over HTTPS; Cloudflare Domains shows it attached to Production and DNS shows the generated proxied Worker record. Current blocker is external resolver propagation after the recent nameserver move.
+- [x] Verify `api.theblacksheepshop.co.uk` is reachable over HTTPS from an external mobile network. Any remaining failure on the original Wi-Fi/device path is local resolver/cache propagation, not a production API or Cloudflare routing failure.
 - [ ] Point checkout config to production API and switch public feature gates ON.
 - [ ] Test delivery + collection on mobile/desktop.
 - [ ] Verify duplicate protection and API-error cart preservation.
@@ -287,8 +287,8 @@ Completed in the production setup:
 
 Next:
 1. Production health is verified on `https://black-sheep-commerce-api.ky6vfb55p9.workers.dev/health` with environment=`production`, D1 bound and Resend/owner configuration present.
-2. Worker Domains and Cloudflare DNS both confirm `api.theblacksheepshop.co.uk` is attached to Production and targets `black-sheep-commerce-api` through the generated proxied Worker record. Do not delete/recreate it; the remaining issue is external DNS resolver propagation after the nameserver move.
-3. Production `/admin` UI is confirmed to load on the `workers.dev` URL. Complete owner OTP login there, then repeat on the Custom Domain once HTTPS reachability is confirmed.
+2. `https://api.theblacksheepshop.co.uk/health` is now verified from an external mobile network and returns the correct production health JSON. Any failure on the original Wi-Fi/device path is local DNS/cache propagation only.
+3. Production `/admin` UI is confirmed to load on the `workers.dev` URL. Complete owner OTP login, preferably on the Custom Domain over the working mobile network, and confirm the production order list loads.
 4. Only after production API/admin checks pass on the intended Custom Domain, update the storefront with the production Turnstile Site Key, point checkout to `https://api.theblacksheepshop.co.uk`, and switch the public feature gates ON.
 5. Complete delivery/collection, duplicate-protection, cart-preservation, notification and controlled low-value production lifecycle QA.
 6. Record final production SHA/resources in the handoff.
