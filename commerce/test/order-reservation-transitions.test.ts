@@ -419,8 +419,9 @@ describe("Phase 5 revision reservation transitions", () => {
     const batch = db.batches[0];
     const releaseIndex = batch.findIndex(
       (statement) =>
-        statement.sql.includes("SET state = 'RELEASED'") &&
-        statement.sql.includes("release_reason = ?"),
+        statement.sql.includes("SET state = ?") &&
+        statement.sql.includes("release_reason = ?") &&
+        statement.values.includes("RELEASED"),
     );
     const declineIndex = batch.findIndex(
       (statement) => statement.sql.includes("SET state = 'DECLINED'"),
