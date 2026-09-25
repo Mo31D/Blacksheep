@@ -599,7 +599,7 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
   - D1 ID: `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
   - D1 region: `WEUR`
   - current migration level: `0000–0002`
-  - Time Travel bookmark: `00000026-00000000-000050f1-4416edcc1a9b9a288fa8099919e4b5be`
+  - Time Travel bookmark: `00000028-00000000-000050f1-68842c17a511b740b3b28bcc859c1042`
 
 - [x] Phase 13 migration review result: **GO**.
   - `0003_order_revisions.sql`: creates revision/item/adjustment tables + indexes; no existing-row mutation.
@@ -615,23 +615,26 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
 
 - [x] Latest pre-migration guard: production Worker remains `938f0651-20b5-48df-a8d4-f84defbb263d`, production still has 3 orders and migrations `0000–0002`. Latest D1 Time Travel bookmark immediately before mutation: `00000028-00000000-000050f1-68842c17a511b740b3b28bcc859c1042`.
 
+- [x] Fresh pre-migration recovery bookmark captured immediately before first production write: `00000028-00000000-000050f1-68842c17a511b740b3b28bcc859c1042`.
+- [x] Production state immediately before migration rechecked: 3 orders, migrations `0000–0002`.
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — STEP 1 IN PROGRESS: apply production migrations 0003–0008.**
+**PHASE 13 EXECUTION — STEP 1 IN PROGRESS: apply production migrations 0003–0008 only.**
 
-Final guard immediately before mutation:
-- Worker version: `938f0651-20b5-48df-a8d4-f84defbb263d`
-- production orders: 3
-- current migrations: `0000–0002`
-- latest recovery bookmark: `00000028-00000000-000050f1-68842c17a511b740b3b28bcc859c1042`
-- pinned runtime source: `8c5462388648235acd3a41b853d1adee057a11a7`
+Safety baseline:
+- pinned release source: `8c5462388648235acd3a41b853d1adee057a11a7`
+- production Worker version remains `938f0651-20b5-48df-a8d4-f84defbb263d`
+- production D1 currently `0000–0002`
+- fresh recovery bookmark: `00000028-00000000-000050f1-68842c17a511b740b3b28bcc859c1042`
+- production order count: 3
 
-Current step:
-1. run a migration-only production workflow that checks out the pinned release SHA,
-2. apply exactly the pending migrations `0003–0008`,
-3. verify migration list is `0000–0008`,
-4. verify Admin V2 tables/columns/indexes exist,
-5. verify the 3 existing orders remain present,
-6. update this checklist before any Worker deployment.
+Execution rule:
+1. run a **migration-only** workflow that checks out the pinned release SHA,
+2. apply production migrations,
+3. verify D1 reports `0000–0008`,
+4. verify expected Admin V2 tables/columns exist,
+5. update this checklist,
+6. only after PASS may Worker deployment begin.
 
-**Do not deploy the Worker until migration verification passes.**
+**Do not deploy the Worker in this step.**
