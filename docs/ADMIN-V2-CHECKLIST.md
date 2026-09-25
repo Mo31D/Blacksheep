@@ -317,7 +317,7 @@ Status: CORE SECURITY/RACE/DECLINE/SUPERSEDED-TOKEN STAGING E2E VERIFIED; TOKEN 
 - [ ] Confirm production webhook secret.
 - [x] SPF verified in Resend domain configuration (`rsend` and `send` CNAME records both verified).
 - [x] DKIM verified in Resend domain configuration (`resend._domainkey`).
-- [ ] Confirm DMARC independently; Resend domain detail does not report a DMARC record.
+- [!] DMARC checked directly in live Cloudflare DNS: no `_dmarc.theblacksheepshop.co.uk` TXT record exists. Policy creation remains an explicit production-DNS decision.
 - [ ] Verify admin warning/attention queue renders delayed/bounced/complained/failed messages usefully.
 - [ ] Verify repeated provider delivery is idempotent in real D1.
 
@@ -564,25 +564,34 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Verify DMARC, while webhook secret installation remains a documented manual/security-gated action.**
+**STEP IN PROGRESS — Final release-gate reconciliation before any production deployment.**
 
-Current state before this step:
-- Admin UI browser QA: PASS on Chromium desktop + WebKit mobile.
+Verified:
+- Commerce CI: PASS, 106/106 tests.
 - staging Worker: `22752fa1-3ef2-459c-9ff4-03172535af7b`.
-- staging D1: migrations `0000–0008`.
-- Resend webhook exists and remains disabled.
-- Resend webhook signing secret exists.
-- automatic transfer of that secret into Cloudflare staging was blocked by the platform safety layer; `RESEND_WEBHOOK_SECRET` is still not present.
-- production remains unchanged.
+- staging D1: `0000–0008`.
+- core Admin V2 E2E: PASS.
+- review-edge E2E: PASS.
+- Admin UI browser QA: PASS on Chromium desktop + WebKit mobile.
+- checkout browser regression/idempotency/basket recovery: PASS.
+- controlled production collection lifecycle: PASS/read-only.
+- production has zero real Delivery orders.
+- Resend transactional delivery: confirmed.
+- SPF: verified.
+- DKIM: verified.
+- DMARC: **absent** in live Cloudflare DNS.
+- staging Resend webhook exists but remains disabled.
+- staging `RESEND_WEBHOOK_SECRET`: still absent because automatic secret transfer was blocked by the platform safety layer.
+- production Worker/D1 remain unchanged.
 
-Current step:
-1. inspect the live DNS for the sending domain using Cloudflare,
-2. verify whether a DMARC TXT record exists and record its policy,
-3. update this checklist with the result before moving to the final manual release gates.
+Current reconciliation task:
+1. synchronize the current session handoff with this verified state,
+2. identify the exact manual/security-gated actions still required,
+3. prepare the guarded production-release sequence but **do not execute it** until those gates are closed.
 
-Remaining after this step:
-- manually/security-approved installation of the staging webhook secret, followed by signed webhook replay verification,
-- one real-device Delivery checkout through Turnstile (production audit shows zero delivery orders),
-- then guarded production release preparation.
+Manual/security-gated release blockers:
+- install the existing Resend staging webhook signing secret in Cloudflare staging, then verify signed webhook replay/idempotency,
+- perform one real-device Delivery checkout through Turnstile,
+- choose and add a DMARC policy if email-authentication hardening is required before release.
 
-**Do not deploy or migrate production in this step.**
+**Production deployment remains blocked until the above gates are explicitly resolved or consciously accepted.**
