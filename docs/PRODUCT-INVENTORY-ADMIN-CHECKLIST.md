@@ -131,8 +131,9 @@ Evidence:
 
 # PHASE 3 — PRODUCT MEDIA
 
-- [~] Provision media storage — R2 is enabled; creating isolated staging bucket `black-sheep-product-media-staging`.
+- [x] Provision media storage — isolated staging bucket `black-sheep-product-media-staging` created in WEUR / Standard.
 - [x] Staging-only R2 binding declared as `PRODUCT_MEDIA` / `black-sheep-product-media-staging`.
+- [~] Verify staging-only `PRODUCT_MEDIA` binding and release gate before deploy.
 - [x] Secure authenticated multipart upload route implemented.
 - [x] 8 MB upload limit.
 - [x] JPEG / PNG / WebP allow-list.
