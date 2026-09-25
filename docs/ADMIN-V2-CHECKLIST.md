@@ -567,28 +567,26 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 - [x] Single-message staging webhook generator created at `commerce/scripts/staging-webhook-event-e2e.mjs` (commit `12b8f06088c04a0b0f002006fe53290f5b3f9edb`).
 
+- [x] Single-message staging webhook workflow created at `.github/workflows/commerce-staging-webhook-event-e2e.yml` (commit `07ea105ac28cec2c8ede8c879f4f07e379d86d0e`).
+
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Create and run the staging webhook event workflow.**
+**STEP IN PROGRESS — Trigger and observe the single-message staging webhook E2E.**
 
 Pre-step state:
-- single-message generator exists,
+- generator script exists,
+- staging-only workflow exists,
 - staging webhook is ENABLED,
 - staging health reports `webhookConfigured=true`,
 - production remains unchanged.
 
 Current step:
-1. add a staging-only GitHub Actions workflow for the generator,
-2. run it once,
-3. require exactly one transactional notification path,
-4. wait until staging D1 records the message as `DELIVERED`,
-5. capture the delivered webhook event ID,
-6. update this checklist before replaying that same event.
+1. trigger the workflow,
+2. verify the synthetic order reaches `READY_FOR_COLLECTION`,
+3. verify exactly one outbound Resend message is audited,
+4. wait for signed webhook delivery,
+5. require `order_messages.delivery_status=DELIVERED`,
+6. capture the delivered webhook event ID,
+7. update this checklist before replaying that event.
 
-Safety:
-- staging Worker/D1 only,
-- synthetic order only,
-- no production mutation,
-- synthetic order stays in staging until replay verification is complete.
-
-**Do not clean the synthetic order before replay/idempotency verification.**
+**Do not clean the synthetic row before replay/idempotency verification.**
