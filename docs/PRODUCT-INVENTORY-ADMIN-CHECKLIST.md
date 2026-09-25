@@ -224,7 +224,10 @@ Evidence:
 
 - [x] Phase 5 implementation plan locked before code — `docs/ORDER-RESERVATIONS-PHASE5-IMPLEMENTATION-PLAN-2026-09-25.md`.
 - [~] Implementation started on staging by owner direction while the Phase 4 owner UX re-test remains open; Phase 4 is not being falsely marked complete.
-- [~] Migration `0011_order_reservations.sql` — active milestone.
+- [x] Migration `0011_order_reservations.sql` created — additive schema only; migration itself creates no reservations or stock movements.
+- [x] Upgrade-test coverage updated to `0000–0010 → 0011`.
+- [x] Reservation foundation invariant script added and wired into Commerce CI.
+- [~] Staging-only `0011` release gate — active milestone.
 - [ ] Reviewed quote reservation.
 - [ ] Reservation release.
 - [ ] Reservation expiry policy.
@@ -303,22 +306,25 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 5 — reservation foundation milestone
+## Phase 5 — apply Reservation Foundation to staging only
 
-Owner requested development to continue. Phase 4 remains technically complete with its owner UX re-test still open; this does not authorize a Production Product/Inventory cutover.
+Source foundation is now present on `main`:
+- additive `0011_order_reservations.sql`,
+- migration-upgrade validation through `0011`,
+- reservation schema/invariant test in Commerce CI.
 
-Current implementation sequence:
+Current release sequence:
 
-1. Add additive staging-first migration `0011_order_reservations.sql`.
-2. Extend migration-upgrade validation from `0000–0010 → 0011`.
-3. Add Reservation Core schema/invariant test coverage.
-4. Run full Commerce CI.
-5. Apply `0011` to staging only behind a Production-isolation gate.
-6. Verify no reservation row, stock hold or movement is invented by migration.
-7. Then implement the reservation domain module and revision-Send transaction.
+1. Run full Commerce validation.
+2. Capture staging baseline at `0010_inventory_core.sql`.
+3. Apply `0011` to staging only.
+4. Assert Product/Inventory counts did not change.
+5. Assert `inventory_reservations = 0` and `inventory_reservation_items = 0` immediately after migration.
+6. Assert required reservation indexes + immutable-item triggers exist.
+7. Assert Production remains pre-Product-Core at `0008_concurrency_guards.sql`.
+8. Only after this gate passes, move to the Reservation Domain module and revision-Send transaction.
 
 Safety locks:
-- Production remains pre-Product-Core.
-- Public storefront/checkout inventory authority remains Phase 6.
-- Existing untracked order behaviour must remain unchanged.
-- No partial reservation may be created for an insufficient reviewed order.
+- Phase 4 owner UX re-test remains open and is not being marked complete implicitly.
+- Production receives no Product/Inventory/Reservation migration.
+- Phase 6 storefront/checkout inventory authority remains locked.
