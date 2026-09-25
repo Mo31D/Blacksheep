@@ -1,0 +1,53 @@
+name: Commerce Staging Review Edge E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/commerce-staging-review-edge-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review-edge-e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: commerce
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: commerce/package.json
+
+      - name: Install commerce dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Require Cloudflare staging credentials
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare Actions credentials are unavailable."
+            exit 1
+          fi
+
+      - name: Confirm staging schema is current
+        run: npm run db:migrations:list:staging
+
+      - name: Run customer-review edge-case E2E
+        run: node scripts/staging-review-edge-e2e.mjs
+
+      - name: Production safety statement
+        if: always()
+        run: |
+          echo "This workflow targets only the staging Worker and staging D1 database."
+          echo "No production deploy or production migration command is present."
