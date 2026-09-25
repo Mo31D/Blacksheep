@@ -564,21 +564,19 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Verify and activate the staging Resend webhook.**
+**STEP IN PROGRESS — Re-verify staging health after manual webhook-secret installation.**
 
-Pre-step verification:
-- staging Worker has `RESEND_WEBHOOK_SECRET`: YES
-- production Worker has `RESEND_WEBHOOK_SECRET`: NO
-- staging Resend webhook exists and is currently disabled
-- production remains frozen; no production secret, Worker or D1 mutation is authorized in this step
+Pre-step state:
+- `RESEND_WEBHOOK_SECRET` is present in the staging Worker.
+- the same secret is absent from production.
+- direct health probing from this chat environment is network-blocked, so health will be verified through the existing staging deployment workflow.
+- the Resend staging webhook remains disabled until health confirms `notifications.webhookConfigured=true`.
+- production remains unchanged.
 
 Current step:
-1. verify staging `/health` reports `notifications.webhookConfigured=true`,
-2. enable the existing staging Resend webhook,
-3. replay/send one real webhook event,
-4. verify the event reaches the staging endpoint successfully,
-5. verify D1 delivery-state persistence,
-6. replay the same event again and confirm duplicate/idempotent handling,
-7. record the result here before moving to the final Delivery/manual gate.
+1. trigger a staging-only redeploy/health verification,
+2. confirm the deployed Worker sees `RESEND_WEBHOOK_SECRET`,
+3. require `notifications.webhookConfigured=true` in staging health,
+4. record the result here before enabling the Resend webhook.
 
-**Do not modify production in this step.**
+**Do not enable the webhook or touch production until this health gate passes.**
