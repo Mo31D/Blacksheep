@@ -10,6 +10,10 @@ import {
 import { validateAdminOrderAction } from "../domain/admin-order";
 import { listPurchasableProducts } from "../domain/catalog";
 import {
+  getOrderRefundSummary,
+  recordManualRefund,
+} from "../data/refunds";
+import {
   addCatalogItemToDraftRevision,
   createDraftRevisionFromOriginal,
   getOrderRevisionDetail,
@@ -31,6 +35,7 @@ import {
 import { adminHtml, adminLoginHtml } from "../admin/ui";
 import { notifyPaymentConfirmed, notifyPaymentRequest, type PaymentNotificationEnv } from "../notifications/payment";
 import { notifyLifecycleUpdate } from "../notifications/status";
+import { notifyRefundRecorded } from "../notifications/refund";
 
 export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
   DB?: D1DatabaseLike;
@@ -45,6 +50,8 @@ interface AdminDependencies {
   addCatalogItemToDraftRevisionFn: typeof addCatalogItemToDraftRevision;
   substituteDraftRevisionLineFn: typeof substituteDraftRevisionLine;
   transitionOrderRevisionFn: typeof transitionOrderRevision;
+  getOrderRefundSummaryFn: typeof getOrderRefundSummary;
+  recordManualRefundFn: typeof recordManualRefund;
 }
 
 const defaults: AdminDependencies = {
@@ -56,6 +63,8 @@ const defaults: AdminDependencies = {
   addCatalogItemToDraftRevisionFn: addCatalogItemToDraftRevision,
   substituteDraftRevisionLineFn: substituteDraftRevisionLine,
   transitionOrderRevisionFn: transitionOrderRevision,
+  getOrderRefundSummaryFn: getOrderRefundSummary,
+  recordManualRefundFn: recordManualRefund,
 };
 
 function json(body: unknown, status = 200): Response {
@@ -441,6 +450,86 @@ export async function handleAdminRequest(
             ? 409
             : 400;
       return error(code, status, status === 409 ? "Revision action is no longer valid. Reload and try again." : "Unable to update revision.");
+    }
+  }
+
+  const refundsMatch = url.pathname.match(
+    /^\/admin\/api\/orders\/([^/]+)\/refunds$/,
+  );
+  if (refundsMatch && request.method === "GET") {
+    const reference = decodeURIComponent(refundsMatch[1]);
+    const refunds = await deps.getOrderRefundSummaryFn(env.DB, reference);
+    return refunds
+      ? json({ refunds })
+      : error("order_not_found", 404, "Order not found.");
+  }
+
+  if (refundsMatch && request.method === "POST") {
+    const reference = decodeURIComponent(refundsMatch[1]);
+    let raw: unknown;
+    try {
+      raw = await readJson(request);
+    } catch (cause) {
+      const code =
+        cause instanceof Error ? cause.message : "admin_invalid_request";
+      return error(
+        code,
+        code === "admin_payload_too_large" ? 413 : 400,
+        "Invalid refund record.",
+      );
+    }
+
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return error("refund_invalid_request", 400, "Invalid refund record.");
+    }
+
+    try {
+      const summary = await deps.recordManualRefundFn(
+        env.DB,
+        reference,
+        raw as Parameters<typeof recordManualRefund>[2],
+        identity.email,
+      );
+
+      const newest = summary.refunds[0];
+      const snapshot = await getPaymentNotificationSnapshot(env.DB, reference);
+      if (snapshot && newest) {
+        await notifyRefundRecorded(env, snapshot, {
+          refundId: newest.id,
+          amountMinor: newest.amountMinor,
+          reasonCode: newest.reasonCode,
+          refundMethod: newest.refundMethod,
+          externalReference: newest.externalReference,
+          remainingRefundableMinor: summary.remainingRefundableMinor,
+          fullyRefunded: summary.fullyRefunded,
+          cancelled: Boolean(
+            (raw as Record<string, unknown>).cancelOrder,
+          ),
+        });
+      }
+
+      const order = await getAdminOrderDetail(env.DB, reference);
+      return json({ refunds: summary, order });
+    } catch (cause) {
+      const code =
+        cause instanceof Error ? cause.message : "refund_record_failed";
+      const status =
+        code === "refund_order_not_found"
+          ? 404
+          : code === "refund_exceeds_remaining_amount" ||
+              code === "refund_requires_paid_order" ||
+              code === "refund_completed_order_cannot_cancel"
+            ? 409
+            : 400;
+      const message =
+        code === "refund_exceeds_remaining_amount"
+          ? "Refund exceeds the amount still refundable."
+          : code === "refund_requires_paid_order"
+            ? "A refund can only be recorded for a paid order."
+            : code === "refund_completed_order_cannot_cancel"
+              ? "A completed order can be refunded but its completed history is preserved."
+              : "Unable to record refund.";
+      return error(code, status, message);
     }
   }
 
