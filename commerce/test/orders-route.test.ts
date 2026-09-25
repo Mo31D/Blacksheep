@@ -131,6 +131,79 @@ describe("POST /v1/orders", () => {
     expect(itemInsert.values[6]).not.toBe(1);
   });
 
+  it("uses D1 server-authoritative pricing only when the explicit authority flag is enabled", async () => {
+    const db = new FakeDb();
+    const d1Pricing = vi.fn(async () => ({
+      currency: "GBP" as const,
+      itemsSubtotalMinor: 2468,
+      lines: [
+        {
+          productId: purchasable.id,
+          sku: purchasable.sku,
+          slug: purchasable.slug,
+          productName: purchasable.name,
+          unitPriceMinor: 1234,
+          quantity: 2,
+          lineTotalMinor: 2468,
+        },
+      ],
+    }));
+    const staticPricing = vi.fn(() => {
+      throw new Error("static_pricing_must_not_run");
+    });
+
+    const response = await handleCreateOrder(
+      request(),
+      {
+        ...env(db),
+        D1_COMMERCE_AUTHORITY_ENABLED: "true",
+      },
+      {
+        ...deps,
+        priceRequestedCartFn: staticPricing,
+        priceRequestedCartFromD1Fn: d1Pricing,
+      },
+    );
+    const payload = (await response.json()) as any;
+
+    expect(response.status).toBe(201);
+    expect(payload.order.itemsSubtotalMinor).toBe(2468);
+    expect(d1Pricing).toHaveBeenCalledWith(
+      db,
+      expect.arrayContaining([
+        expect.objectContaining({
+          productId: purchasable.id,
+          quantity: 2,
+        }),
+      ]),
+    );
+    expect(staticPricing).not.toHaveBeenCalled();
+
+    const itemInsert = db.batched.find((statement) =>
+      statement.sql.includes("INSERT INTO order_items"),
+    )!;
+    expect(itemInsert.values[6]).toBe(1234);
+  });
+
+  it("keeps generated static pricing as the default while the authority flag is absent", async () => {
+    const db = new FakeDb();
+    const d1Pricing = vi.fn(async () => {
+      throw new Error("d1_pricing_must_not_run");
+    });
+
+    const response = await handleCreateOrder(
+      request(),
+      env(db),
+      {
+        ...deps,
+        priceRequestedCartFromD1Fn: d1Pricing,
+      },
+    );
+
+    expect(response.status).toBe(201);
+    expect(d1Pricing).not.toHaveBeenCalled();
+  });
+
   it("returns an existing order for an idempotent retry before reusing Turnstile", async () => {
     const db = new FakeDb();
     db.nextFirstResult = {
