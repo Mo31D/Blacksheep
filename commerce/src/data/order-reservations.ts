@@ -1088,6 +1088,259 @@ export function prepareReservationReleaseMutation(
 }
 
 
+
+export interface ReservationCommitInput {
+  actorEmail: string;
+  createdAt?: string;
+  externalOrderGuard: ReservationOrderGuard;
+}
+
+export interface PreparedReservationCommit {
+  reservationId: string;
+  commitMutationToken: string;
+  statements: D1PreparedStatementLike[];
+}
+
+export function prepareReservationCommitMutation(
+  db: D1DatabaseLike,
+  plan: ActiveReservationReleasePlan,
+  input: ReservationCommitInput,
+): PreparedReservationCommit {
+  requiredMutationText(input.actorEmail, "reservation_actor_required");
+  const createdAt = input.createdAt ?? new Date().toISOString();
+  const commitMutationToken = uid("rmut");
+  const orderSql = orderGuardSql(input.externalOrderGuard);
+  const orderValues = orderGuardValues(input.externalOrderGuard);
+
+  const statement = db
+    .prepare(
+      `UPDATE inventory_reservations
+      SET state = 'COMMITTED',
+          committed_at = ?,
+          version = version + 1,
+          mutation_token = CASE
+            WHEN state = 'ACTIVE'
+              AND version = ?
+              AND mutation_token = ?
+              AND ${orderSql}
+            THEN ?
+            ELSE NULL
+          END,
+          updated_at = ?
+      WHERE id = ?`,
+    )
+    .bind(
+      createdAt,
+      plan.version,
+      plan.mutationToken,
+      ...orderValues,
+      commitMutationToken,
+      createdAt,
+      plan.reservationId,
+    );
+
+  return {
+    reservationId: plan.reservationId,
+    commitMutationToken,
+    statements: [statement],
+  };
+}
+
+export interface ReservationConsumeInput {
+  actorEmail: string;
+  createdAt?: string;
+  externalOrderGuard: ReservationOrderGuard;
+}
+
+export interface PreparedReservationConsume {
+  reservationId: string;
+  consumeMutationToken: string;
+  statements: D1PreparedStatementLike[];
+  balanceMutationTokens: Record<string, string>;
+}
+
+export function prepareReservationConsumeMutation(
+  db: D1DatabaseLike,
+  plan: ActiveReservationReleasePlan,
+  input: ReservationConsumeInput,
+): PreparedReservationConsume {
+  const actorEmail = requiredMutationText(
+    input.actorEmail,
+    "reservation_actor_required",
+  );
+  const createdAt = input.createdAt ?? new Date().toISOString();
+  const consumeMutationToken = uid("rmut");
+  const balanceMutationTokens: Record<string, string> = {};
+  const statements: D1PreparedStatementLike[] = [];
+  const orderSql = orderGuardSql(input.externalOrderGuard);
+  const orderValues = orderGuardValues(input.externalOrderGuard);
+
+  for (const requirement of plan.requirements) {
+    const balanceMutationToken = uid("imut");
+    balanceMutationTokens[requirement.variantId] = balanceMutationToken;
+    statements.push(
+      db
+        .prepare(
+          `UPDATE inventory_balances
+          SET on_hand = on_hand - ?,
+              reserved = reserved - ?,
+              version = version + 1,
+              mutation_token = ?,
+              updated_at = ?
+          WHERE variant_id = ?
+            AND location_id = ?
+            AND version = ?
+            AND on_hand >= ?
+            AND reserved >= ?
+            AND EXISTS (
+              SELECT 1
+              FROM inventory_reservations reservation_guard
+              WHERE reservation_guard.id = ?
+                AND reservation_guard.version = ?
+                AND reservation_guard.mutation_token = ?
+                AND reservation_guard.state = 'COMMITTED'
+            )
+            AND ${orderSql}`,
+        )
+        .bind(
+          requirement.quantity,
+          requirement.quantity,
+          balanceMutationToken,
+          createdAt,
+          requirement.variantId,
+          plan.locationId,
+          requirement.balanceVersion,
+          requirement.quantity,
+          requirement.quantity,
+          plan.reservationId,
+          plan.version,
+          plan.mutationToken,
+          ...orderValues,
+        ),
+    );
+  }
+
+  const balanceGuardSql = plan.requirements.length
+    ? plan.requirements
+        .map(
+          () =>
+            `EXISTS (
+              SELECT 1
+              FROM inventory_balances consume_balance_guard
+              WHERE consume_balance_guard.variant_id = ?
+                AND consume_balance_guard.location_id = ?
+                AND consume_balance_guard.version = ?
+                AND consume_balance_guard.mutation_token = ?
+            )`,
+        )
+        .join(" AND ")
+    : "1 = 1";
+  const balanceGuardValues: unknown[] = [];
+  for (const requirement of plan.requirements) {
+    balanceGuardValues.push(
+      requirement.variantId,
+      plan.locationId,
+      requirement.balanceVersion + 1,
+      balanceMutationTokens[requirement.variantId],
+    );
+  }
+
+  statements.push(
+    db
+      .prepare(
+        `UPDATE inventory_reservations
+        SET state = 'CONSUMED',
+            consumed_at = ?,
+            version = version + 1,
+            mutation_token = CASE
+              WHEN state = 'COMMITTED'
+                AND version = ?
+                AND mutation_token = ?
+                AND ${balanceGuardSql}
+                AND ${orderSql}
+              THEN ?
+              ELSE NULL
+            END,
+            updated_at = ?
+        WHERE id = ?`,
+      )
+      .bind(
+        createdAt,
+        plan.version,
+        plan.mutationToken,
+        ...balanceGuardValues,
+        ...orderValues,
+        consumeMutationToken,
+        createdAt,
+        plan.reservationId,
+      ),
+  );
+
+  for (const requirement of plan.requirements) {
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO inventory_movements (
+            id, variant_id, location_id, movement_type,
+            on_hand_delta, reserved_delta, safety_stock_delta,
+            reason_code, note, order_id, order_revision_id,
+            reservation_id, incoming_id, batch_id, idempotency_key,
+            actor_type, actor_id, created_at,
+            balance_on_hand_after, balance_reserved_after, balance_safety_after
+          )
+          SELECT
+            ?, b.variant_id, b.location_id, 'SALE',
+            ?, ?, 0,
+            'SALE', 'Order fulfilled',
+            ?, ?, ?, NULL, NULL, ?,
+            'ADMIN', ?, ?,
+            b.on_hand, b.reserved, b.safety_stock
+          FROM inventory_balances b
+          WHERE b.variant_id = ?
+            AND b.location_id = ?
+            AND b.version = ?
+            AND b.mutation_token = ?
+            AND EXISTS (
+              SELECT 1
+              FROM inventory_reservations r
+              WHERE r.id = ?
+                AND r.state = 'CONSUMED'
+                AND r.mutation_token = ?
+            )`,
+        )
+        .bind(
+          uid("imv"),
+          -requirement.quantity,
+          -requirement.quantity,
+          plan.orderId,
+          plan.revisionId,
+          plan.reservationId,
+          "reservation-consume:" +
+            plan.reservationId +
+            ":v" +
+            plan.version +
+            ":variant:" +
+            requirement.variantId,
+          actorEmail,
+          createdAt,
+          requirement.variantId,
+          plan.locationId,
+          requirement.balanceVersion + 1,
+          balanceMutationTokens[requirement.variantId],
+          plan.reservationId,
+          consumeMutationToken,
+        ),
+    );
+  }
+
+  return {
+    reservationId: plan.reservationId,
+    consumeMutationToken,
+    statements,
+    balanceMutationTokens,
+  };
+}
+
 interface ExpiredReservationCandidate extends ReservationHoldRow {
   revisionVersion: number;
   revisionState: "SENT" | "ACCEPTED";
