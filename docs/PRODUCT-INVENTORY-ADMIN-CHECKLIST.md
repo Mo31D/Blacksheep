@@ -191,6 +191,7 @@ Exit gate:
 - [x] Final Product↔Stock integration polish deployed — workflow `36183967251` / job `108232778002` SUCCESS.
 - [x] `0010` applied + Stock workspace deployed to staging — workflow `36183361766` SUCCESS.
 - [~] Controlled owner Phase 4 stock smoke-test on a staging QA product — final Phase 4 gate.
+- [~] Independent staging D1 mutation smoke-test — running now against a dedicated non-sale QA product to prove Initial Count → Damage → Physical Count → Stocktake → Archive without touching real stock.
 
 Exit gate:
 - every quantity change is explainable from the ledger.
@@ -293,33 +294,24 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 4 — owner staging stock QA
+## Phase 4 — independent staging inventory mutation proof
 
-Use the existing archived `STAGING QA PRODUCT` only as the source for a new safe test copy; do not use a real sale product.
+Before asking the owner to repeat the UI flow, run one isolated backend proof against a dedicated non-sale QA product:
 
-1. Products → Archived → `STAGING QA PRODUCT` → **Duplicate product**.
-2. Open the new `STAGING QA PRODUCT — Copy`.
-3. Use its **Stock** button or open the Stock tab and search for the copy.
-4. **Initial Count:** enter `10`.
-   - expected: Tracking enabled, On hand 10, Reserved 0, Available 10.
-5. **Low-stock threshold:** set `3`.
-6. **Adjust stock:** `-2`, reason `Damage`.
-   - expected: On hand 8, Available 8; immutable Damage movement visible.
-7. **Physical count:** enter `9`.
-   - expected: correction +1; On hand/Available 9; history shows the count correction.
-8. Filter/search so only the QA copy is in the Stock list, run **Stocktake**, enter `9`.
-   - expected: explicit `Unchanged` result.
-9. Repeat Stocktake with `8` if you want to prove bulk correction.
-   - expected: `Updated 1`, On hand/Available 8.
-10. Confirm Products shows the live Inventory Core state and Product → **Stock** deep-link works.
-11. Return to Products and **Archive** the QA copy after testing.
+1. Create a private staging-only QA product/variant.
+2. Initial Count = 10.
+3. Set low-stock threshold = 3.
+4. Damage adjustment = -2.
+5. Physical Count = 9.
+6. Verify an unchanged Stocktake at 9 would create no movement.
+7. Apply a controlled batch/stocktake correction to 8.
+8. Verify immutable movement history and final Available = 8.
+9. Archive the QA product.
+10. Reconfirm Production remains untouched.
 
-Once this owner QA passes:
-- mark Phase 4 COMPLETE,
-- begin **PHASE 5 — ORDER RESERVATIONS**,
-- do not enable Phase 6 storefront/checkout inventory authority yet.
+This proves the real staging D1 mutation semantics independently of the authenticated UI.
 
-Safety locks:
-- Production remains pre-Product-Core at `0000–0008`,
-- no real product stock has been inferred or modified by the Phase 4 migration,
-- no reviewed-order reservation logic is enabled until Phase 5.
+After that:
+- keep **owner authenticated iPhone/desktop stock QA** as the only remaining Phase 4 UX gate,
+- begin Phase 5 architecture/spec work only; do not enable reservations until the Phase 4 owner UX gate is accepted,
+- do not enable Phase 6 storefront/checkout inventory authority.
