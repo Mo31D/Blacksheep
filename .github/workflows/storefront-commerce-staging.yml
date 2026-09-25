@@ -1,0 +1,214 @@
+name: Storefront Commerce Staging Phase 6
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "commerce/src/data/public-catalog.ts"
+      - "commerce/src/routes/catalog.ts"
+      - "commerce/src/index.ts"
+      - "commerce/test/public-catalog.test.ts"
+      - "commerce/test/public-catalog-route.test.ts"
+      - "commerce/test/health.test.ts"
+      - "commerce/wrangler.jsonc"
+      - ".github/workflows/storefront-commerce-staging.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  public-catalog-staging:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[phase6-staging]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: commerce
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: commerce/package.json
+
+      - name: Install commerce dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Require Cloudflare staging credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Verify Phase 6 feature is staging-only in source config
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require("fs");
+          const config = JSON.parse(fs.readFileSync("wrangler.jsonc", "utf8"));
+          const production = config.vars || {};
+          const staging = config.env?.staging?.vars || {};
+          if (production.D1_PUBLIC_CATALOG_ENABLED === "true") {
+            console.error("Production public D1 catalogue must remain disabled.", production);
+            process.exit(1);
+          }
+          if (staging.D1_PUBLIC_CATALOG_ENABLED !== "true") {
+            console.error("Staging public D1 catalogue must be explicitly enabled.", staging);
+            process.exit(1);
+          }
+          if (production.D1_COMMERCE_AUTHORITY_ENABLED === "true") {
+            console.error("Production D1 checkout authority must remain disabled.");
+            process.exit(1);
+          }
+          console.log("Phase 6 config gate passed: public D1 catalogue staging-only.");
+          NODE
+
+      - name: Run full Commerce validation
+        run: npm run check
+
+      - name: Verify staging Product Core baseline
+        shell: bash
+        run: |
+          npx wrangler d1 execute black-sheep-commerce-staging             --remote --env staging --json             --command "SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT COUNT(*) AS active FROM products WHERE publication_status='ACTIVE'; SELECT COUNT(*) AS published FROM products WHERE publication_status='ACTIVE' AND current_published_version_id IS NOT NULL; SELECT COUNT(*) AS draft_leaks FROM products WHERE publication_status='ACTIVE' AND current_published_version_id IS NULL; SELECT COUNT(*) AS active_drafts FROM products WHERE publication_status='ACTIVE' AND current_draft_version_id IS NOT NULL;"             > /tmp/phase6-staging-baseline.json
+          cat /tmp/phase6-staging-baseline.json
+          node - /tmp/phase6-staging-baseline.json <<'NODE'
+          const fs = require("fs");
+          const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const latest = String(blocks?.[0]?.results?.[0]?.name ?? "");
+          const active = Number(blocks?.[1]?.results?.[0]?.active ?? -1);
+          const published = Number(blocks?.[2]?.results?.[0]?.published ?? -1);
+          const draftLeaks = Number(blocks?.[3]?.results?.[0]?.draft_leaks ?? -1);
+          const activeDrafts = Number(blocks?.[4]?.results?.[0]?.active_drafts ?? -1);
+          if (
+            latest !== "0012_order_returns.sql" ||
+            active !== 146 ||
+            published !== 146 ||
+            draftLeaks !== 0
+          ) {
+            console.error("Unexpected Phase 6 staging Product Core baseline.", {
+              latest, active, published, draftLeaks, activeDrafts,
+            });
+            process.exit(1);
+          }
+          console.log("Phase 6 staging Product Core baseline passed.", {
+            latest, active, published, activeDrafts,
+          });
+          NODE
+
+      - name: Verify Production remains pre-Product-Core
+        shell: bash
+        run: |
+          npx wrangler d1 execute black-sheep-commerce-prod             --remote --json             --command "SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT COUNT(*) AS forbidden_tables FROM sqlite_master WHERE type='table' AND name IN ('products','product_variants','inventory_balances','inventory_reservations'); SELECT COUNT(*) AS orders FROM orders;"             > /tmp/phase6-production-safety.json
+          cat /tmp/phase6-production-safety.json
+          node - /tmp/phase6-production-safety.json <<'NODE'
+          const fs = require("fs");
+          const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const latest = String(blocks?.[0]?.results?.[0]?.name ?? "");
+          const forbidden = Number(blocks?.[1]?.results?.[0]?.forbidden_tables ?? -1);
+          const orders = Number(blocks?.[2]?.results?.[0]?.orders ?? -1);
+          if (latest !== "0008_concurrency_guards.sql" || forbidden !== 0) {
+            console.error("Production isolation gate failed.", { latest, forbidden, orders });
+            process.exit(1);
+          }
+          console.log("Production isolation passed.", { latest, orders });
+          NODE
+
+      - name: Deploy public D1 catalogue to staging only
+        run: npx wrangler deploy --env staging
+
+      - name: Verify staging health feature gates
+        shell: bash
+        run: |
+          HEALTH="$(curl --fail --silent --show-error --max-time 30 https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/health)"
+          echo "$HEALTH"
+          node - "$HEALTH" <<'NODE'
+          const health = JSON.parse(process.argv[2]);
+          if (
+            health.status !== "ok" ||
+            health.environment !== "staging" ||
+            health.database !== "bound" ||
+            health.features?.orderReservations !== true ||
+            health.features?.publicCatalog !== true
+          ) {
+            console.error("Phase 6 staging health gate failed.", health);
+            process.exit(1);
+          }
+          console.log("Phase 6 staging health gate passed.");
+          NODE
+
+      - name: Verify public D1 catalogue contract on real staging
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --max-time 60             "https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/v1/catalog?limit=200"             > /tmp/phase6-catalog.json
+          node - /tmp/phase6-catalog.json <<'NODE'
+          const fs = require("fs");
+          const payload = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const products = payload.products || [];
+          if (products.length !== 146) {
+            console.error("Expected 146 public D1 products, found", products.length);
+            process.exit(1);
+          }
+          const ids = new Set(products.map((p) => p.id));
+          if (ids.size !== 146) {
+            console.error("Public D1 catalogue IDs are not unique.");
+            process.exit(1);
+          }
+          const forbidden = [
+            "costMinor",
+            "barcode",
+            "supplier",
+            "supplierUrl",
+            "audit",
+            "internalNote",
+            "currentDraftVersionId",
+          ];
+          for (const product of products) {
+            for (const key of forbidden) {
+              if (Object.prototype.hasOwnProperty.call(product, key)) {
+                console.error("Private field leaked into public catalogue.", { key, id: product.id });
+                process.exit(1);
+              }
+            }
+            if (!product.publishedVersionId) {
+              console.error("Public product missing published version marker.", product.id);
+              process.exit(1);
+            }
+          }
+          console.log("Real staging public D1 catalogue passed.", {
+            count: products.length,
+            purchasable: products.filter((p) => p.purchasable).length,
+            tracked: products.filter((p) => p.inventory?.tracked).length,
+          });
+          NODE
+
+      - name: Verify one public product detail
+        shell: bash
+        run: |
+          DETAIL="$(curl --fail --silent --show-error --max-time 30 https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/v1/catalog/HC-003)"
+          echo "$DETAIL"
+          node - "$DETAIL" <<'NODE'
+          const payload = JSON.parse(process.argv[2]);
+          if (
+            payload.product?.id !== "HC-003" ||
+            !payload.product?.publishedVersionId
+          ) {
+            console.error("Public product detail gate failed.", payload);
+            process.exit(1);
+          }
+          console.log("Public product detail gate passed.");
+          NODE
+
+      - name: Safety statement
+        if: always()
+        run: |
+          echo "Phase 6 public catalogue target: staging only."
+          echo "Production migration and Worker deploy are not run."
+          echo "Production checkout remains on the generated static commerce catalogue."
+          echo "No storefront authority switch is performed."
