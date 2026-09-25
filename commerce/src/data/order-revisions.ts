@@ -5,6 +5,7 @@ import {
   type RevisionItemStatus,
   type RevisionState,
 } from "../domain/order-revision";
+import { requirePurchasableProduct } from "../domain/catalog";
 
 interface OriginalOrderRow {
   id: string;
@@ -711,4 +712,345 @@ export async function transitionOrderRevision(
   }
 
   return (await getOrderRevisionDetail(db, orderReference, revisionId))!;
+}
+
+
+export interface AddRevisionCatalogItemInput {
+  expectedVersion: number;
+  catalogProductId: string;
+  quantity: number;
+  customerNote?: string | null;
+  internalNote?: string | null;
+}
+
+export interface SubstituteRevisionCatalogItemInput
+  extends AddRevisionCatalogItemInput {
+  lineNumber: number;
+}
+
+function requireExpectedVersion(value: number): void {
+  if (!Number.isInteger(value) || value < 1) {
+    throw new Error("revision_expected_version_required");
+  }
+}
+
+function requireQuantity(value: number): void {
+  if (!Number.isInteger(value) || value < 1 || value > 99) {
+    throw new Error("revision_invalid_confirmed_quantity");
+  }
+}
+
+async function verifyMutationVersion(
+  db: D1DatabaseLike,
+  orderReference: string,
+  revisionId: string,
+  expectedVersion: number,
+): Promise<Record<string, unknown>> {
+  const updated = await findRevision(db, orderReference, revisionId);
+  if (!updated || updated.version !== expectedVersion) {
+    throw new Error("revision_version_conflict");
+  }
+  return (await getOrderRevisionDetail(db, orderReference, revisionId))!;
+}
+
+export async function addCatalogItemToDraftRevision(
+  db: D1DatabaseLike,
+  orderReference: string,
+  revisionId: string,
+  input: AddRevisionCatalogItemInput,
+  actorEmail: string,
+): Promise<Record<string, unknown>> {
+  requireExpectedVersion(input.expectedVersion);
+  requireQuantity(input.quantity);
+
+  const revision = await findRevision(db, orderReference, revisionId);
+  if (!revision) throw new Error("revision_not_found");
+  if (revision.state !== "DRAFT") throw new Error("revision_not_draft");
+  if (revision.version !== input.expectedVersion) {
+    throw new Error("revision_version_conflict");
+  }
+
+  const product = requirePurchasableProduct(String(input.catalogProductId || ""));
+  if (product.priceMinor === null) throw new Error("price_unavailable");
+
+  const items = await revisionItems(db, revisionId);
+  if (items.some((item) => item.catalogProductId === product.id)) {
+    throw new Error("revision_product_already_present");
+  }
+
+  const nextLineNumber =
+    items.reduce((maximum, item) => Math.max(maximum, item.lineNumber), 0) + 1;
+  const newItem = {
+    unitPriceMinor: product.priceMinor,
+    requestedQuantity: 0,
+    confirmedQuantity: input.quantity,
+    availabilityStatus: "ADDED" as const,
+  };
+  validateRevisionItem(newItem);
+
+  const totals = calculateRevisionTotals({
+    items: [
+      ...items.map((item) => ({
+        unitPriceMinor: item.unitPriceMinor,
+        requestedQuantity: item.requestedQuantity,
+        confirmedQuantity: item.confirmedQuantity,
+        availabilityStatus: item.availabilityStatus,
+      })),
+      newItem,
+    ],
+    deliveryAmountMinor:
+      revision.fulfilmentMethod === "collection" ? 0 : revision.deliveryAmountMinor,
+    adjustmentAmountMinor: revision.adjustmentAmountMinor,
+  });
+
+  const now = new Date().toISOString();
+  const nextVersion = revision.version + 1;
+  const customerNote = optionalText(
+    input.customerNote,
+    500,
+    "revision_invalid_customer_note",
+  );
+  const internalNote = optionalText(
+    input.internalNote,
+    1000,
+    "revision_invalid_internal_note",
+  );
+
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE order_revisions
+        SET version = ?, items_subtotal_minor = ?, final_total_minor = ?
+        WHERE id = ? AND version = ? AND state = 'DRAFT'`,
+      )
+      .bind(
+        nextVersion,
+        totals.itemsSubtotalMinor,
+        totals.finalTotalMinor,
+        revisionId,
+        revision.version,
+      ),
+    db
+      .prepare(
+        `INSERT INTO order_revision_items (
+          revision_id, line_number, source_order_item_id,
+          catalog_product_id, sku, slug, product_name,
+          unit_price_minor, requested_quantity, confirmed_quantity,
+          availability_status, reason_code, customer_note, internal_note,
+          line_total_minor, created_at, updated_at
+        )
+        SELECT ?, ?, NULL, ?, ?, ?, ?, ?, 0, ?, 'ADDED', 'OWNER_ADDED', ?, ?, ?, ?, ?
+        WHERE EXISTS (
+          SELECT 1 FROM order_revisions
+          WHERE id = ? AND version = ? AND state = 'DRAFT'
+        )`,
+      )
+      .bind(
+        revisionId,
+        nextLineNumber,
+        product.id,
+        product.sku,
+        product.slug,
+        product.name,
+        product.priceMinor,
+        input.quantity,
+        customerNote,
+        internalNote,
+        product.priceMinor * input.quantity,
+        now,
+        now,
+        revisionId,
+        nextVersion,
+      ),
+    db
+      .prepare(
+        `INSERT INTO order_events (
+          order_id, event_type, from_status, to_status,
+          actor_type, actor_id, note, metadata_json, created_at
+        )
+        SELECT ?, 'ORDER_REVISION_ITEM_ADDED', NULL, NULL, 'admin', ?, NULL, ?, ?
+        WHERE EXISTS (
+          SELECT 1 FROM order_revisions
+          WHERE id = ? AND version = ?
+        )`,
+      )
+      .bind(
+        revision.orderId,
+        actorEmail,
+        JSON.stringify({
+          revisionId,
+          revisionNumber: revision.revisionNumber,
+          lineNumber: nextLineNumber,
+          catalogProductId: product.id,
+          quantity: input.quantity,
+          version: nextVersion,
+        }),
+        now,
+        revisionId,
+        nextVersion,
+      ),
+  ]);
+
+  return verifyMutationVersion(
+    db,
+    orderReference,
+    revisionId,
+    nextVersion,
+  );
+}
+
+export async function substituteDraftRevisionLine(
+  db: D1DatabaseLike,
+  orderReference: string,
+  revisionId: string,
+  input: SubstituteRevisionCatalogItemInput,
+  actorEmail: string,
+): Promise<Record<string, unknown>> {
+  requireExpectedVersion(input.expectedVersion);
+  requireQuantity(input.quantity);
+  if (!Number.isInteger(input.lineNumber) || input.lineNumber < 1) {
+    throw new Error("revision_invalid_line_number");
+  }
+
+  const revision = await findRevision(db, orderReference, revisionId);
+  if (!revision) throw new Error("revision_not_found");
+  if (revision.state !== "DRAFT") throw new Error("revision_not_draft");
+  if (revision.version !== input.expectedVersion) {
+    throw new Error("revision_version_conflict");
+  }
+
+  const product = requirePurchasableProduct(String(input.catalogProductId || ""));
+  if (product.priceMinor === null) throw new Error("price_unavailable");
+
+  const items = await revisionItems(db, revisionId);
+  const target = items.find((item) => item.lineNumber === input.lineNumber);
+  if (!target) throw new Error("revision_unknown_line");
+  if (target.catalogProductId === product.id) {
+    throw new Error("revision_substitute_must_change_product");
+  }
+
+  const replacement = {
+    unitPriceMinor: product.priceMinor,
+    requestedQuantity: target.requestedQuantity,
+    confirmedQuantity: input.quantity,
+    availabilityStatus: "SUBSTITUTE" as const,
+  };
+  validateRevisionItem(replacement);
+
+  const totals = calculateRevisionTotals({
+    items: items.map((item) =>
+      item.lineNumber === input.lineNumber
+        ? replacement
+        : {
+            unitPriceMinor: item.unitPriceMinor,
+            requestedQuantity: item.requestedQuantity,
+            confirmedQuantity: item.confirmedQuantity,
+            availabilityStatus: item.availabilityStatus,
+          },
+    ),
+    deliveryAmountMinor:
+      revision.fulfilmentMethod === "collection" ? 0 : revision.deliveryAmountMinor,
+    adjustmentAmountMinor: revision.adjustmentAmountMinor,
+  });
+
+  const now = new Date().toISOString();
+  const nextVersion = revision.version + 1;
+  const customerNote = optionalText(
+    input.customerNote,
+    500,
+    "revision_invalid_customer_note",
+  );
+  const internalNote = optionalText(
+    input.internalNote,
+    1000,
+    "revision_invalid_internal_note",
+  );
+
+  await db.batch([
+    db
+      .prepare(
+        `UPDATE order_revisions
+        SET version = ?, items_subtotal_minor = ?, final_total_minor = ?
+        WHERE id = ? AND version = ? AND state = 'DRAFT'`,
+      )
+      .bind(
+        nextVersion,
+        totals.itemsSubtotalMinor,
+        totals.finalTotalMinor,
+        revisionId,
+        revision.version,
+      ),
+    db
+      .prepare(
+        `UPDATE order_revision_items
+        SET catalog_product_id = ?,
+            sku = ?,
+            slug = ?,
+            product_name = ?,
+            unit_price_minor = ?,
+            confirmed_quantity = ?,
+            availability_status = 'SUBSTITUTE',
+            reason_code = 'SUBSTITUTE_OFFERED',
+            customer_note = ?,
+            internal_note = ?,
+            line_total_minor = ?,
+            updated_at = ?
+        WHERE revision_id = ? AND line_number = ?
+          AND EXISTS (
+            SELECT 1 FROM order_revisions
+            WHERE id = ? AND version = ? AND state = 'DRAFT'
+          )`,
+      )
+      .bind(
+        product.id,
+        product.sku,
+        product.slug,
+        product.name,
+        product.priceMinor,
+        input.quantity,
+        customerNote,
+        internalNote,
+        product.priceMinor * input.quantity,
+        now,
+        revisionId,
+        input.lineNumber,
+        revisionId,
+        nextVersion,
+      ),
+    db
+      .prepare(
+        `INSERT INTO order_events (
+          order_id, event_type, from_status, to_status,
+          actor_type, actor_id, note, metadata_json, created_at
+        )
+        SELECT ?, 'ORDER_REVISION_ITEM_SUBSTITUTED', NULL, NULL, 'admin', ?, NULL, ?, ?
+        WHERE EXISTS (
+          SELECT 1 FROM order_revisions
+          WHERE id = ? AND version = ?
+        )`,
+      )
+      .bind(
+        revision.orderId,
+        actorEmail,
+        JSON.stringify({
+          revisionId,
+          revisionNumber: revision.revisionNumber,
+          lineNumber: input.lineNumber,
+          originalCatalogProductId: target.catalogProductId,
+          substituteCatalogProductId: product.id,
+          quantity: input.quantity,
+          version: nextVersion,
+        }),
+        now,
+        revisionId,
+        nextVersion,
+      ),
+  ]);
+
+  return verifyMutationVersion(
+    db,
+    orderReference,
+    revisionId,
+    nextVersion,
+  );
 }
