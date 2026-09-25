@@ -627,20 +627,26 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
   - existing production order count remained 3
   - no Worker deploy occurred in the migration workflow
 
+- [x] Production runtime readiness check:
+  - production Worker lacks `RESEND_WEBHOOK_SECRET`
+  - Resend currently has only the staging webhook
+  - Worker deployment is intentionally paused until production webhook telemetry is configured
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — STEP 2 IN PROGRESS: verify production runtime secrets/webhook readiness before Worker deployment.**
+**PHASE 13 EXECUTION — STEP 2A IN PROGRESS: create production Resend webhook safely.**
 
-Production database state:
-- migrations: `0000–0008`
-- existing orders preserved: 3
-- migration verification: PASS
+Current production readiness:
+- D1 migrations `0000–0008`: PASS
+- Worker not yet redeployed
+- production `RESEND_WEBHOOK_SECRET`: MISSING
+- production Resend webhook: MISSING
 
 Current step:
-1. verify production Worker secret names,
-2. confirm whether `RESEND_WEBHOOK_SECRET` exists in production,
-3. inspect Resend webhooks and determine whether a production endpoint is already configured,
-4. if missing, configure production webhook/secret safely before Worker deployment,
-5. update this checklist before deploying the pinned Worker source.
+1. create a separate production webhook for `https://api.theblacksheepshop.co.uk/webhooks/resend`,
+2. subscribe to the same delivery events verified on staging,
+3. keep/return it disabled until the production Worker has the matching signing secret and health is verified,
+4. record its webhook ID,
+5. update this checklist before secret installation.
 
-**Do not deploy the Worker until production webhook readiness is complete.**
+**Do not deploy the Worker before this step and secret installation are complete.**
