@@ -651,7 +651,7 @@ export interface ReservationExternalGuard {
   revisionId: string;
   version: number;
   mutationToken: string;
-  state: "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED";
+  state: "DRAFT" | "SENT" | "ACCEPTED" | "DECLINED" | "EXPIRED";
 }
 
 export interface ReservationReleaseInput {
@@ -1018,4 +1018,215 @@ export function prepareReservationReleaseMutation(
     statements,
     balanceMutationTokens,
   };
+}
+
+
+interface ExpiredReservationCandidate extends ActiveReservationRow {
+  revisionVersion: number;
+  revisionState: "SENT" | "ACCEPTED";
+}
+
+export interface ExpireReservationsOptions {
+  now?: string;
+  limit?: number;
+}
+
+export async function expireDueReservations(
+  db: D1DatabaseLike,
+  options: ExpireReservationsOptions = {},
+): Promise<{ expired: number; skipped: number }> {
+  const timestamp = options.now ?? new Date().toISOString();
+  if (!Number.isFinite(Date.parse(timestamp))) {
+    throw new Error("reservation_expiry_timestamp_invalid");
+  }
+  const limit = Math.max(1, Math.min(100, Number(options.limit) || 50));
+
+  const candidates = await allRows<ExpiredReservationCandidate>(
+    db
+      .prepare(
+        `SELECT
+          r.id,
+          r.order_id AS orderId,
+          r.revision_id AS revisionId,
+          r.location_id AS locationId,
+          r.state,
+          r.expires_at AS expiresAt,
+          r.version,
+          r.mutation_token AS mutationToken,
+          rev.version AS revisionVersion,
+          rev.state AS revisionState
+        FROM inventory_reservations r
+        INNER JOIN order_revisions rev ON rev.id = r.revision_id
+        WHERE r.state = 'ACTIVE'
+          AND r.expires_at <= ?
+          AND rev.state IN ('SENT','ACCEPTED')
+        ORDER BY r.expires_at ASC, r.id ASC
+        LIMIT ?`,
+      )
+      .bind(timestamp, limit),
+  );
+
+  let expired = 0;
+  let skipped = 0;
+
+  for (const candidate of candidates) {
+    const plan = await buildReleasePlanFromRow(db, candidate);
+    const nextRevisionVersion = Number(candidate.revisionVersion) + 1;
+    const revisionMutationToken = uid("rmut");
+    const statements: D1PreparedStatementLike[] = [
+      db
+        .prepare(
+          `UPDATE order_revisions
+          SET state = 'EXPIRED',
+              version = ?,
+              mutation_token = ?
+          WHERE id = ?
+            AND version = ?
+            AND state = ?`,
+        )
+        .bind(
+          nextRevisionVersion,
+          revisionMutationToken,
+          candidate.revisionId,
+          candidate.revisionVersion,
+          candidate.revisionState,
+        ),
+    ];
+
+    const release = prepareReservationReleaseMutation(db, plan, {
+      actorEmail: "reservation-expiry",
+      actorType: "SYSTEM",
+      reason: "Reservation expired",
+      terminalState: "EXPIRED",
+      createdAt: timestamp,
+      externalGuard: {
+        revisionId: candidate.revisionId,
+        version: nextRevisionVersion,
+        mutationToken: revisionMutationToken,
+        state: "EXPIRED",
+      },
+    });
+    statements.push(...release.statements);
+
+    statements.push(
+      db
+        .prepare(
+          `UPDATE orders
+          SET status = 'UNDER_REVIEW',
+              payment_status = CASE
+                WHEN payment_status = 'PAYMENT_REQUESTED' THEN 'UNPAID'
+                ELSE payment_status
+              END,
+              payment_request_url = CASE
+                WHEN payment_status = 'PAYMENT_REQUESTED' THEN NULL
+                ELSE payment_request_url
+              END,
+              payment_reference = CASE
+                WHEN payment_status = 'PAYMENT_REQUESTED' THEN NULL
+                ELSE payment_reference
+              END,
+              updated_at = ?
+          WHERE id = ?
+            AND payment_status IN ('UNPAID','PAYMENT_REQUESTED')
+            AND EXISTS (
+              SELECT 1
+              FROM order_revisions
+              WHERE id = ?
+                AND version = ?
+                AND mutation_token = ?
+                AND state = 'EXPIRED'
+            )`,
+        )
+        .bind(
+          timestamp,
+          candidate.orderId,
+          candidate.revisionId,
+          nextRevisionVersion,
+          revisionMutationToken,
+        ),
+      db
+        .prepare(
+          `UPDATE customer_review_tokens
+          SET revoked_at = COALESCE(revoked_at, ?)
+          WHERE revision_id = ?
+            AND EXISTS (
+              SELECT 1
+              FROM order_revisions
+              WHERE id = ?
+                AND version = ?
+                AND mutation_token = ?
+                AND state = 'EXPIRED'
+            )`,
+        )
+        .bind(
+          timestamp,
+          candidate.revisionId,
+          candidate.revisionId,
+          nextRevisionVersion,
+          revisionMutationToken,
+        ),
+      db
+        .prepare(
+          `INSERT INTO order_events (
+            order_id, event_type, from_status, to_status,
+            actor_type, actor_id, note, metadata_json, created_at
+          )
+          SELECT ?, 'ORDER_REVISION_EXPIRED', NULL, 'UNDER_REVIEW',
+            'system', 'reservation-expiry', NULL, ?, ?
+          WHERE EXISTS (
+            SELECT 1
+            FROM order_revisions
+            WHERE id = ?
+              AND version = ?
+              AND mutation_token = ?
+              AND state = 'EXPIRED'
+          )`,
+        )
+        .bind(
+          candidate.orderId,
+          JSON.stringify({
+            revisionId: candidate.revisionId,
+            reservationId: candidate.id,
+            expiresAt: candidate.expiresAt,
+          }),
+          timestamp,
+          candidate.revisionId,
+          nextRevisionVersion,
+          revisionMutationToken,
+        ),
+    );
+
+    try {
+      await db.batch(statements);
+    } catch (cause) {
+      const latest = await db
+        .prepare(
+          "SELECT state FROM inventory_reservations WHERE id = ? LIMIT 1",
+        )
+        .bind(candidate.id)
+        .first<{ state: string }>();
+      if (latest && latest.state !== "ACTIVE") {
+        skipped += 1;
+        continue;
+      }
+      throw cause;
+    }
+
+    const latest = await db
+      .prepare(
+        "SELECT state FROM inventory_reservations WHERE id = ? LIMIT 1",
+      )
+      .bind(candidate.id)
+      .first<{ state: string }>();
+
+    if (latest?.state === "EXPIRED") {
+      expired += 1;
+    } else if (latest && latest.state !== "ACTIVE") {
+      skipped += 1;
+    } else {
+      throw new Error("reservation_expiry_conflict");
+    }
+  }
+
+  return { expired, skipped };
 }
