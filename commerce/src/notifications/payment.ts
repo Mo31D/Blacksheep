@@ -25,6 +25,7 @@ export interface PaymentNotificationSnapshot {
   fulfilmentMessage: string | null;
   revisionNumber?: number | null;
   customerMessage?: string | null;
+  reviewUrl?: string | null;
   items?: Array<{
     productName: string;
     quantity: number;
@@ -102,6 +103,8 @@ export async function notifyPaymentRequest(
   }
 
   const items = order.items ?? [];
+  const reviewFirst = Boolean(order.revisionNumber && order.reviewUrl);
+  const primaryUrl = reviewFirst ? order.reviewUrl! : order.paymentRequestUrl;
   const message = renderTransactionalEmail({
     preheader: `Final total ${emailMoney(order.finalTotalMinor)} · payment request`,
     eyebrow: order.revisionNumber ? "Reviewed order" : "Order reviewed",
@@ -124,13 +127,15 @@ export async function notifyPaymentRequest(
       .join("\n"),
     bodyHtml: summaryHtml(order),
     cta: {
-      label: "Pay securely",
-      url: order.paymentRequestUrl,
+      label: reviewFirst ? "Review changes & pay" : "Pay securely",
+      url: primaryUrl,
     },
-    afterCtaText:
-      "Paying confirms the reviewed order and final total shown in this message. The Black Sheep Shop does not store your card or online-banking details.",
-    afterCtaHtml:
-      '<p style="font-size:14px;line-height:1.65;color:#655f56;margin:4px 0 0">Paying confirms the reviewed order and final total shown above. The Black Sheep Shop does not store your card or online-banking details.</p>',
+    afterCtaText: reviewFirst
+      ? "Review the confirmed version before continuing to secure payment. Paying confirms the reviewed order and final total shown in this message. The Black Sheep Shop does not store your card or online-banking details."
+      : "Paying confirms the reviewed order and final total shown in this message. The Black Sheep Shop does not store your card or online-banking details.",
+    afterCtaHtml: reviewFirst
+      ? '<p style="font-size:14px;line-height:1.65;color:#655f56;margin:4px 0 0">Review the confirmed version before continuing to secure payment. Paying confirms the reviewed order and final total shown above. The Black Sheep Shop does not store your card or online-banking details.</p>'
+      : '<p style="font-size:14px;line-height:1.65;color:#655f56;margin:4px 0 0">Paying confirms the reviewed order and final total shown above. The Black Sheep Shop does not store your card or online-banking details.</p>',
   });
 
   await attempt(env, order.id, "PAYMENT_REQUEST_EMAIL", resolved.provider, async () => {
