@@ -225,6 +225,7 @@ describe("admin order revision routes", () => {
       "send",
       1,
       "owner@example.com",
+      { inventoryReservations: false },
     );
   });
 
