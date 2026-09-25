@@ -51,7 +51,7 @@ Hardened source baseline after Phase 8 work:
 
 Environment facts — direct Cloudflare audit on 25 September 2026:
 
-- [x] Staging Worker redeployed after adjustment API/UI completion; current Version ID `4ae90556-d5f3-42f9-93d2-d4243d9743d8`; staging URL health verified on 25 September 2026.
+- [x] Staging Worker current Version ID `0f5fb208-e4a8-49b7-9721-23bab226ba1b`; deployed after adjustment API/UI + customer-review adjustment transparency changes; staging health verified on 25 September 2026.
 - [x] Production Worker remains unchanged at Version ID `938f0651-20b5-48df-a8d4-f84defbb263d`; deployment ID `f1ff4d67-bda6-4330-b4ae-961ea8d55f95`; created `2026-09-25T00:45:39Z`.
 - [x] Staging D1 migrations `0003–0008` were applied successfully; post-deploy remote migration check reports **No migrations to apply**.
 - [x] Production D1 remains unchanged through `0002_order_fulfilment_message.sql`; remote pending migrations remain `0003–0008`.
@@ -179,13 +179,13 @@ Status: MATERIAL IMPLEMENTATION PRESENT; UX/E2E VERIFICATION REMAINS.
 
 - [ ] Build a definitive lifecycle-email matrix from current code.
 - [ ] Verify availability/revision email.
-- [ ] Verify revised payment request email.
+- [~] Revised payment-request notification path returned success in staging E2E; inbox receipt/delivery telemetry still requires provider verification.
 - [ ] Verify payment reminder behaviour if supported; implement only if genuinely absent.
 - [ ] Verify preparing email.
-- [ ] Verify ready-for-collection email.
+- [~] Ready-for-collection notification path returned success in staging E2E; inbox receipt/delivery telemetry still requires provider verification.
 - [ ] Verify shipped email.
 - [ ] Verify cancellation email.
-- [ ] Verify partial/full refund emails.
+- [~] Partial/full refund notification paths returned success in staging E2E; inbox receipt/delivery telemetry still requires provider verification.
 - [ ] Confirm all HTML emails have a usable plain-text equivalent.
 - [ ] Confirm responsive rendering on major mobile clients.
 - [ ] Confirm `Reply-To` uses the intended shop inbox.
@@ -215,14 +215,14 @@ Status: PARTIALLY COMPLETE; COVERAGE MATRIX + RUNTIME VALIDATION REQUIRED.
 - [x] Zero and negative refund amount tests.
 - [x] Duplicate-admin-submission/idempotent refund replay test.
 - [x] Concurrent-refund loser-path test.
-- [ ] Verify refund-after-completion.
-- [ ] Verify refund-and-cancel.
-- [ ] Verify cumulative partial refunds in real D1.
-- [ ] Verify reporting net revenue after refund.
-- [ ] Staging E2E refund scenario.
+- [x] Verify refund-after-completion in real staging D1/API.
+- [x] Verify refund-and-cancel in a separate synthetic staging order.
+- [x] Verify partial → idempotent replay → cumulative full refund in real staging D1.
+- [x] Verify staging reports include the E2E gross/refund totals and net effect.
+- [x] Staging E2E refund scenario passed in run `36142333770`.
 - [ ] Production controlled refund record scenario.
 
-Status: MATERIAL IMPLEMENTATION PRESENT; CONCURRENCY/E2E HARDENING REMAINS.
+Status: STAGING E2E VERIFIED; ONLY CONTROLLED PRODUCTION REFUND VERIFICATION REMAINS FOR RELEASE.
 
 ---
 
@@ -247,9 +247,9 @@ Status: MATERIAL IMPLEMENTATION PRESENT; CONCURRENCY/E2E HARDENING REMAINS.
 
 ## Remaining
 
-- [ ] Confirm V2 reports route actually uses V2 report provider everywhere intended.
+- [x] Confirm `/admin/api/reports` uses the V2 report provider and returns a V2 summary on real staging data.
 - [ ] Compare every planned metric in `ADMIN-V2-SPEC.md` with actual response shape.
-- [ ] Verify quote→payment and payment→ready timing semantics with real event histories.
+- [x] Verify review→payment→ready/completed event histories are consumed successfully by staging reports.
 - [ ] Verify uncollected ageing thresholds/labels.
 - [ ] Verify revised conversion funnel.
 - [ ] Verify CSV exports; implement only if absent.
@@ -281,9 +281,9 @@ Status: SUBSTANTIALLY IMPLEMENTED; CONTRACT/UI VALIDATION REMAINS.
 - [ ] Add explicit cross-order token isolation test.
 - [x] Idempotent double-accept behaviour test.
 - [x] Accept/decline concurrency conflict coverage.
-- [ ] Verify current-revision-only enforcement under superseded revisions.
-- [ ] Verify decline flow end to end.
-- [ ] Verify payment target always matches accepted revision.
+- [ ] Verify current-revision-only enforcement under an explicitly superseded revision in staging.
+- [ ] Verify customer decline flow end to end in staging.
+- [x] Verify customer accept returns the exact payment URL attached to the active reviewed order.
 - [ ] iPhone Safari QA.
 - [ ] Desktop QA.
 
@@ -414,43 +414,60 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 
 # PHASE 10 — STAGING END-TO-END V2
 
-- [x] Adjustment data layer is now exposed through authenticated Admin API routes.
-- [x] Draft-review UI now supports add/remove Discount, Surcharge and Manual Correction lines.
-- [x] Adjustment route tests, Commerce CI, Search Readiness and Pages passed before staging redeploy.
-- [x] Staging redeployed with adjustment API/UI; Worker Version ID `4ae90556-d5f3-42f9-93d2-d4243d9743d8`.
+## Verified staging baseline
 
+- [x] Adjustment data layer is exposed through authenticated Admin API routes.
+- [x] Draft-review UI supports add/remove Discount, Surcharge and Manual Correction lines.
+- [x] Customer review now exposes explicit adjustment labels/amounts instead of an unexplained total difference.
+- [x] Commerce CI, Search Readiness and Pages passed after the adjustment/customer-review fixes.
+- [x] Staging D1 remains current through `0008_concurrency_guards.sql`.
+- [x] Current staging Worker Version ID: `0f5fb208-e4a8-49b7-9721-23bab226ba1b`.
+- [x] Isolated staging E2E workflow: `.github/workflows/commerce-staging-v2-e2e.yml`.
+- [x] E2E script: `commerce/scripts/staging-v2-e2e.mjs`.
+- [x] E2E run `36142333770`, job `108094936767`: **SUCCESS**.
+- [x] Synthetic test data was automatically cleaned after the successful run.
+- [x] Production was not touched.
 
+## E2E scenario
 
-Run one complete scenario:
+- [~] Public order submission was not exercised because the automated scenario intentionally seeded an isolated staging-only order. Actual checkout submission remains Phase 11/Turnstile QA.
+- [x] Start review.
+- [x] Reduce quantity.
+- [x] Mark product unavailable.
+- [x] Substitute product.
+- [x] Restore original line.
+- [x] Add extra catalogue item.
+- [x] Remove shop-added item.
+- [x] Apply Discount.
+- [x] Apply Surcharge.
+- [x] Apply Manual Correction and remove it again.
+- [x] Change fulfilment collection → delivery → collection.
+- [x] Finalize/send reviewed revision.
+- [x] Payment-request flow reached `AWAITING_PAYMENT / PAYMENT_REQUESTED`.
+- [x] Customer review page opened successfully with explicit adjustment lines and exact final total.
+- [x] Customer question route succeeded and appeared in admin message history.
+- [x] Customer accepted the current revision.
+- [x] Second accept behaved idempotently.
+- [x] Accepted review returned the exact configured secure payment URL.
+- [x] Mark paid.
+- [x] Start preparing.
+- [x] Ready for collection.
+- [x] Complete order.
+- [x] Partial refund against real staging D1.
+- [x] Same refund idempotency replay.
+- [x] Cumulative full refund after completion while preserving `COMPLETED`.
+- [x] Separate full refund-and-cancel scenario → `CANCELLED / REFUNDED`.
+- [x] Audit events verified for revision, adjustments, acceptance, payment, fulfilment and refunds.
+- [x] Reports verified to include E2E gross/refund figures.
+- [~] Payment/ready/refund/question notification calls returned successfully through the live staging Worker. Actual inbox receipt is not independently verified by this workflow.
+- [!] Signed Resend delivery-webhook E2E is blocked because staging health still reports `notifications.webhookConfigured=false`.
+- [ ] Customer decline flow E2E.
+- [ ] Superseded/current-revision-only review-token E2E.
+- [ ] Explicit cross-order token-isolation test.
+- [ ] iPhone Safari UI QA.
+- [ ] Desktop browser UI QA.
 
-- [ ] Submit order.
-- [ ] Start review.
-- [ ] Reduce quantity.
-- [ ] Mark product unavailable.
-- [ ] Substitute product.
-- [ ] Restore original line.
-- [ ] Add extra item.
-- [ ] Remove added item.
-- [ ] Apply discount.
-- [ ] Apply surcharge/manual correction.
-- [ ] Change fulfilment method if supported.
-- [ ] Send revised order to customer.
-- [ ] Customer opens review page.
-- [ ] Customer asks a question.
-- [ ] Customer accepts current revision.
-- [ ] Payment request flow.
-- [ ] Mark paid.
-- [ ] Preparing.
-- [ ] Ready/shipped.
-- [ ] Partial refund.
-- [ ] Full/refund-and-cancel scenario where appropriate.
-- [ ] Verify customer/owner emails.
-- [ ] Verify Resend delivery webhook events.
-- [ ] Verify reports/net figures.
-- [ ] iPhone Safari.
-- [ ] Desktop.
-
-Status: **ACTIVE — staging Worker/D1 are current. Resend signed-webhook E2E is blocked by missing staging `RESEND_WEBHOOK_SECRET`; other E2E scenarios can proceed.**
+Status: **CORE ADMIN V2 STAGING E2E PASSED. Remaining gates are review-token edge cases, provider webhook configuration/telemetry, and browser/device QA.**
 
 ---
 
@@ -525,24 +542,22 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**Phase 10 — run staging E2E against the deployed Admin V2 Worker.**
+**Phase 10 edge-case closeout before production release.**
 
-Verified staging baseline:
-- source/redeploy commit: `bfd8e008b728b1d59d21e1725a3ace68d79a231b`
-- Worker Version ID: `4ae90556-d5f3-42f9-93d2-d4243d9743d8`
-- deployment ID: `287523a7-ea4d-4e4e-b666-5358b7dc7338`
-- D1 migrations: current through `0008_concurrency_guards.sql`
-- health: PASS
-- staging URL: `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev`
-- known blocker: `notifications.webhookConfigured=false`
+Core staging E2E is now green:
+- E2E run: `36142333770`
+- job: `108094936767`
+- staging Worker: `0f5fb208-e4a8-49b7-9721-23bab226ba1b`
+- staging D1: current through `0008`
+- production Worker remains `938f0651-20b5-48df-a8d4-f84defbb263d`
+- production D1 remains through `0002`
 
-Proceed in this order:
-1. audit staging-access/auth requirements and existing E2E helpers,
-2. run non-email Admin V2 staging scenarios that can be automated safely,
-3. confirm revision/add/substitute/remove/restore/adjustment/customer-review/refund/report flows against real staging D1,
-4. verify idempotency/concurrency-sensitive behavior where practical,
-5. configure or otherwise resolve staging `RESEND_WEBHOOK_SECRET` before signed webhook E2E,
-6. run email/delivery telemetry checks,
-7. update this checklist after each verified group.
+Next work, in order:
+1. add and run a staging customer-review edge-case scenario covering decline and superseded/current-revision-only tokens,
+2. add explicit cross-order token-isolation coverage,
+3. resolve staging `RESEND_WEBHOOK_SECRET` from the actual Resend webhook configuration; do not invent a signing secret,
+4. run one real signed Resend webhook through staging and confirm delivery state + idempotent duplicate handling in real D1,
+5. complete iPhone Safari and desktop browser QA,
+6. update this checklist after each gate.
 
-**Production remains frozen at Worker Version ID `938f0651-20b5-48df-a8d4-f84defbb263d` and D1 through `0002` until Phase 10 passes.**
+**Do not migrate or deploy production until these Phase 10 release gates are explicitly closed.**
