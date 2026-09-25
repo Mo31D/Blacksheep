@@ -9,6 +9,13 @@ import {
 } from "../data/admin-orders";
 import { validateAdminOrderAction } from "../domain/admin-order";
 import {
+  createDraftRevisionFromOriginal,
+  getOrderRevisionDetail,
+  listOrderRevisions,
+  transitionOrderRevision,
+  updateDraftRevision,
+} from "../data/order-revisions";
+import {
   adminSessionCookie,
   clearAdminSessionCookie,
   requestAdminLoginCode,
@@ -27,10 +34,20 @@ export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
 
 interface AdminDependencies {
   verifyAccessFn: typeof verifyAdminAccess;
+  listOrderRevisionsFn: typeof listOrderRevisions;
+  createDraftRevisionFromOriginalFn: typeof createDraftRevisionFromOriginal;
+  getOrderRevisionDetailFn: typeof getOrderRevisionDetail;
+  updateDraftRevisionFn: typeof updateDraftRevision;
+  transitionOrderRevisionFn: typeof transitionOrderRevision;
 }
 
 const defaults: AdminDependencies = {
   verifyAccessFn: verifyAdminAccess,
+  listOrderRevisionsFn: listOrderRevisions,
+  createDraftRevisionFromOriginalFn: createDraftRevisionFromOriginal,
+  getOrderRevisionDetailFn: getOrderRevisionDetail,
+  updateDraftRevisionFn: updateDraftRevision,
+  transitionOrderRevisionFn: transitionOrderRevision,
 };
 
 function json(body: unknown, status = 200): Response {
@@ -85,7 +102,7 @@ export async function handleAdminRequest(
   const url = new URL(request.url);
 
   if (
-    request.method === "POST" &&
+    ["POST", "PATCH", "PUT", "DELETE"].includes(request.method) &&
     url.pathname.startsWith("/admin/") &&
     !adminOriginAllowed(request, url)
   ) {
@@ -180,6 +197,130 @@ export async function handleAdminRequest(
     const days = Number(url.searchParams.get("days") ?? "30");
     const reports = await getAdminReports(env.DB, Number.isFinite(days) ? days : 30);
     return json(reports);
+  }
+
+  const revisionsMatch = url.pathname.match(
+    /^\/admin\/api\/orders\/([^/]+)\/revisions$/,
+  );
+  if (revisionsMatch && request.method === "GET") {
+    const reference = decodeURIComponent(revisionsMatch[1]);
+    const revisions = await deps.listOrderRevisionsFn(env.DB, reference);
+    return json({ revisions });
+  }
+
+  if (revisionsMatch && request.method === "POST") {
+    const reference = decodeURIComponent(revisionsMatch[1]);
+    try {
+      const revision = await deps.createDraftRevisionFromOriginalFn(
+        env.DB,
+        reference,
+        identity.email,
+      );
+      return json({ revision }, 201);
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "revision_create_failed";
+      if (code === "revision_order_not_found") {
+        return error(code, 404, "Order not found.");
+      }
+      if (code === "revision_draft_already_exists") {
+        return error(code, 409, "A draft revision already exists for this order.");
+      }
+      return error(code, 400, "Unable to create order revision.");
+    }
+  }
+
+  const revisionDetailMatch = url.pathname.match(
+    /^\/admin\/api\/orders\/([^/]+)\/revisions\/([^/]+)$/,
+  );
+  if (revisionDetailMatch && request.method === "GET") {
+    const reference = decodeURIComponent(revisionDetailMatch[1]);
+    const revisionId = decodeURIComponent(revisionDetailMatch[2]);
+    const revision = await deps.getOrderRevisionDetailFn(env.DB, reference, revisionId);
+    return revision
+      ? json({ revision })
+      : error("revision_not_found", 404, "Revision not found.");
+  }
+
+  if (revisionDetailMatch && request.method === "PATCH") {
+    const reference = decodeURIComponent(revisionDetailMatch[1]);
+    const revisionId = decodeURIComponent(revisionDetailMatch[2]);
+    let raw: unknown;
+    try {
+      raw = await readJson(request);
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "admin_invalid_request";
+      return error(code, code === "admin_payload_too_large" ? 413 : 400, "Invalid revision update.");
+    }
+
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return error("revision_invalid_update", 400, "Invalid revision update.");
+    }
+
+    try {
+      const revision = await deps.updateDraftRevisionFn(
+        env.DB,
+        reference,
+        revisionId,
+        raw as Parameters<typeof updateDraftRevision>[3],
+        identity.email,
+      );
+      return json({ revision });
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "revision_update_failed";
+      const status =
+        code === "revision_not_found"
+          ? 404
+          : code === "revision_version_conflict" || code === "revision_not_draft"
+            ? 409
+            : 400;
+      return error(code, status, status === 409 ? "Revision changed. Reload before editing again." : "Unable to update revision.");
+    }
+  }
+
+  const revisionActionMatch = url.pathname.match(
+    /^\/admin\/api\/orders\/([^/]+)\/revisions\/([^/]+)\/(send|accept|decline)$/,
+  );
+  if (revisionActionMatch && request.method === "POST") {
+    const reference = decodeURIComponent(revisionActionMatch[1]);
+    const revisionId = decodeURIComponent(revisionActionMatch[2]);
+    const action = revisionActionMatch[3] as "send" | "accept" | "decline";
+
+    let raw: unknown;
+    try {
+      raw = await readJson(request);
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "admin_invalid_request";
+      return error(code, code === "admin_payload_too_large" ? 413 : 400, "Invalid revision action.");
+    }
+
+    const expectedVersion =
+      raw && typeof raw === "object" && !Array.isArray(raw)
+        ? Number((raw as Record<string, unknown>).expectedVersion)
+        : NaN;
+
+    try {
+      const revision = await deps.transitionOrderRevisionFn(
+        env.DB,
+        reference,
+        revisionId,
+        action,
+        expectedVersion,
+        identity.email,
+      );
+      return json({ revision });
+    } catch (cause) {
+      const code = cause instanceof Error ? cause.message : "revision_action_failed";
+      const status =
+        code === "revision_not_found"
+          ? 404
+          : code === "revision_version_conflict" ||
+              code.startsWith("revision_send_requires") ||
+              code.startsWith("revision_accept_requires") ||
+              code.startsWith("revision_decline_requires")
+            ? 409
+            : 400;
+      return error(code, status, status === 409 ? "Revision action is no longer valid. Reload and try again." : "Unable to update revision.");
+    }
   }
 
   const match = url.pathname.match(/^\/admin\/api\/orders\/([^/]+)$/);
