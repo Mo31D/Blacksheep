@@ -131,7 +131,7 @@ Evidence:
 
 # PHASE 3 — PRODUCT MEDIA
 
-- [!] Provision media storage — **external blocker:** Cloudflare account has not enabled R2; API error 10042: `Please enable R2 through the Cloudflare Dashboard.`
+- [~] Provision media storage — R2 is enabled; creating isolated staging bucket `black-sheep-product-media-staging`.
 - [x] Staging-only R2 binding declared as `PRODUCT_MEDIA` / `black-sheep-product-media-staging`.
 - [x] Secure authenticated multipart upload route implemented.
 - [x] 8 MB upload limit.
@@ -268,13 +268,9 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## External action required once
+## R2 enabled — staging release in progress
 
-Enable **R2 Object Storage** in the Cloudflare account.
-
-The Cloudflare API currently returns:
-
-`10042 — Please enable R2 through the Cloudflare Dashboard.`
+Cloudflare R2 is now enabled. Creating and validating the isolated staging media bucket.
 
 Do **not** create a bucket manually unless desired. Once R2 is enabled, the next automated steps are:
 
