@@ -28,6 +28,9 @@ describe("commerce worker", () => {
       status: "ok",
       environment: "test",
       database: "bound",
+      features: {
+        orderReservations: false,
+      },
       notifications: {
         provider: "unconfigured",
         fromConfigured: false,
@@ -36,6 +39,18 @@ describe("commerce worker", () => {
         keyFormatValid: false,
         keyWhitespaceNormalized: false,
       },
+    });
+  });
+
+  it("reports reservation mode enabled only when the explicit flag is true", async () => {
+    const response = await worker.fetch(
+      new Request("https://api.example.test/health"),
+      { ...env, ORDER_RESERVATIONS_ENABLED: "true" },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      features: { orderReservations: true },
     });
   });
 
