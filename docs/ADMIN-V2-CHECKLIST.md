@@ -179,13 +179,13 @@ Status: MATERIAL IMPLEMENTATION PRESENT; UX/E2E VERIFICATION REMAINS.
 
 - [ ] Build a definitive lifecycle-email matrix from current code.
 - [ ] Verify availability/revision email.
-- [~] Revised payment-request notification path returned success in staging E2E; no separate inbox screenshot was captured for this message type, and provider delivery telemetry still requires webhook verification.
+- [x] Revised payment-request emails are confirmed `delivered` by Resend for both staging E2E orders (`E2E-36142333770` and `E2E-36142342245`).
 - [ ] Verify payment reminder behaviour if supported; implement only if genuinely absent.
 - [ ] Verify preparing email.
-- [x] Ready-for-collection notification was received and visually verified on iPhone during staging E2E; provider delivery telemetry still remains separate.
+- [x] Ready-for-collection notifications were received, visually verified on iPhone, and confirmed `delivered` by Resend for both staging E2E orders.
 - [ ] Verify shipped email.
 - [ ] Verify cancellation email.
-- [x] Partial-refund and refund-and-cancellation notifications were received and visually verified on iPhone during staging E2E; provider delivery telemetry still remains separate.
+- [x] Partial-refund, full-refund and refund-and-cancellation notifications were received/visually verified where captured and confirmed `delivered` by Resend.
 - [ ] Confirm all HTML emails have a usable plain-text equivalent.
 - [ ] Confirm responsive rendering on major mobile clients.
 - [ ] Confirm `Reply-To` uses the intended shop inbox.
@@ -312,12 +312,12 @@ Status: CORE SECURITY/RACE/DECLINE/SUPERSEDED-TOKEN STAGING E2E VERIFIED; TOKEN 
 ## Remaining
 
 - [x] Duplicate webhook automated tests, including concurrent claim loser.
-- [ ] Verify signed real Resend webhook in staging.
-- [ ] Confirm staging webhook secret.
+- [!] Staging Resend webhook has now been created for sent/delivered/delayed/complained/bounced/failed/suppressed events, but remains disabled until its real signing secret is stored in the staging Worker.
+- [!] Real staging webhook signing secret exists in Resend but is not yet stored as Cloudflare Worker secret `RESEND_WEBHOOK_SECRET`; no safe Cloudflare-secret write channel is available from the current connectors.
 - [ ] Confirm production webhook secret.
-- [ ] Confirm SPF.
-- [ ] Confirm DKIM.
-- [ ] Confirm DMARC.
+- [x] SPF verified in Resend domain configuration (`rsend` and `send` CNAME records both verified).
+- [x] DKIM verified in Resend domain configuration (`resend._domainkey`).
+- [ ] Confirm DMARC independently; Resend domain detail does not report a DMARC record.
 - [ ] Verify admin warning/attention queue renders delayed/bounced/complained/failed messages usefully.
 - [ ] Verify repeated provider delivery is idempotent in real D1.
 
@@ -426,6 +426,7 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] E2E script: `commerce/scripts/staging-v2-e2e.mjs`.
 - [x] E2E run `36142333770`, job `108094936767`: **SUCCESS**.
 - [x] Additional core E2E run `36142342245`: **SUCCESS**; its synthetic order references match the user-verified inbox screenshots.
+- [x] Resend provider records confirm both core E2E order sets as delivered for payment request, payment received, ready for collection, partial refund, final refund/refund-and-cancel, plus owner customer-question notifications.
 - [x] Edge-case E2E run `36143031389`, job `108097224317`: **SUCCESS** (decline, token revocation, superseded-token rejection, current-token enforcement, cross-order isolation).
 - [x] Synthetic edge-case data was automatically cleaned after the successful run.
 - [x] Synthetic test data was automatically cleaned after the successful run.
@@ -463,7 +464,7 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 - [x] Audit events verified for revision, adjustments, acceptance, payment, fulfilment and refunds.
 - [x] Reports verified to include E2E gross/refund figures.
 - [x] Payment-confirmed, ready-for-collection, partial-refund and refund-and-cancellation emails were received in the real inbox and rendered cleanly on iPhone; user-provided screenshots correspond to successful staging E2E orders including `E2E-36142333770` and `E2E-36142342245`.
-- [!] Signed Resend delivery-webhook E2E is blocked because staging health still reports `notifications.webhookConfigured=false`.
+- [!] Resend staging webhook now exists with the required delivery events but is intentionally disabled until the real signing secret is stored in Cloudflare staging; staging health therefore still reports `notifications.webhookConfigured=false`.
 - [x] Customer decline flow E2E: revision → `DECLINED`, order → `UNDER_REVIEW`, payment request cleared, token revoked.
 - [x] Superseded/current-revision-only review-token E2E: old token → 404, current token → 200.
 - [x] Cross-order reference/content isolation verified with separate synthetic orders.
@@ -558,21 +559,28 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**Phase 10 external/runtime closeout.**
+**Phase 10 external/runtime closeout — webhook secret + browser/public-checkout QA.**
 
-Automated staging gates now green:
-- core E2E run `36142333770` / job `108094936767`
-- review-edge E2E run `36143031389` / job `108097224317`
-- staging Worker `0f5fb208-e4a8-49b7-9721-23bab226ba1b`
-- staging D1 current through `0008`
-- decline/superseded/current-token/cross-order checks: PASS
-- production remains untouched at Worker `938f0651-20b5-48df-a8d4-f84defbb263d`, D1 through `0002`
+Verified now:
+- core E2E runs `36142333770` and `36142342245`: PASS
+- review-edge E2E run `36143031389`: PASS
+- Resend delivery records for the core E2E emails: `delivered`
+- Resend sending domain: verified
+- SPF: verified
+- DKIM: verified
+- staging webhook: created with sent/delivered/delayed/complained/bounced/failed/suppressed events
+- webhook status: intentionally disabled until signing secret is stored in the Worker
+- staging Worker: `0f5fb208-e4a8-49b7-9721-23bab226ba1b`
+- staging D1: current through `0008`
+- production remains frozen at Worker `938f0651-20b5-48df-a8d4-f84defbb263d`, D1 through `0002`
 
 Next work, in order:
-1. obtain the **real** staging Resend webhook signing secret from the configured Resend webhook and set it as staging `RESEND_WEBHOOK_SECRET`; do not invent or derive a fake secret,
-2. run one real signed Resend webhook through staging and verify delivery-state persistence + duplicate idempotency in real D1,
-3. complete browser QA: desktop Admin workspace and iPhone Safari Admin/mobile layout; email rendering on iPhone is already verified, but Admin UI Safari QA remains open,
-4. close Phase 11 **runtime** checkout/Turnstile items only: real delivery submission, real duplicate/idempotent replay, failed-submit basket persistence and repeat desktop checkout; the underlying code/unit tests are already present,
-5. only after those gates pass, prepare the guarded production migration/deploy plan.
+1. store the existing Resend staging webhook signing secret as Cloudflare staging Worker secret `RESEND_WEBHOOK_SECRET` using a secure Cloudflare secret-management channel; never commit it or pass it as a non-secret workflow input,
+2. redeploy/reload staging, verify `/health.notifications.webhookConfigured=true`,
+3. enable the existing Resend staging webhook and replay/send one real event; verify delivery-state persistence plus duplicate idempotency in real staging D1,
+4. verify DMARC independently,
+5. complete Admin UI desktop + iPhone Safari QA,
+6. close Phase 11 public checkout/Turnstile scenarios,
+7. only then prepare guarded production migration/deployment.
 
 **Do not migrate or deploy production yet.**
