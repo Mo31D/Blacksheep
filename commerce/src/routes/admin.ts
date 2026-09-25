@@ -717,7 +717,11 @@ export async function handleAdminRequest(
         identity.email,
       );
 
-      const newest = summary.refunds[0];
+      const newest = summary.idempotentReplay
+        ? null
+        : summary.refunds.find(
+            (refund) => refund.id === summary.recordedRefundId,
+          ) ?? summary.refunds[0];
       const snapshot = await getPaymentNotificationSnapshot(env.DB, reference);
       if (snapshot && newest) {
         await notifyRefundRecorded(env, snapshot, {
@@ -744,7 +748,8 @@ export async function handleAdminRequest(
           ? 404
           : code === "refund_exceeds_remaining_amount" ||
               code === "refund_requires_paid_order" ||
-              code === "refund_completed_order_cannot_cancel"
+              code === "refund_completed_order_cannot_cancel" ||
+              code === "refund_version_conflict"
             ? 409
             : 400;
       const message =
@@ -754,7 +759,9 @@ export async function handleAdminRequest(
             ? "A refund can only be recorded for a paid order."
             : code === "refund_completed_order_cannot_cancel"
               ? "A completed order can be refunded but its completed history is preserved."
-              : "Unable to record refund.";
+              : code === "refund_version_conflict"
+                ? "This order changed while the refund was being recorded. Reload the order and try again."
+                : "Unable to record refund.";
       return error(code, status, message);
     }
   }
