@@ -3,7 +3,13 @@ import type {
   D1DatabaseLike,
   D1PreparedStatementLike,
 } from "../src/data/d1";
-import { addDraftRevisionAdjustment } from "../src/data/order-revisions";
+import {
+  addCatalogItemToDraftRevision,
+  addDraftRevisionAdjustment,
+  removeAddedRevisionLine,
+  restoreOriginalRevisionLine,
+  updateDraftRevision,
+} from "../src/data/order-revisions";
 import { recordManualRefund } from "../src/data/refunds";
 import {
   acceptCustomerReview,
@@ -87,6 +93,59 @@ class LosingRevisionDb extends LosingBatchDb {
         orderStatus: "UNDER_REVIEW",
       });
     }
+
+    if (query.includes("FROM order_revision_items")) {
+      return new Statement(query, null, [
+        {
+          id: 1,
+          lineNumber: 1,
+          sourceOrderItemId: 11,
+          catalogProductId: "original-product",
+          sku: "ORIG-1",
+          slug: "original-product",
+          productName: "Original product",
+          unitPriceMinor: 700,
+          requestedQuantity: 1,
+          confirmedQuantity: 1,
+          availabilityStatus: "CONFIRMED",
+          reasonCode: null,
+          customerNote: null,
+          internalNote: null,
+          lineTotalMinor: 700,
+        },
+        {
+          id: 2,
+          lineNumber: 2,
+          sourceOrderItemId: null,
+          catalogProductId: "owner-added-product",
+          sku: "ADD-1",
+          slug: "owner-added-product",
+          productName: "Owner added product",
+          unitPriceMinor: 300,
+          requestedQuantity: 0,
+          confirmedQuantity: 1,
+          availabilityStatus: "ADDED",
+          reasonCode: "OWNER_ADDED",
+          customerNote: null,
+          internalNote: null,
+          lineTotalMinor: 300,
+        },
+      ]);
+    }
+
+    if (query.includes("FROM order_items")) {
+      return new Statement(query, {
+        id: 11,
+        lineNumber: 1,
+        catalogProductId: "original-product",
+        sku: "ORIG-1",
+        slug: "original-product",
+        productName: "Original product",
+        unitPriceMinor: 700,
+        quantity: 1,
+      });
+    }
+
     return new Statement(query);
   }
 }
@@ -157,6 +216,104 @@ class LosingWebhookDb extends LosingBatchDb {
 }
 
 describe("Admin V2 concurrency guards", () => {
+
+  it("rejects a stale same-version draft update and token-guards item/event writes", async () => {
+    const db = new LosingRevisionDb();
+
+    await expect(
+      updateDraftRevision(
+        db,
+        "BSR-CONCURRENCY",
+        "rev-1",
+        {
+          expectedVersion: 1,
+          items: [
+            {
+              lineNumber: 1,
+              confirmedQuantity: 0,
+              availabilityStatus: "UNAVAILABLE",
+              reasonCode: "NO_STOCK",
+            },
+          ],
+        },
+        "owner@example.com",
+      ),
+    ).rejects.toThrow("revision_version_conflict");
+
+    const batch = db.batches[0];
+    expect(batch.length).toBeGreaterThan(2);
+    expect(batch[0].sql).toContain("mutation_token = ?");
+    for (const statement of batch.slice(1)) {
+      expect(statement.sql).toContain("mutation_token = ?");
+    }
+  });
+
+  it("guards an add-item race behind the winning mutation token", async () => {
+    const db = new LosingRevisionDb();
+
+    await expect(
+      addCatalogItemToDraftRevision(
+        db,
+        "BSR-CONCURRENCY",
+        "rev-1",
+        {
+          expectedVersion: 1,
+          catalogProductId: "HC-003",
+          quantity: 1,
+        },
+        "owner@example.com",
+      ),
+    ).rejects.toThrow("revision_version_conflict");
+
+    const batch = db.batches[0];
+    expect(batch).toHaveLength(3);
+    expect(batch[0].sql).toContain("mutation_token = ?");
+    expect(batch[1].sql).toContain("mutation_token = ?");
+    expect(batch[2].sql).toContain("mutation_token = ?");
+  });
+
+  it("guards a remove-added-item race behind the winning mutation token", async () => {
+    const db = new LosingRevisionDb();
+
+    await expect(
+      removeAddedRevisionLine(
+        db,
+        "BSR-CONCURRENCY",
+        "rev-1",
+        2,
+        1,
+        "owner@example.com",
+      ),
+    ).rejects.toThrow("revision_version_conflict");
+
+    const batch = db.batches[0];
+    expect(batch).toHaveLength(3);
+    expect(batch[0].sql).toContain("mutation_token = ?");
+    expect(batch[1].sql).toContain("mutation_token = ?");
+    expect(batch[2].sql).toContain("mutation_token = ?");
+  });
+
+  it("guards a restore-original race behind the winning mutation token", async () => {
+    const db = new LosingRevisionDb();
+
+    await expect(
+      restoreOriginalRevisionLine(
+        db,
+        "BSR-CONCURRENCY",
+        "rev-1",
+        1,
+        1,
+        "owner@example.com",
+      ),
+    ).rejects.toThrow("revision_version_conflict");
+
+    const batch = db.batches[0];
+    expect(batch).toHaveLength(3);
+    expect(batch[0].sql).toContain("mutation_token = ?");
+    expect(batch[1].sql).toContain("mutation_token = ?");
+    expect(batch[2].sql).toContain("mutation_token = ?");
+  });
+
   it("rejects a stale reviewed-order adjustment and token-guards every side effect", async () => {
     const db = new LosingRevisionDb();
 
