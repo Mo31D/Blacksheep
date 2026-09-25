@@ -149,7 +149,7 @@ Evidence:
 - [x] Remove image non-destructively from the Draft.
 - [x] Preserve published-version media when Draft removes an image.
 - [x] Avoid deleting shared R2 objects still referenced by another media row.
-- [~] Replace image — safe workflow currently available as upload-new + remove-old; dedicated one-click replace remains pending.
+- [~] Replace image — implementing dedicated one-click replacement with D1-safe swap and R2 cleanup.
 - [x] Product Media audit events.
 - [x] Phase 3 Admin UI + upload-validation tests.
 - [x] Immutable media-delivery route tests.
@@ -286,7 +286,7 @@ Do **not** create a bucket manually unless desired. Once R2 is enabled, the next
 6. Upload one controlled image from iPhone.
 7. Verify gallery / Primary / reorder / alt text / remove.
 8. Verify Legacy + R2 image coexistence.
-9. Finish the dedicated one-click Replace control if still useful after the live workflow review.
+9. Dedicated one-click Replace is being completed in source now; live iPhone verification still waits for R2.
 
 Production remains locked:
 - Product Core migration `0009` is not applied to Production.
