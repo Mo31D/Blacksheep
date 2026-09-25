@@ -1,4 +1,8 @@
-import type { D1DatabaseLike, D1PreparedStatementLike } from "./d1";
+import {
+  d1StatementChanged,
+  type D1DatabaseLike,
+  type D1PreparedStatementLike,
+} from "./d1";
 
 export type EmailDeliveryStatus =
   | "SENT"
@@ -60,6 +64,7 @@ export async function applyResendDeliveryEvent(
   }
 
   const status = mapStatus(event.eventType);
+  const claimToken = crypto.randomUUID();
   const message = status
     ? await db
         .prepare(
@@ -78,8 +83,8 @@ export async function applyResendDeliveryEvent(
       .prepare(
         `INSERT OR IGNORE INTO email_webhook_events (
           webhook_event_id, provider, event_type,
-          provider_message_id, received_at, provider_created_at
-        ) VALUES (?, 'resend', ?, ?, ?, ?)`,
+          provider_message_id, received_at, provider_created_at, claim_token
+        ) VALUES (?, 'resend', ?, ?, ?, ?, ?)`,
       )
       .bind(
         event.webhookEventId,
@@ -87,6 +92,7 @@ export async function applyResendDeliveryEvent(
         event.providerMessageId,
         event.receivedAt,
         event.providerCreatedAt ?? null,
+        claimToken,
       ),
   ];
 
@@ -98,7 +104,11 @@ export async function applyResendDeliveryEvent(
           SET delivery_status = ?,
               delivered_at = CASE WHEN ? = 'DELIVERED' THEN COALESCE(delivered_at, ?) ELSE delivered_at END,
               updated_at = ?
-          WHERE id = ?`,
+          WHERE id = ?
+            AND EXISTS (
+              SELECT 1 FROM email_webhook_events
+              WHERE webhook_event_id = ? AND claim_token = ?
+            )`,
         )
         .bind(
           status,
@@ -106,6 +116,8 @@ export async function applyResendDeliveryEvent(
           event.receivedAt,
           event.receivedAt,
           message.id,
+          event.webhookEventId,
+          claimToken,
         ),
     );
 
@@ -115,7 +127,12 @@ export async function applyResendDeliveryEvent(
           `INSERT INTO order_events (
             order_id, event_type, from_status, to_status,
             actor_type, actor_id, note, metadata_json, created_at
-          ) VALUES (?, ?, NULL, NULL, 'system', NULL, NULL, ?, ?)`,
+          )
+          SELECT ?, ?, NULL, NULL, 'system', NULL, NULL, ?, ?
+          WHERE EXISTS (
+            SELECT 1 FROM email_webhook_events
+            WHERE webhook_event_id = ? AND claim_token = ?
+          )`,
         )
         .bind(
           message.orderId,
@@ -128,10 +145,15 @@ export async function applyResendDeliveryEvent(
             messageId: message.id,
           }),
           event.receivedAt,
+          event.webhookEventId,
+          claimToken,
         ),
     );
   }
 
-  await db.batch(statements);
+  const results = await db.batch(statements);
+  if (d1StatementChanged(results[0]) === false) {
+    return { duplicate: true, tracked: false, status };
+  }
   return { duplicate: false, tracked: Boolean(message), status };
 }
