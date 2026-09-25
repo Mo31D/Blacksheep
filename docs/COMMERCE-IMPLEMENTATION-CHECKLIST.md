@@ -283,6 +283,17 @@ Status: IN PROGRESS; production API/admin verified and public checkout enabled. 
 - [ ] Verify redesigned admin on both phone and desktop after that Worker deployment.
 - [ ] Update handoff with final production SHA/resources.
 
+## Admin V2 operations programme
+
+A separate resumable implementation programme now tracks the professional owner-operations rebuild:
+
+- `docs/ADMIN-V2-IMPLEMENTATION-PLAN.md` — prioritised delivery plan.
+- `docs/ADMIN-V2-SPEC.md` — technical/domain/UX specification.
+- `docs/ADMIN-V2-CHECKLIST.md` — authoritative execution progress.
+- Migration `0003_order_revisions.sql` adds the backwards-compatible revision foundation while preserving the original customer order snapshots.
+- Revision foundation and authenticated revision API are code-complete and Commerce CI passed on 25 September 2026.
+- These new revision capabilities are not considered live until the next guarded staging migration/deploy and mobile/desktop verification.
+
 ## Phase 15 — Future full ecommerce
 
 Status: FUTURE PROGRAM; not part of Commerce V1 production cutover.
