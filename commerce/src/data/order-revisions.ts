@@ -948,6 +948,7 @@ export async function addCatalogItemToDraftRevision(
 
   const now = new Date().toISOString();
   const nextVersion = revision.version + 1;
+  const mutationToken = crypto.randomUUID();
   const customerNote = optionalText(
     input.customerNote,
     500,
@@ -959,15 +960,16 @@ export async function addCatalogItemToDraftRevision(
     "revision_invalid_internal_note",
   );
 
-  await db.batch([
+  const results = await db.batch([
     db
       .prepare(
         `UPDATE order_revisions
-        SET version = ?, items_subtotal_minor = ?, final_total_minor = ?
+        SET version = ?, mutation_token = ?, items_subtotal_minor = ?, final_total_minor = ?
         WHERE id = ? AND version = ? AND state = 'DRAFT'`,
       )
       .bind(
         nextVersion,
+        mutationToken,
         totals.itemsSubtotalMinor,
         totals.finalTotalMinor,
         revisionId,
@@ -985,7 +987,7 @@ export async function addCatalogItemToDraftRevision(
         SELECT ?, ?, NULL, ?, ?, ?, ?, ?, 0, ?, 'ADDED', 'OWNER_ADDED', ?, ?, ?, ?, ?
         WHERE EXISTS (
           SELECT 1 FROM order_revisions
-          WHERE id = ? AND version = ? AND state = 'DRAFT'
+          WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DRAFT'
         )`,
       )
       .bind(
@@ -1004,6 +1006,7 @@ export async function addCatalogItemToDraftRevision(
         now,
         revisionId,
         nextVersion,
+        mutationToken,
       ),
     db
       .prepare(
@@ -1014,7 +1017,7 @@ export async function addCatalogItemToDraftRevision(
         SELECT ?, 'ORDER_REVISION_ITEM_ADDED', NULL, NULL, 'admin', ?, NULL, ?, ?
         WHERE EXISTS (
           SELECT 1 FROM order_revisions
-          WHERE id = ? AND version = ?
+          WHERE id = ? AND version = ? AND mutation_token = ?
         )`,
       )
       .bind(
@@ -1031,15 +1034,11 @@ export async function addCatalogItemToDraftRevision(
         now,
         revisionId,
         nextVersion,
+        mutationToken,
       ),
   ]);
 
-  return verifyMutationVersion(
-    db,
-    orderReference,
-    revisionId,
-    nextVersion,
-  );
+  return verifyMutationResult(db, orderReference, revisionId, results);
 }
 
 export async function substituteDraftRevisionLine(
@@ -1098,6 +1097,7 @@ export async function substituteDraftRevisionLine(
 
   const now = new Date().toISOString();
   const nextVersion = revision.version + 1;
+  const mutationToken = crypto.randomUUID();
   const customerNote = optionalText(
     input.customerNote,
     500,
@@ -1109,15 +1109,16 @@ export async function substituteDraftRevisionLine(
     "revision_invalid_internal_note",
   );
 
-  await db.batch([
+  const results = await db.batch([
     db
       .prepare(
         `UPDATE order_revisions
-        SET version = ?, items_subtotal_minor = ?, final_total_minor = ?
+        SET version = ?, mutation_token = ?, items_subtotal_minor = ?, final_total_minor = ?
         WHERE id = ? AND version = ? AND state = 'DRAFT'`,
       )
       .bind(
         nextVersion,
+        mutationToken,
         totals.itemsSubtotalMinor,
         totals.finalTotalMinor,
         revisionId,
@@ -1141,7 +1142,7 @@ export async function substituteDraftRevisionLine(
         WHERE revision_id = ? AND line_number = ?
           AND EXISTS (
             SELECT 1 FROM order_revisions
-            WHERE id = ? AND version = ? AND state = 'DRAFT'
+            WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DRAFT'
           )`,
       )
       .bind(
@@ -1159,6 +1160,7 @@ export async function substituteDraftRevisionLine(
         input.lineNumber,
         revisionId,
         nextVersion,
+        mutationToken,
       ),
     db
       .prepare(
@@ -1169,7 +1171,7 @@ export async function substituteDraftRevisionLine(
         SELECT ?, 'ORDER_REVISION_ITEM_SUBSTITUTED', NULL, NULL, 'admin', ?, NULL, ?, ?
         WHERE EXISTS (
           SELECT 1 FROM order_revisions
-          WHERE id = ? AND version = ?
+          WHERE id = ? AND version = ? AND mutation_token = ?
         )`,
       )
       .bind(
@@ -1187,15 +1189,11 @@ export async function substituteDraftRevisionLine(
         now,
         revisionId,
         nextVersion,
+        mutationToken,
       ),
   ]);
 
-  return verifyMutationVersion(
-    db,
-    orderReference,
-    revisionId,
-    nextVersion,
-  );
+  return verifyMutationResult(db, orderReference, revisionId, results);
 }
 
 
@@ -1243,16 +1241,18 @@ export async function removeAddedRevisionLine(
 
   const now = new Date().toISOString();
   const nextVersion = revision.version + 1;
+  const mutationToken = crypto.randomUUID();
 
-  await db.batch([
+  const results = await db.batch([
     db
       .prepare(
         `UPDATE order_revisions
-        SET version = ?, items_subtotal_minor = ?, final_total_minor = ?
+        SET version = ?, mutation_token = ?, items_subtotal_minor = ?, final_total_minor = ?
         WHERE id = ? AND version = ? AND state = 'DRAFT'`,
       )
       .bind(
         nextVersion,
+        mutationToken,
         totals.itemsSubtotalMinor,
         totals.finalTotalMinor,
         revisionId,
@@ -1264,10 +1264,10 @@ export async function removeAddedRevisionLine(
         WHERE revision_id = ? AND line_number = ?
           AND EXISTS (
             SELECT 1 FROM order_revisions
-            WHERE id = ? AND version = ? AND state = 'DRAFT'
+            WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DRAFT'
           )`,
       )
-      .bind(revisionId, lineNumber, revisionId, nextVersion),
+      .bind(revisionId, lineNumber, revisionId, nextVersion, mutationToken),
     db
       .prepare(
         `INSERT INTO order_events (
@@ -1277,7 +1277,7 @@ export async function removeAddedRevisionLine(
         SELECT ?, 'ORDER_REVISION_ITEM_REMOVED', NULL, NULL, 'admin', ?, NULL, ?, ?
         WHERE EXISTS (
           SELECT 1 FROM order_revisions
-          WHERE id = ? AND version = ?
+          WHERE id = ? AND version = ? AND mutation_token = ?
         )`,
       )
       .bind(
@@ -1293,15 +1293,11 @@ export async function removeAddedRevisionLine(
         now,
         revisionId,
         nextVersion,
+        mutationToken,
       ),
   ]);
 
-  return verifyMutationVersion(
-    db,
-    orderReference,
-    revisionId,
-    nextVersion,
-  );
+  return verifyMutationResult(db, orderReference, revisionId, results);
 }
 
 export async function restoreOriginalRevisionLine(
@@ -1377,16 +1373,18 @@ export async function restoreOriginalRevisionLine(
 
   const now = new Date().toISOString();
   const nextVersion = revision.version + 1;
+  const mutationToken = crypto.randomUUID();
 
-  await db.batch([
+  const results = await db.batch([
     db
       .prepare(
         `UPDATE order_revisions
-        SET version = ?, items_subtotal_minor = ?, final_total_minor = ?
+        SET version = ?, mutation_token = ?, items_subtotal_minor = ?, final_total_minor = ?
         WHERE id = ? AND version = ? AND state = 'DRAFT'`,
       )
       .bind(
         nextVersion,
+        mutationToken,
         totals.itemsSubtotalMinor,
         totals.finalTotalMinor,
         revisionId,
@@ -1411,7 +1409,7 @@ export async function restoreOriginalRevisionLine(
         WHERE revision_id = ? AND line_number = ?
           AND EXISTS (
             SELECT 1 FROM order_revisions
-            WHERE id = ? AND version = ? AND state = 'DRAFT'
+            WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DRAFT'
           )`,
       )
       .bind(
@@ -1428,6 +1426,7 @@ export async function restoreOriginalRevisionLine(
         lineNumber,
         revisionId,
         nextVersion,
+        mutationToken,
       ),
     db
       .prepare(
@@ -1438,7 +1437,7 @@ export async function restoreOriginalRevisionLine(
         SELECT ?, 'ORDER_REVISION_ITEM_RESTORED', NULL, NULL, 'admin', ?, NULL, ?, ?
         WHERE EXISTS (
           SELECT 1 FROM order_revisions
-          WHERE id = ? AND version = ?
+          WHERE id = ? AND version = ? AND mutation_token = ?
         )`,
       )
       .bind(
@@ -1454,15 +1453,11 @@ export async function restoreOriginalRevisionLine(
         now,
         revisionId,
         nextVersion,
+        mutationToken,
       ),
   ]);
 
-  return verifyMutationVersion(
-    db,
-    orderReference,
-    revisionId,
-    nextVersion,
-  );
+  return verifyMutationResult(db, orderReference, revisionId, results);
 }
 
 
@@ -1544,18 +1539,21 @@ export async function addDraftRevisionAdjustment(
 
   const now = new Date().toISOString();
   const nextVersion = revision.version + 1;
+  const mutationToken = crypto.randomUUID();
 
-  await db.batch([
+  const results = await db.batch([
     db
       .prepare(
         `UPDATE order_revisions
         SET version = ?,
+            mutation_token = ?,
             adjustment_amount_minor = ?,
             final_total_minor = ?
         WHERE id = ? AND version = ? AND state = 'DRAFT'`,
       )
       .bind(
         nextVersion,
+        mutationToken,
         nextAdjustmentAmount,
         nextFinal,
         revisionId,
@@ -1570,7 +1568,7 @@ export async function addDraftRevisionAdjustment(
         SELECT ?, ?, ?, ?, ?, ?, ?
         WHERE EXISTS (
           SELECT 1 FROM order_revisions
-          WHERE id = ? AND version = ? AND state = 'DRAFT'
+          WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DRAFT'
         )`,
       )
       .bind(
@@ -1583,6 +1581,7 @@ export async function addDraftRevisionAdjustment(
         now,
         revisionId,
         nextVersion,
+        mutationToken,
       ),
     db
       .prepare(
@@ -1593,7 +1592,7 @@ export async function addDraftRevisionAdjustment(
         SELECT ?, 'ORDER_REVISION_ADJUSTMENT_ADDED', NULL, NULL, 'admin', ?, NULL, ?, ?
         WHERE EXISTS (
           SELECT 1 FROM order_revisions
-          WHERE id = ? AND version = ?
+          WHERE id = ? AND version = ? AND mutation_token = ?
         )`,
       )
       .bind(
@@ -1610,15 +1609,11 @@ export async function addDraftRevisionAdjustment(
         now,
         revisionId,
         nextVersion,
+        mutationToken,
       ),
   ]);
 
-  return verifyMutationVersion(
-    db,
-    orderReference,
-    revisionId,
-    nextVersion,
-  );
+  return verifyMutationResult(db, orderReference, revisionId, results);
 }
 
 export async function removeDraftRevisionAdjustment(
@@ -1672,18 +1667,21 @@ export async function removeDraftRevisionAdjustment(
 
   const now = new Date().toISOString();
   const nextVersion = revision.version + 1;
+  const mutationToken = crypto.randomUUID();
 
-  await db.batch([
+  const results = await db.batch([
     db
       .prepare(
         `UPDATE order_revisions
         SET version = ?,
+            mutation_token = ?,
             adjustment_amount_minor = ?,
             final_total_minor = ?
         WHERE id = ? AND version = ? AND state = 'DRAFT'`,
       )
       .bind(
         nextVersion,
+        mutationToken,
         nextAdjustmentAmount,
         nextFinal,
         revisionId,
@@ -1695,10 +1693,10 @@ export async function removeDraftRevisionAdjustment(
         WHERE id = ? AND revision_id = ?
           AND EXISTS (
             SELECT 1 FROM order_revisions
-            WHERE id = ? AND version = ? AND state = 'DRAFT'
+            WHERE id = ? AND version = ? AND mutation_token = ? AND state = 'DRAFT'
           )`,
       )
-      .bind(adjustmentId, revisionId, revisionId, nextVersion),
+      .bind(adjustmentId, revisionId, revisionId, nextVersion, mutationToken),
     db
       .prepare(
         `INSERT INTO order_events (
@@ -1708,7 +1706,7 @@ export async function removeDraftRevisionAdjustment(
         SELECT ?, 'ORDER_REVISION_ADJUSTMENT_REMOVED', NULL, NULL, 'admin', ?, NULL, ?, ?
         WHERE EXISTS (
           SELECT 1 FROM order_revisions
-          WHERE id = ? AND version = ?
+          WHERE id = ? AND version = ? AND mutation_token = ?
         )`,
       )
       .bind(
@@ -1726,13 +1724,9 @@ export async function removeDraftRevisionAdjustment(
         now,
         revisionId,
         nextVersion,
+        mutationToken,
       ),
   ]);
 
-  return verifyMutationVersion(
-    db,
-    orderReference,
-    revisionId,
-    nextVersion,
-  );
+  return verifyMutationResult(db, orderReference, revisionId, results);
 }
