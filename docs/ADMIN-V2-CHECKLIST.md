@@ -690,22 +690,30 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
   - production `/admin` reachable
   - initial missing `webhookConfigured` was propagation timing, not a binding/config error
 
+- [x] Production Resend webhook enabled and verified.
+  - webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0`
+  - endpoint: `https://api.theblacksheepshop.co.uk/webhooks/resend`
+  - status: `enabled`
+  - events: `email.sent`, `email.delivered`, `email.delivery_delayed`, `email.complained`, `email.bounced`, `email.failed`, `email.suppressed`
+  - staging webhook remains separate and enabled
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — STEP 4 IN PROGRESS: enable the production Resend webhook.**
+**PHASE 13 EXECUTION — STEP 5 IN PROGRESS: final production smoke verification.**
 
-Production runtime is now healthy:
-- current Worker version: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`
-- D1 migrations: `0000–0008`
-- `webhookConfigured=true`
-- production Admin page reachable
-- production Resend webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0`
-- webhook currently disabled
+Production release state:
+- D1 migrations `0000–0008`: complete
+- Worker version: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`
+- public health: PASS
+- production Admin page: reachable
+- production Resend webhook: ENABLED
+- DMARC/SPF/DKIM: configured/verified
 
 Current step:
-1. enable the production Resend webhook,
-2. verify endpoint/status/event subscriptions,
-3. record the final production webhook state,
-4. update this checklist before production smoke testing.
+1. run read-only production smoke checks,
+2. verify Worker deployment/version and current bindings,
+3. verify D1 migration level and existing order count,
+4. verify public health and Admin page again,
+5. update this checklist and session handoff with the final Phase 13 production state.
 
-**No Worker or D1 mutation is required in this step.**
+**No new production order, refund, email, or destructive mutation is required for this smoke check.**
