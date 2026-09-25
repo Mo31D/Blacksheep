@@ -190,7 +190,7 @@ Exit gate:
 - [x] Product detail ↔ Stock integration polish — actual Low/Out state, quantities and `Stock` deep-link; CI run `36183681792` SUCCESS.
 - [x] Final Product↔Stock integration polish deployed — workflow `36183967251` / job `108232778002` SUCCESS.
 - [x] `0010` applied + Stock workspace deployed to staging — workflow `36183361766` SUCCESS.
-- [~] Controlled owner Phase 4 stock smoke-test on a staging QA product — inventory flow exercised successfully; final re-test after the login/iPad UX fixes remains the Phase 4 gate.
+- [x] Controlled owner Phase 4 stock smoke-test and corrected login/iPad UX re-test — owner confirmed successful on 25 September 2026.
 - [x] Independent staging D1 mutation smoke-test — PASS: Initial Count 10 → threshold 3 → Damage -2 → Physical Count 9 → Stocktake correction 8 → Archive; immutable UPDATE/DELETE triggers verified on real staging D1.
 - [x] Owner-reported Safari OTP transition defect fixed — successful verification now forces an authenticated document reload instead of changing only the URL fragment.
 - [x] iPad portrait master/detail defect fixed — Orders, Products and Stock now open selected detail immediately as a tablet overlay up to 900px instead of rendering it below the long list.
@@ -202,7 +202,7 @@ Exit gate:
 
 ---
 
-**Status: TECHNICALLY + DATA-MUTATION COMPLETE ON STAGING — owner re-test of the corrected login + iPad portrait Stock UX is the only remaining Phase 4 gate.**
+**Status: COMPLETE ON STAGING — Inventory Core + corrected OTP/iPad UX owner re-test passed.**
 
 Evidence:
 - source/contract CI: `36182963561` — SUCCESS
@@ -306,15 +306,22 @@ Release report:
 
 # PHASE 6 — STOREFRONT / COMMERCE INTEGRATION
 
-- [ ] Commerce price validation reads D1 product core.
-- [ ] Commerce orderability reads D1 inventory.
+**Status: ACTIVE — staging-first cutover. Production authority remains locked.**
+
+- [x] Phase 6 cutover principles locked before code.
+- [~] D1 public commerce catalogue/query layer — active milestone.
+- [ ] Commerce price validation reads D1 Product Core on staging.
+- [ ] Commerce orderability reads D1 Inventory Core on staging.
 - [ ] Public catalogue endpoint.
+- [ ] D1/static catalogue parity report with explicit allowed differences.
 - [ ] Live stock/price overlay.
 - [ ] Static product publication pipeline.
 - [ ] Structured-data parity.
 - [ ] Canonical URL preservation.
-- [ ] Remove legacy duplicate catalogue source only after parity.
+- [ ] Add/Publish/Archive propagation proof from Admin → public API → storefront preview.
+- [ ] Remove legacy duplicate catalogue authority only after parity/cutover proof.
 - [ ] Search-readiness regression suite updated.
+- [ ] Production cutover plan reviewed separately before Product/Inventory migrations or authority switch.
 
 Exit gate:
 - Admin, storefront and checkout share one operational truth.
@@ -366,16 +373,23 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 5 is closed on staging
+## Phase 6 — D1 commerce authority foundation
 
-Phase 5 Order Reservations is now **COMPLETE + REAL-STAGING VERIFIED**.
+Phase 4 owner UX re-test is now accepted and Phase 5 is complete.
 
-The remaining pre-cutover gate is the separate owner UX re-test from Phase 4:
-1. verify corrected OTP login,
-2. verify iPad portrait Orders / Products / Stock master-detail overlay,
-3. archive the owner UI QA copy.
+First Phase 6 milestone:
 
-After that, prepare the **Phase 6 storefront / commerce integration cutover plan** before changing public price or stock authority.
+1. Freeze current static/generated commerce catalogue as the comparison baseline.
+2. Define one D1 public-product query using **published content only**:
+   - never expose Product Draft content,
+   - use the active default variant,
+   - price comes from D1 variant operational state,
+   - manual sell status overrides automatic inventory,
+   - tracked AUTO products use Available = On hand - Reserved - Safety stock,
+   - untracked AUTO products preserve current orderability behaviour.
+3. Add a public read-only D1 catalogue endpoint on staging.
+4. Add D1-backed cart pricing/orderability behind a **staging-only feature flag**.
+5. Run a parity report against the generated static commerce catalogue before enabling the D1 path.
+6. Do not alter the public Production storefront or Production D1 in this milestone.
 
-Production remains intentionally unchanged at migration `0008`.  
-Do not apply Product/Inventory/Reservation migrations to Production and do not enable Phase 6 authority until a separate Production cutover gate is approved.
+Production remains on migration `0008` and the current generated catalogue remains its commerce authority until a later explicit Phase 6 cutover gate.
