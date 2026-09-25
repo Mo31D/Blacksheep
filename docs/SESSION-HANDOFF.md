@@ -55,32 +55,34 @@
 > - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 > - target: D1-backed Product + Inventory source of truth, premium Products/Stock Admin, managed media, order reservations and storefront/checkout integration.
 >
-> **PRODUCT / INVENTORY PHASE 2 — STAGING EDITOR LIVE**
+> **PRODUCT / INVENTORY — PHASE 2 COMPLETE ON STAGING; PHASE 3 CODE READY**
 > - Phase 1 Product Core + mobile polish: COMPLETE.
-> - Phase 2 core editing capabilities: DEPLOYED TO STAGING.
-> - final release commit: `545df3d8f59f03d4a714693d991cef92344ace6d`
-> - workflow `36172797078` / job `108196158387`: SUCCESS
-> - staging deployment: `376e151f-0a0f-44b5-b91e-c0081cc8296b`
-> - staging version: `f79d2e06-858c-4e98-a579-2cc8a03f4d07`
-> - Product Core still contains 146 imported products; tracked inventory = 0.
-> - Add Product creates a private draft.
-> - Quick Edit atomically covers price / SKU / barcode / selling status / online ordering.
-> - descriptive edits use Draft → Publish.
-> - categories are editable.
-> - human-readable audit history is visible.
-> - Needs data is corrected to 15 unique actionable products; actionable Missing price = 2.
-> - public storefront/checkout are NOT cut over to D1.
-> - Production D1 remains `0000–0008`; 3 Production orders remain intact.
-> - read: `docs/PRODUCT-EDITOR-PHASE2-STAGING-2026-09-25.md`
+> - Phase 2 Product Editor core: DEPLOYED TO STAGING.
+> - Duplicate: DEPLOYED — creates a safe private Draft with SKU/barcode cleared and ordering disabled.
+> - Archive: DEPLOYED — non-destructive, disables sale/orderability and retains audit/history.
+> - Archived filter: DEPLOYED.
+> - Duplicate/Archive release run `36174114456` / job `108200446776`: SUCCESS.
+> - current staging deployment: `7984e631-902e-470b-bb0f-447bdb031b3b`
+> - current staging Worker version: `cdcfe773-b6cc-4910-8c86-a74f28bde66c`
+> - staging Product Core: 146 original imported products; tracked inventory = 0.
+> - Phase 3 Product Media core code is implemented and Commerce CI `36174836076` is green.
+> - Media includes secure multipart upload, 8 MB limit, JPEG/PNG/WebP magic-byte validation, SHA-256, Draft gallery, Primary, reorder, alt text, remove and audit.
+> - same-origin immutable delivery route `/media/<mediaId>` is implemented.
+> - dedicated staging release workflow: `.github/workflows/product-media-staging.yml`.
+> - **BLOCKER:** Cloudflare R2 is not enabled on the account. API returns `10042 — Please enable R2 through the Cloudflare Dashboard.`
+> - staging R2 target once enabled: `black-sheep-product-media-staging`.
+> - Phase 3 is intentionally NOT deployed until the R2 bucket exists.
+> - public storefront/checkout are NOT cut over to Product Core.
+> - Production D1 remains `0000–0008`; Production order count remains 3.
+> - read: `docs/PRODUCT-MEDIA-PHASE3-READINESS-2026-09-25.md`
 > - tracker: `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 
-> **NEXT WORK: Phase 2 owner mutation smoke-test, then Duplicate/Archive and Phase 3 Product Media.**
-> 1. Owner opens production `/admin` on desktop and iPhone and confirms the real UX.
-> 2. Perform one fresh production owner OTP login.
-> 3. Verify the next natural production transactional email records delivery telemetry through the enabled webhook.
-> 4. Optionally run one controlled low-value live order through revision → customer review → payment recording → fulfilment.
-> 5. Continue cleanup of temporary release-only workflows only where they are clearly obsolete.
->
+> **NEXT WORK: one external action, then continue Phase 3 automatically.**
+> 1. Enable R2 Object Storage in the Cloudflare Dashboard.
+> 2. Do not manually create the staging bucket unless desired; it can be created through the connector after activation.
+> 3. Create/verify `black-sheep-product-media-staging`, trigger the gated Phase 3 staging workflow and run iPhone image QA.
+> 4. Keep Inventory, storefront Product Core cutover and all Product/Media Production changes locked until their later gates.
+
 > **Do not rerun migrations `0003–0008`. Any future Worker deployment must correspond to an intentional new runtime/catalogue change and pass Commerce CI first.**
 
 ---

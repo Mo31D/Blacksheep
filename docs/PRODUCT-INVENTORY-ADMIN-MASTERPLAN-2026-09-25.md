@@ -2,7 +2,7 @@
 
 **Date:** 25 September 2026  
 **Repository:** `Mo31D/Blacksheep`  
-**Status:** PHASE 2 PRODUCT EDITOR DEPLOYED TO STAGING — owner mutation smoke-test pending  
+**Status:** PHASE 2 COMPLETE ON STAGING; PHASE 3 MEDIA CODE READY — blocked by Cloudflare R2 activation  
 **Purpose:** Define the next major platform phase before changing production product/inventory architecture.
 
 ---
@@ -67,6 +67,33 @@ Implemented:
 Release evidence: [Phase 2 staging report](./PRODUCT-EDITOR-PHASE2-STAGING-2026-09-25.md).
 
 Production remains intentionally isolated from Product Core.
+
+## Phase 3 media readiness — 25 September 2026
+
+Phase 2 has been extended with safe Duplicate, non-destructive Archive and an Archived view; those controls are deployed to staging.
+
+Phase 3 Product Media core implementation is complete in source:
+- authenticated multipart uploads,
+- JPEG/PNG/WebP signature validation,
+- 8 MB cap,
+- SHA-256 checksums,
+- staging-only R2 binding,
+- Draft-based gallery management,
+- Primary image,
+- reorder,
+- alt text,
+- remove,
+- media audit events,
+- immutable same-origin media delivery,
+- gated staging release workflow.
+
+Commerce CI run `36174836076` passed.
+
+**External blocker:** Cloudflare R2 is not enabled on the account. The API returns error `10042`. Phase 3 deployment is therefore intentionally held until R2 is enabled and `black-sheep-product-media-staging` can be created.
+
+See [Phase 3 Product Media readiness](./PRODUCT-MEDIA-PHASE3-READINESS-2026-09-25.md).
+
+Production remains isolated: no Product Core migration `0009`, no Product Media binding, no inventory tracking, and no storefront/checkout cutover.
 
 ## 1. Product vision
 
