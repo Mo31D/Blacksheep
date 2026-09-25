@@ -567,23 +567,24 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Generate one controlled staging email event for webhook verification.**
+**STEP IN PROGRESS — Generate one webhook event through the staging Worker, not direct Resend send-email.**
 
-Pre-step state:
-- staging webhook: ENABLED
-- staging health: `webhookConfigured=true`
-- current webhook event list: EMPTY
-- production remains unchanged
+Reason:
+- the Resend connector requires explicit user confirmation for the `From` address before direct sending,
+- the staging Worker already has the verified sender configuration and Resend API key,
+- generating the notification through the Worker better matches the real production path.
 
 Current step:
-1. send one clearly-labelled staging transactional test email from the verified shop domain,
-2. wait for Resend to emit the corresponding webhook event,
-3. inspect the event status and endpoint attempt,
-4. update this checklist before replaying the event.
+1. inspect the current staging webhook handler and notification route/data persistence,
+2. build a minimal staging-only synthetic order/action that emits exactly one transactional email,
+3. run it against staging,
+4. wait for the corresponding signed webhook event,
+5. update this checklist before replay/idempotency verification.
 
 Safety:
-- one test email only,
-- no production order mutation,
-- no production Worker/D1 change.
+- staging Worker/D1 only,
+- no production mutation,
+- synthetic test order only,
+- one transactional message target.
 
-**Do not proceed to replay until a real signed webhook event is visible.**
+**Do not replay until the first real webhook delivery is confirmed.**
