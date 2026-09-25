@@ -565,29 +565,30 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 - [x] Staging Resend webhook enabled successfully after `/health` confirmed `webhookConfigured=true`.
 
+- [x] Single-message staging webhook generator created at `commerce/scripts/staging-webhook-event-e2e.mjs` (commit `12b8f06088c04a0b0f002006fe53290f5b3f9edb`).
+
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Build a single-message staging generator for webhook verification.**
+**STEP IN PROGRESS — Create and run the staging webhook event workflow.**
 
-Completed inspection:
-- webhook route verifies Svix signature and requires `email_id`,
-- `applyResendDeliveryEvent` persists `email_webhook_events`,
-- matching `order_messages.provider_message_id` is updated to delivery status,
-- matching order receives `EMAIL_<STATUS>` audit events,
-- duplicate webhook events are ignored by `webhook_event_id`,
-- Admin `mark_paid` sends exactly one Payment received transactional email.
+Pre-step state:
+- single-message generator exists,
+- staging webhook is ENABLED,
+- staging health reports `webhookConfigured=true`,
+- production remains unchanged.
 
 Current step:
-1. create a staging-only synthetic order/session,
-2. call Admin `mark_paid` once to send one email,
-3. preserve the synthetic row long enough for webhook delivery verification,
-4. record the provider message ID and wait for a signed webhook event,
-5. update this checklist before replay/idempotency verification.
+1. add a staging-only GitHub Actions workflow for the generator,
+2. run it once,
+3. require exactly one transactional notification path,
+4. wait until staging D1 records the message as `DELIVERED`,
+5. capture the delivered webhook event ID,
+6. update this checklist before replaying that same event.
 
 Safety:
 - staging Worker/D1 only,
-- one synthetic order,
-- one transactional email,
-- no production mutation.
+- synthetic order only,
+- no production mutation,
+- synthetic order stays in staging until replay verification is complete.
 
-**Do not replay or clean the synthetic row until the first signed webhook delivery is verified.**
+**Do not clean the synthetic order before replay/idempotency verification.**
