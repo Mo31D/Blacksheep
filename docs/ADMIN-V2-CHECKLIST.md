@@ -642,21 +642,28 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
   - status immediately set to `disabled`
   - subscribed events match the verified staging delivery telemetry set
 
+- [x] Production Resend webhook pre-deploy audit:
+  - endpoint exists: `https://api.theblacksheepshop.co.uk/webhooks/resend`
+  - webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0`
+  - status: disabled
+  - subscribed delivery events: configured
+  - production Worker secret `RESEND_WEBHOOK_SECRET`: absent
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — STEP 2B IN PROGRESS: install the production webhook signing secret.**
+**PHASE 13 EXECUTION — PRE-DEPLOY CONFIG GATE: production webhook secret setup.**
 
-Current readiness:
-- production D1 migrations `0000–0008`: PASS
-- production webhook: CREATED + DISABLED
-- production webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0`
-- production Worker `RESEND_WEBHOOK_SECRET`: still missing
-- Worker deployment: not started
+Current production state:
+- D1 migrations `0000–0008`: COMPLETE
+- Worker version: still `938f0651-20b5-48df-a8d4-f84defbb263d`
+- production Resend webhook: EXISTS / DISABLED
+- production `RESEND_WEBHOOK_SECRET`: MISSING
 
 Current step:
-1. retrieve the production webhook signing secret from Resend without exposing it,
-2. store it as production Worker secret `RESEND_WEBHOOK_SECRET`,
-3. verify the secret name exists on the production Worker,
-4. update this checklist before deploying the pinned Worker source.
+1. retrieve the existing production webhook signing secret from Resend,
+2. store it as Cloudflare production Worker secret `RESEND_WEBHOOK_SECRET` without exposing it,
+3. verify the secret binding exists,
+4. keep webhook disabled until the new Worker is deployed and health confirms `webhookConfigured=true`,
+5. update this checklist before Worker deployment.
 
-**Keep the production webhook disabled until the new Worker health check reports `webhookConfigured=true`.**
+**Do not deploy the Worker until this gate passes.**
