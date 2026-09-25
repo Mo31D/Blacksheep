@@ -258,6 +258,83 @@ export function assertReservationAvailability(
 }
 
 
+
+export function rebaseReservationPlanAfterRelease(
+  plan: RevisionReservationPlan,
+  releasePlan: ActiveReservationReleasePlan | null,
+): RevisionReservationPlan {
+  if (!releasePlan || releasePlan.locationId !== plan.locationId) {
+    return plan;
+  }
+
+  const releasedByVariant = new Map(
+    releasePlan.requirements.map((requirement) => [
+      requirement.variantId,
+      requirement,
+    ]),
+  );
+
+  const requirements = plan.requirements.map((requirement) => {
+    const released = releasedByVariant.get(requirement.variantId);
+    if (!released) return requirement;
+
+    if (released.balanceVersion !== requirement.balanceVersion) {
+      throw new Error("reservation_supersede_balance_version_mismatch");
+    }
+
+    const nextReserved = Math.max(
+      0,
+      requirement.reserved - released.quantity,
+    );
+    const nextAvailable = Math.max(
+      0,
+      requirement.onHand - nextReserved - requirement.safetyStock,
+    );
+
+    return {
+      ...requirement,
+      reserved: nextReserved,
+      available: nextAvailable,
+      balanceVersion: requirement.balanceVersion + 1,
+    };
+  });
+
+  const sufficientByVariant = new Map(
+    requirements.map((requirement) => [
+      requirement.variantId,
+      requirement.available >= requirement.requiredQuantity,
+    ]),
+  );
+
+  const lines = plan.lines.map((line) => {
+    if (!line.tracked || !line.variantId) return line;
+    const released = releasedByVariant.get(line.variantId);
+    const rebasedRequirement = requirements.find(
+      (requirement) => requirement.variantId === line.variantId,
+    );
+    return {
+      ...line,
+      reserved:
+        released && line.reserved !== null
+          ? Math.max(0, line.reserved - released.quantity)
+          : line.reserved,
+      available: rebasedRequirement?.available ?? line.available,
+      balanceVersion:
+        rebasedRequirement?.balanceVersion ?? line.balanceVersion,
+      sufficient:
+        sufficientByVariant.get(line.variantId) !== false,
+    };
+  });
+
+  return {
+    ...plan,
+    lines,
+    trackedLines: lines.filter((line) => line.tracked),
+    untrackedLines: lines.filter((line) => !line.tracked),
+    requirements,
+  };
+}
+
 export interface ReservationMutationInput {
   orderId: string;
   actorEmail: string;
