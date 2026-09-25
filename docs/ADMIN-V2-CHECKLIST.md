@@ -313,7 +313,7 @@ Status: CORE SECURITY/RACE/DECLINE/SUPERSEDED-TOKEN STAGING E2E VERIFIED; TOKEN 
 
 - [x] Duplicate webhook automated tests, including concurrent claim loser.
 - [!] Staging Resend webhook has now been created for sent/delivered/delayed/complained/bounced/failed/suppressed events, but remains disabled until its real signing secret is stored in the staging Worker.
-- [!] Real staging webhook signing secret exists in Resend but is not yet stored as Cloudflare Worker secret `RESEND_WEBHOOK_SECRET`; no safe Cloudflare-secret write channel is available from the current connectors.
+- [!] Real staging webhook signing secret exists in Resend, but automatic connector-to-connector transfer into Cloudflare was blocked by the platform safety layer. `RESEND_WEBHOOK_SECRET` is still absent from the staging Worker; no production secret was touched.
 - [ ] Confirm production webhook secret.
 - [x] SPF verified in Resend domain configuration (`rsend` and `send` CNAME records both verified).
 - [x] DKIM verified in Resend domain configuration (`resend._domainkey`).
@@ -564,24 +564,25 @@ Status: BLOCKED UNTIL STAGING PASS.
 
 # EXACT NEXT ACTION
 
-**STEP IN PROGRESS — Close the staging Resend webhook telemetry gate using the connected Resend + Cloudflare accounts.**
+**STEP IN PROGRESS — Verify DMARC, while webhook secret installation remains a documented manual/security-gated action.**
 
-Pre-step review:
-- GitHub `main` contains the current Admin V2 code and the generated Admin-script syntax fix.
-- Commerce CI: PASS, 106/106 tests.
-- current staging Worker: `22752fa1-3ef2-459c-9ff4-03172535af7b`.
-- staging D1: current through `0008_concurrency_guards.sql`.
-- Admin UI browser QA run `36150996964`: PASS.
-- Resend staging webhook exists for sent/delivered/delayed/complained/bounced/failed/suppressed events but is disabled.
-- Cloudflare staging currently does **not** have `RESEND_WEBHOOK_SECRET`.
-- production remains frozen; no production mutation is authorized in this step.
+Current state before this step:
+- Admin UI browser QA: PASS on Chromium desktop + WebKit mobile.
+- staging Worker: `22752fa1-3ef2-459c-9ff4-03172535af7b`.
+- staging D1: migrations `0000–0008`.
+- Resend webhook exists and remains disabled.
+- Resend webhook signing secret exists.
+- automatic transfer of that secret into Cloudflare staging was blocked by the platform safety layer; `RESEND_WEBHOOK_SECRET` is still not present.
+- production remains unchanged.
 
 Current step:
-1. obtain the existing staging webhook signing secret from Resend without exposing it,
-2. store it as Cloudflare staging Worker secret `RESEND_WEBHOOK_SECRET`,
-3. verify staging health reports `notifications.webhookConfigured=true`,
-4. enable the existing Resend staging webhook,
-5. send/replay one real webhook event and verify D1 delivery-state persistence plus duplicate-idempotency behavior,
-6. record the result here before moving to the Delivery/manual gate.
+1. inspect the live DNS for the sending domain using Cloudflare,
+2. verify whether a DMARC TXT record exists and record its policy,
+3. update this checklist with the result before moving to the final manual release gates.
 
-**Do not change production Worker, production secrets or production D1 in this step.**
+Remaining after this step:
+- manually/security-approved installation of the staging webhook secret, followed by signed webhook replay verification,
+- one real-device Delivery checkout through Turnstile (production audit shows zero delivery orders),
+- then guarded production release preparation.
+
+**Do not deploy or migrate production in this step.**
