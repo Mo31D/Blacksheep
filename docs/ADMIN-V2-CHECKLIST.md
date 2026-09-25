@@ -524,7 +524,7 @@ Status: COMPLETE FOR PRE-RELEASE CONTROL PLANE — current checklist is authorit
 
 Only after staging exit gates pass:
 
-- [ ] Review migration plan.
+- [x] Review migration plan — pre-flight PASS for additive migrations `0003–0008`.
 - [ ] Apply only required production migrations.
 - [ ] Deploy exact audited source SHA to production Worker.
 - [ ] Verify health.
@@ -539,7 +539,7 @@ Only after staging exit gates pass:
 - [ ] Record final production D1 migration level.
 - [ ] Update this checklist and session handoff.
 
-Status: **READY — all staging exit gates are closed. Production release has not started yet.**
+Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA is pinned, production recovery bookmark is recorded, and migrations `0003–0008` are approved for guarded execution. Production mutation has not started yet.**
 
 ---
 
@@ -601,21 +601,40 @@ Status: **READY — all staging exit gates are closed. Production release has no
   - current migration level: `0000–0002`
   - Time Travel bookmark: `00000026-00000000-000050f1-4416edcc1a9b9a288fa8099919e4b5be`
 
+- [x] Phase 13 migration review result: **GO**.
+  - `0003_order_revisions.sql`: creates revision/item/adjustment tables + indexes; no existing-row mutation.
+  - `0004_revision_fulfilment.sql`: adds nullable fulfilment/address columns to the new revision table.
+  - `0005_refunds.sql`: creates manual refund ledger + indexes.
+  - `0006_customer_review_messages.sql`: creates review-token and order-message tables + indexes.
+  - `0007_email_delivery_webhooks.sql`: creates webhook dedup/audit table + indexes.
+  - `0008_concurrency_guards.sql`: adds concurrency/idempotency columns; existing production orders receive `refund_version=0`; partial unique refund index is safe because refunds table is new.
+  - No `DROP`, `DELETE`, rename, table rebuild or destructive backfill.
+  - Production schema precheck confirms all new Admin V2 tables/indexes are absent and no target column conflicts exist.
+  - Production currently contains 3 orders.
+  - Production migration command and Wrangler binding both target `black-sheep-commerce-prod` / `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`.
+
 # EXACT NEXT ACTION
 
-**PHASE 13 PRE-FLIGHT — STEP 4 IN PROGRESS: final review of migrations 0003–0008.**
+**PHASE 13 EXECUTION — STEP 1 READY: apply production migrations 0003–0008 under the captured recovery point.**
+
+Pre-flight is complete.
+
+Pinned release:
+- source SHA: `8c5462388648235acd3a41b853d1adee057a11a7`
 
 Production baseline:
-- release source SHA: `8c5462388648235acd3a41b853d1adee057a11a7`
+- Worker deployment ID: `f1ff4d67-bda6-4330-b4ae-961ea8d55f95`
 - Worker version: `938f0651-20b5-48df-a8d4-f84defbb263d`
-- D1 currently through `0002_order_fulfilment_message.sql`
-- recovery bookmark: `00000026-00000000-000050f1-4416edcc1a9b9a288fa8099919e4b5be`
+- D1: `black-sheep-commerce-prod`
+- D1 ID: `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
+- migrations currently applied: `0000–0002`
+- recovery Time Travel bookmark: `00000026-00000000-000050f1-4416edcc1a9b9a288fa8099919e4b5be`
 
-Current step:
-1. read migration files `0003–0008` from the pinned release source,
-2. verify ordering and dependencies,
-3. identify destructive operations, table rebuilds, data backfills, irreversible changes or assumptions,
-4. confirm the exact production migration set is only `0003–0008`,
-5. update this checklist with a go/no-go result.
+Migration review:
+- exact required set: `0003–0008`
+- destructive operations: none
+- dependency/order review: PASS
+- production schema conflict check: PASS
+- target binding/script review: PASS
 
-**Review only. Do not apply migrations or deploy production in this step.**
+**Next action is the first real production mutation: apply migrations `0003–0008`, verify D1 schema/migration level, and only then deploy the pinned Worker source.**
