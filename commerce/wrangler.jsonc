@@ -41,6 +41,12 @@
           "migrations_dir": "migrations"
         }
       ],
+      "r2_buckets": [
+        {
+          "binding": "PRODUCT_MEDIA",
+          "bucket_name": "black-sheep-product-media-staging"
+        }
+      ],
       "vars": {
         "ENVIRONMENT": "staging",
         "ALLOWED_ORIGINS": "https://theblacksheepshop.co.uk,https://www.theblacksheepshop.co.uk,http://localhost:8787,http://127.0.0.1:8787",
