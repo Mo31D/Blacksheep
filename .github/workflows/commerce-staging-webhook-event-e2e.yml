@@ -1,0 +1,56 @@
+name: Commerce Staging Webhook Event E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/commerce-staging-webhook-event-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staging-webhook-event-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: commerce
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: commerce/package.json
+
+      - name: Install commerce dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Require Cloudflare staging credentials
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::Cloudflare Actions credentials are unavailable."
+            exit 1
+          fi
+
+      - name: Confirm staging schema is current
+        run: npm run db:migrations:list:staging
+
+      - name: Generate one staging email and wait for signed webhook delivery
+        run: node scripts/staging-webhook-event-e2e.mjs
+
+      - name: Production safety statement
+        if: always()
+        run: |
+          echo "This workflow targets only the staging Worker and black-sheep-commerce-staging D1."
+          echo "It creates one synthetic staging order and one transactional notification."
+          echo "The synthetic order is intentionally preserved after success for webhook replay verification."
+          echo "No production Worker deploy, production D1 migration, or production write command is present."
