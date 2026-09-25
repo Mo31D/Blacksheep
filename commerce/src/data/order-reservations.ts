@@ -992,30 +992,31 @@ export function prepareReservationReleaseMutation(
             release_reason = ?,
             version = version + 1,
             mutation_token = CASE
-              WHEN ${balanceGuardSql} THEN ?
+              WHEN state = ?
+                AND version = ?
+                AND mutation_token = ?
+                AND ${balanceGuardSql}
+                AND ${extSql}
+                AND ${orderSql}
+              THEN ?
               ELSE NULL
             END,
             updated_at = ?
-        WHERE id = ?
-          AND version = ?
-          AND mutation_token = ?
-          AND state = ?
-          AND ${extSql}
-          AND ${orderSql}`,
+        WHERE id = ?`,
       )
       .bind(
         terminalState,
         createdAt,
         reason,
+        sourceState,
+        plan.version,
+        plan.mutationToken,
         ...balanceGuardValues,
+        ...extValues,
+        ...orderValues,
         releaseMutationToken,
         createdAt,
         plan.reservationId,
-        plan.version,
-        plan.mutationToken,
-        sourceState,
-        ...extValues,
-        ...orderValues,
       ),
   );
 
