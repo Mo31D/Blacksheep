@@ -13,6 +13,12 @@ interface OriginalOrderRow {
   currency: string;
   fulfilmentMethod: "delivery" | "collection";
   deliveryAmountMinor: number | null;
+  deliveryAddressLine1: string | null;
+  deliveryAddressLine2: string | null;
+  deliveryTown: string | null;
+  deliveryCounty: string | null;
+  deliveryPostcode: string | null;
+  deliveryCountry: string | null;
 }
 
 interface OriginalOrderItemRow {
@@ -47,6 +53,12 @@ interface RevisionRow {
   supersededAt: string | null;
   expiresAt: string | null;
   fulfilmentMethod: "delivery" | "collection";
+  deliveryAddressLine1: string | null;
+  deliveryAddressLine2: string | null;
+  deliveryTown: string | null;
+  deliveryCounty: string | null;
+  deliveryPostcode: string | null;
+  deliveryCountry: string | null;
   orderStatus: string;
 }
 
@@ -95,8 +107,19 @@ export interface RevisionItemPatch {
   internalNote?: string | null;
 }
 
+export interface RevisionDeliveryAddressInput {
+  line1: string;
+  line2?: string | null;
+  town: string;
+  county?: string | null;
+  postcode: string;
+  country?: string | null;
+}
+
 export interface UpdateDraftRevisionInput {
   expectedVersion: number;
+  fulfilmentMethod?: "delivery" | "collection";
+  deliveryAddress?: RevisionDeliveryAddressInput | null;
   deliveryAmountMinor?: number | null;
   customerMessage?: string | null;
   internalNote?: string | null;
@@ -143,7 +166,19 @@ async function findRevision(
         r.declined_at AS declinedAt,
         r.superseded_at AS supersededAt,
         r.expires_at AS expiresAt,
-        o.fulfilment_method AS fulfilmentMethod,
+        COALESCE(r.fulfilment_method, o.fulfilment_method) AS fulfilmentMethod,
+        CASE WHEN COALESCE(r.fulfilment_method, o.fulfilment_method) = 'delivery'
+          THEN COALESCE(r.delivery_address_line1, o.delivery_address_line1) END AS deliveryAddressLine1,
+        CASE WHEN COALESCE(r.fulfilment_method, o.fulfilment_method) = 'delivery'
+          THEN COALESCE(r.delivery_address_line2, o.delivery_address_line2) END AS deliveryAddressLine2,
+        CASE WHEN COALESCE(r.fulfilment_method, o.fulfilment_method) = 'delivery'
+          THEN COALESCE(r.delivery_town, o.delivery_town) END AS deliveryTown,
+        CASE WHEN COALESCE(r.fulfilment_method, o.fulfilment_method) = 'delivery'
+          THEN COALESCE(r.delivery_county, o.delivery_county) END AS deliveryCounty,
+        CASE WHEN COALESCE(r.fulfilment_method, o.fulfilment_method) = 'delivery'
+          THEN COALESCE(r.delivery_postcode, o.delivery_postcode) END AS deliveryPostcode,
+        CASE WHEN COALESCE(r.fulfilment_method, o.fulfilment_method) = 'delivery'
+          THEN COALESCE(r.delivery_country, o.delivery_country) END AS deliveryCountry,
         o.status AS orderStatus
       FROM order_revisions r
       INNER JOIN orders o ON o.id = r.order_id
@@ -269,7 +304,13 @@ export async function createDraftRevisionFromOriginal(
         status,
         currency,
         fulfilment_method AS fulfilmentMethod,
-        delivery_amount_minor AS deliveryAmountMinor
+        delivery_amount_minor AS deliveryAmountMinor,
+        delivery_address_line1 AS deliveryAddressLine1,
+        delivery_address_line2 AS deliveryAddressLine2,
+        delivery_town AS deliveryTown,
+        delivery_county AS deliveryCounty,
+        delivery_postcode AS deliveryPostcode,
+        delivery_country AS deliveryCountry
       FROM orders
       WHERE public_reference = ?
       LIMIT 1`,
@@ -347,8 +388,11 @@ export async function createDraftRevisionFromOriginal(
           id, order_id, revision_number, state, version, currency,
           items_subtotal_minor, delivery_amount_minor, adjustment_amount_minor,
           final_total_minor, customer_message, internal_note,
+          fulfilment_method,
+          delivery_address_line1, delivery_address_line2, delivery_town,
+          delivery_county, delivery_postcode, delivery_country,
           created_by, created_at
-        ) VALUES (?, ?, ?, 'DRAFT', 1, ?, ?, ?, 0, ?, NULL, NULL, ?, ?)`,
+        ) VALUES (?, ?, ?, 'DRAFT', 1, ?, ?, ?, 0, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         id,
@@ -358,6 +402,13 @@ export async function createDraftRevisionFromOriginal(
         totals.itemsSubtotalMinor,
         totals.deliveryAmountMinor,
         totals.finalTotalMinor,
+        order.fulfilmentMethod,
+        order.fulfilmentMethod === "delivery" ? order.deliveryAddressLine1 : null,
+        order.fulfilmentMethod === "delivery" ? order.deliveryAddressLine2 : null,
+        order.fulfilmentMethod === "delivery" ? order.deliveryTown : null,
+        order.fulfilmentMethod === "delivery" ? order.deliveryCounty : null,
+        order.fulfilmentMethod === "delivery" ? order.deliveryPostcode : null,
+        order.fulfilmentMethod === "delivery" ? order.deliveryCountry : null,
         actorEmail,
         now,
       ),
@@ -486,16 +537,75 @@ export async function updateDraftRevision(
     }
   }
 
+  const fulfilmentMethod = input.fulfilmentMethod ?? revision.fulfilmentMethod;
+  if (!["delivery", "collection"].includes(fulfilmentMethod)) {
+    throw new Error("revision_invalid_fulfilment_method");
+  }
+
   let deliveryAmountMinor =
     input.deliveryAmountMinor === undefined
       ? revision.deliveryAmountMinor
       : input.deliveryAmountMinor;
 
-  if (revision.fulfilmentMethod === "collection") {
+  let deliveryAddressLine1: string | null = revision.deliveryAddressLine1;
+  let deliveryAddressLine2: string | null = revision.deliveryAddressLine2;
+  let deliveryTown: string | null = revision.deliveryTown;
+  let deliveryCounty: string | null = revision.deliveryCounty;
+  let deliveryPostcode: string | null = revision.deliveryPostcode;
+  let deliveryCountry: string | null = revision.deliveryCountry;
+
+  if (fulfilmentMethod === "collection") {
     if (deliveryAmountMinor !== null && deliveryAmountMinor !== 0) {
       throw new Error("revision_collection_delivery_must_be_zero");
     }
     deliveryAmountMinor = 0;
+    deliveryAddressLine1 = null;
+    deliveryAddressLine2 = null;
+    deliveryTown = null;
+    deliveryCounty = null;
+    deliveryPostcode = null;
+    deliveryCountry = null;
+  } else {
+    if (input.deliveryAddress !== undefined) {
+      if (!input.deliveryAddress) throw new Error("revision_delivery_address_required");
+      deliveryAddressLine1 = optionalText(
+        input.deliveryAddress.line1,
+        180,
+        "revision_invalid_delivery_address",
+      );
+      deliveryAddressLine2 = optionalText(
+        input.deliveryAddress.line2,
+        180,
+        "revision_invalid_delivery_address",
+      );
+      deliveryTown = optionalText(
+        input.deliveryAddress.town,
+        120,
+        "revision_invalid_delivery_address",
+      );
+      deliveryCounty = optionalText(
+        input.deliveryAddress.county,
+        120,
+        "revision_invalid_delivery_address",
+      );
+      deliveryPostcode = optionalText(
+        input.deliveryAddress.postcode,
+        20,
+        "revision_invalid_delivery_address",
+      );
+      const country = optionalText(
+        input.deliveryAddress.country ?? "GB",
+        2,
+        "revision_invalid_delivery_address",
+      );
+      deliveryCountry = country ? country.toUpperCase() : "GB";
+    }
+    if (!deliveryAddressLine1 || !deliveryTown || !deliveryPostcode) {
+      throw new Error("revision_delivery_address_required");
+    }
+    if (deliveryAmountMinor === null) {
+      throw new Error("revision_delivery_amount_required");
+    }
   }
 
   const totals = calculateRevisionTotals({
@@ -524,7 +634,14 @@ export async function updateDraftRevision(
             delivery_amount_minor = ?,
             final_total_minor = ?,
             customer_message = ?,
-            internal_note = ?
+            internal_note = ?,
+            fulfilment_method = ?,
+            delivery_address_line1 = ?,
+            delivery_address_line2 = ?,
+            delivery_town = ?,
+            delivery_county = ?,
+            delivery_postcode = ?,
+            delivery_country = ?
         WHERE id = ? AND version = ? AND state = 'DRAFT'`,
       )
       .bind(
@@ -534,6 +651,13 @@ export async function updateDraftRevision(
         totals.finalTotalMinor,
         customerMessage,
         internalNote,
+        fulfilmentMethod,
+        deliveryAddressLine1,
+        deliveryAddressLine2,
+        deliveryTown,
+        deliveryCounty,
+        deliveryPostcode,
+        deliveryCountry,
         revisionId,
         revision.version,
       ),
