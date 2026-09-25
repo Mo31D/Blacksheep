@@ -3,6 +3,7 @@ import {
   applyAdminOrderUpdate,
   getAdminOrderDetail,
   getAdminOrderState,
+  getAdminReports,
   getPaymentNotificationSnapshot,
   listAdminOrders,
 } from "../data/admin-orders";
@@ -72,7 +73,6 @@ function adminOriginAllowed(request: Request, url: URL): boolean {
     }
   }
 
-  // Non-browser clients do not always send Origin/Referer.
   return true;
 }
 
@@ -174,6 +174,12 @@ export async function handleAdminRequest(
     const status = url.searchParams.get("status");
     const orders = await listAdminOrders(env.DB, status);
     return json({ orders });
+  }
+
+  if (url.pathname === "/admin/api/reports" && request.method === "GET") {
+    const days = Number(url.searchParams.get("days") ?? "30");
+    const reports = await getAdminReports(env.DB, Number.isFinite(days) ? days : 30);
+    return json(reports);
   }
 
   const match = url.pathname.match(/^\/admin\/api\/orders\/([^/]+)$/);
