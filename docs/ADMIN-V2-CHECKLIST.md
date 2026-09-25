@@ -678,22 +678,34 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
 - [!] Post-deploy health gate first attempt: Worker deploy succeeded to version `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`, but the immediate public health response omitted `webhookConfigured`; production webhook therefore remains disabled.
 - [x] Routing/binding diagnosis: `api.theblacksheepshop.co.uk` is attached to `black-sheep-commerce-api` production, current deployment is `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac` at 100%, and `RESEND_WEBHOOK_SECRET` is present in current Worker bindings.
 
+- [x] Production health-only recheck run `36159585173`, job `108152536009`: PASS.
+  - `status=ok`
+  - `environment=production`
+  - `database=bound`
+  - Resend provider configured
+  - `fromConfigured=true`
+  - `ownerConfigured=true`
+  - `webhookConfigured=true`
+  - API key format/whitespace checks: PASS
+  - production `/admin` reachable
+  - initial missing `webhookConfigured` was propagation timing, not a binding/config error
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — STEP 3A IN PROGRESS: health-only propagation recheck.**
+**PHASE 13 EXECUTION — STEP 4 IN PROGRESS: enable the production Resend webhook.**
 
-Confirmed:
-- production deploy succeeded
+Production runtime is now healthy:
 - current Worker version: `6f7f4cfb-1240-4b05-8d19-b8c2df62c5ac`
-- custom domain routes to the correct Worker
-- `RESEND_WEBHOOK_SECRET` is present in current bindings
-- production Resend webhook remains disabled
+- D1 migrations: `0000–0008`
+- `webhookConfigured=true`
+- production Admin page reachable
+- production Resend webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0`
+- webhook currently disabled
 
 Current step:
-1. perform a health-only recheck with no Worker/D1 mutation,
-2. require `status=ok`, `environment=production`, `database=bound`,
-3. require Resend configured and `webhookConfigured=true`,
-4. verify `/admin` is reachable,
-5. update this checklist before enabling the production webhook.
+1. enable the production Resend webhook,
+2. verify endpoint/status/event subscriptions,
+3. record the final production webhook state,
+4. update this checklist before production smoke testing.
 
-**Do not redeploy or re-add the secret during this step.**
+**No Worker or D1 mutation is required in this step.**
