@@ -243,11 +243,19 @@ export async function getAdminReportsV2(
   const emailFailures = await allRows<Record<string, unknown>>(
     db
       .prepare(
-        "SELECT o.public_reference AS publicReference, o.customer_name AS customerName, e.event_type AS eventType, e.created_at AS createdAt " +
+        "SELECT publicReference, customerName, eventType, createdAt FROM (" +
+          "SELECT o.public_reference AS publicReference, o.customer_name AS customerName, m.delivery_status AS eventType, m.updated_at AS createdAt " +
+          "FROM order_messages m INNER JOIN orders o ON o.id = m.order_id " +
+          "WHERE o.created_at >= ? AND m.delivery_status IN ('FAILED','BOUNCED','COMPLAINED','DELAYED') " +
+          "UNION ALL " +
+          "SELECT o.public_reference AS publicReference, o.customer_name AS customerName, e.event_type AS eventType, e.created_at AS createdAt " +
           "FROM order_events e INNER JOIN orders o ON o.id = e.order_id " +
-          "WHERE o.created_at >= ? AND e.event_type LIKE '%_FAILED' ORDER BY e.created_at DESC LIMIT 30",
+          "WHERE o.created_at >= ? AND e.event_type LIKE '%_FAILED' AND NOT EXISTS (" +
+          "SELECT 1 FROM order_messages m2 WHERE m2.order_id = o.id AND m2.delivery_status = 'FAILED' AND abs(strftime('%s',m2.updated_at)-strftime('%s',e.created_at)) < 300" +
+          ")" +
+          ") ORDER BY createdAt DESC LIMIT 30",
       )
-      .bind(since),
+      .bind(since, since),
   );
 
   const topCustomers = await allRows<Record<string, unknown>>(
