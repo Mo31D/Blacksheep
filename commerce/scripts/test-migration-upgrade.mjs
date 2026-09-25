@@ -115,10 +115,10 @@ try {
     "SELECT claim_token FROM email_webhook_events LIMIT 0",
     "SELECT legacy_catalog_id, current_slug, publication_status, sell_status FROM products LIMIT 0",
     "SELECT product_id, version_number, title FROM product_versions LIMIT 0",
-    "SELECT sku, barcode, price_minor, track_inventory FROM product_variants LIMIT 0",
+    "SELECT sku, barcode, price_minor, track_inventory, inventory_mutation_token FROM product_variants LIMIT 0",
     "SELECT storage_provider, storage_key, public_url FROM product_media LIMIT 0",
     "SELECT code, name FROM inventory_locations LIMIT 1",
-    "SELECT variant_id, location_id, on_hand, reserved, safety_stock, version FROM inventory_balances LIMIT 0",
+    "SELECT variant_id, location_id, on_hand, reserved, safety_stock, version, mutation_token FROM inventory_balances LIMIT 0",
     "SELECT movement_type, on_hand_delta, reserved_delta, reason_code, idempotency_key FROM inventory_movements LIMIT 0",
     "SELECT expected_quantity, received_quantity, status, version FROM inventory_incoming LIMIT 0",
   ];
@@ -148,7 +148,7 @@ try {
     "--persist-to",
     persistDir,
     "--command",
-    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status') ORDER BY name",
+    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status') ORDER BY name",
   ]);
 
   for (const required of [
@@ -156,6 +156,7 @@ try {
     "idx_product_variants_sku",
     "idx_product_version_media_one_primary",
     "idx_inventory_movements_idempotency",
+    "idx_inventory_movements_initial_count",
     "idx_inventory_movements_variant_created",
     "idx_inventory_incoming_variant_status",
   ]) {
