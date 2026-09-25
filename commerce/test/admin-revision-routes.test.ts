@@ -290,6 +290,76 @@ describe("admin order revision routes", () => {
     );
   });
 
+  it("removes a shop-added reviewed item with concurrency protection", async () => {
+    const removeAddedRevisionLineFn = vi.fn(async () => ({
+      id: "rev-1",
+      revisionNumber: 1,
+      state: "DRAFT",
+      version: 3,
+    }));
+
+    const response = await handleAdminRequest(
+      new Request(
+        "https://admin.example.com/admin/api/orders/BSR-1/revisions/rev-1/items/3",
+        {
+          method: "DELETE",
+          headers: {
+            origin: "https://admin.example.com",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ expectedVersion: 2 }),
+        },
+      ),
+      { DB: new Db() },
+      { ...baseDependencies, removeAddedRevisionLineFn } as any,
+    );
+
+    expect(response.status).toBe(200);
+    expect(removeAddedRevisionLineFn).toHaveBeenCalledWith(
+      expect.any(Db),
+      "BSR-1",
+      "rev-1",
+      3,
+      2,
+      "owner@example.com",
+    );
+  });
+
+  it("restores an original requested item after a substitute", async () => {
+    const restoreOriginalRevisionLineFn = vi.fn(async () => ({
+      id: "rev-1",
+      revisionNumber: 1,
+      state: "DRAFT",
+      version: 4,
+    }));
+
+    const response = await handleAdminRequest(
+      new Request(
+        "https://admin.example.com/admin/api/orders/BSR-1/revisions/rev-1/items/2/reset",
+        {
+          method: "POST",
+          headers: {
+            origin: "https://admin.example.com",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ expectedVersion: 3 }),
+        },
+      ),
+      { DB: new Db() },
+      { ...baseDependencies, restoreOriginalRevisionLineFn } as any,
+    );
+
+    expect(response.status).toBe(200);
+    expect(restoreOriginalRevisionLineFn).toHaveBeenCalledWith(
+      expect.any(Db),
+      "BSR-1",
+      "rev-1",
+      2,
+      3,
+      "owner@example.com",
+    );
+  });
+
   it("rejects cross-origin PATCH before revision logic runs", async () => {
     const updateDraftRevisionFn = vi.fn(baseDependencies.updateDraftRevisionFn);
 
