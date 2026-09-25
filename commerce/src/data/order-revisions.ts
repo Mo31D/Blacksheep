@@ -47,6 +47,7 @@ interface RevisionRow {
   supersededAt: string | null;
   expiresAt: string | null;
   fulfilmentMethod: "delivery" | "collection";
+  orderStatus: string;
 }
 
 interface RevisionItemRow {
@@ -142,7 +143,8 @@ async function findRevision(
         r.declined_at AS declinedAt,
         r.superseded_at AS supersededAt,
         r.expires_at AS expiresAt,
-        o.fulfilment_method AS fulfilmentMethod
+        o.fulfilment_method AS fulfilmentMethod,
+        o.status AS orderStatus
       FROM order_revisions r
       INNER JOIN orders o ON o.id = r.order_id
       WHERE o.public_reference = ? AND r.id = ?
@@ -650,6 +652,15 @@ export async function transitionOrderRevision(
         )
         .bind(now, nextVersion, revisionId, revision.version),
     );
+    statements.push(
+      db
+        .prepare(
+          `UPDATE orders
+          SET status = 'QUOTED', updated_at = ?, quoted_at = COALESCE(quoted_at, ?)
+          WHERE id = ? AND status IN ('UNDER_REVIEW', 'QUOTED')`,
+        )
+        .bind(now, now, revision.orderId),
+    );
   } else if (action === "accept") {
     if (revision.state !== "SENT") throw new Error("revision_accept_requires_sent");
     statements.push(
@@ -688,7 +699,7 @@ export async function transitionOrderRevision(
           order_id, event_type, from_status, to_status,
           actor_type, actor_id, note, metadata_json, created_at
         )
-        SELECT ?, ?, NULL, NULL, 'admin', ?, NULL, ?, ?
+        SELECT ?, ?, ?, ?, 'admin', ?, NULL, ?, ?
         WHERE EXISTS (
           SELECT 1 FROM order_revisions
           WHERE id = ? AND version = ?
@@ -697,6 +708,8 @@ export async function transitionOrderRevision(
       .bind(
         revision.orderId,
         eventType,
+        action === "send" ? revision.orderStatus : null,
+        action === "send" ? "QUOTED" : null,
         actorEmail,
         JSON.stringify({
           revisionId,
