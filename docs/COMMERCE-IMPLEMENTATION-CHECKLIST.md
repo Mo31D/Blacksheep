@@ -220,7 +220,7 @@ Status: COMPLETE, INCLUDING OWNER IDENTITY AND LIVE INBOUND-EMAIL VERIFICATION.
 
 ## Phase 14 — Production cutover
 
-Status: PREPARED, NOT EXECUTED.
+Status: IN PROGRESS; production shell/configuration prepared, public checkout still OFF.
 
 - [x] Conservative production cutover runbook.
 - [x] Customer Commerce UI on `main` with public ordering OFF.
@@ -230,9 +230,12 @@ Status: PREPARED, NOT EXECUTED.
 - [x] Add/re-add GitHub Actions secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 - [x] Complete Phase 11/12 live staging verification.
 - [x] Confirm Phase 13 business-identity/inbound-email items.
-- [ ] Configure production Worker secrets/variables for Turnstile, Resend and owner email.
+- [x] Create production Worker shell `black-sheep-commerce-api` without GitHub auto-deploy.
+- [x] Configure production Worker secrets/variables for Turnstile, Resend and owner email.
+- [x] Create separate production Turnstile widget/secret.
+- [x] Create separate Resend production API key.
+- [x] Attach `api.theblacksheepshop.co.uk` as the production Worker Custom Domain.
 - [ ] Apply production D1 migrations.
-- [ ] Attach `api.theblacksheepshop.co.uk`.
 - [ ] Deploy production Worker.
 - [ ] Verify production `/health` and `/admin`.
 - [ ] Point checkout config to production API and switch public feature gates ON.
@@ -266,14 +269,23 @@ These Phase 15 items require provider/business decisions and should not be silen
 
 ## Current exact next action
 
-Phases 11, 12 and 13 staging/customer-information gates are now passed.
+Phases 11, 12 and 13 are complete. Phase 14 production setup is now in progress.
 
-1. Configure the production Worker secrets/variables for Turnstile, Resend and owner email.
-2. Attach `api.theblacksheepshop.co.uk` to the production Worker.
-3. Run the guarded production deployment with explicit `DEPLOY-PRODUCTION` confirmation.
-4. Verify production `/health` and `/admin` before enabling customer checkout.
-5. Only after those checks pass, point checkout to `https://api.theblacksheepshop.co.uk` and switch the public feature gates ON.
-6. Test production delivery + collection, duplicate protection, API-error cart preservation and notifications.
-7. Run one controlled low-value production lifecycle, then complete the remaining Phase 14 QA gates.
+Completed in the production setup:
+- Production Worker shell `black-sheep-commerce-api` created.
+- Separate production Turnstile secret configured.
+- Separate production Resend API key configured.
+- `ORDER_OWNER_EMAIL` configured.
+- Custom Domain `api.theblacksheepshop.co.uk` attached.
+- Public storefront checkout remains feature-gated OFF.
 
-Production D1 remains untouched until the guarded Phase 14 production cutover is explicitly started.
+Next:
+1. Run the guarded `Commerce Deploy` workflow with `environment = production` and confirmation `DEPLOY-PRODUCTION`.
+2. That run must apply pending production D1 migrations and deploy the real Commerce Worker code.
+3. Verify `https://api.theblacksheepshop.co.uk/health`.
+4. Verify owner login at `https://api.theblacksheepshop.co.uk/admin`.
+5. Only after production API/admin checks pass, update the storefront with the production Turnstile Site Key, point checkout to `https://api.theblacksheepshop.co.uk`, and switch the public feature gates ON.
+6. Complete delivery/collection, duplicate-protection, cart-preservation, notification and controlled low-value production lifecycle QA.
+7. Record final production SHA/resources in the handoff.
+
+Production D1 has still not been migrated at the time of this checklist update; that happens only in the guarded production deployment.
