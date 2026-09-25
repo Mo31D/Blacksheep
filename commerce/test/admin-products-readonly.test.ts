@@ -74,6 +74,9 @@ describe("Phase 2 Product Admin", () => {
     expect(html).toContain("Duplicate");
     expect(html).toContain("Archive");
     expect(html).toContain('data-product-filter="archived"');
+    expect(html).toContain("Manage images");
+    expect(html).toContain("Maximum 8 MB");
+    expect(html).toContain('accept="image/jpeg,image/png,image/webp"');
   });
 
   it("returns actionable quality metrics without treating in-store pricing as missing", async () => {
@@ -364,6 +367,103 @@ describe("Phase 2 Product Admin", () => {
         sellStatus: "NOT_FOR_SALE",
         onlineOrderingEnabled: false,
       },
+    });
+  });
+
+  it("uploads a validated image into the Product draft", async () => {
+    let storedKey = "";
+    let storedBytes = 0;
+    let mediaInput: Record<string, unknown> | null = null;
+    const bucket = {
+      async put(key: string, value: ArrayBuffer | Uint8Array) {
+        storedKey = key;
+        storedBytes = value instanceof Uint8Array ? value.byteLength : value.byteLength;
+        return {};
+      },
+      async get() {
+        return null;
+      },
+      async delete() {
+        return undefined;
+      },
+    };
+    const png = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      0x00, 0x00, 0x00, 0x00,
+    ]);
+    const form = new FormData();
+    form.append("expectedVersion", "4");
+    form.append("altText", "Peter Rabbit gift");
+    form.append("file", new File([png], "peter.png", { type: "image/png" }));
+
+    const response = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/products/prd-1/media", {
+        method: "POST",
+        headers: { origin: "https://admin.example.com" },
+        body: form,
+      }),
+      { DB: new Db(), PRODUCT_MEDIA: bucket },
+      {
+        verifyAccessFn: identity,
+        getAdminProductDetailFn: async () => ({
+          ...product,
+          draftVersionId: "pver-draft",
+          media: [],
+        }),
+        addAdminProductMediaFn: async (_db, _id, raw) => {
+          mediaInput = raw as unknown as Record<string, unknown>;
+          return { mediaId: String((raw as { mediaId?: string }).mediaId) };
+        },
+      },
+    );
+
+    expect(response.status).toBe(201);
+    expect(storedKey).toContain("products/prd-1/");
+    expect(storedKey).toMatch(/\.png$/);
+    expect(storedBytes).toBe(png.byteLength);
+    expect(mediaInput).toMatchObject({
+      expectedVersion: 4,
+      mimeType: "image/png",
+      altText: "Peter Rabbit gift",
+    });
+  });
+
+  it("rejects image content that does not match its declared type", async () => {
+    const form = new FormData();
+    form.append("expectedVersion", "4");
+    form.append(
+      "file",
+      new File([new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])], "fake.png", {
+        type: "image/png",
+      }),
+    );
+
+    const response = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/products/prd-1/media", {
+        method: "POST",
+        headers: { origin: "https://admin.example.com" },
+        body: form,
+      }),
+      {
+        DB: new Db(),
+        PRODUCT_MEDIA: {
+          async put() {
+            return {};
+          },
+          async get() {
+            return null;
+          },
+          async delete() {
+            return undefined;
+          },
+        },
+      },
+      { verifyAccessFn: identity },
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "product_media_signature_invalid" },
     });
   });
 
