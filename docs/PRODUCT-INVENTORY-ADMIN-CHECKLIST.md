@@ -188,12 +188,28 @@ Exit gate:
 - [x] Full Commerce CI after Phase 4 implementation — run `36182963561` SUCCESS.
 - [x] Direct post-release integrity — 147 products / 146 imported / 0 tracked / 0 balances / 0 movements / 0 incoming; 2 ledger triggers + 2 key ledger indexes present.
 - [x] Product detail ↔ Stock integration polish — actual Low/Out state, quantities and `Stock` deep-link; CI run `36183681792` SUCCESS.
-- [~] Re-deploy latest integration polish through reusable Phase 4 release gate.
+- [x] Final Product↔Stock integration polish deployed — workflow `36183967251` / job `108232778002` SUCCESS.
 - [x] `0010` applied + Stock workspace deployed to staging — workflow `36183361766` SUCCESS.
-- [ ] Controlled owner Phase 4 stock smoke-test on a staging QA product.
+- [~] Controlled owner Phase 4 stock smoke-test on a staging QA product — final Phase 4 gate.
 
 Exit gate:
 - every quantity change is explainable from the ledger.
+
+---
+
+**Status: TECHNICALLY COMPLETE ON STAGING — owner stock mutation QA is the only remaining Phase 4 gate.**
+
+Evidence:
+- source/contract CI: `36182963561` — SUCCESS
+- initial staging release: `36183361766` / job `108230788251` — SUCCESS
+- Product↔Stock polish CI: `36183681792` — SUCCESS
+- final staging release: `36183967251` / job `108232778002` — SUCCESS
+- current staging deployment: `30023133-b0b6-41b3-bbfe-66db86748fb0`
+- current staging Worker version: `b087f7b4-6cb7-4d80-bb62-06cac1ae2dbf` / version 70
+- staging migration ledger ends at `0010_inventory_core.sql`
+- direct post-release state before owner stock QA: 147 products / 146 original imports / 0 tracked / 0 balances / 0 movements / 0 incoming
+- Production remains `0000–0008` with no Product/Inventory tables and 3 orders
+- `docs/INVENTORY-CORE-PHASE4-STAGING-2026-09-25.md`
 
 ---
 
@@ -277,30 +293,33 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 4 — gated staging release
+## Phase 4 — owner staging stock QA
 
-Phase 4 source is CI-clean. Next:
+Use the existing archived `STAGING QA PRODUCT` only as the source for a new safe test copy; do not use a real sale product.
 
-1. [x] Create dedicated `Inventory Core Staging Phase 4` workflow.
-2. [x] Capture baseline, apply `0010`, verify no inferred stock, deploy initial Phase 4 release.
-3. [~] Make the release gate safely rerunnable after `0010` and deploy the final Product↔Stock polish.
-3. Re-run full Commerce CI.
-4. Apply forward-only `0010_inventory_core.sql` to **staging only**.
-5. Verify migration itself did not infer or enable any stock quantity.
-6. Verify immutable ledger triggers / idempotency / Initial Count uniqueness.
-7. Deploy the Stock workspace/API to staging only.
-8. Verify Worker health and Admin shell.
-9. Re-check Production still stops at migration `0008` and its order data is unchanged.
-10. Owner performs one controlled QA sequence:
-   - Initial Count,
-   - Adjustment,
-   - Physical Count,
-   - Low-stock threshold,
-   - Inventory History,
-   - Bulk Stocktake.
+1. Products → Archived → `STAGING QA PRODUCT` → **Duplicate product**.
+2. Open the new `STAGING QA PRODUCT — Copy`.
+3. Use its **Stock** button or open the Stock tab and search for the copy.
+4. **Initial Count:** enter `10`.
+   - expected: Tracking enabled, On hand 10, Reserved 0, Available 10.
+5. **Low-stock threshold:** set `3`.
+6. **Adjust stock:** `-2`, reason `Damage`.
+   - expected: On hand 8, Available 8; immutable Damage movement visible.
+7. **Physical count:** enter `9`.
+   - expected: correction +1; On hand/Available 9; history shows the count correction.
+8. Filter/search so only the QA copy is in the Stock list, run **Stocktake**, enter `9`.
+   - expected: explicit `Unchanged` result.
+9. Repeat Stocktake with `8` if you want to prove bulk correction.
+   - expected: `Updated 1`, On hand/Available 8.
+10. Confirm Products shows the live Inventory Core state and Product → **Stock** deep-link works.
+11. Return to Products and **Archive** the QA copy after testing.
 
-Safety locks remain:
-- no Phase 5 reviewed-order reservations yet,
-- no Phase 6 storefront/checkout inventory authority yet,
-- no Production Product Core/Inventory migration,
-- no inferred stock quantities for existing products.
+Once this owner QA passes:
+- mark Phase 4 COMPLETE,
+- begin **PHASE 5 — ORDER RESERVATIONS**,
+- do not enable Phase 6 storefront/checkout inventory authority yet.
+
+Safety locks:
+- Production remains pre-Product-Core at `0000–0008`,
+- no real product stock has been inferred or modified by the Phase 4 migration,
+- no reviewed-order reservation logic is enabled until Phase 5.
