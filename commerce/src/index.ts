@@ -1,6 +1,7 @@
 import type { D1DatabaseLike } from "./data/d1";
 import { handleCreateOrder, type RateLimiterLike } from "./routes/orders";
 import { handleAdminRequest } from "./routes/admin";
+import { handleCustomerReviewRequest } from "./routes/customer-review";
 
 interface Env {
   ENVIRONMENT?: string;
@@ -73,6 +74,10 @@ async function route(request: Request, env: Env): Promise<Response> {
 
   if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
     return handleAdminRequest(request, env);
+  }
+
+  if (url.pathname === "/review" || url.pathname.startsWith("/review/")) {
+    return handleCustomerReviewRequest(request, env);
   }
 
   if (request.method === "OPTIONS") return preflight(request, env);
