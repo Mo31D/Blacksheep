@@ -16,3 +16,20 @@ export function requirePurchasableProduct(id: string): CommerceCatalogProduct {
   }
   return product;
 }
+
+
+export function listPurchasableProducts(
+  query = "",
+  limit = 50,
+): CommerceCatalogProduct[] {
+  const normalized = query.trim().toLowerCase();
+  const safeLimit = Math.max(1, Math.min(100, Math.floor(limit) || 50));
+
+  return COMMERCE_CATALOG.filter((product) => {
+    if (!product.purchasable || product.priceMinor === null) return false;
+    if (!normalized) return true;
+    return [product.id, product.sku, product.slug, product.name, product.type]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(normalized));
+  }).slice(0, safeLimit);
+}
