@@ -613,28 +613,25 @@ Status: **PREFLIGHT COMPLETE — all staging exit gates are closed, release SHA 
   - Production currently contains 3 orders.
   - Production migration command and Wrangler binding both target `black-sheep-commerce-prod` / `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`.
 
+- [x] Latest pre-migration guard: production Worker remains `938f0651-20b5-48df-a8d4-f84defbb263d`, production still has 3 orders and migrations `0000–0002`. Latest D1 Time Travel bookmark immediately before mutation: `00000028-00000000-000050f1-68842c17a511b740b3b28bcc859c1042`.
+
 # EXACT NEXT ACTION
 
-**PHASE 13 EXECUTION — STEP 1 READY: apply production migrations 0003–0008 under the captured recovery point.**
+**PHASE 13 EXECUTION — STEP 1 IN PROGRESS: apply production migrations 0003–0008.**
 
-Pre-flight is complete.
-
-Pinned release:
-- source SHA: `8c5462388648235acd3a41b853d1adee057a11a7`
-
-Production baseline:
-- Worker deployment ID: `f1ff4d67-bda6-4330-b4ae-961ea8d55f95`
+Final guard immediately before mutation:
 - Worker version: `938f0651-20b5-48df-a8d4-f84defbb263d`
-- D1: `black-sheep-commerce-prod`
-- D1 ID: `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
-- migrations currently applied: `0000–0002`
-- recovery Time Travel bookmark: `00000026-00000000-000050f1-4416edcc1a9b9a288fa8099919e4b5be`
+- production orders: 3
+- current migrations: `0000–0002`
+- latest recovery bookmark: `00000028-00000000-000050f1-68842c17a511b740b3b28bcc859c1042`
+- pinned runtime source: `8c5462388648235acd3a41b853d1adee057a11a7`
 
-Migration review:
-- exact required set: `0003–0008`
-- destructive operations: none
-- dependency/order review: PASS
-- production schema conflict check: PASS
-- target binding/script review: PASS
+Current step:
+1. run a migration-only production workflow that checks out the pinned release SHA,
+2. apply exactly the pending migrations `0003–0008`,
+3. verify migration list is `0000–0008`,
+4. verify Admin V2 tables/columns/indexes exist,
+5. verify the 3 existing orders remain present,
+6. update this checklist before any Worker deployment.
 
-**Next action is the first real production mutation: apply migrations `0003–0008`, verify D1 schema/migration level, and only then deploy the pinned Worker source.**
+**Do not deploy the Worker until migration verification passes.**
