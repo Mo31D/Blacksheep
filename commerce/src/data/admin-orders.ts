@@ -58,16 +58,43 @@ export async function getAdminOrderState(
   return db
     .prepare(
       `SELECT
-        id,
-        public_reference AS publicReference,
-        status,
-        fulfilment_method AS fulfilmentMethod,
-        items_subtotal_minor AS itemsSubtotalMinor,
-        delivery_amount_minor AS deliveryAmountMinor,
-        final_total_minor AS finalTotalMinor,
-        payment_status AS paymentStatus
-      FROM orders
-      WHERE public_reference = ?
+        o.id,
+        o.public_reference AS publicReference,
+        o.status,
+        o.fulfilment_method AS fulfilmentMethod,
+        COALESCE(
+          (
+            SELECT r.items_subtotal_minor
+            FROM order_revisions r
+            WHERE r.order_id = o.id AND r.state IN ('SENT', 'ACCEPTED')
+            ORDER BY r.revision_number DESC
+            LIMIT 1
+          ),
+          o.items_subtotal_minor
+        ) AS itemsSubtotalMinor,
+        COALESCE(
+          (
+            SELECT r.delivery_amount_minor
+            FROM order_revisions r
+            WHERE r.order_id = o.id AND r.state IN ('SENT', 'ACCEPTED')
+            ORDER BY r.revision_number DESC
+            LIMIT 1
+          ),
+          o.delivery_amount_minor
+        ) AS deliveryAmountMinor,
+        COALESCE(
+          (
+            SELECT r.final_total_minor
+            FROM order_revisions r
+            WHERE r.order_id = o.id AND r.state IN ('SENT', 'ACCEPTED')
+            ORDER BY r.revision_number DESC
+            LIMIT 1
+          ),
+          o.final_total_minor
+        ) AS finalTotalMinor,
+        o.payment_status AS paymentStatus
+      FROM orders o
+      WHERE o.public_reference = ?
       LIMIT 1`,
     )
     .bind(reference)
@@ -112,7 +139,58 @@ export async function getAdminOrderDetail(
         paid_at AS paidAt,
         shipped_at AS shippedAt,
         completed_at AS completedAt,
-        cancelled_at AS cancelledAt
+        cancelled_at AS cancelledAt,
+        (
+          SELECT r.id
+          FROM order_revisions r
+          WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+          ORDER BY r.revision_number DESC
+          LIMIT 1
+        ) AS activeRevisionId,
+        (
+          SELECT r.revision_number
+          FROM order_revisions r
+          WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+          ORDER BY r.revision_number DESC
+          LIMIT 1
+        ) AS activeRevisionNumber,
+        (
+          SELECT r.state
+          FROM order_revisions r
+          WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+          ORDER BY r.revision_number DESC
+          LIMIT 1
+        ) AS activeRevisionState,
+        COALESCE(
+          (
+            SELECT r.items_subtotal_minor
+            FROM order_revisions r
+            WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+            ORDER BY r.revision_number DESC
+            LIMIT 1
+          ),
+          items_subtotal_minor
+        ) AS effectiveItemsSubtotalMinor,
+        COALESCE(
+          (
+            SELECT r.delivery_amount_minor
+            FROM order_revisions r
+            WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+            ORDER BY r.revision_number DESC
+            LIMIT 1
+          ),
+          delivery_amount_minor
+        ) AS effectiveDeliveryAmountMinor,
+        COALESCE(
+          (
+            SELECT r.final_total_minor
+            FROM order_revisions r
+            WHERE r.order_id = orders.id AND r.state IN ('SENT', 'ACCEPTED')
+            ORDER BY r.revision_number DESC
+            LIMIT 1
+          ),
+          final_total_minor
+        ) AS effectiveFinalTotalMinor
       FROM orders
       WHERE public_reference = ?
       LIMIT 1`,
@@ -261,16 +339,25 @@ export async function getPaymentNotificationSnapshot(
   return db
     .prepare(
       `SELECT
-        id,
-        public_reference AS publicReference,
-        customer_name AS customerName,
-        customer_email AS customerEmail,
-        final_total_minor AS finalTotalMinor,
-        payment_request_url AS paymentRequestUrl,
-        fulfilment_method AS fulfilmentMethod,
-        fulfilment_message AS fulfilmentMessage
-      FROM orders
-      WHERE public_reference = ?
+        o.id,
+        o.public_reference AS publicReference,
+        o.customer_name AS customerName,
+        o.customer_email AS customerEmail,
+        COALESCE(
+          (
+            SELECT r.final_total_minor
+            FROM order_revisions r
+            WHERE r.order_id = o.id AND r.state IN ('SENT', 'ACCEPTED')
+            ORDER BY r.revision_number DESC
+            LIMIT 1
+          ),
+          o.final_total_minor
+        ) AS finalTotalMinor,
+        o.payment_request_url AS paymentRequestUrl,
+        o.fulfilment_method AS fulfilmentMethod,
+        o.fulfilment_message AS fulfilmentMessage
+      FROM orders o
+      WHERE o.public_reference = ?
       LIMIT 1`,
     )
     .bind(reference)
