@@ -42,6 +42,9 @@ interface Scenario {
   activeReservation?: boolean;
   supersededReservation?: boolean;
   releaseRows?: unknown[];
+  initialState?: RevisionState;
+  initialVersion?: number;
+  replayReservation?: boolean;
 }
 
 class TransitionDb implements D1DatabaseLike {
@@ -53,15 +56,17 @@ class TransitionDb implements D1DatabaseLike {
 
   private revisionRow(): Record<string, unknown> {
     const beforeState: RevisionState =
-      this.scenario.action === "decline" ? "SENT" : "DRAFT";
+      this.scenario.initialState ??
+      (this.scenario.action === "decline" ? "SENT" : "DRAFT");
     const afterState: RevisionState =
       this.scenario.action === "decline" ? "DECLINED" : "SENT";
+    const beforeVersion = this.scenario.initialVersion ?? 4;
     return {
       id: "rev-new",
       orderId: "order-1",
       revisionNumber: 2,
       state: this.postBatch ? afterState : beforeState,
-      version: this.postBatch ? 5 : 4,
+      version: this.postBatch ? beforeVersion + 1 : beforeVersion,
       mutationToken: this.postBatch ? "post-batch-token" : "before-token",
       currency: "GBP",
       itemsSubtotalMinor: 4000,
@@ -128,6 +133,12 @@ class TransitionDb implements D1DatabaseLike {
               },
             ]
           : [];
+    } else if (
+      query.includes("FROM inventory_reservations") &&
+      query.includes("state IN ('ACTIVE','COMMITTED','CONSUMED')")
+    ) {
+      firstFactory = () =>
+        this.scenario.replayReservation ? { id: "res-replay" } : null;
     } else if (
       query.includes("FROM inventory_reservations") &&
       query.includes("revision_id = ?") &&
@@ -255,6 +266,37 @@ describe("Phase 5 revision reservation transitions", () => {
     expect(reservationIndex).toBeGreaterThan(holdIndex);
     expect(movementIndex).toBeGreaterThan(reservationIndex);
     expect(sendIndex).toBeGreaterThan(movementIndex);
+  });
+
+  it("treats an exact replay of a successful Send as idempotent and creates no second hold", async () => {
+    const db = new TransitionDb({
+      action: "send",
+      initialState: "SENT",
+      initialVersion: 5,
+      replayReservation: true,
+    });
+
+    const result = await transitionOrderRevision(
+      db,
+      "BSR-TEST",
+      "rev-new",
+      "send",
+      4,
+      "owner@example.com",
+      { inventoryReservations: true },
+    );
+
+    expect(result).toMatchObject({
+      state: "SENT",
+      version: 5,
+      idempotentReplay: true,
+    });
+    expect(db.batches).toHaveLength(0);
+    expect(
+      db.prepared.filter((statement) =>
+        statement.sql.includes("INSERT INTO inventory_reservations"),
+      ),
+    ).toHaveLength(0);
   });
 
   it("preserves an untracked reviewed line without a numeric inventory balance mutation", async () => {
