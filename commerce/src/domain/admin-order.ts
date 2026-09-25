@@ -19,7 +19,9 @@ export type AdminOrderAction =
     }
   | { action: "ready_for_collection" }
   | { action: "complete" }
-  | { action: "cancel"; note?: string | null };
+  | { action: "cancel"; note?: string | null }
+  | { action: "record_refund"; note?: string | null }
+  | { action: "refund_and_cancel"; note?: string | null };
 
 export interface AdminOrderState {
   id: string;
@@ -71,6 +73,12 @@ function httpsUrl(value: unknown): string {
   const url = new URL(value);
   if (url.protocol !== "https:") throw new Error("admin_url_must_be_https");
   return url.toString();
+}
+
+function requirePaidForRefund(order: AdminOrderState, action: string): void {
+  if (order.paymentStatus !== "PAID") {
+    throw new Error(`admin_refund_requires_paid:${action}:${order.paymentStatus}`);
+  }
 }
 
 export function validateAdminOrderAction(
@@ -189,6 +197,35 @@ export function validateAdminOrderAction(
           order.paymentStatus === "PAYMENT_REQUESTED" ? "CANCELLED" : order.paymentStatus,
         timestampField: "cancelled_at",
         eventType: "ORDER_CANCELLED",
+        note: optionalText(input.note, 1000),
+      };
+
+    case "record_refund":
+      requireStatus(
+        order.status,
+        ["PAID", "PREPARING", "SHIPPED", "READY_FOR_COLLECTION", "COMPLETED"],
+        action,
+      );
+      requirePaidForRefund(order, action);
+      return {
+        nextStatus: order.status,
+        paymentStatus: "REFUNDED",
+        eventType: "PAYMENT_REFUNDED",
+        note: optionalText(input.note, 1000),
+      };
+
+    case "refund_and_cancel":
+      requireStatus(
+        order.status,
+        ["PAID", "PREPARING", "SHIPPED", "READY_FOR_COLLECTION"],
+        action,
+      );
+      requirePaidForRefund(order, action);
+      return {
+        nextStatus: "CANCELLED",
+        paymentStatus: "REFUNDED",
+        timestampField: "cancelled_at",
+        eventType: "ORDER_REFUNDED_AND_CANCELLED",
         note: optionalText(input.note, 1000),
       };
 
