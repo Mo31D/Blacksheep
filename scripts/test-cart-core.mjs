@@ -36,6 +36,8 @@ const catalog=[
   {id:"B",type:"gifts",slug:"b",name:"B",price:5,stockStatus:"out-of-stock"},
   {id:"C",type:"gifts",slug:"c",name:"C",price:7,availabilityStatus:"arriving-soon"},
   {id:"D",type:"gifts",slug:"d",name:"D"},
+  {id:"E",type:"gifts",slug:"e",name:"E",price:8,commerceLive:true,commercePurchasable:true,commerceInventoryTracked:true,commerceAvailable:1},
+  {id:"F",type:"gifts",slug:"f",name:"F",price:9,commerceLive:true,commercePurchasable:false,commerceUnavailableReason:"online_ordering_disabled"},
 ];
 const resolve=(type,slug,productId)=>{
   if(productId){
@@ -76,6 +78,32 @@ const resolve=(type,slug,productId)=>{
   cart.change("gifts","a",-98);
   assert.equal(cart.count(),1);
   cart.change("gifts","a",-1);
+  assert.equal(cart.count(),0);
+}
+
+{
+  const storage=new MemoryStorage();
+  const cart=createCart(storage,resolve);
+  assert.equal(cart.add("gifts","e",1).ok,true);
+  assert.equal(cart.count(),1);
+  const second=cart.add("gifts","e",1);
+  assert.equal(second.ok,false);
+  assert.equal(second.reason,"out-of-stock");
+  assert.equal(cart.count(),1);
+  assert.equal(cart.setQuantity("gifts","e",2),false);
+  assert.equal(cart.count(),1);
+  assert.equal(cart.canCheckout(),true);
+  catalog.find(x=>x.id==="E").commerceAvailable=0;
+  assert.equal(cart.canCheckout(),false);
+  assert.equal(cart.resolvedItems()[0].unavailableReason,"out-of-stock");
+}
+
+{
+  const storage=new MemoryStorage();
+  const cart=createCart(storage,resolve);
+  const result=cart.add("gifts","f",1);
+  assert.equal(result.ok,false);
+  assert.equal(result.reason,"not-available-online");
   assert.equal(cart.count(),0);
 }
 
@@ -141,3 +169,20 @@ assert.match(confirmationHtml,/id="orderRequestedReference"/);
 assert.match(confirmationHtml,/No payment has been taken/);
 assert.match(confirmationHtml,/name="robots" content="noindex,follow"/);
 console.log("Order confirmation page contract checks passed.");
+
+const liveCommercePath=path.join(repoRoot,"assets","commerce-live.js");
+assert.ok(fs.existsSync(liveCommercePath),"Phase 6 live commerce overlay must exist");
+const liveCommerceSource=fs.readFileSync(liveCommercePath,"utf8");
+new vm.Script(liveCommerceSource);
+assert.match(source,/PHASE 6 LIVE COMMERCE OVERLAY LOADER START/);
+assert.match(source,/commerce-preview/);
+assert.match(source,/black-sheep-commerce-api-staging/);
+assert.match(source,/config\.liveCatalog===true/);
+assert.match(liveCommerceSource,/\/v1\/catalog\?limit=200/);
+assert.match(liveCommerceSource,/cache:'no-store'/);
+assert.match(liveCommerceSource,/commercePurchasable/);
+assert.match(liveCommerceSource,/commerceAvailable/);
+assert.match(liveCommerceSource,/dataset\.commerceLive='fallback'/);
+assert.doesNotMatch(liveCommerceSource,/rel=["']canonical|history\.replaceState|location\.pathname\s*=/);
+console.log("Phase 6 live commerce overlay contract checks passed.");
+
