@@ -12,6 +12,7 @@ import {
 import { requirePurchasableProduct } from "../domain/catalog";
 import {
   buildRevisionReservationPlan,
+  expireDueReservations,
   getActiveReservationReleasePlan,
   getSupersededReservationReleasePlan,
   prepareReservationMutation,
@@ -778,6 +779,10 @@ export async function transitionOrderRevision(
   let reservationPlan: RevisionReservationPlan | null = null;
   let supersededReservation: ActiveReservationReleasePlan | null = null;
   let currentReservation: ActiveReservationReleasePlan | null = null;
+
+  if (options.inventoryReservations && action === "send") {
+    await expireDueReservations(db);
+  }
 
   if (options.inventoryReservations) {
     if (action === "send") {
