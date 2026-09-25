@@ -51,7 +51,7 @@ Hardened source baseline after Phase 8 work:
 
 Environment facts — direct Cloudflare audit on 25 September 2026:
 
-- [x] Staging Worker deployed from source `860e260c6bfdcc1ab2f9de14e757b95d2f155af0`; current Version ID `ce641bd3-7817-4cef-8cef-b9cb7fe29c0f`; deployment ID `287523a7-ea4d-4e4e-b666-5358b7dc7338`; created `2026-09-25T12:42:52Z`.
+- [x] Staging Worker redeployed after adjustment API/UI completion; current Version ID `4ae90556-d5f3-42f9-93d2-d4243d9743d8`; staging URL health verified on 25 September 2026.
 - [x] Production Worker remains unchanged at Version ID `938f0651-20b5-48df-a8d4-f84defbb263d`; deployment ID `f1ff4d67-bda6-4330-b4ae-961ea8d55f95`; created `2026-09-25T00:45:39Z`.
 - [x] Staging D1 migrations `0003–0008` were applied successfully; post-deploy remote migration check reports **No migrations to apply**.
 - [x] Production D1 remains unchanged through `0002_order_fulfilment_message.sql`; remote pending migrations remain `0003–0008`.
@@ -414,6 +414,13 @@ Status: **COMPLETE — STAGING IS MIGRATED AND DEPLOYED; PHASE 10 IS ACTIVE WITH
 
 # PHASE 10 — STAGING END-TO-END V2
 
+- [x] Adjustment data layer is now exposed through authenticated Admin API routes.
+- [x] Draft-review UI now supports add/remove Discount, Surcharge and Manual Correction lines.
+- [x] Adjustment route tests, Commerce CI, Search Readiness and Pages passed before staging redeploy.
+- [x] Staging redeployed with adjustment API/UI; Worker Version ID `4ae90556-d5f3-42f9-93d2-d4243d9743d8`.
+
+
+
 Run one complete scenario:
 
 - [ ] Submit order.
@@ -521,8 +528,8 @@ Status: BLOCKED UNTIL STAGING PASS.
 **Phase 10 — run staging E2E against the deployed Admin V2 Worker.**
 
 Verified staging baseline:
-- source SHA: `860e260c6bfdcc1ab2f9de14e757b95d2f155af0`
-- Worker Version ID: `ce641bd3-7817-4cef-8cef-b9cb7fe29c0f`
+- source/redeploy commit: `bfd8e008b728b1d59d21e1725a3ace68d79a231b`
+- Worker Version ID: `4ae90556-d5f3-42f9-93d2-d4243d9743d8`
 - deployment ID: `287523a7-ea4d-4e4e-b666-5358b7dc7338`
 - D1 migrations: current through `0008_concurrency_guards.sql`
 - health: PASS
