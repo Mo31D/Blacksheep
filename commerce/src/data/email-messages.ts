@@ -53,5 +53,53 @@ export async function recordOutboundEmailAudit(
     )
     .run();
 
+  if (input.provider === "resend" && input.providerMessageId) {
+    const pending = await db
+      .prepare(
+        `SELECT event_type AS eventType, received_at AS receivedAt
+        FROM email_webhook_events
+        WHERE provider = 'resend' AND provider_message_id = ?
+        ORDER BY received_at DESC
+        LIMIT 1`,
+      )
+      .bind(input.providerMessageId)
+      .first<{ eventType: string; receivedAt: string }>();
+
+    const deliveryStatus =
+      pending?.eventType === "email.delivered"
+        ? "DELIVERED"
+        : pending?.eventType === "email.delivery_delayed"
+          ? "DELAYED"
+          : pending?.eventType === "email.bounced"
+            ? "BOUNCED"
+            : pending?.eventType === "email.complained"
+              ? "COMPLAINED"
+              : pending?.eventType === "email.failed" ||
+                  pending?.eventType === "email.suppressed"
+                ? "FAILED"
+                : pending?.eventType === "email.sent"
+                  ? "SENT"
+                  : null;
+
+    if (deliveryStatus && pending) {
+      await db
+        .prepare(
+          `UPDATE order_messages
+          SET delivery_status = ?,
+              delivered_at = CASE WHEN ? = 'DELIVERED' THEN COALESCE(delivered_at, ?) ELSE delivered_at END,
+              updated_at = ?
+          WHERE id = ?`,
+        )
+        .bind(
+          deliveryStatus,
+          deliveryStatus,
+          pending.receivedAt,
+          pending.receivedAt,
+          id,
+        )
+        .run();
+    }
+  }
+
   return id;
 }
