@@ -252,7 +252,7 @@ export async function listAdminProducts(
       onHand: null,
       reserved: null,
       available: null,
-      incoming: row.sellStatus === "ARRIVING_SOON" ? 1 : 0,
+      incoming: 0,
     },
     qualityFlags: qualityFlags(row),
     version: Number(row.version),
@@ -483,7 +483,7 @@ export async function getAdminProductDetail(
       onHand: null,
       reserved: null,
       available: null,
-      incoming: core.sellStatus === "ARRIVING_SOON" ? null : 0,
+      incoming: 0,
     },
   };
 }
