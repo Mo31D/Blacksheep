@@ -71,6 +71,9 @@ describe("Phase 2 Product Admin", () => {
     expect(html).toContain("Edit details");
     expect(html).toContain("product-mobile-sticky");
     expect(html).toContain("Unique products needing action");
+    expect(html).toContain("Duplicate");
+    expect(html).toContain("Archive");
+    expect(html).toContain('data-product-filter="archived"');
   });
 
   it("returns actionable quality metrics without treating in-store pricing as missing", async () => {
@@ -280,6 +283,87 @@ describe("Phase 2 Product Admin", () => {
     expect(publishResponse.status).toBe(200);
     await expect(publishResponse.json()).resolves.toMatchObject({
       product: { draftVersionId: null, version: 6 },
+    });
+  });
+
+  it("duplicates a product as a new safe draft", async () => {
+    const response = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/products/prd-1/duplicate", {
+        method: "POST",
+        headers: {
+          origin: "https://admin.example.com",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ expectedVersion: 4 }),
+      }),
+      { DB: new Db() },
+      {
+        verifyAccessFn: identity,
+        duplicateAdminProductFn: async () => ({ id: "prd-copy" }),
+        getAdminProductDetailFn: async () => ({
+          ...product,
+          id: "prd-copy",
+          title: "Peter Rabbit — Copy",
+          publicationStatus: "DRAFT",
+          sellStatus: "NOT_FOR_SALE",
+          onlineOrderingEnabled: false,
+          sku: null,
+          barcode: null,
+          draftVersionId: "pver-copy",
+          version: 1,
+        }),
+      },
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toMatchObject({
+      product: {
+        id: "prd-copy",
+        publicationStatus: "DRAFT",
+        sellStatus: "NOT_FOR_SALE",
+        onlineOrderingEnabled: false,
+        sku: null,
+        barcode: null,
+      },
+    });
+  });
+
+  it("archives without deleting the product record", async () => {
+    let archivedId = "";
+    const response = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/products/prd-1/archive", {
+        method: "POST",
+        headers: {
+          origin: "https://admin.example.com",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ expectedVersion: 4 }),
+      }),
+      { DB: new Db() },
+      {
+        verifyAccessFn: identity,
+        archiveAdminProductFn: async (_db, id) => {
+          archivedId = id;
+        },
+        getAdminProductDetailFn: async () => ({
+          ...product,
+          publicationStatus: "ARCHIVED",
+          sellStatus: "NOT_FOR_SALE",
+          onlineOrderingEnabled: false,
+          version: 5,
+        }),
+      },
+    );
+
+    expect(archivedId).toBe("prd-1");
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      product: {
+        id: "prd-1",
+        publicationStatus: "ARCHIVED",
+        sellStatus: "NOT_FOR_SALE",
+        onlineOrderingEnabled: false,
+      },
     });
   });
 
