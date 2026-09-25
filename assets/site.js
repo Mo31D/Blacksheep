@@ -143,13 +143,15 @@ function createBlackSheepCartCore(storage,resolveProduct){
 
   function add(type,slug,quantity=1){
     const item=resolveProduct(type,slug);
-    const state=productState(item,quantity);
-    if(!item||!state.purchasable)return{ok:false,reason:state.reason,item:item||null};
+    if(!item)return{ok:false,reason:'missing-product',item:null};
     const rows=getItems();
     const key=String(item.id||type+':'+slug);
     const existing=rows.find(row=>String(row.productId||row.type+':'+row.slug)===key);
     const addQty=Math.min(maxQuantity,Math.max(1,Math.floor(Number(quantity)||1)));
-    if(existing)existing.quantity=Math.min(maxQuantity,existing.quantity+addQty);
+    const nextQty=Math.min(maxQuantity,(existing?.quantity||0)+addQty);
+    const state=productState(item,nextQty);
+    if(!state.purchasable)return{ok:false,reason:state.reason,item};
+    if(existing)existing.quantity=nextQty;
     else rows.push({productId:item.id||null,type,slug,quantity:addQty});
     writeItems(rows);
     return{ok:true,item,quantity:(existing?.quantity)||addQty};
