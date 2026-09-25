@@ -8,10 +8,12 @@ This is the resumable execution file. It distinguishes code-complete work from l
 
 ## Current implementation anchor
 
-- Latest reconciled Commerce/storefront anchor before this documentation commit: `b24d5cc891fe3dae7558e5e564e6612789711381`.
-- Search Readiness: PASS after legal sitemap reconciliation.
-- Commerce CI: PASS on the current Commerce implementation: cart/page/legal checks, TypeScript, local D1 migrations, 51 Vitest tests, Wrangler staging dry-run.
-- GitHub Pages: customer Commerce UI is deployed but public order submission is deliberately feature-gated OFF.
+- Latest admin/Commerce code anchor before this documentation commit: `66823bcc03d71b17f8532009da634fe20bf73c46`.
+- Search Readiness: PASS on admin redesign commit `66823bcc03d71b17f8532009da634fe20bf73c46` (run `36084151246`).
+- Commerce CI: PASS on admin redesign commit `66823bcc03d71b17f8532009da634fe20bf73c46` (run `36084151222`).
+- GitHub Pages deployment: PASS for the same commit (run `36084150251`).
+- Public storefront ordering is ON and points to the production API `https://api.theblacksheepshop.co.uk`.
+- The redesigned admin/reporting code is on `main`, but requires a new production Worker deployment before it becomes live at `/admin`.
 - Staging D1: `black-sheep-commerce-staging` — `d442b45d-93b6-4535-b76a-4b72e62dc271`.
 - Production D1: `black-sheep-commerce-prod` — `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`.
 - Staging Worker: `https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev`.
@@ -180,6 +182,16 @@ Status: COMPLETE AND LIVE-STAGING VERIFIED.
 - [x] Deploy newest `main` Worker to staging.
 - [x] Verify real owner-code login.
 - [x] Run one complete staging admin lifecycle: `SUBMITTED → UNDER_REVIEW → QUOTED → AWAITING_PAYMENT → PAID → PREPARING → READY_FOR_COLLECTION → COMPLETED`.
+- [x] Rebuild the owner admin UI into a professional responsive operations dashboard.
+- [x] Add mobile-first order management with bottom navigation, full-screen order detail and touch-friendly actions.
+- [x] Replace raw status/event codes in the UI with human-readable labels.
+- [x] Prevent invalid quote UI on a newly submitted order; the owner must start review first.
+- [x] Add an authenticated Dashboard view with operational KPIs, revenue trend and attention queue.
+- [x] Add an authenticated Reports view with 7/30/90/365-day periods, revenue trend, status distribution, fulfilment mix, top products, payment funnel, top customers and operational insights.
+- [x] Add CSV report export from the owner dashboard.
+- [x] Add authenticated `GET /admin/api/reports` backed by server-side D1 aggregates.
+- [x] Add manual refund-recording actions: `record_refund` and `refund_and_cancel`. These record a refund only after the owner has actually returned the money; they do not move funds.
+- [x] Add automated tests for reports, redesigned admin shell and refund state-machine rules.
 
 ## Phase 12 — Payment V1
 
@@ -194,6 +206,7 @@ Status: COMPLETE AND LIVE-STAGING VERIFIED.
 - [x] No reusable public payment link.
 - [x] No card/banking credentials stored.
 - [x] Payment layer remains replaceable by a future gateway/webhook provider.
+- [x] Manual-payment refunds can now be recorded in the audit trail after the owner has actually refunded the customer externally; automated money movement remains a Phase 15 gateway feature.
 - [x] Send one real staging payment request from admin and verify customer email/event trail.
 - [x] Mark that staging order PAID and verify payment-received acknowledgment/event trail.
 
@@ -261,7 +274,13 @@ Status: IN PROGRESS; production API/admin verified and public checkout enabled. 
 - [x] Search Readiness PASS for production-checkout commit `33ff084b18fabd2b211995aa7450171916784c29` (run `36081015683`).
 - [x] Commerce CI PASS for production-checkout commit `33ff084b18fabd2b211995aa7450171916784c29` (run `36081015696`).
 - [x] GitHub Pages deployment PASS for production-checkout commit `33ff084b18fabd2b211995aa7450171916784c29` (run `36081015383`).
-- [x] Commerce Worker production deployment PASS (guarded run `36078963186`).
+- [x] Commerce Worker production deployment PASS (guarded run `36078963186`) for the original production cutover.
+- [x] Professional admin + reports redesign is code-complete on `main` at `66823bcc03d71b17f8532009da634fe20bf73c46`.
+- [x] Search Readiness PASS for admin redesign (run `36084151246`).
+- [x] Commerce CI PASS for admin redesign (run `36084151222`).
+- [x] GitHub Pages deployment PASS for admin redesign commit (run `36084150251`).
+- [ ] Deploy the newest `main` Worker to production so the redesigned `/admin`, reports API and manual refund recording become live.
+- [ ] Verify redesigned admin on both phone and desktop after that Worker deployment.
 - [ ] Update handoff with final production SHA/resources.
 
 ## Phase 15 — Future full ecommerce
@@ -284,22 +303,16 @@ These Phase 15 items require provider/business decisions and should not be silen
 
 ## Current exact next action
 
-Phases 11, 12 and 13 are complete. Phase 14 production setup is now in progress.
+Phases 11, 12 and 13 are complete. Phase 14 controlled production QA remains in progress.
 
-Completed in the production setup:
-- Production Worker shell `black-sheep-commerce-api` created.
-- Separate production Turnstile secret configured.
-- Separate production Resend API key configured.
-- `ORDER_OWNER_EMAIL` configured.
-- Custom Domain `api.theblacksheepshop.co.uk` attached.
-- Public storefront checkout is now enabled and points to the verified production API.
+The professional owner-admin redesign is now implemented on `main` and validated by CI. It includes a responsive Dashboard, improved Orders workflow, mobile-first navigation, authenticated Reports with charts/aggregates/CSV export, and safe manual refund-recording controls. The refund controls do not move money; they record an externally completed refund and preserve an auditable order event.
 
 Next:
-1. Public checkout is now enabled on GitHub Pages with the production Turnstile Site Key and API base `https://api.theblacksheepshop.co.uk`.
-2. Collection submission is verified in production with order `BSR-260925-REZJU5DE`; it appeared in admin and both customer and owner notifications arrived.
-3. Production collection lifecycle is verified through `READY_FOR_COLLECTION` for `BSR-260925-REZJU5DE`, including payment-request and payment-confirmed customer emails. Press `Complete` once and verify the final `ORDER_COMPLETED` event.
-4. Then run a separate delivery test and a desktop checkout test.
-5. Verify duplicate protection by retrying the same submission path without creating a duplicate order, and verify an API/network failure preserves the basket.
-6. After those live checks pass, mark Phase 14 complete and update the session handoff with final production resources.
+1. Run the guarded **Commerce Deploy** workflow for **production** from the newest `main`, using the required production confirmation `DEPLOY-PRODUCTION`. This is required because the admin UI and reports API are served by the Worker, not GitHub Pages.
+2. After the deployment succeeds, open `https://api.theblacksheepshop.co.uk/admin` on phone and desktop and verify Dashboard, Orders, Reports, status filters, charts and mobile order detail.
+3. Confirm the existing production collection order `BSR-260925-REZJU5DE` with `Complete` and verify the final `ORDER_COMPLETED` event if this has not already been done.
+4. Run a separate delivery test and a desktop checkout test.
+5. Verify duplicate protection and verify an API/network failure preserves the basket.
+6. Only after those live checks pass, mark Phase 14 complete and update the session handoff with the final production Worker version/SHA.
 
-Guarded production deploy run `36078963186` succeeded. Production D1 migrations `0000`, `0001`, and `0002` were applied and Worker version `938f0651-20b5-48df-a8d4-f84defbb263d` was deployed. Public storefront checkout is ON. First real production collection order `BSR-260925-REZJU5DE` was accepted and produced both customer and owner notifications.
+The original guarded production cutover run `36078963186` succeeded and deployed Worker version `938f0651-20b5-48df-a8d4-f84defbb263d`. Public storefront checkout is ON. The newer admin/reporting code has not yet been claimed live until a fresh production Worker deployment succeeds.
