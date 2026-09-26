@@ -29,7 +29,10 @@ class Statement implements D1PreparedStatementLike {
 
 class Db implements D1DatabaseLike {
   prepare(query: string): Statement {
-    if (query.includes("FROM orders") && query.includes("ORDER BY created_at DESC LIMIT 100")) {
+    if (query.includes("COUNT(*) AS count FROM orders WHERE data_class")) {
+      return new Statement(query, { count: 3 }, []);
+    }
+    if (query.includes("FROM orders") && query.includes("ORDER BY o.created_at DESC LIMIT 100")) {
       return new Statement(query, null, []);
     }
     return new Statement(query);
@@ -73,7 +76,75 @@ describe("admin routes", () => {
     );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ orders: [] });
+    await expect(response.json()).resolves.toEqual({
+      orders: [],
+      dataClass: "BUSINESS",
+    });
+  });
+
+  it("allows staging to switch to test orders but keeps production business-only", async () => {
+    const staging = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/orders?dataClass=TEST"),
+      { DB: new Db(), ENVIRONMENT: "staging" },
+      { verifyAccessFn: identity },
+    );
+    await expect(staging.json()).resolves.toMatchObject({ dataClass: "TEST" });
+
+    const production = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/orders?dataClass=TEST"),
+      { DB: new Db(), ENVIRONMENT: "production" },
+      { verifyAccessFn: identity },
+    );
+    await expect(production.json()).resolves.toMatchObject({
+      dataClass: "BUSINESS",
+    });
+  });
+
+  it("requires explicit confirmation for staging test-order reset and forbids it in production", async () => {
+    const stagingDenied = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/test-orders/reset", {
+        method: "POST",
+        headers: {
+          origin: "https://admin.example.com",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ confirmation: "no" }),
+      }),
+      { DB: new Db(), ENVIRONMENT: "staging" },
+      { verifyAccessFn: identity },
+    );
+    expect(stagingDenied.status).toBe(400);
+
+    const stagingReset = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/test-orders/reset", {
+        method: "POST",
+        headers: {
+          origin: "https://admin.example.com",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ confirmation: "RESET TEST ORDERS" }),
+      }),
+      { DB: new Db(), ENVIRONMENT: "staging" },
+      { verifyAccessFn: identity },
+    );
+    expect(stagingReset.status).toBe(200);
+    await expect(stagingReset.json()).resolves.toMatchObject({
+      hiddenOrders: 3,
+    });
+
+    const production = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/test-orders/reset", {
+        method: "POST",
+        headers: {
+          origin: "https://admin.example.com",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ confirmation: "RESET TEST ORDERS" }),
+      }),
+      { DB: new Db(), ENVIRONMENT: "production" },
+      { verifyAccessFn: identity },
+    );
+    expect(production.status).toBe(403);
   });
 
   it("records an explicit return-to-stock only when Phase 5 is enabled", async () => {
