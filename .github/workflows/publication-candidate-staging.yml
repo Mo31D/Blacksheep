@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "commerce/scripts/phase6-publication-candidate.mjs"
+      - "commerce/scripts/phase6-publication-render.mjs"
       - ".github/workflows/publication-candidate-staging.yml"
   workflow_dispatch:
 
@@ -93,6 +94,40 @@ jobs:
             process.exit(1);
           }
           console.log("Phase 6.6 D1-only publication candidate baseline passed.");
+          NODE
+
+      - name: Render candidate Product pages and sitemap
+        shell: bash
+        run: |
+          node scripts/phase6-publication-render.mjs \
+            --catalog publication-candidate-artifacts/catalog.candidate.js \
+            --manifest publication-candidate-artifacts/publication-manifest.json \
+            --out-dir publication-candidate-artifacts/site \
+            --report-out publication-candidate-artifacts/render-report.json \
+            --require-baseline-parity
+
+      - name: Verify rendered publication baseline
+        shell: bash
+        run: |
+          cat publication-candidate-artifacts/render-report.json
+          node - publication-candidate-artifacts/render-report.json <<'NODE'
+          const fs = require("fs");
+          const report = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          if (
+            report.ok !== true ||
+            report.candidateProducts !== 146 ||
+            report.manifestProducts !== 146 ||
+            report.productPages !== 146 ||
+            report.existingTemplates !== 146 ||
+            report.genericPages !== 0 ||
+            report.specialistDetailRegressions.length !== 0 ||
+            report.coreMismatches.length !== 0 ||
+            report.sitemapProductUrls !== 146
+          ) {
+            console.error("Rendered publication baseline gate failed.", report);
+            process.exit(1);
+          }
+          console.log("Phase 6.6 Product-page + sitemap candidate baseline passed.");
           NODE
 
       - name: Upload publication candidate artifacts
