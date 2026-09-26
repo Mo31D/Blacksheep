@@ -206,6 +206,22 @@ Branch cleanup workflow run: `36236510282` — SUCCESS.
 
 Post-cleanup branch list: **main only**.
 
+## Historical placeholder-asset cleanup
+
+A final repository-bloat pass was completed after the backend audit.
+
+- exact legacy placeholder blob: `36b57af455721db234911805d3276eaba3ae5bfa`,
+- exact unused files proved unreferenced: **170**,
+- removed range: `images/108.png`, `images/109.png`, then `images/111.png` through `images/278.png`,
+- `images/110.png` was intentionally retained because it is not the placeholder blob,
+- the cleanup gate searched current HTML/JS/MJS/TS/JSON/CSS/YAML/Markdown references before deletion,
+- Search Readiness passed after removal: **146 products / 17 active pages / 166 sitemap URLs / 0 placeholders**,
+- full Commerce backend regression passed after removal,
+- cleanup workflow run: `36237983836` — **SUCCESS**,
+- cleanup commit: `4bb231f79a58637212af933d6ebbe28a14762ff2`.
+
+No tracked file using that historical placeholder blob remains in current `main`.
+
 ## Remaining connector limitation
 
 The Cloudflare ChatGPT connector was not available in this session. This did not block the audit because the final GitHub Actions audit had working Cloudflare credentials and performed the required D1/health/parity checks.
@@ -216,6 +232,6 @@ No Cloudflare secret values were exposed.
 
 Backend, Basket, Checkout, Admin, Product Core, Inventory, Reservations and Phase 6 D1 public-commerce paths are regression-green.
 
-The repository is clear of the known duplicate backend catalogue authority and the completed one-shot audit workflow.
+The repository is clear of the known duplicate backend catalogue authority, the completed one-shot audit workflow, and the 170 proven-unused historical placeholder PNGs.
 
 The seven obsolete Git branch refs were deleted successfully, and the temporary branch-cleanup workflow was then removed.
