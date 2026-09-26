@@ -9,7 +9,21 @@
 > - `docs/BLACK-SHEEP-BACKEND-AUDIT-CLEANUP-2026-09-26.md`
 > - `docs/FINAL-OWNER-POLISH-TICKETS-2026-09-26.md`
 > - `docs/FINAL-OWNER-POLISH-2026-09-26.md`
+> - `docs/CATEGORY-MANAGEMENT-2026-09-26.md`
 > - `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-CUTOVER-2026-09-26.md`
+>
+> **Category Manager — staging complete, 26 September 2026**
+> - `0014_category_management.sql` persists Brand / Range, Product category and Collection / Theme instead of relying on name inference.
+> - Products → Manage categories supports Add, Rename, Group change, Reorder, Archive and Restore with product usage counts.
+> - Archive is deliberately non-destructive: used categories may be archived without deleting existing product relationships or rewriting published history.
+> - New products cannot select archived categories; an existing product keeps an already-linked archived category during unrelated edits and shows it as `Archived` until intentionally removed or restored.
+> - Owner operating rules: `docs/CATEGORY-MANAGEMENT-2026-09-26.md`.
+> - Commerce CI `36249831392` — **SUCCESS**; 35 Vitest files / 206 tests.
+> - staging deploy `36249871178` — **SUCCESS**; migration `0014` applied; staging Worker `7c251e43-4e2e-4b68-8453-a10e316cea7e`; health PASS.
+> - post-deploy Admin Browser QA `36250012439` — **SUCCESS**, including iPhone Category Manager create/rename/group/move/archive/restore, category search and selected summary.
+> - Search Readiness `36250012438` — **SUCCESS**.
+> - synthetic Category Manager QA data cleaned after success.
+> - **Production was not changed by this release.** Production remains on migration `0013_order_data_class.sql` until a separate guarded Category Manager promotion is approved.
 >
 > **Current production architecture**
 > - Admin V2 is live.
@@ -73,8 +87,9 @@
 > - GitHub Actions Cloudflare credentials were available and the final audit performed read-only Production D1 / health / public-catalogue verification successfully.
 >
 > **Next work**
-> - owner real-device Production smoke only: open live Products/Stock, submit one ordinary live order, confirm it appears under Business Orders, confirm both customer + owner emails, and verify an untracked baseline product does not create unexpected numeric stock movement.
-> - after that smoke passes, mark the Final Owner Polish / Phase 6 owner acceptance closed.
+> - Category Manager source + Staging acceptance are complete. The next Category Manager release decision is whether to promote migration `0014` + the validated Worker to Production through a guarded deploy.
+> - owner real-device Production smoke is still outstanding for the broader Final Owner Polish / Phase 6 release: open live Products/Stock, submit one ordinary live order, confirm it appears under Business Orders, confirm both customer + owner emails, and verify an untracked baseline product does not create unexpected numeric stock movement.
+> - after that broader smoke passes, mark the Final Owner Polish / Phase 6 owner acceptance closed.
 > - do not revive old Commerce V1 branches or generated backend catalogue authority.
 > - use D1 Product Core / Inventory Core as the backend source of truth.
 > - for future changes, keep Commerce CI + Search Readiness green and run the targeted staging browser/E2E workflow for the affected surface.
