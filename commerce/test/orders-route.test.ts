@@ -3,7 +3,6 @@ import type {
   D1DatabaseLike,
   D1PreparedStatementLike,
 } from "../src/data/d1";
-import { COMMERCE_CATALOG } from "../src/generated/catalog";
 import { handleCreateOrder } from "../src/routes/orders";
 
 class FakeStatement implements D1PreparedStatementLike {
@@ -46,10 +45,15 @@ class FakeDb implements D1DatabaseLike {
   }
 }
 
+const product = {
+  id: "HC-003",
+  sku: "LP75455",
+  slug: "hc-003-three-highland-cows-see-hear-speak-no-evil-ornament",
+  name: "Highland Cow Trio",
+  priceMinor: 1495,
+};
+
 const idempotencyKey = "123e4567-e89b-42d3-a456-426614174000";
-const purchasable = COMMERCE_CATALOG.find(
-  (item) => item.purchasable && item.priceMinor !== null,
-)!;
 
 function body(overrides: Record<string, unknown> = {}) {
   return {
@@ -68,7 +72,7 @@ function body(overrides: Record<string, unknown> = {}) {
     },
     items: [
       {
-        productId: purchasable.id,
+        productId: product.id,
         quantity: 2,
         priceMinor: 1,
       },
@@ -102,19 +106,50 @@ function env(db: FakeDb) {
   };
 }
 
-const deps = {
-  verifyTurnstileFn: vi.fn(async () => ({
-    success: true,
-    hostname: "theblacksheepshop.co.uk",
-    action: "order_request",
-  })),
-  randomUUID: () => "48f112bf-3eae-4aa4-8338-b2a37c2f2d19",
-  createReference: () => "BSR-260924-ABCDEFGH",
-};
+function pricing(
+  requested: readonly { productId: string; quantity: number }[],
+) {
+  return {
+    currency: "GBP" as const,
+    itemsSubtotalMinor: requested.reduce(
+      (sum, line) => sum + product.priceMinor * line.quantity,
+      0,
+    ),
+    lines: requested.map((line) => ({
+      productId: line.productId,
+      sku: product.sku,
+      slug: product.slug,
+      productName: product.name,
+      unitPriceMinor: product.priceMinor,
+      quantity: line.quantity,
+      lineTotalMinor: product.priceMinor * line.quantity,
+    })),
+  };
+}
+
+function dependencies(
+  pricingFn = vi.fn(async (
+    _db: D1DatabaseLike,
+    requested: readonly { productId: string; quantity: number }[],
+  ) => pricing(requested)),
+) {
+  return {
+    verifyTurnstileFn: vi.fn(async () => ({
+      success: true,
+      hostname: "theblacksheepshop.co.uk",
+      action: "order_request",
+    })),
+    notifyOrderSubmittedFn: vi.fn(async () => undefined),
+    randomUUID: () => "48f112bf-3eae-4aa4-8338-b2a37c2f2d19",
+    createReference: () => "BSR-260924-ABCDEFGH",
+    priceRequestedCartFromD1Fn: pricingFn,
+  };
+}
 
 describe("POST /v1/orders", () => {
-  it("creates a server-priced order and ignores forged browser prices", async () => {
+  it("creates a D1 server-priced order and ignores forged browser prices", async () => {
     const db = new FakeDb();
+    const deps = dependencies();
 
     const response = await handleCreateOrder(request(), env(db), deps);
     const payload = (await response.json()) as any;
@@ -122,62 +157,49 @@ describe("POST /v1/orders", () => {
     expect(response.status).toBe(201);
     expect(payload.paymentTaken).toBe(false);
     expect(payload.order.reference).toBe("BSR-260924-ABCDEFGH");
-    expect(payload.order.itemsSubtotalMinor).toBe(purchasable.priceMinor! * 2);
+    expect(payload.order.itemsSubtotalMinor).toBe(product.priceMinor * 2);
+    expect(deps.priceRequestedCartFromD1Fn).toHaveBeenCalledWith(
+      db,
+      expect.arrayContaining([
+        expect.objectContaining({ productId: product.id, quantity: 2 }),
+      ]),
+    );
 
     const itemInsert = db.batched.find((statement) =>
       statement.sql.includes("INSERT INTO order_items"),
     )!;
-    expect(itemInsert.values[6]).toBe(purchasable.priceMinor);
+    expect(itemInsert.values[6]).toBe(product.priceMinor);
     expect(itemInsert.values[6]).not.toBe(1);
   });
 
-  it("uses D1 server-authoritative pricing only when the explicit authority flag is enabled", async () => {
+  it("uses D1 pricing even when no legacy authority flag is present", async () => {
     const db = new FakeDb();
     const d1Pricing = vi.fn(async () => ({
       currency: "GBP" as const,
       itemsSubtotalMinor: 2468,
       lines: [
         {
-          productId: purchasable.id,
-          sku: purchasable.sku,
-          slug: purchasable.slug,
-          productName: purchasable.name,
+          productId: product.id,
+          sku: product.sku,
+          slug: product.slug,
+          productName: product.name,
           unitPriceMinor: 1234,
           quantity: 2,
           lineTotalMinor: 2468,
         },
       ],
     }));
-    const staticPricing = vi.fn(() => {
-      throw new Error("static_pricing_must_not_run");
-    });
 
     const response = await handleCreateOrder(
       request(),
-      {
-        ...env(db),
-        D1_COMMERCE_AUTHORITY_ENABLED: "true",
-      },
-      {
-        ...deps,
-        priceRequestedCartFn: staticPricing,
-        priceRequestedCartFromD1Fn: d1Pricing,
-      },
+      env(db),
+      dependencies(d1Pricing),
     );
     const payload = (await response.json()) as any;
 
     expect(response.status).toBe(201);
     expect(payload.order.itemsSubtotalMinor).toBe(2468);
-    expect(d1Pricing).toHaveBeenCalledWith(
-      db,
-      expect.arrayContaining([
-        expect.objectContaining({
-          productId: purchasable.id,
-          quantity: 2,
-        }),
-      ]),
-    );
-    expect(staticPricing).not.toHaveBeenCalled();
+    expect(d1Pricing).toHaveBeenCalledTimes(1);
 
     const itemInsert = db.batched.find((statement) =>
       statement.sql.includes("INSERT INTO order_items"),
@@ -185,26 +207,7 @@ describe("POST /v1/orders", () => {
     expect(itemInsert.values[6]).toBe(1234);
   });
 
-  it("keeps generated static pricing as the default while the authority flag is absent", async () => {
-    const db = new FakeDb();
-    const d1Pricing = vi.fn(async () => {
-      throw new Error("d1_pricing_must_not_run");
-    });
-
-    const response = await handleCreateOrder(
-      request(),
-      env(db),
-      {
-        ...deps,
-        priceRequestedCartFromD1Fn: d1Pricing,
-      },
-    );
-
-    expect(response.status).toBe(201);
-    expect(d1Pricing).not.toHaveBeenCalled();
-  });
-
-  it("returns an existing order for an idempotent retry before reusing Turnstile", async () => {
+  it("returns an existing order for an idempotent retry before Turnstile or D1 pricing", async () => {
     const db = new FakeDb();
     db.nextFirstResult = {
       id: "existing",
@@ -212,55 +215,51 @@ describe("POST /v1/orders", () => {
       status: "SUBMITTED",
       createdAt: "2026-09-24T18:00:00.000Z",
     };
-    const verify = vi.fn(async () => ({ success: true }));
+    const d1Pricing = vi.fn(async () => pricing([{ productId: product.id, quantity: 2 }]));
+    const deps = dependencies(d1Pricing);
 
-    const response = await handleCreateOrder(request(), env(db), {
-      ...deps,
-      verifyTurnstileFn: verify,
-    });
+    const response = await handleCreateOrder(request(), env(db), deps);
     const payload = (await response.json()) as any;
 
     expect(response.status).toBe(200);
     expect(payload.idempotentReplay).toBe(true);
     expect(payload.order.reference).toBe("BSR-260924-EXISTING");
-    expect(verify).not.toHaveBeenCalled();
+    expect(deps.verifyTurnstileFn).not.toHaveBeenCalled();
+    expect(d1Pricing).not.toHaveBeenCalled();
     expect(db.batched).toHaveLength(0);
   });
 
-  it("rejects failed or replayed Turnstile tokens", async () => {
+  it("rejects failed or replayed Turnstile tokens before D1 pricing", async () => {
     const db = new FakeDb();
-    const response = await handleCreateOrder(request(), env(db), {
-      ...deps,
-      verifyTurnstileFn: vi.fn(async () => ({
-        success: false,
-        "error-codes": ["timeout-or-duplicate"],
-      })),
-    });
+    const d1Pricing = vi.fn(async () => pricing([{ productId: product.id, quantity: 2 }]));
+    const deps = dependencies(d1Pricing);
+    deps.verifyTurnstileFn = vi.fn(async () => ({
+      success: false,
+      "error-codes": ["timeout-or-duplicate"],
+    })) as any;
+
+    const response = await handleCreateOrder(request(), env(db), deps);
 
     expect(response.status).toBe(403);
     await expect(response.json()).resolves.toMatchObject({
       error: { code: "turnstile_failed" },
     });
+    expect(d1Pricing).not.toHaveBeenCalled();
     expect(db.batched).toHaveLength(0);
   });
 
   it.each(["arriving_soon", "out_of_stock", "price_unavailable"] as const)(
-    "rejects %s catalogue products",
+    "maps D1 %s products to product_not_purchasable",
     async (reason) => {
-      const blocked = COMMERCE_CATALOG.find(
-        (item) => item.nonPurchasableReason === reason,
-      )!;
-      expect(blocked).toBeTruthy();
-
       const db = new FakeDb();
+      const d1Pricing = vi.fn(async () => {
+        throw new Error(reason);
+      });
+
       const response = await handleCreateOrder(
-        request(
-          body({
-            items: [{ productId: blocked.id, quantity: 1 }],
-          }),
-        ),
+        request(),
         env(db),
-        deps,
+        dependencies(d1Pricing),
       );
 
       expect(response.status).toBe(409);
@@ -271,8 +270,12 @@ describe("POST /v1/orders", () => {
     },
   );
 
-  it("rejects stale or deleted catalogue product IDs", async () => {
+  it("rejects stale or deleted D1 product IDs", async () => {
     const db = new FakeDb();
+    const d1Pricing = vi.fn(async () => {
+      throw new Error("catalog_product_not_found");
+    });
+
     const response = await handleCreateOrder(
       request(
         body({
@@ -280,7 +283,7 @@ describe("POST /v1/orders", () => {
         }),
       ),
       env(db),
-      deps,
+      dependencies(d1Pricing),
     );
 
     expect(response.status).toBe(409);
@@ -290,8 +293,10 @@ describe("POST /v1/orders", () => {
     expect(db.batched).toHaveLength(0);
   });
 
-  it("requires a UUID idempotency key", async () => {
+  it("requires a UUID idempotency key before D1 pricing", async () => {
     const db = new FakeDb();
+    const deps = dependencies();
+
     const response = await handleCreateOrder(
       request(body(), "not-a-uuid"),
       env(db),
@@ -302,10 +307,13 @@ describe("POST /v1/orders", () => {
     await expect(response.json()).resolves.toMatchObject({
       error: { code: "invalid_idempotency_key" },
     });
+    expect(deps.priceRequestedCartFromD1Fn).not.toHaveBeenCalled();
   });
 
   it("enforces the current GB-only delivery rule", async () => {
     const db = new FakeDb();
+    const deps = dependencies();
+
     const response = await handleCreateOrder(
       request(
         body({
@@ -325,9 +333,10 @@ describe("POST /v1/orders", () => {
     await expect(response.json()).resolves.toMatchObject({
       error: { code: "delivery_country_not_supported" },
     });
+    expect(deps.priceRequestedCartFromD1Fn).not.toHaveBeenCalled();
   });
 
-  it("rate limits repeated order creation attempts", async () => {
+  it("rate limits repeated order creation attempts before D1 pricing", async () => {
     const db = new FakeDb();
     const rateEnv = env(db);
     rateEnv.ORDER_RATE_LIMITER = {
@@ -335,9 +344,11 @@ describe("POST /v1/orders", () => {
         return { success: false };
       },
     };
+    const deps = dependencies();
 
     const response = await handleCreateOrder(request(), rateEnv, deps);
     expect(response.status).toBe(429);
+    expect(deps.priceRequestedCartFromD1Fn).not.toHaveBeenCalled();
     expect(db.batched).toHaveLength(0);
   });
 
@@ -351,7 +362,7 @@ describe("POST /v1/orders", () => {
         }),
       ),
       env(db),
-      deps,
+      dependencies(),
     );
 
     expect(response.status).toBe(201);
