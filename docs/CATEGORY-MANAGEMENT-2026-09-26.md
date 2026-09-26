@@ -92,4 +92,16 @@ Source-level regression protection includes:
 - Migration upgrade validation for `0014_category_management.sql`.
 - Staging browser QA for create, rename, group change, reorder, archive, restore and Add Product category selection.
 
-Production deployment remains a separate release decision after staging validation.
+Final evidence:
+
+- Commerce CI `36249831392` — **SUCCESS**; full `npm run check`, 35 Vitest files / 206 tests.
+- Migration upgrade proof — **PASS** from `0000–0013` to `0014`.
+- Staging deploy `36249871178` — **SUCCESS**.
+- Staging D1 — `0014_category_management.sql` applied; subsequent remote migration list reported no migrations pending.
+- Staging Worker version — `7c251e43-4e2e-4b68-8453-a10e316cea7e`.
+- Staging health — **PASS**.
+- Post-deploy Admin browser QA `36250012439` — **SUCCESS**, including iPhone Category Manager create / rename / group change / move / archive / restore, category search and selected-category summary.
+- Search Readiness on the post-deploy QA commit `36250012438` — **SUCCESS**.
+- Synthetic Category Manager QA data was cleaned after success.
+
+Production deployment remains a separate release decision. This task intentionally changed Staging only; the current documented Production migration remains `0013_order_data_class.sql`.
