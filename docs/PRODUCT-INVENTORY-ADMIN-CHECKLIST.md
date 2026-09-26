@@ -306,7 +306,7 @@ Release report:
 
 # PHASE 6 — STOREFRONT / COMMERCE INTEGRATION
 
-**Status: ACTIVE — Milestones 6.1–6.6 COMPLETE + REAL-STAGING/BROWSER/PUBLICATION VERIFIED. Phase 6.7 Production Cutover Readiness is active; Production authority remains locked.**
+**Status: READY FOR PRODUCTION CUTOVER APPROVAL — Milestones 6.1–6.6 COMPLETE; Phase 6.7 Readiness COMPLETE. Production cutover itself is NOT executed.**
 
 - [x] Phase 6 cutover principles locked before code — `docs/STOREFRONT-COMMERCE-PHASE6-IMPLEMENTATION-PLAN-2026-09-25.md`.
 - [x] D1 public commerce catalogue/query layer — published content only; Draft never used by the public query.
@@ -365,7 +365,17 @@ Release report:
 - [x] Publication change plan generated against the repo without applying it.
 - [x] Phase 6 publication-specific SEO/canonical/schema assertions.
 - [ ] Remove legacy duplicate catalogue authority only after Production cutover proof.
-- [~] Production cutover review/readiness — read-only gate active; no migration/import/deploy/apply is permitted until separately approved.
+- [x] Production cutover review/readiness — read-only audit, exact post-cutover source simulation, Commerce validation and Worker dry-run all PASS.
+- [x] Guarded Production Product Core importer — exact confirmation required; non-empty Product Core blocks destructive re-import.
+- [x] Production Product Core parity command — read-only exact baseline verifier.
+- [x] Frozen Phase 1 migration fixture separated from live `assets/catalog.js`.
+- [x] Production publication export can regenerate the package read-only from Production D1 after import.
+- [x] Deterministic Production activation script prepared for the 162-file package + Worker flags/R2/cron + storefront live marker.
+- [x] Legacy generic Production deploy path blocked during Phase 6 cutover.
+- [x] Production cutover runbook locked — `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-CUTOVER-PLAN-2026-09-26.md`.
+- [x] Dedicated manual-only Production cutover workflow prepared — `.github/workflows/phase6-production-cutover.yml`.
+- [ ] Execute Production cutover — requires separate explicit owner approval plus the exact approved package SHA.
+- [ ] Post-cutover owner smoke: Admin Products/Stock + one ordinary customer order + owner/customer notification proof.
 
 ### Phase 6 evidence
 
@@ -398,15 +408,35 @@ Release report:
   - `ORDER_RESERVATIONS_ENABLED=true`.
 - Staging baseline restored to 146 ACTIVE Published Products after QA cleanup.
 
+#### 6.7 Production cutover readiness
+- Final read-only readiness workflow: `36230361643` — SUCCESS.
+- Exact simulated post-cutover source: PASS.
+- Full simulated Commerce validation: PASS — 35 Vitest files plus migration/inventory/reservation/cart/legal/typecheck gates.
+- Simulated post-cutover Production Worker dry-run: PASS.
+- Approved publication package: 162 files / SHA-256 `61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7`.
+- Pending Production migrations remain exactly `0009–0012`.
+- Production import baseline fixture is immutable and independent of the live catalogue.
+- Guarded cutover workflow requires:
+  - confirmation `CUTOVER-PRODUCTION-D1`,
+  - a 64-character approved package SHA,
+  - unchanged `main`,
+  - a pre-cutover D1 Time Travel bookmark,
+  - Production parity and Production-generated package SHA match before authority activation.
+- Failure handling is non-destructive by default; no automatic Time Travel restore is performed.
+- Cloudflare Time Travel/R2/Worker command syntax was cross-checked against current official documentation before the runbook was locked.
+
 #### Production isolation
 - Production migration remains `0008_concurrency_guards.sql`.
 - Product/Inventory/Reservation tables remain absent.
 - Phase 6 Product/commerce flags remain absent.
+- Production live-commerce marker remains `false`.
 - Production checkout authority remains the generated static catalogue.
+- Current verified Production order count at readiness: 4.
 - No Phase 6 Production migration/import/Worker deploy/static package apply has been performed.
 
 Exit gate:
-- [~] Staging Admin + API + checkout + storefront preview + publication pipeline share D1 truth. Production cutover remains the final Phase 6 gate.
+- [x] All staging/readiness engineering gates are complete.
+- [ ] Production D1 cutover + post-cutover owner/order proof remain the final Phase 6 gate.
 
 ---
 
@@ -455,24 +485,23 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 6.7 — Production Cutover Readiness / Review
+## Phase 6.7 — Explicit Production Cutover Decision
 
-Milestones 6.1–6.6 are complete and verified.
+All reversible implementation and readiness work is complete.
 
-Current sequence:
+**Current Production remains unchanged and safe:**
+- migration `0008_concurrency_guards.sql`,
+- Product/Inventory/Reservation tables absent,
+- D1 commerce/public-catalogue/reservation flags absent,
+- Production live-commerce marker `false`,
+- generated static catalogue still checkout authority,
+- current readiness snapshot: 4 Production orders.
 
-1. Complete the read-only `Phase 6 Production Cutover Readiness` workflow.
-2. Record exact Production before-state, pending migrations `0009–0012`, staging truth and publication package plan.
-3. Lock a Production cutover runbook with:
-   - pre-cutover backup/time-travel checkpoint,
-   - migrations,
-   - initial 146-Product import,
-   - Product/Inventory parity checks,
-   - Worker feature flags,
-   - first 162-file static publication apply,
-   - post-cutover browser/order proof,
-   - rollback conditions.
-4. Keep Production on migration `0008` and generated catalogue authority until the cutover receives explicit approval.
-5. Do **not** run Production Product import, `d1 migrations apply`, Worker deploy or publication package apply during readiness.
+The dedicated cutover path is prepared but **has not been executed**.
 
-The next irreversible action is a separate Production cutover decision, not part of readiness.
+Execution requires a separate explicit owner instruction to run the Production cutover. The guarded workflow then requires:
+1. confirmation `CUTOVER-PRODUCTION-D1`,
+2. the approved package SHA `61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7`,
+3. a fresh preflight proving `main`, staging truth and package SHA have not drifted.
+
+No further Production mutation should be performed before that approval.
