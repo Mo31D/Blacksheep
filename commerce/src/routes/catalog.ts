@@ -3,6 +3,7 @@ import {
   getPublicCommerceProduct,
   listPublicCommerceProducts,
 } from "../data/public-catalog";
+import { listPublishedStorefrontNodes } from "../data/storefront-structure";
 
 export interface PublicCatalogEnv {
   DB?: D1DatabaseLike;
@@ -55,6 +56,14 @@ export async function handlePublicCatalogRequest(
   }
 
   const url = new URL(request.url);
+  if (url.pathname === "/v1/storefront-structure") {
+    const nodes = await listPublishedStorefrontNodes(env.DB);
+    return json({
+      nodes,
+      contract: "storefront-structure-published-v1",
+    });
+  }
+
   const detail = url.pathname.match(/^\/v1\/catalog\/([^/]+)$/);
 
   if (detail) {
