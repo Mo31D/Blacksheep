@@ -73,7 +73,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p publication-candidate-artifacts
-          node scripts/phase6-publication-candidate.mjs             --remote --env staging             --candidate-out publication-candidate-artifacts/catalog.candidate.js             --report-out publication-candidate-artifacts/report.json             --require-baseline-parity
+          node scripts/phase6-publication-candidate.mjs             --remote --env staging             --candidate-out publication-candidate-artifacts/catalog.candidate.js             --manifest-out publication-candidate-artifacts/publication-manifest.json             --report-out publication-candidate-artifacts/report.json             --require-baseline-parity
 
       - name: Summarize publication candidate
         shell: bash
