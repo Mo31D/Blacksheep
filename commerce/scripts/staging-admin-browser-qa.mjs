@@ -497,6 +497,130 @@ async function mobileWebkitQa() {
   }
 }
 
+
+async function ownerPolishViewsQa(viewport, label) {
+  const browser = await webkit.launch({ headless: true });
+  const context = await browser.newContext({ viewport });
+  const page = await context.newPage();
+
+  async function openView(name) {
+    await page.locator('[data-nav="' + name + '"]:visible').first().click();
+    await page.waitForFunction(
+      (viewName) => {
+        const view = document.getElementById("view-" + viewName);
+        return Boolean(view && !view.classList.contains("hidden"));
+      },
+      name,
+      { timeout: 20_000 },
+    );
+  }
+
+  try {
+    await addAdminCookie(context);
+    await page.goto(BASE + "/admin", {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    await page.waitForSelector("#view-orders h1", { timeout: 20_000 });
+
+    const ownerCopy = await page.locator("body").innerText();
+    for (const forbidden of [
+      "Phase 2 · Editing",
+      "Phase 4 · Staging",
+      "Staging Product Core",
+      "before storefront cutover",
+      "dedicated Media phase",
+    ]) {
+      assert(
+        !ownerCopy.includes(forbidden),
+        label + " still exposes implementation copy: " + forbidden,
+      );
+    }
+
+    await openView("dashboard");
+    await page.waitForSelector("#dashboardMetrics .metric", { timeout: 20_000 });
+    await assertNoHorizontalOverflow(page, label + " dashboard");
+    if (viewport.width <= 720) {
+      const cards = await page.locator("#dashboardMetrics .metric").evaluateAll((nodes) =>
+        nodes.slice(0, 4).map((node) => {
+          const rect = node.getBoundingClientRect();
+          return { left: rect.left, top: rect.top, width: rect.width };
+        }),
+      );
+      assert(cards.length === 4, label + " dashboard did not render four KPI cards.");
+      assert(
+        Math.abs(cards[0].top - cards[1].top) < 3 &&
+          Math.abs(cards[2].top - cards[3].top) < 3 &&
+          cards[2].top > cards[0].top + 20 &&
+          cards[1].left > cards[0].left,
+        label + " dashboard KPI layout is not 2x2.",
+      );
+    }
+
+    await openView("products");
+    await page.waitForFunction(
+      () => document.querySelectorAll("#productList .product-row").length > 0,
+      null,
+      { timeout: 20_000 },
+    );
+    await page.locator("#addProduct").click();
+    await page.waitForSelector("#newProductTitle", { timeout: 10_000 });
+    assert(
+      (await page.locator("#newProductType").evaluate((el) => el.tagName)) === "SELECT",
+      label + " Add Product type is not a controlled select.",
+    );
+    await page.locator("#newProductCategorySearch").fill("highland");
+    const visibleCategories = await page
+      .locator("#newProductCategories .category-choice:not(.hidden)")
+      .count();
+    assert(visibleCategories > 0, label + " category search returned no visible matches.");
+    await assertNoHorizontalOverflow(page, label + " Add Product");
+    await page.locator("[data-close-product-sheet]:visible").first().click();
+
+    await openView("stock");
+    await page.waitForFunction(
+      () => document.querySelectorAll("#stockList .product-row").length > 0,
+      null,
+      { timeout: 20_000 },
+    );
+    const stockText = await page.locator("#view-stock").innerText();
+    assert(
+      stockText.includes("Count, adjust and review stock for the shop."),
+      label + " stock owner copy is missing.",
+    );
+    await page.locator("#startBulkCount").click();
+    await page.waitForSelector("#stocktakeQty", { timeout: 10_000 });
+    await assertNoHorizontalOverflow(page, label + " Stocktake");
+    const stocktakeActions = await page.locator(".editor-actions:visible").first().boundingBox();
+    assert(
+      stocktakeActions && stocktakeActions.width <= viewport.width + 2,
+      label + " Stocktake actions are clipped.",
+    );
+    await page.locator("[data-close-product-sheet]:visible").first().click();
+
+    await openView("reports");
+    await page.waitForSelector("#reportMetrics .metric", { timeout: 20_000 });
+    assert(
+      (await page.locator("#view-reports").innerText()).includes(
+        "Current payment & fulfilment status",
+      ),
+      label + " Reports payment status label is stale.",
+    );
+    await assertNoHorizontalOverflow(page, label + " Reports");
+
+    await page.screenshot({
+      path: path.join(
+        ARTIFACT_DIR,
+        label.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-owner-polish.png",
+      ),
+      fullPage: true,
+    });
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
 fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
 
 try {
@@ -506,6 +630,8 @@ try {
 
   await desktopQa();
   await mobileWebkitQa();
+  await ownerPolishViewsQa({ width: 390, height: 844 }, "iPhone WebKit");
+  await ownerPolishViewsQa({ width: 820, height: 1180 }, "iPad portrait WebKit");
 
   completed = true;
 
@@ -527,6 +653,13 @@ try {
           "webkit-mobile-detail-open-close",
           "webkit-mobile-revision-controls-not-clipped",
           "webkit-mobile-no-horizontal-overflow",
+          "iphone-dashboard-2x2-kpis",
+          "iphone-products-add-product-controlled-type",
+          "iphone-category-search",
+          "iphone-stocktake-no-horizontal-overflow",
+          "iphone-reports-owner-copy",
+          "ipad-portrait-products-stock-reports",
+          "owner-facing-dev-copy-removed",
         ],
       },
       null,
