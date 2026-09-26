@@ -1,0 +1,103 @@
+name: Phase 6 Storefront Overlay Browser QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "assets/site.js"
+      - "assets/commerce-live.js"
+      - "assets/style.css"
+      - "scripts/test-cart-core.mjs"
+      - "commerce/scripts/staging-storefront-overlay-qa.mjs"
+      - ".github/workflows/storefront-overlay-browser-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  storefront-overlay-browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: commerce
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: commerce/package.json
+
+      - name: Install commerce dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install ephemeral browser QA dependency
+        run: npm install --no-save --package-lock=false playwright@1.55.0
+
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Wait for storefront deployment propagation
+        shell: bash
+        working-directory: .
+        run: |
+          READY=0
+          for attempt in $(seq 1 36); do
+            LIVE="$(curl --silent --show-error --max-time 20 "https://theblacksheepshop.co.uk/assets/commerce-live.js?qa=$GITHUB_SHA" || true)"
+            SITE="$(curl --silent --show-error --max-time 20 "https://theblacksheepshop.co.uk/assets/site.js?qa=$GITHUB_SHA" || true)"
+            if echo "$LIVE" | grep -q "Staging commerce preview unavailable"               && echo "$SITE" | grep -q "PHASE 6 LIVE COMMERCE OVERLAY LOADER START"               && echo "$SITE" | grep -q "previewBlocked"; then
+              READY=1
+              break
+            fi
+            echo "Storefront deployment not visible yet (attempt $attempt/36)."
+            sleep 5
+          done
+          if [ "$READY" != "1" ]; then
+            echo "::error::Latest Phase 6 storefront overlay did not propagate in time."
+            exit 1
+          fi
+          echo "Latest Phase 6 storefront overlay is live."
+
+      - name: Confirm staging commerce API authority
+        shell: bash
+        working-directory: .
+        run: |
+          HEALTH="$(curl --fail --silent --show-error --max-time 30 https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/health)"
+          echo "$HEALTH"
+          node - "$HEALTH" <<'NODE'
+          const health = JSON.parse(process.argv[2]);
+          if (
+            health.status !== "ok" ||
+            health.environment !== "staging" ||
+            health.features?.publicCatalog !== true ||
+            health.features?.publicCatalogContract !== "d1-published-v1" ||
+            health.features?.commerceAuthority !== true
+          ) {
+            console.error("Staging Phase 6 authority health gate failed.", health);
+            process.exit(1);
+          }
+          console.log("Staging Phase 6 authority health gate passed.");
+          NODE
+
+      - name: Run Phase 6 storefront browser QA
+        run: node scripts/staging-storefront-overlay-qa.mjs
+
+      - name: Upload storefront overlay screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase6-storefront-overlay-browser-qa
+          path: commerce/storefront-overlay-qa-artifacts
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Production safety statement
+        if: always()
+        run: |
+          echo "This workflow performs browser reads against the public storefront and staging public catalogue."
+          echo "Mocked browser responses are local to Playwright and do not change D1."
+          echo "No order submission, production Worker deployment, production D1 migration or database write is performed."
