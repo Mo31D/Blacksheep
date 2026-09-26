@@ -1101,6 +1101,136 @@ export async function moveAdminStorefrontNode(
   );
 }
 
+export async function publishAdminStorefrontNode(
+  db: D1DatabaseLike,
+  nodeId: string,
+  expectedVersion: unknown,
+  actorEmail: string,
+): Promise<void> {
+  const expected = storefrontVersion(expectedVersion);
+  const current = await getAdminStorefrontNode(db, nodeId);
+  if (!current) throw new Error("storefront_not_found");
+  if (current.version !== expected) throw new Error("storefront_version_conflict");
+  if (current.publicationStatus === "ARCHIVED") {
+    throw new Error("storefront_archived");
+  }
+  if (!current.draftVersionId) return;
+
+  if (current.parentNodeId) {
+    const parent = await db
+      .prepare(
+        "SELECT publication_status AS publicationStatus, " +
+          "current_published_version_id AS publishedVersionId " +
+          "FROM storefront_nodes WHERE id = ? LIMIT 1",
+      )
+      .bind(current.parentNodeId)
+      .first<{ publicationStatus: string; publishedVersionId: string | null }>();
+    if (
+      !parent ||
+      parent.publicationStatus !== "ACTIVE" ||
+      !parent.publishedVersionId
+    ) {
+      throw new Error("storefront_publish_parent_not_live");
+    }
+  }
+
+  const timestamp = storefrontNow();
+  const resultVersion = expected + 1;
+  const statements: D1PreparedStatementLike[] = [
+    db
+      .prepare(
+        "UPDATE storefront_nodes SET current_published_version_id = current_draft_version_id, " +
+          "current_draft_version_id = NULL, publication_status = 'ACTIVE', " +
+          "version = version + 1, updated_at = ? " +
+          "WHERE id = ? AND version = ? AND current_draft_version_id = ? " +
+          "AND publication_status <> 'ARCHIVED'",
+      )
+      .bind(timestamp, nodeId, expected, current.draftVersionId),
+  ];
+
+  if (current.publishedVersionId) {
+    statements.push(
+      db
+        .prepare(
+          "UPDATE storefront_node_versions SET superseded_at = ? " +
+            "WHERE id = ? AND node_id = ? AND EXISTS (" +
+            "SELECT 1 FROM storefront_nodes WHERE id = ? AND version = ? AND updated_at = ?)",
+        )
+        .bind(
+          timestamp,
+          current.publishedVersionId,
+          nodeId,
+          nodeId,
+          resultVersion,
+          timestamp,
+        ),
+    );
+  }
+
+  statements.push(
+    db
+      .prepare(
+        "UPDATE storefront_node_versions SET published_at = ?, superseded_at = NULL " +
+          "WHERE id = ? AND node_id = ? AND EXISTS (" +
+          "SELECT 1 FROM storefront_nodes WHERE id = ? AND version = ? AND updated_at = ?)",
+      )
+      .bind(
+        timestamp,
+        current.draftVersionId,
+        nodeId,
+        nodeId,
+        resultVersion,
+        timestamp,
+      ),
+    storefrontAuditStatement(db, {
+      nodeId,
+      eventType: "NODE_UPDATED",
+      actorEmail,
+      before: {
+        publicationStatus: current.publicationStatus,
+        publishedVersionId: current.publishedVersionId,
+        draftVersionId: current.draftVersionId,
+      },
+      after: {
+        publicationStatus: "ACTIVE",
+        publishedVersionId: current.draftVersionId,
+        draftVersionId: null,
+      },
+      reason: "Owner published Storefront section",
+      createdAt: timestamp,
+      guard: { resultVersion, token: timestamp },
+    }),
+  );
+
+  await db.batch(statements);
+
+  const verified = await db
+    .prepare(
+      "SELECT version, publication_status AS status, " +
+        "current_published_version_id AS publishedVersionId, " +
+        "current_draft_version_id AS draftVersionId, updated_at AS updatedAt " +
+        "FROM storefront_nodes WHERE id = ? LIMIT 1",
+    )
+    .bind(nodeId)
+    .first<{
+      version: number;
+      status: string;
+      publishedVersionId: string | null;
+      draftVersionId: string | null;
+      updatedAt: string;
+    }>();
+
+  if (
+    Number(verified?.version) !== resultVersion ||
+    verified?.status !== "ACTIVE" ||
+    verified?.publishedVersionId !== current.draftVersionId ||
+    verified?.draftVersionId !== null ||
+    verified?.updatedAt !== timestamp
+  ) {
+    throw new Error("storefront_version_conflict");
+  }
+}
+
 export async function archiveAdminStorefrontNode(
   db: D1DatabaseLike,
   nodeId: string,
