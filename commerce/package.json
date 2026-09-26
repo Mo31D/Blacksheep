@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "npm run product-core:validate && npm run product-core:production-guards:test && npm run storefront-structure:compat-test && npm run cart:test && npm run legal:test && npm run typecheck && npm run db:migrate:local && npm run db:migrate:upgrade-test && npm run storefront-structure:migration-test && npm run inventory-core:test && npm run order-reservations:test && npm run test && npm run admin-browser-qa:syntax && npm run dry-run",
+    "check": "npm run product-core:validate && npm run product-core:production-guards:test && npm run storefront-structure:compat-test && npm run cart:test && npm run legal:test && npm run dynamic-storefront:test && npm run typecheck && npm run db:migrate:local && npm run db:migrate:upgrade-test && npm run storefront-structure:migration-test && npm run inventory-core:test && npm run order-reservations:test && npm run test && npm run admin-browser-qa:syntax && npm run dry-run",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply DB --local --env staging",
@@ -32,7 +32,8 @@
     "product-core:import:production": "node scripts/product-core-import.mjs --remote --env production --confirmation IMPORT-PRODUCTION-PRODUCTS",
     "product-core:parity:production": "node scripts/product-core-parity.mjs --remote --env production",
     "product-core:production-guards:test": "node scripts/test-product-core-production-guards.mjs",
-    "admin-browser-qa:syntax": "node --check scripts/staging-admin-browser-qa.mjs"
+    "admin-browser-qa:syntax": "node --check scripts/staging-admin-browser-qa.mjs",
+    "dynamic-storefront:test": "node ../scripts/test-dynamic-storefront.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0",
