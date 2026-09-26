@@ -21,6 +21,31 @@ function money(minor) {
   return "£" + (Number(minor) / 100).toFixed(2);
 }
 
+function expectedDetailAvailability(product) {
+  if (product.status === "arriving-soon") return "Arriving soon";
+  if (
+    product.status === "out-of-stock" ||
+    product.nonPurchasableReason === "out_of_stock"
+  ) {
+    return "Out of stock";
+  }
+  if (
+    product.nonPurchasableReason === "online_ordering_disabled" ||
+    product.nonPurchasableReason === "not_for_sale"
+  ) {
+    return "Not available to order online";
+  }
+  if (
+    product.inventory?.tracked === true &&
+    Number.isFinite(product.inventory.available)
+  ) {
+    return product.inventory.available > 0
+      ? "Available to order · " + product.inventory.available + " available"
+      : "Out of stock";
+  }
+  return "Available to order";
+}
+
 async function getRealCatalogue() {
   const response = await fetch(API + "/v1/catalog?limit=200", {
     headers: { accept: "application/json" },
@@ -147,9 +172,17 @@ async function verifyRealOverlay(browserType, label, viewport) {
       );
       return row?.querySelector("span")?.textContent?.trim() || "";
     });
+    const expectedAvailability = expectedDetailAvailability(
+      globalThis.__phase6Target,
+    );
     assert(
-      detailAvailability === "Available to order",
-      label + " live Product availability was not overlaid: " + detailAvailability,
+      detailAvailability === expectedAvailability,
+      label +
+        " live Product availability was not overlaid: " +
+        detailAvailability +
+        " (expected " +
+        expectedAvailability +
+        ")",
     );
 
     await assertCanonical(page, PRODUCT_PATH, label + " Product detail");
