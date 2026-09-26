@@ -50,10 +50,9 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      - name: Block legacy Production deploy path during Phase 6 cutover
+      - name: Migrate and deploy production
         if: ${{ inputs.environment == 'production' && inputs.production_confirmation == 'DEPLOY-PRODUCTION' }}
-        run: |
-          echo "Production deploy is intentionally blocked here."
-          echo "Use the dedicated Phase 6 Production Cutover workflow after explicit owner approval."
-          echo "That workflow sequences bookmark, migrations, Product import, parity, publication and Worker activation."
-          exit 1
+        run: npm run deploy:production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
