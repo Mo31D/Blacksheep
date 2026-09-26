@@ -438,24 +438,46 @@ function storefrontAuditStatement(
     after: unknown;
     reason: string;
     createdAt: string;
+    guard?: {
+      resultVersion: number;
+      token: string;
+    };
   },
 ): D1PreparedStatementLike {
+  const values = [
+    storefrontUid("sae"),
+    input.nodeId,
+    input.eventType,
+    input.actorEmail,
+    input.before == null ? null : JSON.stringify(input.before),
+    input.after == null ? null : JSON.stringify(input.after),
+    input.reason,
+    input.createdAt,
+  ];
+
+  if (input.guard) {
+    return db
+      .prepare(
+        "INSERT INTO storefront_audit_events (" +
+          "id, node_id, event_type, actor_id, before_json, after_json, reason, created_at" +
+          ") SELECT ?, ?, ?, ?, ?, ?, ?, ? FROM storefront_nodes " +
+          "WHERE id = ? AND version = ? AND updated_at = ?",
+      )
+      .bind(
+        ...values,
+        input.nodeId,
+        input.guard.resultVersion,
+        input.guard.token,
+      );
+  }
+
   return db
     .prepare(
       "INSERT INTO storefront_audit_events (" +
         "id, node_id, event_type, actor_id, before_json, after_json, reason, created_at" +
         ") VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     )
-    .bind(
-      storefrontUid("sae"),
-      input.nodeId,
-      input.eventType,
-      input.actorEmail,
-      input.before == null ? null : JSON.stringify(input.before),
-      input.after == null ? null : JSON.stringify(input.after),
-      input.reason,
-      input.createdAt,
-    );
+    .bind(...values);
 }
 
 function adminStorefrontSelect(includeArchived: boolean): string {
@@ -716,18 +738,25 @@ export async function updateAdminStorefrontNode(
     imageUrl,
   };
 
-  const statements: D1PreparedStatementLike[] = [];
-  let draftVersionId = current.draftVersionId;
+  const draftVersionId = current.draftVersionId ?? storefrontUid("sfv");
+  const statements: D1PreparedStatementLike[] = [
+    db
+      .prepare(
+        "UPDATE storefront_nodes SET current_draft_version_id = ?, version = version + 1, updated_at = ? " +
+          "WHERE id = ? AND version = ? AND publication_status <> 'ARCHIVED'",
+      )
+      .bind(draftVersionId, timestamp, nodeId, expected),
+  ];
 
-  if (!draftVersionId) {
-    draftVersionId = storefrontUid("sfv");
+  if (!current.draftVersionId) {
     statements.push(
       db
         .prepare(
           "INSERT INTO storefront_node_versions (" +
             "id, node_id, version_number, name, slug, parent_node_id, sort_order, show_in_navigation, " +
             "short_description, image_url, legacy_path, created_by, created_at, published_at, superseded_at" +
-            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)",
+            ") SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL " +
+            "FROM storefront_nodes WHERE id = ? AND version = ? AND updated_at = ?",
         )
         .bind(
           draftVersionId,
@@ -743,6 +772,9 @@ export async function updateAdminStorefrontNode(
           current.legacyPath,
           actorEmail,
           timestamp,
+          nodeId,
+          resultVersion,
+          timestamp,
         ),
     );
   } else {
@@ -751,7 +783,9 @@ export async function updateAdminStorefrontNode(
         .prepare(
           "UPDATE storefront_node_versions SET name = ?, slug = ?, parent_node_id = ?, " +
             "sort_order = ?, show_in_navigation = ?, short_description = ?, image_url = ? " +
-            "WHERE id = ? AND node_id = ?",
+            "WHERE id = ? AND node_id = ? AND EXISTS (" +
+              "SELECT 1 FROM storefront_nodes WHERE id = ? AND version = ? AND updated_at = ?" +
+            ")",
         )
         .bind(
           name,
@@ -763,18 +797,13 @@ export async function updateAdminStorefrontNode(
           imageUrl,
           draftVersionId,
           nodeId,
+          nodeId,
+          resultVersion,
+          timestamp,
         ),
     );
   }
 
-  statements.push(
-    db
-      .prepare(
-        "UPDATE storefront_nodes SET current_draft_version_id = ?, version = version + 1, updated_at = ? " +
-          "WHERE id = ? AND version = ? AND publication_status <> 'ARCHIVED'",
-      )
-      .bind(draftVersionId, timestamp, nodeId, expected),
-  );
   statements.push(
     storefrontAuditStatement(db, {
       nodeId,
@@ -787,15 +816,21 @@ export async function updateAdminStorefrontNode(
           ? "Owner reordered Storefront Structure"
           : "Owner updated Storefront Structure draft",
       createdAt: timestamp,
+      guard: { resultVersion, token: timestamp },
     }),
   );
 
   await db.batch(statements);
   const verified = await db
-    .prepare("SELECT version FROM storefront_nodes WHERE id = ? LIMIT 1")
+    .prepare(
+      "SELECT version, updated_at AS updatedAt FROM storefront_nodes WHERE id = ? LIMIT 1",
+    )
     .bind(nodeId)
-    .first<{ version: number }>();
-  if (Number(verified?.version) !== resultVersion) {
+    .first<{ version: number; updatedAt: string }>();
+  if (
+    Number(verified?.version) !== resultVersion ||
+    verified?.updatedAt !== timestamp
+  ) {
     throw new Error("storefront_version_conflict");
   }
 }
@@ -881,15 +916,17 @@ export async function archiveAdminStorefrontNode(
       after: { publicationStatus: "ARCHIVED" },
       reason: "Owner archived Storefront section without deleting placement history",
       createdAt: timestamp,
+      guard: { resultVersion: expected + 1, token: timestamp },
     }),
   ]);
   const verified = await db
-    .prepare("SELECT version, publication_status AS status FROM storefront_nodes WHERE id = ? LIMIT 1")
+    .prepare("SELECT version, publication_status AS status, updated_at AS updatedAt FROM storefront_nodes WHERE id = ? LIMIT 1")
     .bind(nodeId)
-    .first<{ version: number; status: string }>();
+    .first<{ version: number; status: string; updatedAt: string }>();
   if (
     Number(verified?.version) !== expected + 1 ||
-    verified?.status !== "ARCHIVED"
+    verified?.status !== "ARCHIVED" ||
+    verified?.updatedAt !== timestamp
   ) {
     throw new Error("storefront_version_conflict");
   }
@@ -925,15 +962,17 @@ export async function restoreAdminStorefrontNode(
       after: { publicationStatus: nextStatus },
       reason: "Owner restored Storefront section",
       createdAt: timestamp,
+      guard: { resultVersion: expected + 1, token: timestamp },
     }),
   ]);
   const verified = await db
-    .prepare("SELECT version, publication_status AS status FROM storefront_nodes WHERE id = ? LIMIT 1")
+    .prepare("SELECT version, publication_status AS status, updated_at AS updatedAt FROM storefront_nodes WHERE id = ? LIMIT 1")
     .bind(nodeId)
-    .first<{ version: number; status: string }>();
+    .first<{ version: number; status: string; updatedAt: string }>();
   if (
     Number(verified?.version) !== expected + 1 ||
-    verified?.status !== nextStatus
+    verified?.status !== nextStatus ||
+    verified?.updatedAt !== timestamp
   ) {
     throw new Error("storefront_version_conflict");
   }
