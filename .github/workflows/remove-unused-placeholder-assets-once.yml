@@ -1,0 +1,91 @@
+name: Remove unused placeholder assets once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/remove-unused-placeholder-assets-once.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: remove-unused-placeholder-assets-once
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Identify exact legacy placeholder blob
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_BLOB="36b57af455721db234911805d3276eaba3ae5bfa"
+          mapfile -t CANDIDATES < <(
+            git ls-files -s 'images/*.png' |
+            awk -v sha="$EXPECTED_BLOB" '$2 == sha {print $4}' |
+            sort
+          )
+
+          echo "Candidate count: ${#CANDIDATES[@]}"
+          printf '%s\n' "${CANDIDATES[@]}" > /tmp/placeholder-candidates.txt
+
+          if [ "${#CANDIDATES[@]}" -ne 171 ]; then
+            echo "Expected exactly 171 historical placeholder files; refusing cleanup."
+            exit 1
+          fi
+
+          test "${CANDIDATES[0]}" = "images/108.png"
+          test "${CANDIDATES[170]}" = "images/278.png"
+
+      - name: Prove candidates are unreferenced
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            base="$(basename "$file")"
+            if git grep -n -F -- "$file" --               '*.html' '*.js' '*.mjs' '*.ts' '*.json' '*.css' '*.md' '*.yml' '*.yaml' ':!images/*' ; then
+              echo "Refusing deletion: reference found for $file"
+              exit 1
+            fi
+            if git grep -n -F -- "$base" --               '*.html' '*.js' '*.mjs' '*.ts' '*.json' '*.css' '*.yml' '*.yaml' ':!images/*' ; then
+              echo "Refusing deletion: basename reference found for $file"
+              exit 1
+            fi
+          done < /tmp/placeholder-candidates.txt
+          echo "All 171 exact placeholder files are unreferenced."
+
+      - name: Remove only the proven unused placeholder files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t CANDIDATES < /tmp/placeholder-candidates.txt
+          git rm -- "${CANDIDATES[@]}"
+          test "$(git diff --cached --name-only | wc -l)" -eq 171
+
+      - name: Verify static/search contract after cleanup
+        run: node scripts/verify-search-readiness.mjs
+
+      - name: Run full Commerce backend regression after cleanup
+        working-directory: commerce
+        run: |
+          npm ci
+          npm run check
+
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: remove unused historical placeholder images"
+          git push origin HEAD:main
