@@ -69,14 +69,15 @@ export async function listAdminOrders(
       o.updated_at AS updatedAt
     FROM orders o`;
 
-  const visibility = "o.data_class = ? AND o.admin_hidden_at IS NULL";
+  const testData = dataClass === "TEST" || dataClass === "E2E";
+  const visibility = testData
+    ? "o.data_class IN ('TEST','E2E') AND o.admin_hidden_at IS NULL"
+    : "o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL";
   const statement = status
     ? db
         .prepare(`${base} WHERE ${visibility} AND o.status = ? ORDER BY o.created_at DESC LIMIT 100`)
-        .bind(dataClass, status)
-    : db
-        .prepare(`${base} WHERE ${visibility} ORDER BY o.created_at DESC LIMIT 100`)
-        .bind(dataClass);
+        .bind(status)
+    : db.prepare(`${base} WHERE ${visibility} ORDER BY o.created_at DESC LIMIT 100`);
 
   return allRows<OrderSummaryRow>(statement);
 }
