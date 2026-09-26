@@ -23,6 +23,7 @@ let sessionToken = "";
 let sessionHash = "";
 let productId = "";
 let slug = "";
+let retiredAliasSlug = "";
 let completed = false;
 
 fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
@@ -424,6 +425,19 @@ async function runQa() {
       "Published Admin Product unexpectedly has a non-purchasable reason.",
     );
 
+    retiredAliasSlug = slug + "-previous";
+    d1(
+      "INSERT INTO product_slugs (product_id,slug,is_primary,created_at,retired_at) VALUES (" +
+        [
+          q(productId),
+          q(retiredAliasSlug),
+          "0",
+          q(NOW),
+          q(NOW),
+        ].join(",") +
+        ")",
+    );
+
     const published = exportAndRender(PUBLISHED_DIR, 147, false);
     assert.ok(
       published.exportData.newProducts.includes(productId),
@@ -461,11 +475,44 @@ async function runQa() {
       html.includes('"@type":"Product"'),
       "Published candidate Product JSON-LD missing.",
     );
+
+    const aliasPagePath = path.join(
+      published.site,
+      "products",
+      retiredAliasSlug + ".html",
+    );
+    assert.ok(
+      fs.existsSync(aliasPagePath),
+      "Retired slug redirect page was not generated.",
+    );
+    const aliasHtml = fs.readFileSync(aliasPagePath, "utf8");
+    assert.ok(
+      aliasHtml.includes('name="robots" content="noindex,follow"'),
+      "Retired slug redirect must be noindex,follow.",
+    );
+    assert.ok(
+      aliasHtml.includes(
+        '<link rel="canonical" href="https://theblacksheepshop.co.uk/products/' +
+          slug +
+          '.html">',
+      ),
+      "Retired slug redirect canonical is wrong.",
+    );
+    assert.ok(
+      aliasHtml.includes("/products/" + slug + ".html"),
+      "Retired slug redirect target is wrong.",
+    );
     assert.ok(
       fs
         .readFileSync(path.join(published.site, "sitemap.xml"), "utf8")
         .includes("/products/" + slug + ".html"),
       "Published candidate Product missing from sitemap.",
+    );
+    assert.ok(
+      !fs
+        .readFileSync(path.join(published.site, "sitemap.xml"), "utf8")
+        .includes("/products/" + retiredAliasSlug + ".html"),
+      "Retired slug alias leaked into sitemap.",
     );
 
     const fullRangePublished = fs.readFileSync(
@@ -552,6 +599,12 @@ async function runQa() {
       "Archived QA Product still generated a static page.",
     );
     assert.ok(
+      !fs.existsSync(
+        path.join(archived.site, "products", retiredAliasSlug + ".html"),
+      ),
+      "Archived QA Product retained a retired-slug redirect page.",
+    );
+    assert.ok(
       !fs
         .readFileSync(path.join(archived.site, "sitemap.xml"), "utf8")
         .includes("/products/" + slug + ".html"),
@@ -616,6 +669,8 @@ async function runQa() {
             "d1-publication-candidate-147",
             "generic-product-page-generated",
             "candidate-canonical-jsonld-price",
+            "retired-slug-noindex-canonical-redirect",
+            "retired-slug-excluded-from-sitemap",
             "candidate-sitemap-inclusion",
             "candidate-full-range-card-and-itemlist-inclusion",
             "candidate-package-verifier",
@@ -625,6 +680,7 @@ async function runQa() {
             "public-api-404-after-archive",
             "publication-candidate-restored-146",
             "candidate-page-removed-after-archive",
+            "retired-slug-redirect-removed-after-archive",
             "candidate-sitemap-removal",
             "candidate-full-range-card-and-itemlist-removal",
             "audit-created-published-archived",
