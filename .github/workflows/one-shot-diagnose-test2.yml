@@ -29,6 +29,11 @@ jobs:
         run: |
           npx wrangler d1 execute black-sheep-commerce-prod --remote --command "SELECT p.id,p.current_slug,p.publication_status,p.current_published_version_id,p.current_draft_version_id,p.version,p.sell_status,p.online_ordering_enabled,p.updated_at,pv.title,pv.version_number,v.id AS variant_id,v.price_minor,v.active,v.is_default FROM products p LEFT JOIN product_versions pv ON pv.id=COALESCE(p.current_draft_version_id,p.current_published_version_id) LEFT JOIN product_variants v ON v.product_id=p.id AND v.is_default=1 WHERE LOWER(pv.title)=LOWER('Test 2') OR LOWER(p.current_slug)=LOWER('test-2');"
           npx wrangler d1 execute black-sheep-commerce-prod --remote --command "SELECT p.id AS product_id,pv.id AS version_id,pv.title,c.id AS category_id,c.slug,c.name,c.active,pvc.is_primary,pvc.position FROM products p JOIN product_versions pv ON pv.product_id=p.id LEFT JOIN product_version_categories pvc ON pvc.product_version_id=pv.id LEFT JOIN categories c ON c.id=pvc.category_id WHERE LOWER(pv.title)=LOWER('Test 2') ORDER BY pv.version_number,pvc.position;"
+      - name: Read Test 2 audit trail
+        shell: bash
+        run: |
+          npx wrangler d1 execute black-sheep-commerce-prod --remote --command "SELECT event_type,before_json,after_json,reason,created_at FROM product_audit_events WHERE product_id='prd_09ceee52-eea3-4260-b11f-b9b38cefe49f' ORDER BY created_at ASC;"
+
       - name: Check public API
         shell: bash
         run: |
