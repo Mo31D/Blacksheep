@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "npm run product-core:validate && npm run product-core:production-guards:test && npm run cart:test && npm run legal:test && npm run typecheck && npm run db:migrate:local && npm run db:migrate:upgrade-test && npm run inventory-core:test && npm run order-reservations:test && npm run test && npm run dry-run",
+    "check": "npm run product-core:validate && npm run product-core:production-guards:test && npm run storefront-structure:compat-test && npm run cart:test && npm run legal:test && npm run typecheck && npm run db:migrate:local && npm run db:migrate:upgrade-test && npm run storefront-structure:migration-test && npm run inventory-core:test && npm run order-reservations:test && npm run test && npm run dry-run",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply DB --local --env staging",
@@ -21,6 +21,8 @@
     "legal:test": "node ../scripts/test-commerce-legal.mjs",
     "db:migrate:upgrade-test": "node scripts/test-migration-upgrade.mjs",
     "storefront-structure:test": "vitest run test/storefront-structure.test.ts",
+    "storefront-structure:compat-test": "node scripts/test-storefront-structure-compat.mjs",
+    "storefront-structure:migration-test": "node scripts/test-storefront-structure-migration.mjs",
     "product-core:validate": "node scripts/product-core-validate.mjs",
     "product-core:import:staging": "node scripts/product-core-import.mjs --remote --env staging",
     "product-core:parity:staging": "node scripts/product-core-parity.mjs --remote --env staging",

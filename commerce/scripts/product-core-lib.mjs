@@ -290,10 +290,64 @@ export function sql(value) {
   return "'" + String(value).replace(/'/g, "''") + "'";
 }
 
+export const LEGACY_STOREFRONT_ROOTS = Object.freeze({
+  gifts: "sfn_gifts",
+  icecream: "sfn_icecream",
+  romneys: "sfn_romneys",
+  hawkshead: "sfn_hawkshead",
+});
+
+export const LEGACY_STOREFRONT_CATEGORY_NODES = Object.freeze({
+  "peter-rabbit": "sfn_gifts_peter_rabbit",
+  "highland-cows": "sfn_gifts_highland_cows",
+  mugs: "sfn_gifts_mugs",
+  "soft-toys": "sfn_gifts_soft_toys",
+  cards: "sfn_gifts_cards",
+  seasonal: "sfn_gifts_seasonal",
+  "keyrings-badges": "sfn_gifts_keyrings_badges",
+  "home-gifts": "sfn_gifts_home_gifts",
+  "toys-games": "sfn_gifts_toys_games",
+  romneys: "sfn_romneys",
+  "local-food": "sfn_romneys",
+  "mint-cake": "sfn_romneys_mint_cake",
+  fudge: "sfn_romneys_fudge",
+  biscuits: "sfn_romneys_biscuits",
+  sweets: "sfn_romneys_sweets",
+  "gift-boxes": "sfn_romneys_gift_boxes",
+  icecream: "sfn_icecream",
+  hawkshead: "sfn_hawkshead",
+  "chutneys-pickles": "sfn_hawkshead_chutneys_pickles",
+  "jams-preserves": "sfn_hawkshead_jams_preserves",
+  honey: "sfn_hawkshead_honey",
+  mustard: "sfn_hawkshead_mustard",
+  "savoury-sauces": "sfn_hawkshead_savoury_sauces",
+});
+
+export function legacyStorefrontPlacements(type, categories = [], primaryCategory = null) {
+  const root = LEGACY_STOREFRONT_ROOTS[String(type ?? "").trim().toLowerCase()] ?? null;
+  const categoryNodes = [];
+  for (const raw of categories ?? []) {
+    const node = LEGACY_STOREFRONT_CATEGORY_NODES[String(raw ?? "").trim().toLowerCase()];
+    if (node && !categoryNodes.includes(node)) categoryNodes.push(node);
+  }
+  const primaryMapped = primaryCategory
+    ? LEGACY_STOREFRONT_CATEGORY_NODES[String(primaryCategory).trim().toLowerCase()] ?? null
+    : null;
+  const primary = primaryMapped ?? root ?? categoryNodes[0] ?? null;
+  if (!primary) return [];
+  const nodes = [primary, ...categoryNodes.filter((node) => node !== primary)];
+  return nodes.map((storefrontNodeId, index) => ({
+    storefrontNodeId,
+    isPrimary: index === 0,
+    position: index * 10,
+  }));
+}
+
 export function buildImportSql(items) {
   const statements = [
     "PRAGMA foreign_keys = ON;",
     "DELETE FROM product_version_media;",
+    "DELETE FROM product_version_storefront_placements;",
     "DELETE FROM product_attributes;",
     "DELETE FROM product_source_records;",
     "DELETE FROM product_audit_events;",
@@ -416,6 +470,21 @@ export function buildImportSql(items) {
         ].join(", ")});`,
       );
     });
+
+    legacyStorefrontPlacements(item.type, item.categories ?? [], primaryCategory).forEach(
+      (placement) => {
+        statements.push(
+          `INSERT INTO product_version_storefront_placements (product_version_id, storefront_node_id, is_primary, position, source, created_at) VALUES (${[
+            sql(pver),
+            sql(placement.storefrontNodeId),
+            placement.isPrimary ? "1" : "0",
+            String(placement.position),
+            sql("LEGACY_COMPAT"),
+            sql(IMPORTED_AT),
+          ].join(", ")});`,
+        );
+      },
+    );
 
     const legacyPayload = legacySourcePayload(item);
     statements.push(

@@ -1,6 +1,11 @@
 
 import type { D1DatabaseLike, D1PreparedStatementLike } from "./d1";
 import { DEFAULT_VAT_RATE_BASIS_POINTS, resolveAdminSupplier } from "./inventory-valuation";
+import {
+  categorySlugsForIds,
+  compatibilityPlacementStatements,
+  getProductVersionStorefrontPlacements,
+} from "./storefront-structure";
 
 const SELL_STATUSES = new Set([
   "AUTO",
@@ -274,6 +279,8 @@ export async function createAdminProduct(
     : [];
 
   await assertCategories(db, categoryIds);
+  const categorySlugs = await categorySlugsForIds(db, categoryIds);
+  const primaryCategorySlug = categorySlugs[0] ?? null;
   await assertSkuBarcodeUnique(db, null, sku, barcode);
 
   const createdAt = now();
@@ -354,6 +361,17 @@ export async function createAdminProduct(
         .bind(draftId, categoryId, index === 0 ? 1 : 0, index),
     );
   });
+
+  statements.push(
+    ...compatibilityPlacementStatements(db, {
+      productVersionId: draftId,
+      productType,
+      categorySlugs,
+      primaryCategorySlug,
+      source: "LEGACY_COMPAT",
+      createdAt,
+    }),
+  );
 
   statements.push(
     db
@@ -985,6 +1003,12 @@ export async function saveAdminProductDraft(
         ? existingPrimary
         : categoryIds[0] ?? null;
 
+  const categorySlugs = await categorySlugsForIds(db, categoryIds);
+  const primaryCategoryIndex =
+    primaryCategoryId == null ? -1 : categoryIds.indexOf(primaryCategoryId);
+  const primaryCategorySlug =
+    primaryCategoryIndex >= 0 ? categorySlugs[primaryCategoryIndex] ?? null : null;
+
   const token = now();
   const resultVersion = expected + 1;
   const statements: D1PreparedStatementLike[] = [
@@ -1131,6 +1155,22 @@ export async function saveAdminProductDraft(
   });
 
   statements.push(
+    ...compatibilityPlacementStatements(db, {
+      productVersionId: draftId,
+      productType: next.productType,
+      categorySlugs,
+      primaryCategorySlug,
+      source: "LEGACY_COMPAT",
+      createdAt: token,
+      guard: {
+        productId,
+        resultVersion,
+        token,
+      },
+    }),
+  );
+
+  statements.push(
     auditStatement(db, {
       productId,
       eventType: newDraft ? "CONTENT_DRAFT_CREATED" : "CONTENT_DRAFT_UPDATED",
@@ -1206,6 +1246,17 @@ export async function publishAdminProduct(
 
   if (Number(categoryCount?.count ?? 0) < 1) {
     throw new Error("product_publish_requires_category");
+  }
+
+  const placementCount = await db
+    .prepare(
+      "SELECT COUNT(*) AS count FROM product_version_storefront_placements WHERE product_version_id = ?",
+    )
+    .bind(current.draftVersionId)
+    .first<{ count: number }>();
+
+  if (Number(placementCount?.count ?? 0) < 1) {
+    throw new Error("product_publish_requires_storefront_placement");
   }
   if (
     Number(current.onlineOrderingEnabled) === 1 &&
@@ -1339,7 +1390,7 @@ export async function duplicateAdminProduct(
     throw new Error("product_version_conflict");
   }
 
-  const [categories, media, attributes] = await Promise.all([
+  const [categories, media, attributes, storefrontPlacements] = await Promise.all([
     allRows<{
       categoryId: string;
       isPrimary: number;
@@ -1400,6 +1451,7 @@ export async function duplicateAdminProduct(
         )
         .bind(source.effectiveVersionId),
     ),
+    getProductVersionStorefrontPlacements(db, source.effectiveVersionId),
   ]);
 
   const createdAt = now();
@@ -1485,6 +1537,25 @@ export async function duplicateAdminProduct(
           category.categoryId,
           Number(category.isPrimary) === 1 ? 1 : 0,
           category.position,
+        ),
+    );
+  });
+
+  storefrontPlacements.forEach((placement) => {
+    statements.push(
+      db
+        .prepare(
+          "INSERT INTO product_version_storefront_placements (" +
+            "product_version_id, storefront_node_id, is_primary, position, source, created_at" +
+            ") VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .bind(
+          newVersionId,
+          placement.storefrontNodeId,
+          placement.isPrimary ? 1 : 0,
+          placement.position,
+          placement.source,
+          createdAt,
         ),
     );
   });
