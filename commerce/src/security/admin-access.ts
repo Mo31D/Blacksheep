@@ -7,6 +7,7 @@ export interface AdminAccessEnv extends EmailProviderEnv {
   ORDER_EMAIL_FROM?: string;
   ORDER_OWNER_EMAIL?: string;
   ADMIN_BASE_URL?: string;
+  ADMIN_PASSWORD?: string;
 }
 
 export interface AdminIdentity {
@@ -287,6 +288,67 @@ export async function verifyAdminLoginCode(
     token,
     identity: { email, subject: null },
   };
+}
+
+export async function verifyAdminPassword(
+  password: string,
+  env: AdminAccessEnv,
+): Promise<
+  | { ok: true; status: 200; token: string; identity: AdminIdentity }
+  | { ok: false; status: number; code: string }
+> {
+  if (!env.DB) return { ok: false, status: 503, code: "database_unavailable" };
+  const configured = env.ADMIN_PASSWORD ?? "";
+  const email = normalizeEmail(env.ORDER_OWNER_EMAIL);
+  if (!configured || !email) {
+    return { ok: false, status: 503, code: "admin_password_not_configured" };
+  }
+
+  const state = await env.DB.prepare(
+    `SELECT failed_attempts AS failedAttempts, locked_until AS lockedUntil
+     FROM admin_password_security WHERE id = 'owner' LIMIT 1`,
+  ).first<{ failedAttempts: number; lockedUntil: string | null }>();
+  if (state?.lockedUntil && new Date(state.lockedUntil).getTime() > Date.now()) {
+    return { ok: false, status: 429, code: "admin_password_locked" };
+  }
+
+  const candidateHash = await sha256(password);
+  const configuredHash = await sha256(configured);
+  if (!password || !constantTimeEqual(candidateHash, configuredHash)) {
+    const failures = (state?.failedAttempts ?? 0) + 1;
+    const lockedUntil =
+      failures >= 5 ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null;
+    await env.DB.prepare(
+      `INSERT INTO admin_password_security (id, failed_attempts, locked_until, updated_at)
+       VALUES ('owner', ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         failed_attempts = excluded.failed_attempts,
+         locked_until = excluded.locked_until,
+         updated_at = excluded.updated_at`,
+    ).bind(failures >= 5 ? 0 : failures, lockedUntil, new Date().toISOString()).run();
+    return {
+      ok: false,
+      status: lockedUntil ? 429 : 401,
+      code: lockedUntil ? "admin_password_locked" : "admin_password_invalid",
+    };
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO admin_password_security (id, failed_attempts, locked_until, updated_at)
+     VALUES ('owner', 0, NULL, ?)
+     ON CONFLICT(id) DO UPDATE SET failed_attempts = 0, locked_until = NULL, updated_at = excluded.updated_at`,
+  ).bind(new Date().toISOString()).run();
+
+  const now = new Date();
+  const token = randomSessionToken();
+  const tokenHash = await sha256(token);
+  const expiresAt = new Date(now.getTime() + SESSION_TTL_MS).toISOString();
+  await env.DB.prepare(
+    `INSERT INTO admin_sessions (token_hash, email, expires_at, created_at)
+     VALUES (?, ?, ?, ?)`,
+  ).bind(tokenHash, email, expiresAt, now.toISOString()).run();
+
+  return { ok: true, status: 200, token, identity: { email, subject: null } };
 }
 
 export async function revokeAdminSession(
