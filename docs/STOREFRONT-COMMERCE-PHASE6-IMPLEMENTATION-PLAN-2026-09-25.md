@@ -1,7 +1,7 @@
 # Black Sheep — Phase 6 Storefront / Commerce Integration Plan
 
 **Date:** 25 September 2026  
-**Status:** ACTIVE — milestones 6.1–6.4 COMPLETE + REAL-STAGING VERIFIED; 6.5 next  
+**Status:** ACTIVE — milestones 6.1–6.5 COMPLETE + REAL-STAGING/BROWSER VERIFIED; 6.6 publication pipeline next  
 **Target:** staging first  
 **Production:** unchanged until a separate cutover gate
 
@@ -263,10 +263,13 @@ Before Production cutover is considered:
 - tracked-stock quantity/Reserved proof,
 - server-price persistence proof.
 
-### 6.5 — Storefront live overlay
+### 6.5 — Storefront live overlay — COMPLETE
 - price/status/orderability overlay,
 - static fallback,
-- responsive QA.
+- staging-preview isolation,
+- checkout submission lock in preview,
+- Chromium + WebKit/mobile browser QA,
+- canonical query isolation.
 
 ### 6.6 — Publication pipeline
 - Admin Publish → static artefacts,
@@ -283,6 +286,23 @@ Only after all prior gates pass:
 - rollback plan,
 - post-cutover order proof.
 
+## 12A. Publication merge authority
+
+Phase 6.6 must not reduce the quality of the existing static product pages.
+
+For existing imported Products, publication uses two layers:
+
+- **D1 Published Product authority** for Product identity, current slug, published title/short description/brand/type, operational price, selling state, online-ordering state, Product media and categories where available.
+- **Legacy content extension** from the current static catalogue/page architecture for fields Product Core does not yet model, such as supplier factual detail, ingredients, allergens, nutrition, awards, dimensions/material, galleries, image-fit treatment, range notes and other specialist page content.
+
+Rules:
+- D1 always wins for fields it owns.
+- Draft content never participates.
+- Extension data is keyed by immutable legacy/public Product ID, not fuzzy title/SKU matching.
+- New Admin-created Products with no legacy extension must still generate a valid minimal static Product page.
+- No specialist content may silently disappear during a publication run.
+- The legacy extension can be retired field-by-field only after equivalent structured Product Core data exists and parity is proven.
+
 ## 13. Safety locks
 
 Until Phase 6 Production cutover is explicitly approved:
@@ -295,11 +315,12 @@ Until Phase 6 Production cutover is explicitly approved:
 
 ## 14. Current exact milestone
 
-Start 6.5 — Storefront live overlay:
-1. consume the public D1 contract in a lightweight browser overlay,
-2. keep ordinary Production traffic on static fallback until explicit cutover,
-3. provide a staging-preview switch for owner QA,
-4. update cards, Product detail, basket and Add-to-basket state,
-5. fail safely back to static content when the API is unavailable,
-6. verify iPhone/iPad/desktop behavior and no layout shift,
-7. then proceed to 6.6 publication pipeline.
+Start 6.6 — Product publication pipeline:
+1. export only Published Product state from staging D1,
+2. merge D1 operational/public-core authority with legacy specialist content extensions keyed by legacy Product ID,
+3. generate candidate catalogue/static artefacts without overwriting live files,
+4. prove exact parity for the existing 146 Products,
+5. preserve specialist Romney's / ice-cream / Hawkshead content until equivalent structured Product Core fields exist,
+6. prove Admin Add/Publish/Archive propagation on staging QA data,
+7. add deterministic CI drift checks,
+8. plan write/deploy automation only after candidate parity passes.
