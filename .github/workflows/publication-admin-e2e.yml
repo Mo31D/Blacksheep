@@ -1,0 +1,114 @@
+name: Phase 6 Publication Admin E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "commerce/scripts/staging-publication-admin-e2e.mjs"
+      - "commerce/scripts/phase6-publication-candidate.mjs"
+      - "commerce/scripts/phase6-publication-render.mjs"
+      - ".github/workflows/publication-admin-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publication-admin-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: commerce
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: commerce/package.json
+
+      - name: Install commerce dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install ephemeral browser QA dependency
+        run: npm install --no-save --package-lock=false playwright@1.55.0
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Require Cloudflare staging credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Confirm staging/production safety baseline
+        shell: bash
+        run: |
+          npx wrangler d1 execute black-sheep-commerce-staging --remote --env staging --json             --command "SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT COUNT(*) AS active FROM products WHERE publication_status='ACTIVE' AND current_published_version_id IS NOT NULL;"             > /tmp/phase6-publish-staging-baseline.json
+          cat /tmp/phase6-publish-staging-baseline.json
+          node - /tmp/phase6-publish-staging-baseline.json <<'NODE'
+          const fs = require("fs");
+          const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const latest = String(blocks?.[0]?.results?.[0]?.name ?? "");
+          const active = Number(blocks?.[1]?.results?.[0]?.active ?? -1);
+          if (latest !== "0012_order_returns.sql" || active !== 146) {
+            console.error("Unexpected staging publication QA baseline.", { latest, active });
+            process.exit(1);
+          }
+          NODE
+
+          npx wrangler d1 execute black-sheep-commerce-prod --remote --json             --command "SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT COUNT(*) AS forbidden_tables FROM sqlite_master WHERE type='table' AND name IN ('products','product_variants','inventory_balances','inventory_reservations');"             > /tmp/phase6-publish-production-safety.json
+          cat /tmp/phase6-publish-production-safety.json
+          node - /tmp/phase6-publish-production-safety.json <<'NODE'
+          const fs = require("fs");
+          const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const latest = String(blocks?.[0]?.results?.[0]?.name ?? "");
+          const forbidden = Number(blocks?.[1]?.results?.[0]?.forbidden_tables ?? -1);
+          if (latest !== "0008_concurrency_guards.sql" || forbidden !== 0) {
+            console.error("Production isolation gate failed.", { latest, forbidden });
+            process.exit(1);
+          }
+          NODE
+
+      - name: Run Admin Add Publish Archive publication E2E
+        run: node scripts/staging-publication-admin-e2e.mjs
+
+      - name: Verify cleanup restored exact staging baseline
+        shell: bash
+        run: |
+          npx wrangler d1 execute black-sheep-commerce-staging --remote --env staging --json             --command "SELECT COUNT(*) AS active FROM products WHERE publication_status='ACTIVE' AND current_published_version_id IS NOT NULL; SELECT COUNT(*) AS qa_products FROM products WHERE current_slug LIKE 'phase-6-publication-qa-%'; SELECT COUNT(*) AS qa_variants FROM product_variants WHERE sku LIKE 'QA6PUB-%';"             > /tmp/phase6-publish-cleanup.json
+          cat /tmp/phase6-publish-cleanup.json
+          node - /tmp/phase6-publish-cleanup.json <<'NODE'
+          const fs = require("fs");
+          const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const active = Number(blocks?.[0]?.results?.[0]?.active ?? -1);
+          const qaProducts = Number(blocks?.[1]?.results?.[0]?.qa_products ?? -1);
+          const qaVariants = Number(blocks?.[2]?.results?.[0]?.qa_variants ?? -1);
+          if (active !== 146 || qaProducts !== 0 || qaVariants !== 0) {
+            console.error("Publication QA cleanup gate failed.", { active, qaProducts, qaVariants });
+            process.exit(1);
+          }
+          console.log("Publication QA cleanup restored the 146-product baseline.");
+          NODE
+
+      - name: Upload publication Admin QA artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase6-publication-admin-e2e
+          path: commerce/publication-admin-qa-artifacts
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Production safety statement
+        if: always()
+        run: |
+          echo "This QA mutates staging only and deletes its synthetic Product/session afterwards."
+          echo "No Production Worker deploy, D1 migration, Product mutation or storefront file write is performed."
