@@ -103,7 +103,7 @@ Purpose: authoritative implementation board for the next architecture programme.
 ---
 
 ## CARD 03 — Product Editor: placement + multi-location + live verification
-**Status:** READY  
+**Status:** IN PROGRESS  
 **Depends on:** CARD 01, CARD 02
 
 **Goal:** make product editing answer “Where should this product appear?”
