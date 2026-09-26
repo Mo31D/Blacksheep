@@ -805,7 +805,8 @@ Remaining live-owner checks:
 
 Repository cleanup:
 - PR #7 is closed and must not be merged.
-- Seven historical branches are classified obsolete/safe-to-delete.
-- The current GitHub connector has no branch-delete/delete-ref action, so those refs remain until removed through GitHub UI or a branch-delete capable connection.
+- Seven obsolete historical branches were deleted by guarded workflow `36236510282`.
+- Post-cleanup branch list contains `main` only.
+- The temporary branch-cleanup workflow was removed after success.
 
 Do not rerun historical Phase 13 migrations. Future schema/deploy work must follow the current Product/Inventory/Phase 6 state.
