@@ -339,8 +339,13 @@ async function runQa() {
     assert.equal(publicAfterPublish.payload?.product?.priceMinor, 1234);
     assert.equal(
       publicAfterPublish.payload?.product?.purchasable,
-      false,
-      "New Admin Product should remain safe/non-purchasable until selling controls are enabled.",
+      true,
+      "Published Admin Product with AUTO + online ordering + a numeric price should be purchasable.",
+    );
+    assert.equal(
+      publicAfterPublish.payload?.product?.nonPurchasableReason,
+      null,
+      "Published Admin Product unexpectedly has a non-purchasable reason.",
     );
 
     const published = exportAndRender(PUBLISHED_DIR, 147, false);
