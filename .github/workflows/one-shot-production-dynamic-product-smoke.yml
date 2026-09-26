@@ -1,0 +1,195 @@
+name: One-shot Production Dynamic Product Smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/one-shot-production-dynamic-product-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  production-dynamic-product-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: commerce/package.json
+
+      - name: Install browser dependency
+        working-directory: commerce
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Wait for dynamic storefront source
+        shell: bash
+        run: |
+          READY=0
+          for attempt in $(seq 1 120); do
+            LIVE="$(curl --silent --show-error --max-time 20 "https://theblacksheepshop.co.uk/assets/commerce-live.js?smoke=$GITHUB_SHA" || true)"
+            SITE="$(curl --silent --show-error --max-time 20 "https://theblacksheepshop.co.uk/assets/site.js?smoke=$GITHUB_SHA" || true)"
+            PRODUCT="$(curl --silent --show-error --max-time 20 "https://theblacksheepshop.co.uk/product.html?smoke=$GITHUB_SHA" || true)"
+            if echo "$LIVE" | grep -q "commerceDynamic:true" \
+              && echo "$LIVE" | grep -q "catalog_pagination_guard" \
+              && echo "$SITE" | grep -q "function syncDynamicCatalogCards" \
+              && echo "$PRODUCT" | grep -q "black-sheep:commerce-live-ready"; then
+              READY=1
+              break
+            fi
+            echo "Dynamic storefront source not visible yet (attempt $attempt/120)."
+            sleep 5
+          done
+          if [ "$READY" != "1" ]; then
+            echo "::error::Dynamic storefront source did not propagate to Production."
+            exit 1
+          fi
+          echo "Dynamic storefront source is live."
+
+      - name: Verify Test in Production API and storefront
+        working-directory: commerce
+        run: |
+          node --input-type=module <<'NODE'
+          import { chromium } from "playwright";
+
+          const SITE = "https://theblacksheepshop.co.uk";
+          const API = "https://api.theblacksheepshop.co.uk";
+          const expectedUrl = "/product.html?type=hawkshead&slug=test";
+
+          function assert(value, message) {
+            if (!value) throw new Error(message);
+          }
+
+          const response = await fetch(API + "/v1/catalog?q=test&limit=200", {
+            headers: { accept: "application/json" },
+          });
+          assert(response.ok, "Production catalogue API failed: " + response.status);
+          const payload = await response.json();
+          const product = (payload.products || []).find(
+            (row) => row.slug === "test" && row.name === "Test",
+          );
+          assert(product, "Published Test product is missing from Production public catalogue");
+          assert(product.type === "hawkshead", "Test product type is not hawkshead");
+          assert(product.priceMinor === 1, "Test product price is not £0.01");
+          assert(product.primaryImageUrl, "Test product primary image is missing");
+
+          const browser = await chromium.launch();
+          const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+          const page = await context.newPage();
+
+          try {
+            await page.goto(SITE + "/hawkshead-relish.html", {
+              waitUntil: "domcontentloaded",
+              timeout: 60_000,
+            });
+            await page.waitForFunction(
+              () => document.documentElement.dataset.commerceLive === "ready",
+              null,
+              { timeout: 30_000 },
+            );
+
+            const state = await page.evaluate(() => window.BLACK_SHEEP_LIVE_COMMERCE_STATE);
+            assert(state?.received >= 1, "Live commerce received no products");
+
+            const card = page.locator('.product-card[data-url="' + expectedUrl + '"]');
+            await card.waitFor({ state: "visible", timeout: 20_000 });
+            assert(
+              (await card.locator(".product-title").textContent())?.trim() === "Test",
+              "Test card title is wrong",
+            );
+            assert(
+              (await card.locator(".product-price").textContent())?.trim() === "£0.01",
+              "Test card price is wrong",
+            );
+            const countText = (await page.locator("#giftCount").textContent()) || "";
+            assert(
+              Number.parseInt(countText, 10) >= 16,
+              "Hawkshead product count did not include Test: " + countText,
+            );
+            const cardImage = card.locator("img");
+            await cardImage.waitFor({ state: "visible", timeout: 10_000 });
+            assert(
+              await cardImage.evaluate((img) => img.complete && img.naturalWidth > 0),
+              "Test card image failed to load",
+            );
+
+            await card.locator(".product-title").click();
+            await page.waitForURL("**/product.html?type=hawkshead&slug=test", {
+              timeout: 20_000,
+            });
+            await page.waitForFunction(
+              () => document.documentElement.dataset.commerceLive === "ready",
+              null,
+              { timeout: 30_000 },
+            );
+            await page.locator("#detail h1").waitFor({ state: "visible", timeout: 20_000 });
+
+            assert(
+              (await page.locator("#detail h1").textContent())?.trim() === "Test",
+              "Dynamic detail title is wrong",
+            );
+            assert(
+              (await page.locator("#detail .detail-price").textContent())?.trim() === "£0.01",
+              "Dynamic detail price is wrong",
+            );
+            const detailImage = page.locator("#detail img").first();
+            await detailImage.waitFor({ state: "visible", timeout: 10_000 });
+            assert(
+              await detailImage.evaluate((img) => img.complete && img.naturalWidth > 0),
+              "Dynamic detail image failed to load",
+            );
+            assert(
+              !(await page.locator("#detail .list-detail-add").isDisabled()),
+              "Dynamic product Add to basket is unexpectedly disabled",
+            );
+
+            const overflow = await page.evaluate(() => ({
+              scrollWidth: document.documentElement.scrollWidth,
+              clientWidth: document.documentElement.clientWidth,
+            }));
+            assert(
+              overflow.scrollWidth <= overflow.clientWidth + 2,
+              "Dynamic product page has horizontal overflow",
+            );
+
+            console.log(JSON.stringify({
+              ok: true,
+              product: {
+                id: product.productId,
+                slug: product.slug,
+                type: product.type,
+                priceMinor: product.priceMinor,
+              },
+              liveState: state,
+              hawksheadCount: countText,
+              checks: [
+                "production-public-api-product",
+                "production-hawkshead-card",
+                "production-card-price",
+                "production-card-image",
+                "production-hawkshead-count",
+                "production-dynamic-detail",
+                "production-detail-price",
+                "production-detail-image",
+                "production-add-button",
+                "mobile-no-horizontal-overflow"
+              ]
+            }, null, 2));
+          } finally {
+            await context.close();
+            await browser.close();
+          }
+          NODE
+
+      - name: Safety statement
+        if: always()
+        run: |
+          echo "Read-only Production smoke only."
+          echo "No Admin mutation, order submission, Worker deploy or D1 write occurs in this workflow."
