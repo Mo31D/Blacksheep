@@ -143,8 +143,14 @@ async function resolveScope(
       sql:
         " AND EXISTS (" +
         "SELECT 1 FROM product_version_storefront_placements ps " +
-        "WHERE ps.product_version_id = pv.id AND ps.storefront_node_id = ?)",
-      values: [refId],
+        "WHERE ps.product_version_id = pv.id AND (" +
+          "ps.storefront_node_id = ? OR EXISTS (" +
+            "SELECT 1 FROM storefront_nodes child " +
+            "JOIN storefront_node_versions cev ON cev.id = COALESCE(child.current_draft_version_id, child.current_published_version_id) " +
+            "WHERE child.id = ps.storefront_node_id AND cev.parent_node_id = ?" +
+          ")" +
+        "))",
+      values: [refId, refId],
     };
   }
 
@@ -565,7 +571,9 @@ export async function saveStocktakeItem(
       "AND s.status IN ('IN_PROGRESS','REVIEW'))"
     : "UPDATE stocktake_session_items SET counted_on_hand = ?, item_status = ?, " +
       "conflict_code = NULL, saved_at = ?, applied_at = NULL, version = version + 1 " +
-      "WHERE session_id = ? AND variant_id = ? AND version = ?";
+      "WHERE session_id = ? AND variant_id = ? AND version = ? " +
+      "AND EXISTS (SELECT 1 FROM stocktake_sessions s WHERE s.id = ? " +
+      "AND s.status IN ('IN_PROGRESS','REVIEW'))";
 
   const itemStatement = baseline
     ? db
