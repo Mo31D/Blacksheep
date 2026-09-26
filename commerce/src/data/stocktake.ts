@@ -560,7 +560,9 @@ export async function saveStocktakeItem(
       "conflict_code = NULL, tracked_snapshot = ?, system_on_hand_snapshot = ?, " +
       "available_snapshot = ?, expected_balance_version = ?, variant_version_snapshot = ?, " +
       "saved_at = ?, applied_at = NULL, version = version + 1 " +
-      "WHERE session_id = ? AND variant_id = ? AND version = ?"
+      "WHERE session_id = ? AND variant_id = ? AND version = ? " +
+      "AND EXISTS (SELECT 1 FROM stocktake_sessions s WHERE s.id = ? " +
+      "AND s.status IN ('IN_PROGRESS','REVIEW'))"
     : "UPDATE stocktake_session_items SET counted_on_hand = ?, item_status = ?, " +
       "conflict_code = NULL, saved_at = ?, applied_at = NULL, version = version + 1 " +
       "WHERE session_id = ? AND variant_id = ? AND version = ?";
@@ -580,6 +582,7 @@ export async function saveStocktakeItem(
           sessionId,
           variantId,
           expectedItemVersion,
+          sessionId,
         )
     : db
         .prepare(itemSql)
@@ -590,6 +593,7 @@ export async function saveStocktakeItem(
           sessionId,
           variantId,
           expectedItemVersion,
+          sessionId,
         );
 
   await db.batch([
@@ -743,7 +747,9 @@ export async function finalizeStocktakeSession(
         .prepare(
           "UPDATE stocktake_session_items SET item_status = ?, conflict_code = ?, " +
             "applied_at = ?, version = version + 1 " +
-            "WHERE session_id = ? AND variant_id = ? AND item_status = 'COUNTED'",
+            "WHERE session_id = ? AND variant_id = ? AND item_status = 'COUNTED' " +
+            "AND EXISTS (SELECT 1 FROM stocktake_sessions s WHERE s.id = ? " +
+            "AND s.version = ? AND s.status IN ('IN_PROGRESS','REVIEW'))",
         )
         .bind(
           nextStatus,
@@ -751,6 +757,8 @@ export async function finalizeStocktakeSession(
           nextStatus === "CONFLICT" ? null : timestamp,
           sessionId,
           item.variantId,
+          sessionId,
+          session.version,
         ),
     );
   }
