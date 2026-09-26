@@ -78,8 +78,8 @@ function createBlackSheepCartCore(storage,resolveProduct){
     if(item.availabilityStatus==='arriving-soon')return{purchasable:false,reason:'arriving-soon'};
     if(item.stockStatus==='out-of-stock')return{purchasable:false,reason:'out-of-stock'};
     if(item.sellStatus==='NOT_FOR_SALE')return{purchasable:false,reason:'not-for-sale'};
-    if(item.onlineOrderingEnabled===false)return{purchasable:false,reason:'not-available-online'};
     if(typeof item.price!=='number'||!Number.isFinite(item.price))return{purchasable:false,reason:'price-unavailable'};
+    if(item.onlineOrderingEnabled===false)return{purchasable:false,reason:'not-available-online'};
     return{purchasable:true,reason:null};
   }
 
