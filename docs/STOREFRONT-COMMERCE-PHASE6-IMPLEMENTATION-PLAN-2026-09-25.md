@@ -1,9 +1,9 @@
 # Black Sheep — Phase 6 Storefront / Commerce Integration Plan
 
 **Date:** 25 September 2026  
-**Status:** ACTIVE — milestones 6.1–6.5 COMPLETE + REAL-STAGING/BROWSER VERIFIED; 6.6 publication pipeline next  
-**Target:** staging first  
-**Production:** unchanged until a separate cutover gate
+**Status:** READY FOR EXPLICIT PRODUCTION CUTOVER APPROVAL — milestones 6.1–6.6 COMPLETE; 6.7 readiness COMPLETE; cutover NOT executed  
+**Target:** Production cutover only after explicit owner approval  
+**Production:** still pre-cutover at migration `0008_concurrency_guards.sql`
 
 ## 1. Objective
 
@@ -271,20 +271,37 @@ Before Production cutover is considered:
 - Chromium + WebKit/mobile browser QA,
 - canonical query isolation.
 
-### 6.6 — Publication pipeline
-- Admin Publish → static artefacts,
-- canonical/redirect preservation,
-- sitemap/cards/product pages/JSON-LD.
+### 6.6 — Publication pipeline — COMPLETE
+- deterministic D1 Published Product package,
+- 146 Product pages,
+- 14 collection/full-range pages,
+- `assets/catalog.js`,
+- sitemap,
+- Product JSON-LD,
+- canonical metadata,
+- static selling controls,
+- specialist legacy extension preservation,
+- slug-history redirect shells,
+- Admin Add → Publish → static candidate → Archive E2E,
+- byte-for-byte deterministic package verification.
 
-### 6.7 — Production cutover review
-Only after all prior gates pass:
-- Production migration plan,
-- backup/time-travel bookmark,
-- Product Core parity import/migration plan,
-- Worker authority switch,
-- storefront deployment,
-- rollback plan,
-- post-cutover order proof.
+### 6.7 — Production cutover review/readiness — COMPLETE; execution pending approval
+Readiness now includes:
+- exact Production before-state audit,
+- pending migration audit `0009–0012`,
+- D1 Time Travel rollback-point design,
+- guarded initial 146-Product Production importer,
+- Production Product Core parity verifier,
+- Production-D1 publication regeneration,
+- exact approved package SHA gate,
+- Production R2 Product Media bucket plan,
+- Worker authority/cron/R2/live-overlay activation step,
+- full simulated post-cutover source validation,
+- simulated Production Worker dry-run,
+- rollback matrix,
+- dedicated manual-only cutover workflow.
+
+Actual Production cutover and post-cutover owner/order smoke remain intentionally unexecuted.
 
 ## 12A. Publication merge authority
 
@@ -315,12 +332,24 @@ Until Phase 6 Production cutover is explicitly approved:
 
 ## 14. Current exact milestone
 
-Start 6.6 — Product publication pipeline:
-1. export only Published Product state from staging D1,
-2. merge D1 operational/public-core authority with legacy specialist content extensions keyed by legacy Product ID,
-3. generate candidate catalogue/static artefacts without overwriting live files,
-4. prove exact parity for the existing 146 Products,
-5. preserve specialist Romney's / ice-cream / Hawkshead content until equivalent structured Product Core fields exist,
-6. prove Admin Add/Publish/Archive propagation on staging QA data,
-7. add deterministic CI drift checks,
-8. plan write/deploy automation only after candidate parity passes.
+### Explicit Production cutover decision
+
+All reversible Phase 6 engineering/readiness work is complete.
+
+Current approved publication package:
+- Products: 146,
+- files: 162,
+- SHA-256: `61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7`,
+- semantic mismatches: 0,
+- unsafe slug removals: 0.
+
+Current Production remains pre-cutover:
+- migration `0008_concurrency_guards.sql`,
+- Product/Inventory/Reservation tables absent,
+- Phase 6 runtime flags absent,
+- Production live-commerce marker disabled,
+- generated static catalogue remains checkout authority.
+
+The next action is not another implementation milestone. It is a separate owner decision to dispatch the guarded workflow `.github/workflows/phase6-production-cutover.yml`.
+
+That workflow must perform a fresh drift check before its first Production write and must abort if the approved package SHA or `main` has changed.
