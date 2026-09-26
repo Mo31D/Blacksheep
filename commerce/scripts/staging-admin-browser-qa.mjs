@@ -722,6 +722,28 @@ async function ownerPolishViewsQa(viewport, label) {
         .getAttribute("data-structure-add-child");
       assert(rootId, "New main Website section did not expose its node id.");
 
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/admin/api/storefront-structure/") &&
+            response.request().method() === "PATCH" &&
+            response.status() === 200,
+          { timeout: 20_000 },
+        ),
+        rootCard.locator("[data-structure-toggle-menu]").click(),
+      ]);
+      await page.waitForFunction(
+        (name) => {
+          const cards = Array.from(
+            document.querySelectorAll("#storefrontStructureTree .structure-card"),
+          );
+          const root = cards.find((card) => card.textContent?.includes(name));
+          return Boolean(root?.textContent?.includes("Hidden from menu"));
+        },
+        STRUCTURE_ROOT_NAME,
+        { timeout: 20_000 },
+      );
+
       async function addChild(name) {
         const freshRoot = page
           .locator("#storefrontStructureTree .structure-card")
@@ -801,6 +823,51 @@ async function ownerPolishViewsQa(viewport, label) {
         { rootName: STRUCTURE_ROOT_NAME, expectedFirst: STRUCTURE_CHILD_B },
         { timeout: 20_000 },
       );
+
+      qaRoot = page
+        .locator("#storefrontStructureTree .structure-card")
+        .filter({ hasText: STRUCTURE_ROOT_NAME });
+      let childA = qaRoot
+        .locator(".structure-subrow")
+        .filter({ hasText: STRUCTURE_CHILD_A });
+      page.once("dialog", async (dialog) => {
+        await dialog.accept();
+      });
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/admin/api/storefront-structure/") &&
+            response.url().endsWith("/archive") &&
+            response.request().method() === "POST" &&
+            response.status() === 200,
+          { timeout: 20_000 },
+        ),
+        childA.locator("[data-structure-archive]").click(),
+      ]);
+
+      await page.locator("#catalogueShowArchived").check();
+      qaRoot = page
+        .locator("#storefrontStructureTree .structure-card")
+        .filter({ hasText: STRUCTURE_ROOT_NAME });
+      childA = qaRoot
+        .locator(".structure-subrow")
+        .filter({ hasText: STRUCTURE_CHILD_A });
+      await childA.locator("[data-structure-restore]").waitFor({
+        state: "visible",
+        timeout: 20_000,
+      });
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/admin/api/storefront-structure/") &&
+            response.url().endsWith("/restore") &&
+            response.request().method() === "POST" &&
+            response.status() === 200,
+          { timeout: 20_000 },
+        ),
+        childA.locator("[data-structure-restore]").click(),
+      ]);
+      await page.locator("#catalogueShowArchived").uncheck();
 
       qaRoot = page
         .locator("#storefrontStructureTree .structure-card")
@@ -928,7 +995,9 @@ try {
           "iphone-add-product-footer-clearance",
           "iphone-category-search",
           "iphone-catalogue-hierarchy-create-main-and-subsections",
+          "iphone-catalogue-menu-visibility-toggle",
           "iphone-catalogue-subsection-reorder",
+          "iphone-catalogue-subsection-archive-restore",
           "iphone-catalogue-parent-archive-guard",
           "iphone-catalogue-no-technical-enums",
           "ipad-portrait-catalogue-no-horizontal-overflow",
