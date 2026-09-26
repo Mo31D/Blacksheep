@@ -19,6 +19,7 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STAGING_BASE_URL: https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev
 
     steps:
       - uses: actions/checkout@v4
@@ -46,11 +47,138 @@ jobs:
       - name: Record staging migrations before deploy
         run: npm run db:migrations:list:staging
 
+      - name: CARD 01 capture staging operational baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute DB --remote --env staging --json --command "
+            SELECT
+              (SELECT COUNT(*) FROM products) AS products,
+              (SELECT COUNT(*) FROM product_versions) AS product_versions,
+              (SELECT COUNT(*) FROM product_variants) AS product_variants,
+              (SELECT COUNT(*) FROM inventory_balances) AS inventory_balances,
+              (SELECT COALESCE(SUM(on_hand),0) FROM inventory_balances) AS on_hand,
+              (SELECT COALESCE(SUM(reserved),0) FROM inventory_balances) AS reserved,
+              (SELECT COUNT(*) FROM orders) AS orders;
+          " > /tmp/card01-before.json
+          curl --fail --silent --show-error --max-time 20             "$STAGING_BASE_URL/v1/catalog?limit=200" > /tmp/card01-public-before.json
+          node - <<'NODE'
+          const fs = require("fs");
+          const raw = JSON.parse(fs.readFileSync("/tmp/card01-before.json","utf8"));
+          const row = raw?.[0]?.results?.[0];
+          if (!row) throw new Error("Could not read CARD 01 staging baseline.");
+          const normalized = {
+            products: Number(row.products),
+            productVersions: Number(row.product_versions),
+            productVariants: Number(row.product_variants),
+            inventoryBalances: Number(row.inventory_balances),
+            onHand: Number(row.on_hand),
+            reserved: Number(row.reserved),
+            orders: Number(row.orders),
+          };
+          fs.writeFileSync("/tmp/card01-before-state.json", JSON.stringify(normalized));
+          const catalog = JSON.parse(fs.readFileSync("/tmp/card01-public-before.json","utf8"));
+          const publicState = {
+            count: Array.isArray(catalog.products) ? catalog.products.length : -1,
+            nextCursor: catalog.nextCursor ?? null,
+          };
+          if (publicState.count < 0) throw new Error("Could not read staging public catalogue.");
+          fs.writeFileSync("/tmp/card01-public-before-state.json", JSON.stringify(publicState));
+          console.log("CARD 01 baseline:", normalized);
+          console.log("Public catalogue baseline:", publicState);
+          NODE
+
       - name: Apply staging migrations only
         run: npm run db:migrate:staging
 
       - name: Confirm staging migrations after apply
         run: npm run db:migrations:list:staging
+
+      - name: CARD 01 verify Storefront Structure and operational parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler d1 execute DB --remote --env staging --json --command "
+            SELECT
+              (SELECT COUNT(*) FROM products) AS products,
+              (SELECT COUNT(*) FROM product_versions) AS product_versions,
+              (SELECT COUNT(*) FROM product_variants) AS product_variants,
+              (SELECT COUNT(*) FROM inventory_balances) AS inventory_balances,
+              (SELECT COALESCE(SUM(on_hand),0) FROM inventory_balances) AS on_hand,
+              (SELECT COALESCE(SUM(reserved),0) FROM inventory_balances) AS reserved,
+              (SELECT COUNT(*) FROM orders) AS orders;
+            SELECT
+              (SELECT COUNT(*) FROM storefront_nodes) AS nodes,
+              (SELECT COUNT(*) FROM storefront_node_versions
+                WHERE parent_node_id IS NULL
+                  AND published_at IS NOT NULL
+                  AND superseded_at IS NULL) AS roots,
+              (SELECT COUNT(*) FROM storefront_node_versions
+                WHERE parent_node_id IS NULL
+                  AND show_in_navigation = 1
+                  AND published_at IS NOT NULL
+                  AND superseded_at IS NULL) AS navigation_roots,
+              (SELECT COUNT(DISTINCT product_version_id)
+                FROM product_version_storefront_placements) AS versions_with_placements,
+              (SELECT COUNT(*) FROM (
+                SELECT product_version_id
+                FROM product_version_storefront_placements
+                GROUP BY product_version_id
+                HAVING SUM(is_primary) <> 1
+              )) AS bad_primary_versions,
+              (SELECT COUNT(*) FROM product_versions pv
+                WHERE pv.product_type IN ('gifts','icecream','romneys','hawkshead')
+                  AND NOT EXISTS (
+                    SELECT 1
+                    FROM product_version_storefront_placements p
+                    WHERE p.product_version_id = pv.id
+                  )) AS known_versions_missing_placements,
+              (SELECT COUNT(*) FROM (
+                SELECT product_version_id
+                FROM product_version_storefront_placements
+                GROUP BY product_version_id
+                HAVING COUNT(*) > 1
+              )) AS multi_placement_versions;
+          " > /tmp/card01-after.json
+          node - <<'NODE'
+          const fs = require("fs");
+          const before = JSON.parse(fs.readFileSync("/tmp/card01-before-state.json","utf8"));
+          const raw = JSON.parse(fs.readFileSync("/tmp/card01-after.json","utf8"));
+          const operational = raw?.[0]?.results?.[0];
+          const structure = raw?.[1]?.results?.[0];
+          if (!operational || !structure) throw new Error("CARD 01 staging verification query incomplete.");
+          const after = {
+            products: Number(operational.products),
+            productVersions: Number(operational.product_versions),
+            productVariants: Number(operational.product_variants),
+            inventoryBalances: Number(operational.inventory_balances),
+            onHand: Number(operational.on_hand),
+            reserved: Number(operational.reserved),
+            orders: Number(operational.orders),
+          };
+          for (const key of Object.keys(before)) {
+            if (after[key] !== before[key]) {
+              throw new Error(`Operational state changed during additive migration: ${key} ${before[key]} -> ${after[key]}`);
+            }
+          }
+          const checked = {
+            nodes: Number(structure.nodes),
+            roots: Number(structure.roots),
+            navigationRoots: Number(structure.navigation_roots),
+            versionsWithPlacements: Number(structure.versions_with_placements),
+            badPrimaryVersions: Number(structure.bad_primary_versions),
+            knownVersionsMissingPlacements: Number(structure.known_versions_missing_placements),
+            multiPlacementVersions: Number(structure.multi_placement_versions),
+          };
+          if (checked.nodes !== 23) throw new Error(`Expected 23 Storefront nodes, got ${checked.nodes}`);
+          if (checked.roots !== 4) throw new Error(`Expected 4 root nodes, got ${checked.roots}`);
+          if (checked.navigationRoots !== 4) throw new Error(`Expected 4 navigation roots, got ${checked.navigationRoots}`);
+          if (checked.badPrimaryVersions !== 0) throw new Error(`Found ${checked.badPrimaryVersions} versions without exactly one primary placement`);
+          if (checked.knownVersionsMissingPlacements !== 0) throw new Error(`Found ${checked.knownVersionsMissingPlacements} known Product versions without placements`);
+          if (checked.multiPlacementVersions < 1) throw new Error("Expected at least one multi-placement Product version.");
+          console.log("Operational parity PASS:", after);
+          console.log("Storefront Structure PASS:", checked);
+          NODE
 
       - name: Deploy staging Worker only
         id: deploy
@@ -65,6 +193,11 @@ jobs:
           else
             echo "::warning::Staging workers.dev URL was not detected in Wrangler output."
           fi
+          if grep -Eq 'api\.theblacksheepshop\.co\.uk|admin\.theblacksheepshop\.co\.uk' /tmp/staging-deploy.log; then
+            echo "::error::Staging deploy output referenced a Production custom domain."
+            exit 1
+          fi
+          echo "Staging custom-domain isolation verified."
 
       - name: Record deployed staging Worker state
         run: |
@@ -86,6 +219,31 @@ jobs:
           if (health.environment !== "staging") throw new Error("staging environment marker is incorrect");
           if (health.database !== "bound") throw new Error("staging D1 binding is not active");
           console.log("Staging health verified.");
+          NODE
+
+      - name: CARD 01 verify public catalogue unchanged
+        if: steps.deploy.outputs.url != ''
+        env:
+          STAGING_URL: ${{ steps.deploy.outputs.url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 20             "$STAGING_URL/v1/catalog?limit=200" > /tmp/card01-public-after.json
+          node - <<'NODE'
+          const fs = require("fs");
+          const before = JSON.parse(fs.readFileSync("/tmp/card01-public-before-state.json","utf8"));
+          const catalog = JSON.parse(fs.readFileSync("/tmp/card01-public-after.json","utf8"));
+          const after = {
+            count: Array.isArray(catalog.products) ? catalog.products.length : -1,
+            nextCursor: catalog.nextCursor ?? null,
+          };
+          if (after.count !== before.count) {
+            throw new Error(`Public catalogue count changed: ${before.count} -> ${after.count}`);
+          }
+          if (JSON.stringify(after.nextCursor) !== JSON.stringify(before.nextCursor)) {
+            throw new Error("Public catalogue pagination state changed during CARD 01.");
+          }
+          console.log("Public catalogue parity PASS:", after);
           NODE
 
       - name: Safety confirmation
@@ -122,3 +280,5 @@ jobs:
 # stock-value-0015-and-mobile-editor-staging-deploy-2026-09-26
 # stock-value-auto-snapshot-staging-deploy-2026-09-26
 # stock-value-auto-snapshot-staging-redeploy-after-test-fix-2026-09-26
+
+# platform-card01-storefront-structure-staging-2026-09-26
