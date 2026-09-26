@@ -18,6 +18,7 @@ export interface RateLimiterLike {
 }
 
 export interface OrdersEnv extends NotificationEnv {
+  ENVIRONMENT?: string;
   DB?: D1DatabaseLike;
   ORDER_RATE_LIMITER?: RateLimiterLike;
   TURNSTILE_SECRET_KEY?: string;
@@ -190,6 +191,7 @@ export async function handleCreateOrder(
     id: deps.randomUUID(),
     publicReference: deps.createReference(),
     idempotencyKey,
+    dataClass: env.ENVIRONMENT === "staging" ? "TEST" : "BUSINESS",
     currency: priced.currency,
     fulfilmentMethod: input.fulfilmentMethod,
     customerName: input.customerName,
