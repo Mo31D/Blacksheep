@@ -56,11 +56,11 @@ export function adminHtml(identityEmail: string, environment = "production"): st
 <aside class="sidebar">
   <div class="brand"><div class="brand-mark">BS</div><div class="brand-copy">The Black<br>Sheep Shop</div></div>
   <nav class="nav">
-    <button class="nav-btn" data-nav="dashboard"><span class="nav-icon">⌂</span><span class="nav-label">Today</span></button>
-    <button class="nav-btn active" data-nav="orders"><span class="nav-icon">▣</span><span class="nav-label">Orders</span></button>
-    <button class="nav-btn" data-nav="products"><span class="nav-icon">◇</span><span class="nav-label">Products</span></button>
-    <button class="nav-btn" data-nav="stock"><span class="nav-icon">▦</span><span class="nav-label">Stock</span></button>
-    <button class="nav-btn" data-nav="reports"><span class="nav-icon">⌁</span><span class="nav-label">Reports</span></button>
+    <button class="nav-btn" data-nav="dashboard"><span class="nav-icon">${navIcons.dashboard}</span><span class="nav-label">Today</span></button>
+    <button class="nav-btn active" data-nav="orders"><span class="nav-icon">${navIcons.orders}</span><span class="nav-label">Orders</span></button>
+    <button class="nav-btn" data-nav="products"><span class="nav-icon">${navIcons.products}</span><span class="nav-label">Products</span></button>
+    <button class="nav-btn" data-nav="stock"><span class="nav-icon">${navIcons.stock}</span><span class="nav-label">Stock</span></button>
+    <button class="nav-btn" data-nav="reports"><span class="nav-icon">${navIcons.reports}</span><span class="nav-label">Reports</span></button>
   </nav>
   <div class="nav-spacer"></div>
   <div class="sidebar-footer"><div class="who">Signed in as<br><strong>${email}</strong></div><button class="nav-btn" id="logout"><span class="nav-icon">↪</span><span class="nav-label">Log out</span></button></div>
@@ -69,7 +69,7 @@ export function adminHtml(identityEmail: string, environment = "production"): st
 <header class="topbar">
   <div class="mobile-brand">Black Sheep Admin</div>
   <label class="global-search"><span>⌕</span><input id="globalSearch" placeholder="Search orders or customers…" autocomplete="off"></label>
-  <div class="top-actions"><button class="date-pill" id="topDate" type="button">Last 30 days</button><div class="profile-pill"><span class="avatar">${email.slice(0,2).toUpperCase()}</span><span class="profile-copy"><strong>Owner</strong><br><small class="muted">${email}</small></span></div></div>
+  <div class="top-actions">${environmentBadge}<button class="date-pill" id="topDate" type="button">Last 30 days</button><div class="profile-pill"><span class="avatar">${email.slice(0,2).toUpperCase()}</span><span class="profile-copy"><strong>Owner</strong><br><small class="muted">${email}</small></span></div></div>
 </header>
 <div class="content">
 <section class="view" id="view-dashboard">
@@ -81,7 +81,8 @@ export function adminHtml(identityEmail: string, environment = "production"): st
   </div>
 </section>
 <section class="view active" id="view-orders">
-  <div class="pagehead"><div><div class="eyebrow">Order operations</div><h1>Orders</h1><p>Review, quote, collect payment and fulfil customer orders.</p></div><div class="page-actions"><button class="btn secondary" id="refreshOrders">Refresh</button></div></div>
+  <div class="pagehead"><div><div class="eyebrow">Order operations</div><h1>Orders</h1><p>Review, quote, collect payment and fulfil customer orders.</p></div><div class="page-actions"><button class="btn secondary" id="refreshOrders" title="Refresh orders">↻ Refresh</button></div></div>
+  ${testOrderTools}
   <div class="metric-grid" id="orderMetrics"></div><div class="status-tabs" id="statusTabs"></div>
   <div class="orders-layout">
     <section class="panel orders-list-card"><div class="list-toolbar"><input class="field" id="orderSearch" placeholder="Search order, customer or email…" autocomplete="off"><button class="btn secondary" id="clearSearch" title="Clear">×</button></div><div class="order-list" id="orders"><div class="empty">Loading orders…</div></div></section>
@@ -89,7 +90,7 @@ export function adminHtml(identityEmail: string, environment = "production"): st
   </div>
 </section>
 <section class="view" id="view-products">
-  <div class="pagehead product-pagehead"><div><div class="eyebrow">Catalogue operations</div><h1>Products</h1><p>Edit the Product Core safely in staging before storefront cutover.</p></div><div class="page-actions"><span class="phase-pill phase-edit">Phase 2 · Editing</span><button class="btn" id="addProduct">+ Add product</button><button class="btn secondary" id="refreshProducts">Refresh</button></div></div>
+  <div class="pagehead product-pagehead"><div><div class="eyebrow">Catalogue operations</div><h1>Products</h1><p>Manage products, prices, availability and catalogue content.</p></div><div class="page-actions"><button class="btn" id="addProduct">+ Add product</button><button class="btn secondary" id="refreshProducts">Refresh</button></div></div>
   <div class="metric-grid product-metrics" id="productMetrics"></div>
   <div class="product-filter-bar" id="productFilters">
     <button class="chip active" data-product-filter="all">All</button>
@@ -114,7 +115,7 @@ export function adminHtml(identityEmail: string, environment = "production"): st
   </div>
 </section>
 <section class="view" id="view-stock">
-  <div class="pagehead"><div><div class="eyebrow">Inventory operations</div><h1>Stock</h1><p>Count, adjust and explain every physical quantity from one immutable ledger.</p></div><div class="page-actions"><span class="phase-pill phase-edit">Phase 4 · Staging</span><button class="btn" id="startBulkCount">Stocktake</button><button class="btn secondary" id="refreshStock">Refresh</button></div></div>
+  <div class="pagehead"><div><div class="eyebrow">Inventory operations</div><h1>Stock</h1><p>Count, adjust and review stock for the shop.</p></div><div class="page-actions"><button class="btn" id="startBulkCount">Stocktake</button><button class="btn secondary" id="refreshStock">Refresh</button></div></div>
   <div class="metric-grid stock-metrics" id="stockMetrics"></div>
   <div class="stock-filter-bar" id="stockFilters">
     <button class="chip active" data-stock-filter="all">All</button>
@@ -145,7 +146,7 @@ export function adminHtml(identityEmail: string, environment = "production"): st
   </div>
   <div class="reports-grid two">
     <section class="panel chart-card"><div class="chart-head"><div><h2>Top selling products</h2><small class="muted">Paid orders only</small></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Product</th><th>Qty</th><th>Orders</th><th>Revenue</th></tr></thead><tbody id="topProducts"></tbody></table></div></section>
-    <section class="panel chart-card"><div class="chart-head"><div><h2>Payment funnel</h2><small class="muted">Where orders are in the payment journey</small></div></div><div class="status-bars" id="paymentFunnel"></div></section>
+    <section class="panel chart-card"><div class="chart-head"><div><h2>Current payment &amp; fulfilment status</h2><small class="muted">Current stage of business orders in this period</small></div></div><div class="status-bars" id="paymentFunnel"></div></section>
   </div>
   <div class="reports-grid two">
     <section class="panel chart-card"><div class="chart-head"><div><h2>Customers</h2><small class="muted">Most active customers in this period</small></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Customer</th><th>Orders</th><th>Net spend</th></tr></thead><tbody id="topCustomers"></tbody></table></div></section>
@@ -167,7 +168,7 @@ export function adminHtml(identityEmail: string, environment = "production"): st
 </div>
 </main>
 </div>
-<nav class="mobile-bottom"><button class="mobile-nav" data-nav="dashboard"><span>⌂</span><span>Today</span></button><button class="mobile-nav active" data-nav="orders"><span>▣</span><span>Orders</span></button><button class="mobile-nav" data-nav="products"><span>◇</span><span>Products</span></button><button class="mobile-nav" data-nav="stock"><span>▦</span><span>Stock</span></button><button class="mobile-nav" data-nav="reports"><span>⌁</span><span>Reports</span></button></nav>
+<nav class="mobile-bottom"><button class="mobile-nav" data-nav="dashboard">${navIcons.dashboard}<span>Today</span></button><button class="mobile-nav active" data-nav="orders">${navIcons.orders}<span>Orders</span></button><button class="mobile-nav" data-nav="products">${navIcons.products}<span>Products</span></button><button class="mobile-nav" data-nav="stock">${navIcons.stock}<span>Stock</span></button><button class="mobile-nav" data-nav="reports">${navIcons.reports}<span>Reports</span></button></nav>
 <div class="catalog-sheet hidden" id="catalogSheet" aria-hidden="true"></div>
 <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
 <script>
