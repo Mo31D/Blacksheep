@@ -94,7 +94,7 @@ function cleanup() {
 function seedOrder(id, ref, revisions) {
   runWrangler(
     "INSERT INTO orders (" +
-      "id,public_reference,idempotency_key,status,currency,fulfilment_method," +
+      "id,public_reference,idempotency_key,data_class,status,currency,fulfilment_method," +
       "customer_name,customer_email,items_subtotal_minor,delivery_amount_minor," +
       "final_total_minor,payment_status,payment_request_url,fulfilment_message,created_at,updated_at" +
       ") VALUES (" +
@@ -102,6 +102,7 @@ function seedOrder(id, ref, revisions) {
         q(id),
         q(ref),
         q("edge-idem-" + ref),
+        "'E2E'",
         "'AWAITING_PAYMENT'",
         "'GBP'",
         "'collection'",
