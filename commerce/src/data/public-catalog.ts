@@ -32,6 +32,7 @@ interface PublicCommerceRow {
   brand: string | null;
   productType: string;
   primaryCategory: string | null;
+  categorySlugs: string | null;
   variantId: string;
   sku: string | null;
   priceMinor: number | null;
@@ -53,6 +54,7 @@ export interface PublicCommerceProduct {
   brand: string | null;
   type: string;
   primaryCategory: string | null;
+  categories: string[];
   sku: string | null;
   priceMinor: number | null;
   currency: "GBP";
@@ -134,6 +136,7 @@ export function toPublicCommerceProduct(
     brand: row.brand,
     type: row.productType,
     primaryCategory: row.primaryCategory,
+    categories: String(row.categorySlugs ?? "").split(",").map((value) => value.trim()).filter(Boolean),
     sku: row.sku,
     priceMinor,
     currency: "GBP",
@@ -175,6 +178,13 @@ const PUBLIC_PRODUCT_SELECT = `
       ORDER BY pvc.is_primary DESC, pvc.position ASC, c.slug ASC
       LIMIT 1
     ) AS primaryCategory,
+    (
+      SELECT GROUP_CONCAT(c.slug, ',')
+      FROM product_version_categories pvc
+      JOIN categories c ON c.id = pvc.category_id
+      WHERE pvc.product_version_id = pv.id
+        AND c.active = 1
+    ) AS categorySlugs,
     v.id AS variantId,
     v.sku,
     v.price_minor AS priceMinor,
