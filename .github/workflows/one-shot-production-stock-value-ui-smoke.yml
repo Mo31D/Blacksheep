@@ -159,7 +159,7 @@ jobs:
               timeout: 60_000,
             });
             await page.waitForSelector("#view-products", { timeout: 20_000 });
-            await page.locator('[data-nav="products"]').first().click();
+            await page.locator('.mobile-nav[data-nav="products"]').click();
             await page.waitForFunction(
               () => document.querySelectorAll("#productList .product-row").length > 0,
               null,
@@ -196,7 +196,7 @@ jobs:
             await noOverflow(page, "Production Add Product");
             await page.locator("[data-close-product-sheet]:visible").first().click();
 
-            await page.locator('[data-nav="stock"]').first().click();
+            await page.locator('.mobile-nav[data-nav="stock"]').click();
             await page.waitForFunction(
               () => document.querySelectorAll("#stockList .product-row").length > 0,
               null,
