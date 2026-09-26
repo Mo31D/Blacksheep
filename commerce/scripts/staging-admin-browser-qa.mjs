@@ -125,7 +125,7 @@ function seedOrder() {
 
   d1(
     "INSERT INTO orders (" +
-      "id,public_reference,idempotency_key,status,currency,fulfilment_method," +
+      "id,public_reference,idempotency_key,data_class,status,currency,fulfilment_method," +
       "customer_name,customer_email,items_subtotal_minor,delivery_amount_minor," +
       "final_total_minor,payment_status,created_at,updated_at" +
       ") VALUES (" +
@@ -133,6 +133,7 @@ function seedOrder() {
         q(ORDER_ID),
         q(REF),
         q("admin-browser-idem-" + RUN_ID),
+        "'E2E'",
         "'SUBMITTED'",
         "'GBP'",
         "'collection'",
