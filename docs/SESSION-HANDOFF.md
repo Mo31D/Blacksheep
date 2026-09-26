@@ -5,7 +5,7 @@
 > Repository: `Mo31D/Blacksheep` · branch: `main`.
 >
 > Authoritative trackers/reports:
-> - `docs/PLATFORM-IMPLEMENTATION-CARDS-2026-09-26.md` — **next architecture programme; start with CARD 00 before dependent implementation**
+> - `docs/PLATFORM-IMPLEMENTATION-CARDS-2026-09-26.md` — **next architecture programme; CARD 00 complete, CARD 01 is the current next milestone**
 > - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 > - `docs/BLACK-SHEEP-BACKEND-AUDIT-CLEANUP-2026-09-26.md`
 > - `docs/FINAL-OWNER-POLISH-TICKETS-2026-09-26.md`
