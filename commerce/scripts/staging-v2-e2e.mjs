@@ -126,12 +126,35 @@ function cleanupSql() {
     "DELETE FROM customer_review_tokens WHERE order_id IN (" + ids + ")",
     "DELETE FROM refunds WHERE order_id IN (" + ids + ")",
     "DELETE FROM order_adjustments WHERE revision_id IN (SELECT id FROM order_revisions WHERE order_id IN (" + ids + "))",
+    // Phase 5 may create a reservation group even when every reviewed Product is
+    // untracked. Such a group has no immutable reservation items/movements and
+    // must be removed before its revision/order can be deleted.
+    "DELETE FROM inventory_reservations WHERE order_id IN (" + ids + ") AND NOT EXISTS (SELECT 1 FROM inventory_reservation_items iri WHERE iri.reservation_id=inventory_reservations.id)",
     "DELETE FROM order_revision_items WHERE revision_id IN (SELECT id FROM order_revisions WHERE order_id IN (" + ids + "))",
     "DELETE FROM order_revisions WHERE order_id IN (" + ids + ")",
     "DELETE FROM order_events WHERE order_id IN (" + ids + ")",
     "DELETE FROM order_items WHERE order_id IN (" + ids + ")",
     "DELETE FROM orders WHERE id IN (" + ids + ")",
   ].join(";");
+}
+
+function assertCleanupSafe() {
+  const ids = sqlQuote(ORDER_ID) + "," + sqlQuote(CANCEL_ORDER_ID);
+  const immutableItems = d1(
+    "SELECT COUNT(*) AS count FROM inventory_reservation_items iri " +
+      "JOIN inventory_reservations ir ON ir.id=iri.reservation_id " +
+      "WHERE ir.order_id IN (" + ids + ")",
+  );
+  const movements = d1(
+    "SELECT COUNT(*) AS count FROM inventory_movements WHERE order_id IN (" + ids + ")",
+  );
+  const immutableItemCount = Number(immutableItems[0]?.count ?? 0);
+  const movementCount = Number(movements[0]?.count ?? 0);
+  assert(
+    immutableItemCount === 0 && movementCount === 0,
+    "Refusing destructive E2E cleanup because immutable inventory evidence exists. " +
+      "reservationItems=" + immutableItemCount + ", movements=" + movementCount,
+  );
 }
 
 async function ensureTestSession() {
@@ -178,6 +201,7 @@ async function ensureTestSession() {
 }
 
 function seedPrimaryOrder() {
+  assertCleanupSafe();
   d1(cleanupSql());
   d1(
     "INSERT INTO orders (" +
@@ -863,6 +887,7 @@ try {
       d1("DELETE FROM admin_sessions WHERE token_hash=" + sqlQuote(sessionHash));
     }
     if (completed) {
+      assertCleanupSafe();
       d1(cleanupSql());
       console.log("Synthetic staging E2E order data cleaned up.");
     }
