@@ -269,10 +269,7 @@ async function verifyMockedLiveChanges(realPayload) {
   tracked.nonPurchasableReason = null;
   tracked.inventory = { tracked: true, available: 1 };
 
-  const dynamicImage =
-    trackedPayload.products.find(
-      (product) => product.type === "hawkshead" && product.primaryImageUrl,
-    )?.primaryImageUrl || tracked.primaryImageUrl;
+  const dynamicImage = "/media/qa-dynamic-storefront-image";
   const dynamicProduct = {
     ...tracked,
     id: "prd-dynamic-storefront-qa",
@@ -300,6 +297,13 @@ async function verifyMockedLiveChanges(realPayload) {
       status: 200,
       contentType: "application/json",
       body: JSON.stringify(trackedPayload),
+    });
+  });
+  await page.route(API + "/media/qa-dynamic-storefront-image", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="white"/></svg>',
     });
   });
 
