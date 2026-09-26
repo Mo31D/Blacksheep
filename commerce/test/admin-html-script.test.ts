@@ -54,6 +54,19 @@ describe("generated Admin HTML scripts", () => {
     );
     expect(production).toContain("ensureProductEditorCategories");
     expect(production).toContain("· Archived");
+    expect(production).toContain('id="stockValueButton"');
+    expect(production).toContain('id="view-stock-value"');
+    expect(production).toContain("Stock Value");
+    expect(production).toContain("Value by supplier");
+    expect(production).toContain("Potential gross profit");
+    expect(production).toContain("loadStockValuation");
+    expect(production).toContain("openProductCostEditor");
+    expect(production).toContain("Item cost ex VAT");
+    expect(production).toContain("VAT rate %");
+    expect(production).toContain("Supplier product code");
+    expect(production).toContain(
+      "padding-bottom:calc(148px + env(safe-area-inset-bottom))",
+    );
     expect(production).not.toContain(
       "Categories used by products cannot be archived until those products are moved to another category.",
     );
