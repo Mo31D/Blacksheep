@@ -39,13 +39,13 @@ jobs:
           echo "Candidate count: ${#CANDIDATES[@]}"
           printf '%s\n' "${CANDIDATES[@]}" > /tmp/placeholder-candidates.txt
 
-          if [ "${#CANDIDATES[@]}" -ne 171 ]; then
-            echo "Expected exactly 171 historical placeholder files; refusing cleanup."
+          if [ "${#CANDIDATES[@]}" -ne 170 ]; then
+            echo "Expected exactly 170 historical placeholder files; refusing cleanup."
             exit 1
           fi
 
           test "${CANDIDATES[0]}" = "images/108.png"
-          test "${CANDIDATES[170]}" = "images/278.png"
+          test "${CANDIDATES[169]}" = "images/278.png"
 
       - name: Prove candidates are unreferenced
         shell: bash
@@ -62,7 +62,7 @@ jobs:
               exit 1
             fi
           done < /tmp/placeholder-candidates.txt
-          echo "All 171 exact placeholder files are unreferenced."
+          echo "All 170 exact placeholder files are unreferenced."
 
       - name: Remove only the proven unused placeholder files
         shell: bash
@@ -70,7 +70,7 @@ jobs:
           set -euo pipefail
           mapfile -t CANDIDATES < /tmp/placeholder-candidates.txt
           git rm -- "${CANDIDATES[@]}"
-          test "$(git diff --cached --name-only | wc -l)" -eq 171
+          test "$(git diff --cached --name-only | wc -l)" -eq 170
 
       - name: Verify static/search contract after cleanup
         run: node scripts/verify-search-readiness.mjs
