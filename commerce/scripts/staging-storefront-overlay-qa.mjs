@@ -179,8 +179,21 @@ async function verifyRealOverlay(browserType, label, viewport) {
     });
     await waitForCommerce(page, "ready");
 
+    await page
+      .locator('input[name="fulfilmentMethod"][value="collection"]')
+      .check();
+    await page.locator('input[name="customerName"]').fill("Phase 6 Preview QA");
+    await page
+      .locator('input[name="customerEmail"]')
+      .fill("phase6-preview@example.com");
+    await page.locator('#checkoutForm button[type="submit"]').click();
+    await page.locator("#checkoutReviewStep").waitFor({
+      state: "visible",
+      timeout: 10_000,
+    });
+
     const submit = page.locator("#checkoutSubmitRequest");
-    await submit.waitFor({ state: "attached", timeout: 10_000 });
+    await submit.waitFor({ state: "visible", timeout: 10_000 });
     assert(await submit.isDisabled(), label + " checkout submit is not disabled in preview");
 
     const submitError = page.locator("#checkoutSubmitError");
@@ -192,7 +205,7 @@ async function verifyRealOverlay(browserType, label, viewport) {
       label + " checkout preview safety message is missing",
     );
 
-    await assertNoHorizontalOverflow(page, label + " checkout");
+    await assertNoHorizontalOverflow(page, label + " checkout review");
 
     await page.screenshot({
       path: path.join(
