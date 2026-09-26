@@ -220,6 +220,43 @@ export interface CreateStocktakeSessionInput {
   customVariantIds?: unknown;
 }
 
+async function countScope(
+  db: D1DatabaseLike,
+  locationId: string,
+  scope: Awaited<ReturnType<typeof resolveScope>>,
+): Promise<number> {
+  const row = await db
+    .prepare(
+      "SELECT COUNT(*) AS count" +
+        stocktakeFromSql +
+        scope.sql,
+    )
+    .bind(locationId, ...scope.values)
+    .first<{ count: number }>();
+  return Number(row?.count ?? 0);
+}
+
+export async function previewStocktakeScope(
+  db: D1DatabaseLike,
+  raw: CreateStocktakeSessionInput,
+) {
+  const locationId =
+    String(raw.locationId ?? "").trim() || DEFAULT_LOCATION_ID;
+  await requireLocation(db, locationId);
+  const scope = await resolveScope(db, raw);
+  const totalItems = await countScope(db, locationId, scope);
+  if (totalItems > MAX_STOCKTAKE_ITEMS) {
+    throw new Error("stocktake_scope_too_large");
+  }
+  return {
+    locationId,
+    scopeType: scope.type,
+    scopeRefId: scope.refId,
+    scopeLabel: scope.label,
+    totalItems,
+  };
+}
+
 export async function createStocktakeSession(
   db: D1DatabaseLike,
   raw: CreateStocktakeSessionInput,
@@ -230,15 +267,7 @@ export async function createStocktakeSession(
   await requireLocation(db, locationId);
   const scope = await resolveScope(db, raw);
 
-  const countRow = await db
-    .prepare(
-      "SELECT COUNT(*) AS count" +
-        stocktakeFromSql +
-        scope.sql,
-    )
-    .bind(locationId, ...scope.values)
-    .first<{ count: number }>();
-  const total = Number(countRow?.count ?? 0);
+  const total = await countScope(db, locationId, scope);
   if (total < 1) throw new Error("stocktake_scope_empty");
   if (total > MAX_STOCKTAKE_ITEMS) {
     throw new Error("stocktake_scope_too_large");
