@@ -10,7 +10,24 @@
 > - `docs/FINAL-OWNER-POLISH-TICKETS-2026-09-26.md`
 > - `docs/FINAL-OWNER-POLISH-2026-09-26.md`
 > - `docs/CATEGORY-MANAGEMENT-2026-09-26.md`
+> - `docs/STOCK-VALUE-PRODUCTION-RELEASE-2026-09-26.md`
 > - `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-CUTOVER-2026-09-26.md`
+>
+> **Stock Value + mobile Add Product — LIVE Production verified, 26 September 2026**
+> - owner-reported mobile overlap fixed: the sticky Cancel / Create draft bar now has sufficient safe-area/scroll clearance and no longer makes final Categories controls unreachable.
+> - Add Product + Product detail now support Item cost ex VAT, product VAT rate, Supplier and Supplier product code.
+> - actual cost uses existing `product_variants.cost_minor`; when absent, the clearly-labelled default estimate is retail/2 inc VAT and then VAT is removed for ex-VAT cost. Default VAT is 20%.
+> - new migration `0015_stock_valuation.sql`: suppliers + variant supplier/VAT metadata + daily valuation snapshots.
+> - Stock → **£ Stock value** opens a separate valuation workspace: cost value, retail value, potential gross profit, physical/sellable/reserved units, supplier/category breakdown, confidence, high-value stock, attention items and 7/30/90/365-day trend.
+> - valuation history is automatically maintained through the existing 30-minute Worker cron using an idempotent one-row-per-day snapshot upsert.
+> - Staging deploy `36253829542` — **SUCCESS**; 36 test files / 210 tests PASS; staging Worker `88f9833d-b1bb-4609-b0a5-43505aabb074`; no migrations pending.
+> - post-deploy Staging Admin browser QA `36253997892` — **SUCCESS** for iPhone cost/supplier fields, Add Product footer clearance, Stock Value and iPad portrait.
+> - guarded Production deploy `36254188859` — **SUCCESS**; Production applied previously validated `0014_category_management.sql` + new `0015_stock_valuation.sql`; no migrations pending.
+> - Production Worker `1b8948d2-228c-4ec6-8803-8b45191930a2`; Production health + public catalogue PASS.
+> - live Production mobile Admin smoke `36254525389` — **SUCCESS** for Add Product cost controls, footer clearance, Stock Value page/API and mobile overflow. Temporary QA session removed after the run.
+> - Production valuation smoke state: 146 included tracked variants / 1,460 recorded on-hand units / 132 estimated-cost variants / 14 missing valuation / 0 actual-cost variants; valuation coverage 90.4%, actual-cost coverage 0%.
+> - these stock-value numbers prove the engine is live, but are not an audited physical valuation until owner counts and real supplier costs are entered.
+> - full release report: `docs/STOCK-VALUE-PRODUCTION-RELEASE-2026-09-26.md`.
 >
 > **Dynamic storefront publication hotfix — LIVE verified, 26 September 2026**
 > - owner reproduced a real Production defect with Product `Test`: Product Core/Admin showed ACTIVE + Published, but Hawkshead Relish remained at 15 products and the item was absent from the storefront.
@@ -35,14 +52,14 @@
 > - post-deploy Admin Browser QA `36250012439` — **SUCCESS**, including iPhone Category Manager create/rename/group/move/archive/restore, category search and selected summary.
 > - Search Readiness `36250012438` — **SUCCESS**.
 > - synthetic Category Manager QA data cleaned after success.
-> - **Production was not changed by this release.** Production remains on migration `0013_order_data_class.sql` until a separate guarded Category Manager promotion is approved.
+> - Category Manager is now **LIVE on Production**. Migration `0014` was promoted during guarded Stock Value deploy `36254188859`, before `0015_stock_valuation.sql`.
 >
 > **Current production architecture**
 > - Admin V2 is live.
 > - Product Core + Inventory Core + Order Reservations + Phase 6 D1 commerce authority are live in Production.
-> - Production D1 latest migration: `0013_order_data_class.sql`.
-> - Production active published Products: 146.
-> - Production active default variants: 146.
+> - Production D1 latest migration: `0015_stock_valuation.sql`.
+> - Production Product Core currently contains the owner-managed live catalogue plus preserved historical/archived rows; Stock Value smoke included 146 non-archived active/default variants.
+> - Production Stock Value currently reports 146 tracked variants and 1,460 recorded on-hand units; treat counts as operational data to be physically confirmed.
 > - Production clean-start state: 6 pre-existing confirmed test orders preserved as hidden TEST history; 0 visible BUSINESS orders.
 > - Production active/committed reservations at owner-polish cutover: 0.
 > - Future Production orders default to BUSINESS.
@@ -99,8 +116,9 @@
 > - GitHub Actions Cloudflare credentials were available and the final audit performed read-only Production D1 / health / public-catalogue verification successfully.
 >
 > **Next work**
-> - Category Manager source + Staging acceptance are complete. The next Category Manager release decision is whether to promote migration `0014` + the validated Worker to Production through a guarded deploy.
-> - owner real-device Production smoke is still outstanding for the broader Final Owner Polish / Phase 6 release: open live Products/Stock, submit one ordinary live order, confirm it appears under Business Orders, confirm both customer + owner emails, and verify an untracked baseline product does not create unexpected numeric stock movement.
+> - Stock Value + Category Manager are live on Production; no promotion step remains for migrations `0014`/`0015`.
+> - owner data-quality work is now the useful next Stock Value task: confirm physical quantities, enter real supplier costs, and assign supplier names/codes. The report will automatically replace estimates and raise actual-cost coverage.
+> - owner real-device Production smoke is still outstanding for the broader Final Owner Polish / order/email flow: submit one ordinary live order, confirm it appears under Business Orders, confirm customer + owner emails, and verify inventory behavior for the chosen product.
 > - after that broader smoke passes, mark the Final Owner Polish / Phase 6 owner acceptance closed.
 > - do not revive old Commerce V1 branches or generated backend catalogue authority.
 > - use D1 Product Core / Inventory Core as the backend source of truth.
