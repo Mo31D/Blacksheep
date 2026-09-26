@@ -38,6 +38,7 @@ import {
   revokeAdminSession,
   verifyAdminAccess,
   verifyAdminLoginCode,
+  verifyAdminPassword,
   type AdminAccessEnv,
   type AdminIdentity,
 } from "../security/admin-access";
@@ -527,6 +528,32 @@ export async function handleAdminRequest(
     const result = await verifyAdminLoginCode(code, env);
     if (!result.ok) {
       return error(result.code, result.status, "Invalid or expired login code.");
+    }
+    const response = json({ ok: true });
+    response.headers.append("set-cookie", adminSessionCookie(result.token));
+    return response;
+  }
+
+  if (url.pathname === "/admin/auth/password" && request.method === "POST") {
+    let raw: unknown;
+    try {
+      raw = await readJson(request);
+    } catch {
+      return error("admin_invalid_request", 400, "Invalid password request.");
+    }
+    const password =
+      raw && typeof raw === "object" && !Array.isArray(raw)
+        ? String((raw as Record<string, unknown>).password ?? "")
+        : "";
+    const result = await verifyAdminPassword(password, env);
+    if (!result.ok) {
+      const message =
+        result.code === "admin_password_locked"
+          ? "Too many attempts. Password sign-in is locked for 15 minutes."
+          : result.code === "admin_password_not_configured"
+            ? "Password sign-in has not been configured yet."
+            : "Incorrect password.";
+      return error(result.code, result.status, message);
     }
     const response = json({ ok: true });
     response.headers.append("set-cookie", adminSessionCookie(result.token));
