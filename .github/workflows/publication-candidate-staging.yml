@@ -6,6 +6,8 @@ on:
     paths:
       - "commerce/scripts/phase6-publication-candidate.mjs"
       - "commerce/scripts/phase6-publication-render.mjs"
+      - "commerce/scripts/phase6-publication-collections.mjs"
+      - "commerce/scripts/phase6-publication-verify.mjs"
       - ".github/workflows/publication-candidate-staging.yml"
   workflow_dispatch:
 
@@ -129,6 +131,40 @@ jobs:
           }
           console.log("Phase 6.6 Product-page + sitemap candidate baseline passed.");
           NODE
+
+      - name: Render collection and full-range pages from D1 candidate
+        shell: bash
+        run: |
+          node scripts/phase6-publication-collections.mjs             --catalog publication-candidate-artifacts/catalog.candidate.js             --out-dir publication-candidate-artifacts/site             --report-out publication-candidate-artifacts/collections-report.json
+
+      - name: Verify collection rendering baseline
+        shell: bash
+        run: |
+          cat publication-candidate-artifacts/collections-report.json
+          node - publication-candidate-artifacts/collections-report.json <<'NODE'
+          const fs = require("fs");
+          const report = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          if (
+            report.ok !== true ||
+            report.collectionPages !== 14 ||
+            report.problems.length !== 0
+          ) {
+            console.error("Collection publication gate failed.", report);
+            process.exit(1);
+          }
+          const full = report.pages.find((page) => page.file === "all-products.html");
+          if (!full || full.products !== 146 || full.cardCount !== 146 || full.itemListCount !== 146) {
+            console.error("Full-range publication gate failed.", full);
+            process.exit(1);
+          }
+          console.log("Phase 6.6 collection/full-range candidate baseline passed.");
+          NODE
+
+      - name: Verify unified publication package
+        shell: bash
+        run: |
+          node scripts/phase6-publication-verify.mjs             --catalog publication-candidate-artifacts/catalog.candidate.js             --manifest publication-candidate-artifacts/publication-manifest.json             --site-dir publication-candidate-artifacts/site             --report-out publication-candidate-artifacts/package-report.json
+          cat publication-candidate-artifacts/package-report.json
 
       - name: Upload publication candidate artifacts
         if: always()
