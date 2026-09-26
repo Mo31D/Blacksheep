@@ -42,6 +42,8 @@
 > - Draft PR #7 is closed and must not be merged.
 > - historical branches `commerce-v1-catalog`, `commerce-v1-pricing`, `commerce-v1`, `exact-local-v2`, `recovery/black-sheep-work-2026-09-23`, `restore-local-exact`, and `romneys-rebuild-2026-09-24` were deleted by guarded cleanup workflow `36236510282`.
 > - post-cleanup branch list: `main` only.
+> - final repository-bloat cleanup removed 170 proven-unused legacy placeholder PNGs; Search Readiness + full Commerce regression passed in workflow `36237983836`.
+> - exact placeholder blob `36b57af455721db234911805d3276eaba3ae5bfa` is no longer tracked anywhere on `main`; `images/110.png` was not part of that blob and was retained.
 >
 > **Cloudflare access note**
 > - the direct Cloudflare ChatGPT connector was unavailable in the cleanup session.
