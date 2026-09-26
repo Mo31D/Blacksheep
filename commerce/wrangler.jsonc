@@ -5,6 +5,16 @@
   "compatibility_date": "2026-09-24",
   "workers_dev": true,
   "preview_urls": true,
+  "routes": [
+    {
+      "pattern": "api.theblacksheepshop.co.uk",
+      "custom_domain": true
+    },
+    {
+      "pattern": "admin.theblacksheepshop.co.uk",
+      "custom_domain": true
+    }
+  ],
   "keep_vars": true,
   "d1_databases": [
     {
