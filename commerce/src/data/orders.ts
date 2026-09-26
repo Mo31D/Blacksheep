@@ -85,6 +85,7 @@ export async function createSubmittedOrder(
           id,
           public_reference,
           idempotency_key,
+          data_class,
           status,
           currency,
           fulfilment_method,
@@ -101,12 +102,13 @@ export async function createSubmittedOrder(
           items_subtotal_minor,
           created_at,
           updated_at
-        ) VALUES (?, ?, ?, 'SUBMITTED', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, 'SUBMITTED', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         input.id,
         input.publicReference,
         input.idempotencyKey,
+        input.dataClass ?? "BUSINESS",
         input.currency,
         input.fulfilmentMethod,
         input.customerName,
