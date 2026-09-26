@@ -135,6 +135,16 @@ jobs:
             );
             const cardImage = card.locator("img");
             await cardImage.waitFor({ state: "visible", timeout: 10_000 });
+            await page.waitForFunction(
+              () => {
+                const img = document.querySelector(
+                  '.product-card[data-url="/product.html?type=hawkshead&slug=test"] img',
+                );
+                return Boolean(img && img.complete && img.naturalWidth > 0);
+              },
+              null,
+              { timeout: 20_000 },
+            );
             const cardImageState = await cardImage.evaluate((img) => ({
               src: img.currentSrc || img.src,
               complete: img.complete,
@@ -142,10 +152,6 @@ jobs:
               naturalHeight: img.naturalHeight,
             }));
             console.log("CARD_IMAGE_STATE", JSON.stringify(cardImageState));
-            assert(
-              cardImageState.complete && cardImageState.naturalWidth > 0,
-              "Test card image failed to load: " + JSON.stringify(cardImageState),
-            );
 
             await card.locator(".product-title").click();
             await page.waitForURL("**/product.html?type=hawkshead&slug=test", {
@@ -168,9 +174,13 @@ jobs:
             );
             const detailImage = page.locator("#detail img").first();
             await detailImage.waitFor({ state: "visible", timeout: 10_000 });
-            assert(
-              await detailImage.evaluate((img) => img.complete && img.naturalWidth > 0),
-              "Dynamic detail image failed to load",
+            await page.waitForFunction(
+              () => {
+                const img = document.querySelector("#detail img");
+                return Boolean(img && img.complete && img.naturalWidth > 0);
+              },
+              null,
+              { timeout: 20_000 },
             );
             assert(
               !(await page.locator("#detail .list-detail-add").isDisabled()),
