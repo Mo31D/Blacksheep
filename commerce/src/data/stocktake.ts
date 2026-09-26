@@ -714,19 +714,43 @@ export async function finalizeStocktakeSession(
     });
   }
 
-  const result = safe.length
-    ? await bulkInventoryCount(
-        db,
-        {
-          locationId: session.locationId,
-          reason: "Stocktake — " + session.scopeLabel,
-          idempotencyKey:
-            "stocktake:" + session.id + ":finalize:" + session.version,
-          items: safe,
-        },
-        actorEmail,
-      )
-    : { batchId: uid("ibatch"), success: [], unchanged: [], conflicts: [] };
+  const batchIds: string[] = [];
+  const appliedSuccess: Array<{ variantId: string; snapshot: unknown }> = [];
+  const appliedUnchanged: Array<{ variantId: string; snapshot: unknown }> = [];
+  const appliedConflicts: Array<{ variantId: string; code: string }> = [];
+
+  for (let offset = 0; offset < safe.length; offset += 250) {
+    const chunk = safe.slice(offset, offset + 250);
+    const chunkNumber = Math.floor(offset / 250) + 1;
+    const chunkResult = await bulkInventoryCount(
+      db,
+      {
+        locationId: session.locationId,
+        reason: "Stocktake — " + session.scopeLabel,
+        idempotencyKey:
+          "stocktake:" +
+          session.id +
+          ":finalize:" +
+          session.version +
+          ":chunk:" +
+          chunkNumber,
+        items: chunk,
+      },
+      actorEmail,
+    );
+    batchIds.push(chunkResult.batchId);
+    appliedSuccess.push(...chunkResult.success);
+    appliedUnchanged.push(...chunkResult.unchanged);
+    appliedConflicts.push(...chunkResult.conflicts);
+  }
+
+  const result = {
+    batchId: batchIds[0] ?? uid("ibatch"),
+    batchIds,
+    success: appliedSuccess,
+    unchanged: appliedUnchanged,
+    conflicts: appliedConflicts,
+  };
 
   const conflicts = [...preflightConflicts, ...result.conflicts];
   const successIds = new Set(result.success.map((row) => row.variantId));
