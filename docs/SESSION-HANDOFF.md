@@ -56,8 +56,8 @@
 > - Phases 1–3 complete on staging.
 > - Phase 4 Inventory Core is COMPLETE ON STAGING; owner confirmed corrected OTP login + iPad portrait UX re-test passed.
 > - Phase 5 Order Reservations is COMPLETE + REAL-STAGING VERIFIED.
-> - Phase 6 is ACTIVE: milestones 6.1–6.5 are COMPLETE + REAL-STAGING/BROWSER VERIFIED; 6.6 publication pipeline is next.
-> - Production Product/Inventory migration and Phase 6 authority remain locked.
+> - Phase 6 staging/publication engineering is COMPLETE through 6.6; Phase 6.7 Production Cutover Readiness is COMPLETE.
+> - Production cutover itself is NOT executed and remains behind an explicit owner approval gate.
 >
 > **PRODUCT / INVENTORY — PHASE 4 INVENTORY CORE LIVE ON STAGING**
 > - Phase 1 Product Core: COMPLETE.
@@ -97,27 +97,56 @@
 >   - `docs/ORDER-RESERVATIONS-PHASE5-STAGING-RELEASE-2026-09-25.md`
 > - tracker: `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 >
-> **PHASE 6 STOREFRONT / COMMERCE — CURRENT STAGING CHECKPOINT**
+> **PHASE 6 STOREFRONT / COMMERCE — READY FOR PRODUCTION CUTOVER APPROVAL**
 > - implementation plan: `docs/STOREFRONT-COMMERCE-PHASE6-IMPLEMENTATION-PLAN-2026-09-25.md`.
 > - staging foundation report: `docs/STOREFRONT-COMMERCE-PHASE6-STAGING-FOUNDATION-2026-09-25.md`.
-> - milestones 6.1–6.4: COMPLETE + REAL-STAGING VERIFIED.
-> - public D1 routes: `GET /v1/catalog` and `GET /v1/catalog/:id`.
+> - publication report: `docs/STOREFRONT-COMMERCE-PHASE6-PUBLICATION-2026-09-26.md`.
+> - Production cutover runbook: `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-CUTOVER-PLAN-2026-09-26.md`.
+> - milestones 6.1–6.6: COMPLETE + REAL-STAGING/BROWSER/PUBLICATION VERIFIED.
+> - Phase 6.7 readiness: COMPLETE; Production cutover execution NOT performed.
+> - public D1 routes on staging: `GET /v1/catalog` and `GET /v1/catalog/:id`.
 > - exact generated-static vs D1 parity: 146 / 146 / 0 mismatches.
-> - public/parity workflow `36199480713` — SUCCESS.
-> - D1 checkout + tracked-stock proof workflow `36200073433` — SUCCESS.
-> - real checkout QA run `05d821c4e1`: D1 price persistence, repricing, tracked Available, Reserved reduction, online-ordering override, OUT_OF_STOCK override and Archive behavior all PASS.
-> - current staging Worker deployment `4e358034-e033-472c-a450-a52550058d25`.
-> - current staging Worker version `3603f5da-1521-4c01-8888-65b9ebea0d29`.
-> - staging flags: `D1_PUBLIC_CATALOG_ENABLED=true`, `D1_COMMERCE_AUTHORITY_ENABLED=true`, `ORDER_RESERVATIONS_ENABLED=true`.
-> - temporary Phase 6 QA Worker deleted and synthetic Product/orders/variant/balance cleaned.
-> - Production remains migration `0008_concurrency_guards.sql`, Product/Inventory tables absent, both Phase 6 flags absent, generated static catalogue still Production checkout authority, current orders 4.
+> - staging checkout D1 authority + tracked-stock proof: PASS.
+> - storefront overlay Chromium + WebKit/mobile proof: PASS.
+> - Phase 6.6 deterministic publication package:
+>   - 146 Products,
+>   - 162 files,
+>   - SHA-256 `61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7`,
+>   - added 0 / changed 162 / deletions 0 / unsafe slug removals 0.
+> - Admin Add → Publish → static candidate → Archive E2E: workflow `36229294654` SUCCESS.
+> - final read-only Production readiness workflow `36230361643` — SUCCESS.
+> - readiness simulation applied the exact 162-file package + future Production Worker flags/R2/cron/live marker only inside the ephemeral CI runner, then:
+>   - full Commerce validation PASS,
+>   - 35 Vitest files PASS,
+>   - migration upgrade / Inventory / Reservation / cart / legal / typecheck gates PASS,
+>   - simulated Production Worker dry-run PASS,
+>   - real Production remained unchanged after the audit.
+> - frozen Phase 1 catalogue baseline is now `commerce/fixtures/product-core-baseline.catalog.js`; historical import/parity no longer depend on the mutable live `assets/catalog.js`.
+> - guarded Production Product importer/parity commands are prepared; Production import requires literal confirmation and refuses a non-empty Product Core.
+> - Production publication export can regenerate the package read-only from Production D1 after import and must match the approved SHA before authority activation.
+> - deterministic activation script: `commerce/scripts/phase6-production-activate.mjs`.
+> - unsafe legacy generic Production deploy path is blocked; staging deploy remains available.
+> - dedicated manual-only cutover workflow: `.github/workflows/phase6-production-cutover.yml`.
+> - cutover workflow requires:
+>   - `confirmation=CUTOVER-PRODUCTION-D1`,
+>   - approved 64-character package SHA,
+>   - unchanged `main`,
+>   - D1 Time Travel bookmark,
+>   - migrations `0009–0012`,
+>   - initial 146-Product import + Production parity,
+>   - Production-generated publication SHA match,
+>   - Production Worker/public API/storefront post-gates.
+> - failure path never auto-restores D1; the saved Time Travel bookmark is used only according to the rollback matrix because a blind restore could erase legitimate post-cutover orders.
+> - current Production remains intentionally pre-cutover:
+>   - migration `0008_concurrency_guards.sql`,
+>   - Product/Inventory/Reservation tables absent,
+>   - all Phase 6 flags absent,
+>   - Production live-commerce marker `false`,
+>   - generated static catalogue still checkout authority,
+>   - readiness snapshot order count 4.
 >
-> - Phase 6.5 storefront overlay browser workflow `36226261021` — SUCCESS on Chromium + WebKit/mobile.
-> - Browser proof covers real 146-product staging overlay, preview persistence, cards/details/basket, canonical isolation, no horizontal overflow, checkout preview lock, mocked repricing/out-of-stock, tracked Available basket cap, API failure fallback and preview exit.
-> - Ordinary storefront traffic remains static by default; staging overlay requires `?commerce-preview=staging` and persists only in that browser tab/session.
->
-> **NEXT WORK: Phase 6.6 Product publication pipeline. Use D1 Published Product state as authority while preserving specialist legacy content as an explicit extension layer until Product Core models it.**
-> Do not apply Product/Inventory/Reservation migrations to Production and do not switch Production commerce authority before the separate Phase 6 production cutover gate.
+> **NEXT WORK: explicit owner decision to execute the Production cutover.**
+> Do not dispatch `phase6-production-cutover.yml` without that approval. There is no remaining reversible Phase 6 engineering blocker.
 
 > **Do not rerun migrations `0003–0008`. Any future Worker deployment must correspond to an intentional new runtime/catalogue change and pass Commerce CI first.**
 
