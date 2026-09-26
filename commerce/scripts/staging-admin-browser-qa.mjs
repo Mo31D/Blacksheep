@@ -585,7 +585,44 @@ async function ownerPolishViewsQa(viewport, label) {
       .locator("#newProductCategories .category-choice:not(.hidden)")
       .count();
     assert(visibleCategories > 0, label + " category search returned no visible matches.");
+    assert(
+      (await page.locator("#newProductCost").count()) === 1 &&
+        (await page.locator("#newProductVat").inputValue()) === "20" &&
+        (await page.locator("#newProductSupplier").count()) === 1 &&
+        (await page.locator("#newProductSupplierCode").count()) === 1,
+      label + " Add Product cost/supplier controls are incomplete.",
+    );
     await assertNoHorizontalOverflow(page, label + " Add Product");
+    if (label === "iPhone WebKit") {
+      await page.locator("#newProductCategorySearch").fill("");
+      await page.locator(".product-editor-panel").evaluate((panel) => {
+        panel.scrollTop = panel.scrollHeight;
+      });
+      await page.waitForTimeout(150);
+      const clearance = await page.evaluate(() => {
+        const actions = document.querySelector(".editor-actions");
+        const choices = Array.from(
+          document.querySelectorAll("#newProductCategories .category-choice"),
+        );
+        const last = choices.at(-1);
+        if (!actions || !last) return null;
+        const actionRect = actions.getBoundingClientRect();
+        const lastRect = last.getBoundingClientRect();
+        return {
+          actionTop: actionRect.top,
+          lastBottom: lastRect.bottom,
+          viewportHeight: window.innerHeight,
+        };
+      });
+      assert(clearance, label + " Add Product footer clearance could not be measured.");
+      assert(
+        clearance.lastBottom <= clearance.actionTop + 2,
+        label +
+          " Add Product sticky actions still overlap the last category (" +
+          JSON.stringify(clearance) +
+          ").",
+      );
+    }
     await page.locator("[data-close-product-sheet]:visible").first().click();
 
     if (label === "iPhone WebKit") {
@@ -764,6 +801,26 @@ async function ownerPolishViewsQa(viewport, label) {
       stockText.includes("Count, adjust and review stock for the shop."),
       label + " stock owner copy is missing.",
     );
+    await page.locator("#stockValueButton").click();
+    await page.waitForSelector("#view-stock-value.active #valuationMetrics .valuation-card", {
+      timeout: 20_000,
+    });
+    const valuationText = await page.locator("#view-stock-value").innerText();
+    for (const expected of [
+      "Stock at cost",
+      "Retail value",
+      "Potential gross profit",
+      "Value by supplier",
+      "Valuation confidence",
+    ]) {
+      assert(
+        valuationText.includes(expected),
+        label + " Stock Value report is missing: " + expected,
+      );
+    }
+    await assertNoHorizontalOverflow(page, label + " Stock Value");
+    await page.locator("#stockValueBack").click();
+    await page.waitForSelector("#view-stock.active", { timeout: 10_000 });
     await page.locator("#startBulkCount").click();
     await page.waitForSelector("#stocktakeQty", { timeout: 10_000 });
     await assertNoHorizontalOverflow(page, label + " Stocktake");
@@ -831,9 +888,12 @@ try {
           "webkit-mobile-no-horizontal-overflow",
           "iphone-dashboard-2x2-kpis",
           "iphone-products-add-product-controlled-type",
+          "iphone-add-product-cost-supplier-fields",
+          "iphone-add-product-footer-clearance",
           "iphone-category-search",
           "iphone-category-manager-create-rename-group-move-archive-restore",
           "iphone-category-picker-selected-summary",
+          "iphone-stock-value-report",
           "iphone-stocktake-no-horizontal-overflow",
           "iphone-reports-owner-copy",
           "ipad-portrait-products-stock-reports",
