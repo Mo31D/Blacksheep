@@ -23,7 +23,6 @@ interface Env {
   PRODUCT_MEDIA?: R2BucketLike;
   ORDER_RESERVATIONS_ENABLED?: string;
   D1_PUBLIC_CATALOG_ENABLED?: string;
-  D1_COMMERCE_AUTHORITY_ENABLED?: string;
 }
 
 const SERVICE = "black-sheep-commerce-api";
@@ -120,8 +119,8 @@ async function route(request: Request, env: Env): Promise<Response> {
           env.D1_PUBLIC_CATALOG_ENABLED === "true"
             ? "d1-published-v1"
             : null,
-        commerceAuthority:
-          env.D1_COMMERCE_AUTHORITY_ENABLED === "true",
+        commerceAuthority: true,
+        commerceAuthorityContract: "d1-published-v1",
       },
       notifications: {
         provider: env.RESEND_API_KEY ? "resend" : "unconfigured",
