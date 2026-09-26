@@ -56,8 +56,8 @@
 > - Phases 1–3 complete on staging.
 > - Phase 4 Inventory Core is COMPLETE ON STAGING; owner confirmed corrected OTP login + iPad portrait UX re-test passed.
 > - Phase 5 Order Reservations is COMPLETE + REAL-STAGING VERIFIED.
-> - Phase 6 staging/publication engineering is COMPLETE through 6.6; Phase 6.7 Production Cutover Readiness is COMPLETE.
-> - Production cutover itself is NOT executed and remains behind an explicit owner approval gate.
+> - Phase 6 milestones 6.1–6.7 have been executed through the automated Production cutover.
+> - Automated Production cutover is COMPLETE; final owner Admin/Stock + ordinary customer-order/email smoke is pending.
 >
 > **PRODUCT / INVENTORY — PHASE 4 INVENTORY CORE LIVE ON STAGING**
 > - Phase 1 Product Core: COMPLETE.
@@ -146,8 +146,22 @@
 >   - generated static catalogue still checkout authority,
 >   - readiness snapshot order count 4.
 >
-> **NEXT WORK: explicit owner decision to execute the Production cutover.**
-> Do not dispatch `phase6-production-cutover.yml` without that approval. There is no remaining reversible Phase 6 engineering blocker.
+> **PHASE 6 PRODUCTION CUTOVER — EXECUTED 26 September 2026**
+> - owner approved the cutover.
+> - guarded workflow `36231139658` executed migrations/import/source activation/Worker deploy/public parity.
+> - source cutover commit: `97099d67c6a85afbcc90b797520873d9e44bb9b4`.
+> - Production Worker version: `b1a4f431-6054-4e24-a84f-ec2f663d6c2b`.
+> - Production migration ledger: `0012_order_returns.sql`.
+> - 146 Active Published Products; baseline tracked variants 0; 4 pre-existing orders preserved.
+> - Production R2: `black-sheep-product-media-prod`.
+> - Production flags: reservations/public catalogue/D1 commerce authority enabled.
+> - Cron `*/30 * * * *` was applied after the original verifier exposed a Cloudflare response-shape mismatch.
+> - final Cron/runtime/public parity/storefront/canonical remediation workflow `36231541379` — SUCCESS.
+> - pre-cutover Time Travel bookmark: `00000069-00000000-000050f2-520c7a223d69419dc3f15f11a8565f4f`.
+> - final report: `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-CUTOVER-2026-09-26.md`.
+>
+> **NEXT WORK: final owner Production smoke only.**
+> Log into live Admin, verify Products/Stock, submit one ordinary live order request, confirm it appears in Admin, and confirm both customer and owner Resend notifications. After that mark Phase 6 CLOSED.
 
 > **Do not rerun migrations `0003–0008`. Any future Worker deployment must correspond to an intentional new runtime/catalogue change and pass Commerce CI first.**
 
