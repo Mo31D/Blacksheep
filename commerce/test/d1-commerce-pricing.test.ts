@@ -3,7 +3,10 @@ import type {
   D1DatabaseLike,
   D1PreparedStatementLike,
 } from "../src/data/d1";
-import { priceRequestedCartFromD1 } from "../src/data/commerce-pricing";
+import {
+  priceRequestedCartFromD1,
+  requirePurchasableCommerceProductFromD1,
+} from "../src/data/commerce-pricing";
 
 class Statement implements D1PreparedStatementLike {
   values: unknown[] = [];
@@ -16,7 +19,7 @@ class Statement implements D1PreparedStatementLike {
     return this;
   }
   async first<T>(): Promise<T | null> {
-    return null;
+    return (this.rows[0] as T | undefined) ?? null;
   }
   async all<T>(): Promise<{ results: T[] }> {
     return { results: this.rows as T[] };
@@ -68,6 +71,45 @@ function row(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+describe("Phase 6 D1 Product resolver", () => {
+  it("resolves the same published D1 product used by checkout for Admin quote editing", async () => {
+    const db = new Db([row({ priceMinor: 1250 })]);
+
+    await expect(
+      requirePurchasableCommerceProductFromD1(db, "HC-001"),
+    ).resolves.toMatchObject({
+      id: "HC-001",
+      name: "Highland Cow",
+      priceMinor: 1250,
+      purchasable: true,
+    });
+
+    expect(db.prepared).toHaveLength(1);
+    expect(db.prepared[0].sql).toContain(
+      "pv.id = p.current_published_version_id",
+    );
+    expect(db.prepared[0].sql).not.toContain(
+      "current_draft_version_id",
+    );
+  });
+
+  it("rejects unavailable D1 products for Admin quote additions/substitutions", async () => {
+    await expect(
+      requirePurchasableCommerceProductFromD1(
+        new Db([row({ sellStatus: "OUT_OF_STOCK" })]),
+        "HC-001",
+      ),
+    ).rejects.toThrow("out_of_stock");
+
+    await expect(
+      requirePurchasableCommerceProductFromD1(
+        new Db([]),
+        "MISSING",
+      ),
+    ).rejects.toThrow("catalog_product_not_found");
+  });
+});
 
 describe("Phase 6 D1 checkout pricing", () => {
   it("uses the D1 server price and ignores any browser-side price concept", async () => {
