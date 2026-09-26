@@ -415,6 +415,11 @@ export async function getAdminProductDetail(
         v.barcode,
         v.price_minor AS priceMinor,
         v.compare_at_price_minor AS compareAtPriceMinor,
+        v.cost_minor AS costMinor,
+        v.vat_rate_basis_points AS vatRateBasisPoints,
+        v.supplier_id AS supplierId,
+        s.name AS supplierName,
+        v.supplier_product_code AS supplierProductCode,
         v.currency,
         v.track_inventory AS trackInventory,
         v.low_stock_threshold AS lowStockThreshold,
@@ -423,6 +428,7 @@ export async function getAdminProductDetail(
       JOIN product_versions pv ON pv.id = COALESCE(p.current_draft_version_id, p.current_published_version_id)
       JOIN product_variants v
         ON v.product_id = p.id AND v.is_default = 1 AND v.active = 1
+      LEFT JOIN suppliers s ON s.id = v.supplier_id
       WHERE p.id = ?
       LIMIT 1
     `)
@@ -503,6 +509,14 @@ export async function getAdminProductDetail(
     core.priceMinor === null || core.priceMinor === undefined
       ? null
       : Number(core.priceMinor);
+  const costMinor =
+    core.costMinor === null || core.costMinor === undefined
+      ? null
+      : Number(core.costMinor);
+  const vatRateBasisPoints =
+    core.vatRateBasisPoints === null || core.vatRateBasisPoints === undefined
+      ? 2000
+      : Number(core.vatRateBasisPoints);
   const quality: string[] = [];
   if (priceMinor === null && Number(core.onlineOrderingEnabled) === 1) {
     quality.push("MISSING_PRICE");
@@ -519,6 +533,8 @@ export async function getAdminProductDetail(
     featured: Number(core.featured) === 1,
     trackInventory: Number(core.trackInventory) === 1,
     priceMinor,
+    costMinor,
+    vatRateBasisPoints,
     categories: categories.map((row) => ({
       ...row,
       isPrimary: Number(row.isPrimary) === 1,
