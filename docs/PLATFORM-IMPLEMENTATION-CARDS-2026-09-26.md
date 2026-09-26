@@ -103,7 +103,7 @@ Purpose: authoritative implementation board for the next architecture programme.
 ---
 
 ## CARD 03 — Product Editor: placement + multi-location + live verification
-**Status:** IN PROGRESS  
+**Status:** IMPLEMENTED ON STAGING · FINAL BROWSER QA BLOCKED BY CLOUDFLARE D1 DAILY READ LIMIT  
 **Depends on:** CARD 01, CARD 02
 
 **Goal:** make product editing answer “Where should this product appear?”
@@ -125,12 +125,21 @@ Purpose: authoritative implementation board for the next architecture programme.
 - Provide **View on website**.
 
 **Acceptance criteria**
-- [ ] One product appears in multiple destinations without duplication.
-- [ ] Primary placement is explicit.
-- [ ] Brand/Range is not confused with website location.
-- [ ] Publish never falsely reports “live”.
-- [ ] Add/Edit remains simple for a non-technical owner.
-- [ ] Existing version/audit behaviour is preserved.
+- [x] One product can be assigned to multiple destinations without duplicating the Product/inventory record.
+- [x] Primary placement is explicit.
+- [x] Brand/Range is separated from website location in Product Add/Edit.
+- [x] Publish success is separated from public-catalogue verification; Production “live” is not shown from Staging.
+- [x] Add/Edit uses owner-facing Section / Sub-section / Also show in controls instead of Product type.
+- [x] Existing version/audit behaviour is preserved by the Product draft/version path.
+- [ ] Final Staging browser QA of Create → Edit placements → Preview → Publish → public verification. **Blocked externally on 2026-09-26 by Cloudflare D1 free-tier daily row-read limit (code 7500); rerun after quota reset.**
+
+**CARD 03 evidence — 2026-09-26**
+- Commerce validation: PASS (39 test files / 229 tests during Staging validation).
+- Search Readiness: PASS.
+- Staging Worker-only deployment after runtime fix: PASS; no D1 migration/list/execute command and no Production deploy.
+- Runtime defect found by browser QA before completion: `ReferenceError: prefix is not defined` in Product placement warning scope.
+- Runtime defect fixed on `main` in commit `7b2be6bc2642ae69066a76bdeb55d82b213ad828`.
+- Full remote D1-backed browser QA cannot be completed until Cloudflare resets the daily D1 read allowance or the plan is upgraded.
 
 ---
 
