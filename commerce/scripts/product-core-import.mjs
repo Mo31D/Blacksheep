@@ -13,18 +13,45 @@ const args = new Set(process.argv.slice(2));
 const remote = args.has("--remote");
 const envIndex = process.argv.indexOf("--env");
 const environment = envIndex >= 0 ? process.argv[envIndex + 1] : null;
+const confirmationIndex = process.argv.indexOf("--confirmation");
+const confirmation =
+  confirmationIndex >= 0 ? process.argv[confirmationIndex + 1] : null;
 
-if (!remote || environment !== "staging") {
+if (
+  !remote ||
+  !["staging", "production"].includes(String(environment))
+) {
   throw new Error(
-    "Phase 1 importer is staging-only. Run with --remote --env staging.",
+    "Product Core importer requires --remote --env staging|production.",
   );
 }
+
+if (
+  environment === "production" &&
+  confirmation !== "IMPORT-PRODUCTION-PRODUCTS"
+) {
+  throw new Error(
+    "Production Product Core import blocked. Re-run with --confirmation IMPORT-PRODUCTION-PRODUCTS.",
+  );
+}
+
+const wranglerDatabaseArgs =
+  environment === "staging"
+    ? ["DB", "--remote", "--env", "staging"]
+    : ["black-sheep-commerce-prod", "--remote"];
 
 function runWrangler(extraArgs, expectJson = false) {
   const command = process.platform === "win32" ? "npx.cmd" : "npx";
   const result = spawnSync(
     command,
-    ["--no-install", "wrangler", "d1", "execute", "DB", "--remote", "--env", "staging", ...extraArgs],
+    [
+      "--no-install",
+      "wrangler",
+      "d1",
+      "execute",
+      ...wranglerDatabaseArgs,
+      ...extraArgs,
+    ],
     {
       cwd: process.cwd(),
       encoding: "utf8",
@@ -70,9 +97,17 @@ const blocks = Array.isArray(existing) ? existing : [];
 const existingProductCount = Number(blocks[0]?.results?.[0]?.product_count ?? 0);
 const nonImportEvents = Number(blocks[1]?.results?.[0]?.non_import_events ?? 0);
 
+if (environment === "production" && existingProductCount !== 0) {
+  throw new Error(
+    "Production Product Core is not empty. Refusing any destructive re-import.",
+  );
+}
+
 if (nonImportEvents > 0) {
   throw new Error(
-    "Staging Product Core contains non-import owner/system changes. Refusing destructive Phase 1 re-import.",
+    environment === "production"
+      ? "Production Product Core contains non-import owner/system changes. Refusing destructive import."
+      : "Staging Product Core contains non-import owner/system changes. Refusing destructive Phase 1 re-import.",
   );
 }
 
@@ -110,7 +145,7 @@ try {
     JSON.stringify(
       {
         ok: true,
-        environment: "staging",
+        environment,
         sourceBlob: blob,
         previousProductCount: existingProductCount,
         productCount,
