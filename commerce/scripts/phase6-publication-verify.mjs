@@ -128,16 +128,57 @@ for(const {item} of rows){
   }
 }
 
+let sitemapText="";
 const sitemapPath=path.join(siteDir,"sitemap.xml");
 if(!fs.existsSync(sitemapPath))failures.push({scope:"sitemap",problem:"missing"});
 else{
-  const sitemap=read(sitemapPath);
-  const locs=[...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m=>m[1]);
+  sitemapText=read(sitemapPath);
+  const locs=[...sitemapText.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m=>m[1]);
   const productLocs=locs.filter(x=>x.includes("/products/"));
   const expectedLocs=rows.map(({item})=>base+"/products/"+item.slug+".html");
   if(productLocs.length!==expectedLocs.length)failures.push({scope:"sitemap",problem:"product_count",actual:productLocs.length,expected:expectedLocs.length});
   for(const loc of expectedLocs)if(!productLocs.includes(loc))failures.push({scope:"sitemap",problem:"missing_product",loc});
   for(const loc of productLocs)if(!expectedLocs.includes(loc))failures.push({scope:"sitemap",problem:"extra_product",loc});
+}
+
+let slugAliases=0;
+const currentSlugs=new Set(rows.map(({item})=>item.slug));
+const aliasOwners=new Map();
+for(const entry of manifest.products){
+  const item=byId.get(entry.id)?.item;
+  if(!item)continue;
+  const history=Array.isArray(entry.publication?.slugHistory)
+    ?entry.publication.slugHistory
+    :[];
+  for(const slugEntry of history){
+    const alias=String(slugEntry?.slug||"").trim();
+    if(!alias||alias===item.slug)continue;
+    slugAliases+=1;
+    if(currentSlugs.has(alias)){
+      failures.push({id:item.id,problem:"slug_alias_conflicts_current",alias});
+      continue;
+    }
+    const prior=aliasOwners.get(alias);
+    if(prior&&prior!==item.id){
+      failures.push({id:item.id,problem:"slug_alias_duplicate_owner",alias,owners:[prior,item.id]});
+      continue;
+    }
+    aliasOwners.set(alias,item.id);
+    const aliasFile=path.join(siteDir,"products",alias+".html");
+    if(!fs.existsSync(aliasFile)){
+      failures.push({id:item.id,problem:"slug_alias_page_missing",alias});
+      continue;
+    }
+    const aliasHtml=read(aliasFile);
+    const targetUrl=base+"/products/"+item.slug+".html";
+    const targetPath="/products/"+item.slug+".html";
+    if(canonicalOf(aliasHtml)!==targetUrl)failures.push({id:item.id,problem:"slug_alias_canonical",alias,actual:canonicalOf(aliasHtml),expected:targetUrl});
+    if(!/name=["']robots["'][^>]*noindex,follow/i.test(aliasHtml)&&!/content=["']noindex,follow["'][^>]*name=["']robots/i.test(aliasHtml)){
+      failures.push({id:item.id,problem:"slug_alias_robots",alias});
+    }
+    if(!aliasHtml.includes(targetPath))failures.push({id:item.id,problem:"slug_alias_redirect_target",alias,targetPath});
+    if(sitemapText.includes(base+"/products/"+alias+".html"))failures.push({id:item.id,problem:"slug_alias_in_sitemap",alias});
+  }
 }
 
 const definitions=[
@@ -194,6 +235,7 @@ const report={
   products:rows.length,
   manifestProducts:manifest.products.length,
   collectionPages:definitions.length,
+  slugAliases,
   failures,
 };
 if(reportPath)fs.writeFileSync(path.resolve(process.cwd(),reportPath),JSON.stringify(report,null,2)+"\n");
