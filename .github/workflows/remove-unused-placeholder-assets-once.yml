@@ -23,7 +23,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Identify exact legacy placeholder blob
         shell: bash
@@ -78,7 +78,7 @@ jobs:
       - name: Run full Commerce backend regression after cleanup
         working-directory: commerce
         run: |
-          npm ci
+          npm install --no-audit --no-fund
           npm run check
 
       - name: Commit cleanup
