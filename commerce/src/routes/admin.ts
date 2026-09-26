@@ -5,6 +5,7 @@ import {
   getAdminOrderState,
   getAdminReports,
   getPaymentNotificationSnapshot,
+  resetAdminTestOrders,
   listAdminOrders,
 } from "../data/admin-orders";
 import { validateAdminOrderAction } from "../domain/admin-order";
@@ -84,6 +85,7 @@ import {
 } from "../data/order-reservations";
 
 export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
+  ENVIRONMENT?: string;
   DB?: D1DatabaseLike;
   PRODUCT_MEDIA?: R2BucketLike;
   ORDER_RESERVATIONS_ENABLED?: string;
@@ -518,7 +520,7 @@ export async function handleAdminRequest(
   const identity: AdminIdentity = access.identity;
 
   if ((url.pathname === "/admin" || url.pathname === "/admin/") && request.method === "GET") {
-    return new Response(adminHtml(identity.email), {
+    return new Response(adminHtml(identity.email, env.ENVIRONMENT ?? "production"), {
       headers: {
         "content-type": "text/html; charset=utf-8",
         "cache-control": "no-store",
@@ -531,8 +533,36 @@ export async function handleAdminRequest(
 
   if (url.pathname === "/admin/api/orders" && request.method === "GET") {
     const status = url.searchParams.get("status");
-    const orders = await listAdminOrders(env.DB, status);
-    return json({ orders });
+    const requestedClass = url.searchParams.get("dataClass");
+    const dataClass =
+      env.ENVIRONMENT !== "production" && requestedClass === "TEST"
+        ? "TEST"
+        : "BUSINESS";
+    const orders = await listAdminOrders(env.DB, status, dataClass);
+    return json({ orders, dataClass });
+  }
+
+  if (url.pathname === "/admin/api/test-orders/reset" && request.method === "POST") {
+    if (env.ENVIRONMENT === "production") {
+      return error("test_order_reset_forbidden", 403, "Test-order reset is not available in Production.");
+    }
+    try {
+      const raw = (await readProductJson(request)) as Record<string, unknown>;
+      if (raw.confirmation !== "RESET TEST ORDERS") {
+        return error(
+          "test_order_reset_confirmation_required",
+          400,
+          "Type RESET TEST ORDERS to confirm.",
+        );
+      }
+      return json(await resetAdminTestOrders(env.DB));
+    } catch (cause) {
+      return error(
+        "test_order_reset_failed",
+        400,
+        cause instanceof Error ? cause.message : "Unable to reset test orders.",
+      );
+    }
   }
 
   if (url.pathname === "/admin/api/reports" && request.method === "GET") {
