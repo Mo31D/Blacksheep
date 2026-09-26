@@ -7,16 +7,19 @@
 > Authoritative trackers/reports:
 > - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 > - `docs/BLACK-SHEEP-BACKEND-AUDIT-CLEANUP-2026-09-26.md`
+> - `docs/FINAL-OWNER-POLISH-TICKETS-2026-09-26.md`
+> - `docs/FINAL-OWNER-POLISH-2026-09-26.md`
 > - `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-CUTOVER-2026-09-26.md`
 >
 > **Current production architecture**
 > - Admin V2 is live.
 > - Product Core + Inventory Core + Order Reservations + Phase 6 D1 commerce authority are live in Production.
-> - Production D1 latest migration: `0012_order_returns.sql`.
+> - Production D1 latest migration: `0013_order_data_class.sql`.
 > - Production active published Products: 146.
 > - Production active default variants: 146.
-> - Production order count at final audit: 4.
-> - Production active reservations at final audit: 0.
+> - Production clean-start state: 6 pre-existing confirmed test orders preserved as hidden TEST history; 0 visible BUSINESS orders.
+> - Production active/committed reservations at owner-polish cutover: 0.
+> - Future Production orders default to BUSINESS.
 > - Production public catalogue: 146 products / 0 parity mismatches.
 > - D1 is the sole backend commerce authority; the old generated backend catalogue authority has been removed.
 > - Production health + Admin reachability passed in the final backend audit.
@@ -38,6 +41,22 @@
 > - automated WebKit/mobile Admin QA — PASS.
 > - completed one-shot audit workflow removed after success.
 >
+> **Final Owner Polish / clean start — 26 September 2026**
+> - all automated/code tickets in `docs/FINAL-OWNER-POLISH-TICKETS-2026-09-26.md` are complete.
+> - order classification is now explicit: BUSINESS / TEST / E2E.
+> - Staging normal Admin/Reports show BUSINESS data by default; test/E2E data is isolated behind the Test data view.
+> - Staging Reset test orders is guarded and clears test/E2E rows from owner-facing state without deleting audit history.
+> - owner confirmed there were no genuine customer orders before clean start.
+> - Production preflight found 6 pre-existing orders, all consistent with the owner's testing, and 0 ACTIVE/COMMITTED reservations.
+> - guarded Production workflow `36245568191` applied migration `0013_order_data_class.sql`, preserved all 6 as hidden TEST history, left 0 visible BUSINESS orders, deployed the Worker and re-verified health/catalogue.
+> - Production Worker version: `4b600893-2a71-40e0-8fea-9d7f4cad34dd`.
+> - Production public catalogue remains 146 products.
+> - final staging deploy `36245227443` — SUCCESS; staging Worker `30cac36f-516f-4902-b733-60c4eb7b6ec5`.
+> - final expanded staging Admin browser QA `36245380428` — SUCCESS: desktop Orders, iPhone 2×2 Dashboard, Add Product controlled type, category search, Stocktake, Reports, iPad portrait and no owner-facing Phase/cutover copy.
+> - code-level Commerce CI `36245167048` — SUCCESS.
+> - Search Readiness on the cleaned final tree `36245693923` — SUCCESS.
+> - temporary one-shot Production preflight/deploy workflows were removed after success.
+>
 > **Cleanup state**
 > - stale generated backend commerce authority files removed.
 > - stale Ice Cream/Romney generated builder path removed from active search/build flow.
@@ -54,6 +73,8 @@
 > - GitHub Actions Cloudflare credentials were available and the final audit performed read-only Production D1 / health / public-catalogue verification successfully.
 >
 > **Next work**
+> - owner real-device Production smoke only: open live Products/Stock, submit one ordinary live order, confirm it appears under Business Orders, confirm both customer + owner emails, and verify an untracked baseline product does not create unexpected numeric stock movement.
+> - after that smoke passes, mark the Final Owner Polish / Phase 6 owner acceptance closed.
 > - do not revive old Commerce V1 branches or generated backend catalogue authority.
 > - use D1 Product Core / Inventory Core as the backend source of truth.
 > - for future changes, keep Commerce CI + Search Readiness green and run the targeted staging browser/E2E workflow for the affected surface.
