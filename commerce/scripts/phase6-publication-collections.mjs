@@ -40,8 +40,8 @@ function state(item){
   if(item.availabilityStatus==="arriving-soon")return{purchasable:false,label:"Arriving soon",reason:"arriving-soon"};
   if(item.stockStatus==="out-of-stock")return{purchasable:false,label:"Out of stock",reason:"out-of-stock"};
   if(item.sellStatus==="NOT_FOR_SALE")return{purchasable:false,label:"Not available online",reason:"not-for-sale"};
+  if(typeof item.price!=="number"||!Number.isFinite(item.price))return{purchasable:false,label:"Price not confirmed",reason:"price-unavailable"};
   if(item.onlineOrderingEnabled===false)return{purchasable:false,label:"Not available online",reason:"not-available-online"};
-  if(typeof item.price!=="number"||!Number.isFinite(item.price))return{purchasable:false,label:null,reason:"price-unavailable"};
   return{purchasable:true,label:null,reason:null};
 }
 
