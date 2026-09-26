@@ -822,7 +822,6 @@ async function ownerPolishViewsQa(viewport, label) {
       });
 
       cleanupStorefrontStructureQa();
-      structureLoaded = false;
     }
 
     await openView("stock");
