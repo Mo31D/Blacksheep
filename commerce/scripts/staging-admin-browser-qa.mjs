@@ -716,6 +716,21 @@ async function ownerPolishViewsQa(viewport, label) {
         categoryRow.locator("[data-category-restore]").click(),
       ]);
 
+      await page.waitForFunction(
+        (id) => {
+          const row = document.querySelector(
+            '[data-category-row="' + id + '"]',
+          );
+          return Boolean(
+            row &&
+              row.querySelector("[data-category-archive]") &&
+              !row.querySelector("[data-category-name]")?.disabled,
+          );
+        },
+        categoryId,
+        { timeout: 20_000 },
+      );
+
       await page.locator("[data-close-product-sheet]:visible").first().click();
 
       await page.locator("#addProduct").click();
