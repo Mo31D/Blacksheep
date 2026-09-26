@@ -224,12 +224,13 @@ describe("CARD 03 owner-selected Storefront placements", () => {
     ]);
   });
 
-  it("rejects draft or archived Storefront nodes for a publishable Product placement", async () => {
+  it("allows a Product draft to target a draft Storefront node", async () => {
     const db = new OwnerPlacementDb([
       {
         id: "sfn-draft",
         publicationStatus: "DRAFT",
         publishedVersionId: null,
+        draftVersionId: "sfv-draft",
       },
     ]);
 
@@ -238,7 +239,31 @@ describe("CARD 03 owner-selected Storefront placements", () => {
         primaryNodeId: "sfn-draft",
         additionalNodeIds: [],
       }),
-    ).rejects.toThrow("product_storefront_node_not_live");
+    ).resolves.toEqual([
+      {
+        storefrontNodeId: "sfn-draft",
+        isPrimary: true,
+        position: 0,
+      },
+    ]);
+  });
+
+  it("rejects archived Storefront nodes from Product drafts", async () => {
+    const db = new OwnerPlacementDb([
+      {
+        id: "sfn-archived",
+        publicationStatus: "ARCHIVED",
+        publishedVersionId: "sfv-old",
+        draftVersionId: null,
+      },
+    ]);
+
+    await expect(
+      resolveOwnerStorefrontPlacements(db, {
+        primaryNodeId: "sfn-archived",
+        additionalNodeIds: [],
+      }),
+    ).rejects.toThrow("product_storefront_node_archived");
   });
 
   it("writes explicit owner placements with one guarded primary", () => {
