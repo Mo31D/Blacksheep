@@ -39,6 +39,7 @@ async function allRows<T>(
 export async function listAdminOrders(
   db: D1DatabaseLike,
   status?: string | null,
+  dataClass: "BUSINESS" | "TEST" | "E2E" = "BUSINESS",
 ): Promise<OrderSummaryRow[]> {
   const activeRevision = `r.order_id = o.id AND r.state IN ('SENT', 'ACCEPTED')`;
   const base = `SELECT
@@ -68,13 +69,35 @@ export async function listAdminOrders(
       o.updated_at AS updatedAt
     FROM orders o`;
 
+  const visibility = "o.data_class = ? AND o.admin_hidden_at IS NULL";
   const statement = status
     ? db
-        .prepare(`${base} WHERE o.status = ? ORDER BY o.created_at DESC LIMIT 100`)
-        .bind(status)
-    : db.prepare(`${base} ORDER BY o.created_at DESC LIMIT 100`);
+        .prepare(`${base} WHERE ${visibility} AND o.status = ? ORDER BY o.created_at DESC LIMIT 100`)
+        .bind(dataClass, status)
+    : db
+        .prepare(`${base} WHERE ${visibility} ORDER BY o.created_at DESC LIMIT 100`)
+        .bind(dataClass);
 
   return allRows<OrderSummaryRow>(statement);
+}
+
+export async function resetAdminTestOrders(
+  db: D1DatabaseLike,
+): Promise<{ hiddenOrders: number; resetAt: string }> {
+  const countRow = await db
+    .prepare(
+      "SELECT COUNT(*) AS count FROM orders WHERE data_class IN ('TEST','E2E') AND admin_hidden_at IS NULL",
+    )
+    .first<{ count: number }>();
+  const resetAt = new Date().toISOString();
+  await db.batch([
+    db
+      .prepare(
+        "UPDATE orders SET admin_hidden_at = ?, updated_at = ? WHERE data_class IN ('TEST','E2E') AND admin_hidden_at IS NULL",
+      )
+      .bind(resetAt, resetAt),
+  ]);
+  return { hiddenOrders: Number(countRow?.count ?? 0), resetAt };
 }
 
 export async function getAdminOrderState(
