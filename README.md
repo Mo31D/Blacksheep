@@ -4,7 +4,8 @@ Production domain: **https://theblacksheepshop.co.uk**
 
 ## Runtime structure
 - Static HTML pages.
-- `assets/catalog.js` is the catalogue source of truth.
+- D1 Product Core + Inventory Core are the production operational source of truth for product state, price, online orderability and inventory.
+- `assets/catalog.js` is the published static storefront snapshot generated/reconciled from that operational state; it is no longer the operational authority.
 - `assets/site.js` renders product cards/details, filters, navigation helpers and **My list**.
 - `assets/style.css` contains the shared Black Sheep visual system.
 - `products/<slug>.html` is the canonical, indexable product-detail layer. Each product page contains its customer-facing content, metadata, canonical URL and Product/Breadcrumb/WebPage/Store JSON-LD directly in HTML.
@@ -49,7 +50,7 @@ The storefront now includes a persistent browser basket backed by the current ca
 Active Peter Rabbit/Highland Cow collection views now use the smaller real product WebP files where possible. Many old numbered PNG placeholders and recovery assets remain in the repository for history/recovery but are not part of the active catalogue.
 
 ## Current publishing rule
-GitHub `main` is the source of truth. Preserve newer commits; do not restore the old broad placeholder catalogue or old nested Gifts menu. Preserve the current basket/order-request architecture, and do not turn it into automatic card checkout or overwrite the staged Admin V2 flow unless the owner explicitly requests that change.
+GitHub `main` is the source of truth for deployed code and generated static storefront files. Production D1 Published Product state is the operational product/commerce authority. Routine product, price, selling-state and stock changes should be made through Admin rather than by hand-editing catalogue code. Preserve newer commits, canonical `/products/<slug>.html` URLs and the request-order architecture; do not restore the old broad placeholder catalogue or nested Gifts menu.
 
 ## Commerce runtime boundary
 - Static storefront files and product pages remain on the website layer.
@@ -58,7 +59,8 @@ GitHub `main` is the source of truth. Preserve newer commits; do not restore the
 - Production Admin V2 must only move forward through the guarded release checklist; current staging success does not authorize a production migration/deploy.
 
 ## Search architecture rule
-- Keep `assets/catalog.js` as the catalogue data source, but do not make indexable product content depend on client-side rendering.
+- Treat `assets/catalog.js` as the generated published storefront snapshot, not as the operational Product Core authority.
+- Do not make indexable product content depend on client-side rendering.
 - Every published catalogue record must have a matching `products/<slug>.html` page and sitemap entry.
 - Product and collection links must point to the static product URL, never back to the legacy query-string route.
 - Do not add online-purchase Offer markup unless the site actually supports that purchase flow; current product pages describe in-store availability truthfully.
@@ -68,15 +70,7 @@ GitHub `main` is the source of truth. Preserve newer commits; do not restore the
 
 `assets/catalog.js` is the data source. The `official` object on each ice-cream record preserves the manufacturer URL, exact image provenance, verification date, ingredients, allergens, dietary statements, awards and nutrition (per **100 ml**). See `docs/LAKES-ICE-CREAM-SOURCE-MAP.md`.
 
-After changing an ice-cream record, run:
-
-```sh
-node scripts/build-icecream.mjs
-node scripts/verify-search-readiness.mjs
-node scripts/build-icecream.mjs --check
-```
-
-The builder updates the 12 static flavour pages from `scripts/templates/icecream-product.html`, ice-cream cards in both collections, their ItemLists, sitemap image entries, and the retired Pistachio route. CI rejects drift. It does not regenerate or overwrite unrelated gift/confectionery product pages. To change the flavour-page layout, edit the template/builder, not its generated output. Changing the number of flavours requires deliberately updating the builder's 12-card guard and reviewing shop stock.
+The legacy `scripts/build-icecream.mjs` tool is retained only as a specialist-content maintenance helper for manufacturer ingredients/allergen/nutrition material that Product Core does not yet model. It is **not** a publication authority and is no longer part of Search Readiness CI. Any specialist-content maintenance must finish by reconciling through the Phase 6 publication pipeline and `scripts/verify-search-readiness.mjs`; do not commit builder output that contradicts D1 Published Product price, selling state, slug or online-orderability.
 
 ### Verified Hawkshead Relish sources
 
@@ -90,18 +84,7 @@ Exact owner-supplied images are wired for every active Hawkshead Relish product 
 
 Romney's/confectionery product provenance is stored internally in `docs/ROMNEYS-SOURCE-MAP.md`. Manufacturer URLs are verification metadata only and must **not** appear on customer-facing product pages, product images/names, or Product JSON-LD.
 
-`assets/catalog.js` remains authoritative for Black Sheep prices and product identity. `scripts/build-romneys.mjs` regenerates the static Romney product pages, Romney collection, Full Range Romney cards, ItemLists and sitemap product entries. `scripts/verify-search-readiness.mjs` rejects supplier-link leakage, brand/schema mismatches, missing assets and collection-card drift.
-
-After changing a Romney/confectionery record, run:
-
-```sh
-node scripts/build-romneys-source-map.mjs
-node scripts/build-romneys.mjs
-node scripts/verify-search-readiness.mjs
-node scripts/build-romneys.mjs --check
-```
-
-Supplier retail prices are never a data source for Black Sheep pricing.
+Production D1 Published Product state is authoritative for Black Sheep product identity, price and selling state. The legacy `scripts/build-romneys.mjs` helper remains only for specialist confectionery details that Product Core does not yet model; it is not part of CI publication authority. `scripts/verify-search-readiness.mjs` continues to reject supplier-link leakage, schema mismatches, missing assets and collection-card drift. Supplier retail prices are never a data source for Black Sheep pricing.
 
 
 ### Highland Cow placeholders
