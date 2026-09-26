@@ -248,3 +248,4 @@ try {
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
 }
+// CI trigger: admin-password migration guard updated for 0016.
