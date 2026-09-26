@@ -15,6 +15,35 @@ This checklist began as the separate Product/Inventory execution tracker and is 
 
 ---
 
+# DYNAMIC STOREFRONT PUBLICATION HOTFIX — 26 SEPTEMBER 2026
+
+- [x] Owner-reported defect reproduced: a new Admin-created Product could reach `ACTIVE` / Published in Product Core but remain absent from the storefront.
+- [x] Root cause confirmed: `assets/commerce-live.js` was an overlay-only layer; it updated price/availability for products already present in static `assets/catalog.js` but never inserted newly published D1-only Products.
+- [x] Live commerce loader now merges unmatched ACTIVE published D1 Products into the runtime storefront catalogue.
+- [x] Public catalogue pagination is consumed safely instead of assuming one static 200-row response forever.
+- [x] D1-only products are inserted into Full range and their applicable top-level range pages; the owner-created `Test` product is correctly placed in Hawkshead Relish.
+- [x] Existing static products retain their canonical `/products/<slug>.html` pages.
+- [x] Newly Admin-published products use the live fallback detail route `/product.html?type=<type>&slug=<slug>` until/unless a static SEO page exists.
+- [x] Dynamic product detail renders live title, description, price, availability and Add-to-basket control.
+- [x] Admin-uploaded R2 media paths (`/media/<id>`) resolve against the Commerce API; ordinary static `/images/...` media remains on the storefront origin.
+- [x] Search/filter counts recalculate after runtime insertion so newly published products are included immediately.
+- [x] Storefront overlay regression QA `36251543339` — **SUCCESS**, including mocked D1-only Full range insertion, range placement and dynamic detail.
+- [x] Commerce CI `36250967119` — **SUCCESS**; 35 test files / 206 tests.
+- [x] Search Readiness remained green after the storefront changes.
+- [x] Read-only Production smoke `36251721592` — **SUCCESS** against the actual owner-created Product `Test`:
+  - Production public catalogue: 147 products received / 147 applied.
+  - New runtime products: 1.
+  - Hawkshead Relish: **16 products**.
+  - `Test` card: visible, £0.01.
+  - R2 product image: HTTP 200 `image/webp`, rendered 1200×800.
+  - Dynamic Product detail: visible, £0.01, image loaded, Add to basket enabled.
+  - Mobile horizontal-overflow check: PASS.
+- [x] No Production D1 write, order submission or Worker deployment was required for this fix; the existing published D1 Product was already correct.
+
+**Status: FIXED AND VERIFIED ON LIVE PRODUCTION STOREFRONT.** Routine owner-created Products no longer require a manual GitHub catalogue edit merely to become visible after Publish.
+
+---
+
 # CATEGORY MANAGER — 26 SEPTEMBER 2026
 
 - [x] Migration `0014_category_management.sql` persists category groups as `BRAND_RANGE`, `PRODUCT_CATEGORY`, and `COLLECTION_THEME`.
