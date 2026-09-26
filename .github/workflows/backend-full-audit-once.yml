@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 
-# Final post-cleanup rerun: 2026-09-26 after legacy generator removal
+# Final post-cleanup rerun: 2026-09-26 after D1 authority consolidation
 jobs:
   backend-full-audit:
     runs-on: ubuntu-latest
@@ -55,6 +55,21 @@ jobs:
             echo "=== TODO/FIXME/HACK markers in commerce runtime ==="
             git grep -n -E "\b(TODO|FIXME|HACK)\b" -- commerce/src commerce/scripts || true
           } | tee /tmp/backend-static-audit.txt
+
+      - name: Enforce removal of duplicate backend commerce authority
+        working-directory: .
+        shell: bash
+        run: |
+          test ! -e commerce/src/domain/catalog.ts
+          test ! -e commerce/src/generated/catalog.ts
+          test ! -e scripts/build-commerce-catalog.mjs
+          test ! -e commerce/test/catalog.test.ts
+          test ! -e commerce/test/pricing.test.ts
+          if git grep -n -E "D1_COMMERCE_AUTHORITY_ENABLED|generated/catalog|COMMERCE_CATALOG|requirePurchasableProduct|priceRequestedCart\\(" -- commerce/src commerce/test commerce/package.json scripts; then
+            echo "Duplicate/legacy backend commerce authority reference found."
+            exit 1
+          fi
+          echo "D1 is the sole backend commerce authority in source."
 
       - name: Verify post-cutover source configuration
         shell: bash
