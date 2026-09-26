@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0015_")) {
+  if (!latestMigration?.startsWith("0016_")) {
     throw new Error(
-      `Expected latest migration to be 0015, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0016, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0014_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0014.");
+  if (baselineMigrations.at(-1)?.startsWith("0015_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0015.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -129,6 +129,7 @@ try {
     "SELECT id, name, active FROM suppliers LIMIT 0",
     "SELECT cost_minor, supplier_id, supplier_product_code, vat_rate_basis_points FROM product_variants LIMIT 0",
     "SELECT snapshot_date, location_id, cost_value_inc_vat_minor, retail_value_inc_vat_minor, potential_gross_profit_minor FROM inventory_valuation_snapshots LIMIT 0",
+    "SELECT id, failed_attempts, locked_until, updated_at FROM admin_password_security LIMIT 0",
   ];
 
   for (const sql of schemaQueries) {
@@ -242,7 +243,7 @@ try {
   }
 
   console.log(
-    "PASS: migrations 0000–0014 upgraded cleanly to 0015; supplier metadata, variant VAT/cost linkage and stock valuation snapshots are present.",
+    "PASS: migrations 0000–0015 upgraded cleanly to 0016; stock valuation and Admin password lockout state are present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
