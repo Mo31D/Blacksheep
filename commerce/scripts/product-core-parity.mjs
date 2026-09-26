@@ -20,11 +20,19 @@ const jsonIndex = argv.indexOf("--json-out");
 const markdownPath = markdownIndex >= 0 ? argv[markdownIndex + 1] : null;
 const jsonPath = jsonIndex >= 0 ? argv[jsonIndex + 1] : null;
 
-if (!remote || environment !== "staging") {
+if (
+  !remote ||
+  !["staging", "production"].includes(String(environment))
+) {
   throw new Error(
-    "Phase 1 parity verifier is staging-only. Run with --remote --env staging.",
+    "Product Core parity verifier requires --remote --env staging|production.",
   );
 }
+
+const wranglerDatabaseArgs =
+  environment === "staging"
+    ? ["DB", "--remote", "--env", "staging"]
+    : ["black-sheep-commerce-prod", "--remote"];
 
 function query(command) {
   const executable = process.platform === "win32" ? "npx.cmd" : "npx";
@@ -35,10 +43,7 @@ function query(command) {
       "wrangler",
       "d1",
       "execute",
-      "DB",
-      "--remote",
-      "--env",
-      "staging",
+      ...wranglerDatabaseArgs,
       "--command",
       command,
       "--json",
@@ -309,7 +314,7 @@ const missingImage = items.filter((item) => mediaEntries(item).length === 0).len
 
 const report = {
   ok: mismatches.length === 0,
-  environment: "staging",
+  environment,
   sourceBlob: blob,
   products: productRows.length,
   categories: categoryCount,
@@ -325,10 +330,10 @@ const report = {
   mismatches,
 };
 
-const markdown = `# Black Sheep — Staging Product Core Parity Report
+const markdown = `# Black Sheep — ${environment === "production" ? "Production" : "Staging"} Product Core Parity Report
 
 **Source catalogue blob:** ${EXPECTED_CATALOG_BLOB}  
-**Environment:** staging  
+**Environment:** ${environment}  
 **Result:** ${report.ok ? "PASS" : "FAIL"}
 
 | Check | Result |
