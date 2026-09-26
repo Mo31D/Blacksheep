@@ -12,6 +12,13 @@ on:
       - "commerce/scripts/phase6-publication-collections.mjs"
       - "commerce/scripts/phase6-publication-verify.mjs"
       - "commerce/scripts/phase6-publication-package.mjs"
+      - "commerce/scripts/phase6-production-activate.mjs"
+      - "commerce/scripts/product-core-import.mjs"
+      - "commerce/scripts/product-core-parity.mjs"
+      - "commerce/scripts/test-product-core-production-guards.mjs"
+      - "commerce/fixtures/product-core-baseline.catalog.js"
+      - "commerce/package.json"
+      - "assets/site.js"
       - "commerce/wrangler.jsonc"
 
 permissions:
@@ -54,11 +61,15 @@ jobs:
           const config = JSON.parse(fs.readFileSync("wrangler.jsonc", "utf8"));
           const vars = config.vars || {};
           const r2 = config.r2_buckets || [];
+          const site = fs.readFileSync("../assets/site.js", "utf8");
           const failures = [];
           if (vars.D1_PUBLIC_CATALOG_ENABLED === "true") failures.push("D1_PUBLIC_CATALOG_ENABLED");
           if (vars.D1_COMMERCE_AUTHORITY_ENABLED === "true") failures.push("D1_COMMERCE_AUTHORITY_ENABLED");
           if (vars.ORDER_RESERVATIONS_ENABLED === "true") failures.push("ORDER_RESERVATIONS_ENABLED");
           if (r2.some((binding) => binding.binding === "PRODUCT_MEDIA")) failures.push("PRODUCT_MEDIA");
+          if (!site.includes("const BLACK_SHEEP_PRODUCTION_LIVE_COMMERCE=false;")) {
+            failures.push("BLACK_SHEEP_PRODUCTION_LIVE_COMMERCE");
+          }
           if (failures.length) {
             console.error("Production source config is no longer pre-cutover.", failures);
             process.exit(1);
@@ -129,7 +140,33 @@ jobs:
           cat /tmp/phase6-cutover/export-report.json
           cat /tmp/phase6-cutover/package-plan.json
 
-      - name: Dry-run current Production Worker source
+      - name: Simulate exact post-cutover source locally
+        shell: bash
+        run: |
+          PACKAGE_SHA="$(node -e "const r=require('/tmp/phase6-cutover/package-plan.json');process.stdout.write(r.packageSha256)")"
+          node scripts/phase6-production-activate.mjs             --package-dir /tmp/phase6-cutover/site             --package-sha "$PACKAGE_SHA"             --r2-bucket black-sheep-product-media-prod             --report-out /tmp/phase6-cutover/activation-report.json
+          cat /tmp/phase6-cutover/activation-report.json
+          node - /tmp/phase6-cutover/activation-report.json <<'NODE'
+          const fs = require("fs");
+          const report = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          if (
+            report.ok !== true ||
+            report.dryRun !== false ||
+            report.publicationFiles !== 162 ||
+            report.productionLiveCommerce !== true ||
+            report.productionFlags?.D1_PUBLIC_CATALOG_ENABLED !== "true" ||
+            report.productionFlags?.D1_COMMERCE_AUTHORITY_ENABLED !== "true" ||
+            report.productionFlags?.ORDER_RESERVATIONS_ENABLED !== "true"
+          ) {
+            console.error("Post-cutover source simulation failed.", report);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Validate simulated post-cutover source
+        run: npm run check
+
+      - name: Dry-run simulated post-cutover Production Worker
         run: npx wrangler deploy --dry-run --outdir /tmp/phase6-production-worker-dry-run
 
       - name: Capture Production after-state and prove read-only execution
@@ -214,6 +251,7 @@ jobs:
             /tmp/phase6-staging-truth.json
             /tmp/phase6-cutover/export-report.json
             /tmp/phase6-cutover/package-plan.json
+            /tmp/phase6-cutover/activation-report.json
           retention-days: 14
 
       - name: Safety statement
