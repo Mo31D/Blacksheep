@@ -72,9 +72,9 @@ describe("Phase 4 Inventory Core Admin", () => {
     const html = adminHtml("owner@example.com");
     expect(html).toContain('data-nav="stock"');
     expect(html).toContain('id="view-stock"');
-    expect(html).toContain("Phase 4 · Staging");
+    expect(html).toContain("Count, adjust and review stock for the shop.");
     expect(html).toContain('id="startBulkCount"');
-    expect(html).toContain("Start Initial Count");
+    expect(html).toContain("Start stock tracking");
     expect(html).toContain("Adjust stock");
     expect(html).toContain("Physical count");
     expect(html).toContain("Low-stock threshold");
