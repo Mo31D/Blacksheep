@@ -1,5 +1,6 @@
 import type { D1DatabaseLike, D1PreparedStatementLike } from "./d1";
 import { getInventorySnapshot } from "./inventory";
+import { getProductVersionStorefrontPlacements } from "./storefront-structure";
 
 export interface AdminProductListFilters {
   q?: string;
@@ -437,11 +438,11 @@ export async function getAdminProductDetail(
 
   if (!core) return null;
 
-  const [categories, media, attributes, sources, history, inventory] = await Promise.all([
+  const [categories, media, attributes, sources, history, inventory, storefrontPlacements] = await Promise.all([
     allRows<Record<string, unknown>>(
       db
         .prepare(`
-          SELECT c.id, c.slug, c.name, pvc.is_primary AS isPrimary, pvc.position
+          SELECT c.id, c.slug, c.name, c.category_type AS categoryType, pvc.is_primary AS isPrimary, pvc.position
           FROM product_version_categories pvc
           JOIN categories c ON c.id = pvc.category_id
           WHERE pvc.product_version_id = ?
@@ -503,6 +504,10 @@ export async function getAdminProductDetail(
         .bind(productId),
     ),
     getInventorySnapshot(db, String(core.variantId), "loc_ambleside"),
+    getProductVersionStorefrontPlacements(
+      db,
+      String(core.effectiveVersionId),
+    ),
   ]);
 
   const priceMinor =
@@ -539,6 +544,7 @@ export async function getAdminProductDetail(
       ...row,
       isPrimary: Number(row.isPrimary) === 1,
     })),
+    storefrontPlacements,
     media: media.map((row) => ({
       ...row,
       isPrimary: Number(row.isPrimary) === 1,
