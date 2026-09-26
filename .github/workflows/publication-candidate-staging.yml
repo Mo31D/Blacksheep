@@ -1,0 +1,112 @@
+name: Phase 6 Publication Candidate Staging
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "commerce/scripts/phase6-publication-candidate.mjs"
+      - ".github/workflows/publication-candidate-staging.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publication-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: commerce
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: commerce/package.json
+
+      - name: Install commerce dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Require Cloudflare staging credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Confirm staging schema and production isolation
+        shell: bash
+        run: |
+          npx wrangler d1 execute black-sheep-commerce-staging             --remote --env staging --json             --command "SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT COUNT(*) AS active FROM products WHERE publication_status='ACTIVE' AND current_published_version_id IS NOT NULL;"             > /tmp/publication-staging-baseline.json
+          cat /tmp/publication-staging-baseline.json
+          node - /tmp/publication-staging-baseline.json <<'NODE'
+          const fs = require("fs");
+          const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const latest = String(blocks?.[0]?.results?.[0]?.name ?? "");
+          const active = Number(blocks?.[1]?.results?.[0]?.active ?? -1);
+          if (latest !== "0012_order_returns.sql" || active !== 146) {
+            console.error("Unexpected staging publication baseline.", { latest, active });
+            process.exit(1);
+          }
+          NODE
+
+          npx wrangler d1 execute black-sheep-commerce-prod             --remote --json             --command "SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT COUNT(*) AS forbidden_tables FROM sqlite_master WHERE type='table' AND name IN ('products','product_variants','inventory_balances','inventory_reservations');"             > /tmp/publication-production-safety.json
+          cat /tmp/publication-production-safety.json
+          node - /tmp/publication-production-safety.json <<'NODE'
+          const fs = require("fs");
+          const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const latest = String(blocks?.[0]?.results?.[0]?.name ?? "");
+          const forbidden = Number(blocks?.[1]?.results?.[0]?.forbidden_tables ?? -1);
+          if (latest !== "0008_concurrency_guards.sql" || forbidden !== 0) {
+            console.error("Production isolation gate failed.", { latest, forbidden });
+            process.exit(1);
+          }
+          NODE
+
+      - name: Export D1-only publication candidate and require baseline parity
+        shell: bash
+        run: |
+          mkdir -p publication-candidate-artifacts
+          node scripts/phase6-publication-candidate.mjs             --remote --env staging             --candidate-out publication-candidate-artifacts/catalog.candidate.js             --report-out publication-candidate-artifacts/report.json             --require-baseline-parity
+
+      - name: Summarize publication candidate
+        shell: bash
+        run: |
+          cat publication-candidate-artifacts/report.json
+          node - publication-candidate-artifacts/report.json <<'NODE'
+          const fs = require("fs");
+          const report = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          if (
+            report.ok !== true ||
+            report.activePublishedProducts !== 146 ||
+            report.candidateProducts !== 146 ||
+            report.semanticMismatchCount !== 0 ||
+            report.archivedOrMissing.length !== 0
+          ) {
+            console.error("Publication candidate gate failed.", report);
+            process.exit(1);
+          }
+          console.log("Phase 6.6 D1-only publication candidate baseline passed.");
+          NODE
+
+      - name: Upload publication candidate artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase6-publication-candidate-staging
+          path: commerce/publication-candidate-artifacts
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Production safety statement
+        if: always()
+        run: |
+          echo "This workflow performs read-only D1 queries."
+          echo "Candidate files are CI artifacts only and do not overwrite storefront files."
+          echo "No production D1 migration, Worker deploy, storefront write or order mutation is performed."
