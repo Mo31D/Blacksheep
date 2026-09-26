@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Shop Collection | The Black Sheep Shop Ambleside</title>
+  <meta name="description" content="Browse a published collection from The Black Sheep Shop in Ambleside.">
+  <meta name="robots" content="noindex,follow">
+  <meta name="theme-color" content="#151512">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Shop Collection | The Black Sheep Shop Ambleside">
+  <meta property="og:description" content="Browse a published collection from The Black Sheep Shop in Ambleside.">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="assets/sheep-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body class="catalog-body" id="dynamicCollectionPage">
+  <div class="topbar"><div class="wrap"><span>Independent gift &amp; souvenir shop in Ambleside, Lake District</span><span class="right"><a href="visit.html">Find us in Ambleside</a></span></div></div>
+  <header class="header">
+    <div class="wrap nav">
+      <a aria-label="The Black Sheep Shop home" class="brand" href="index.html"><img alt="" class="brand-mark" src="assets/sheep-icon.png"><span class="brand-type"><strong>The Black Sheep</strong><small>Shop · Ambleside</small></span></a>
+      <nav class="menu"><a href="index.html">Home</a><a href="gifts.html">Gifts &amp; Souvenirs</a><a href="icecream.html">Ice Cream</a><a href="romneys.html">Romney's</a><a href="hawkshead-relish.html">Hawkshead Relish</a><a href="all-products.html">Full range</a><a href="about.html">About</a><a href="visit.html">Visit</a></nav>
+      <a class="nav-cta" href="gifts.html">Browse gifts</a>
+      <button aria-label="Open menu" class="hamb" onclick="toggleMenu()">☰</button>
+    </div>
+    <nav class="mobile-menu" id="mobileMenu"><a href="index.html">Home</a><a href="gifts.html">Gifts &amp; Souvenirs</a><a href="icecream.html">Ice Cream</a><a href="romneys.html">Romney's</a><a href="hawkshead-relish.html">Hawkshead Relish</a><a href="all-products.html">Full range</a><a href="about.html">About</a><a href="visit.html">Visit</a></nav>
+  </header>
+
+  <main class="catalog-page">
+    <section class="page-hero">
+      <div class="wrap inner">
+        <div>
+          <div class="eyebrow" id="dynamicCollectionEyebrow">Shop collection</div>
+          <h1 id="dynamicCollectionTitle">Loading collection…</h1>
+          <p class="lead" id="dynamicCollectionSummary">Loading the published shop structure.</p>
+          <div class="chips" id="dynamicCollectionChildren" hidden></div>
+        </div>
+        <div class="media" id="dynamicCollectionMedia" hidden></div>
+      </div>
+    </section>
+    <section style="padding-top:20px">
+      <div class="wrap">
+        <div class="catalog-intro">
+          <div class="catalog-title-row"><h2>Products</h2><span class="catalog-count" id="giftCount">0 products</span></div>
+          <p class="catalog-summary" id="dynamicCollectionStatus">Loading products…</p>
+        </div>
+        <div class="catalog-controls has-search"><div class="search"><input aria-label="Search this collection" id="search" placeholder="Search this collection…"></div></div>
+        <div class="catalog shopping-catalog gift-grid" id="catalog"></div>
+      </div>
+    </section>
+  </main>
+
+  <div aria-hidden="true" class="brand-strip brand-strip-featured"></div>
+  <footer><div class="wrap"><div class="footer-grid"><div class="footer-brand"><a aria-label="The Black Sheep Shop home" class="footer-wordmark" href="index.html"><img alt="" class="footer-mark" src="assets/sheep-icon.png"><span><strong>The Black Sheep</strong><small>Shop · Ambleside</small></span></a><p>Independent gift &amp; souvenir shop in Ambleside, Lake District.</p></div><div class="footer-col"><h4>Shop</h4><a href="all-products.html">Full range</a><a href="gifts.html">Gifts &amp; Souvenirs</a><a href="romneys.html">Romney's</a></div><div class="footer-col"><h4>Find us</h4><a href="visit.html">2 Lancaster House<br>Lake Road, Ambleside<br>LA22 0AD</a><a href="tel:+447776185647">07776 185647</a></div></div><div class="copyright">© 2026 The Black Sheep Shop. All rights reserved.</div></div></footer>
+
+  <script src="assets/catalog.js"></script>
+  <script src="assets/site.js"></script>
+</body>
+</html>
