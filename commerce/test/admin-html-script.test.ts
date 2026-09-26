@@ -83,8 +83,11 @@ describe("generated Admin HTML scripts", () => {
     const html = adminLoginHtml();
     compileInlineScripts(html);
     expect(html).toContain(
-      "history.replaceState(null,'','/admin'+location.search+'#orders')",
+      "location.hostname==='admin.theblacksheepshop.co.uk'?'/':'/admin'+location.search+'#orders'",
     );
+    expect(html).toContain('id="usePassword"');
+    expect(html).toContain("Sign in with password");
+    expect(html).toContain("post('/admin/auth/password',{password:password})");
     expect(html).toContain("location.reload()");
     expect(html).not.toContain(
       "location.href='/admin'+location.search+'#orders'",
