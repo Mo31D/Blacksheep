@@ -80,6 +80,26 @@ jobs:
           assert(product.priceMinor === 1, "Test product price is not £0.01");
           assert(product.primaryImageUrl, "Test product primary image is missing");
 
+          const productionMediaUrl = new URL(product.primaryImageUrl, API + "/").href;
+          const mediaResponse = await fetch(productionMediaUrl, { redirect: "manual" });
+          console.log(JSON.stringify({
+            productionProduct: {
+              id: product.productId,
+              slug: product.slug,
+              type: product.type,
+              priceMinor: product.priceMinor,
+              primaryImageUrl: product.primaryImageUrl,
+              resolvedMediaUrl: productionMediaUrl,
+            },
+            mediaProbe: {
+              status: mediaResponse.status,
+              contentType: mediaResponse.headers.get("content-type"),
+              location: mediaResponse.headers.get("location"),
+              contentLength: mediaResponse.headers.get("content-length"),
+            }
+          }, null, 2));
+          assert(mediaResponse.ok, "Production product media failed: " + mediaResponse.status);
+
           const browser = await chromium.launch();
           const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
           const page = await context.newPage();
@@ -115,9 +135,16 @@ jobs:
             );
             const cardImage = card.locator("img");
             await cardImage.waitFor({ state: "visible", timeout: 10_000 });
+            const cardImageState = await cardImage.evaluate((img) => ({
+              src: img.currentSrc || img.src,
+              complete: img.complete,
+              naturalWidth: img.naturalWidth,
+              naturalHeight: img.naturalHeight,
+            }));
+            console.log("CARD_IMAGE_STATE", JSON.stringify(cardImageState));
             assert(
-              await cardImage.evaluate((img) => img.complete && img.naturalWidth > 0),
-              "Test card image failed to load",
+              cardImageState.complete && cardImageState.naturalWidth > 0,
+              "Test card image failed to load: " + JSON.stringify(cardImageState),
             );
 
             await card.locator(".product-title").click();
