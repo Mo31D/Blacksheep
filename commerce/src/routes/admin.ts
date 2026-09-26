@@ -57,6 +57,7 @@ import {
   createAdminProduct,
   duplicateAdminProduct,
   listAdminCategories,
+  moveAdminCategory,
   publishAdminProduct,
   restoreAdminCategory,
   quickEditAdminProduct,
@@ -120,6 +121,7 @@ interface AdminDependencies {
   updateAdminCategoryFn: typeof updateAdminCategory;
   archiveAdminCategoryFn: typeof archiveAdminCategory;
   restoreAdminCategoryFn: typeof restoreAdminCategory;
+  moveAdminCategoryFn: typeof moveAdminCategory;
   createAdminProductFn: typeof createAdminProduct;
   duplicateAdminProductFn: typeof duplicateAdminProduct;
   archiveAdminProductFn: typeof archiveAdminProduct;
@@ -167,6 +169,7 @@ const defaults: AdminDependencies = {
   updateAdminCategoryFn: updateAdminCategory,
   archiveAdminCategoryFn: archiveAdminCategory,
   restoreAdminCategoryFn: restoreAdminCategory,
+  moveAdminCategoryFn: moveAdminCategory,
   createAdminProductFn: createAdminProduct,
   duplicateAdminProductFn: duplicateAdminProduct,
   archiveAdminProductFn: archiveAdminProduct,
@@ -211,6 +214,8 @@ function categoryMutationError(cause: unknown): Response {
     category_name_conflict: "A category with that name already exists.",
     category_type_invalid: "Choose a valid category group.",
     category_sort_order_invalid: "Category order is invalid.",
+    category_move_invalid: "Category move is invalid.",
+    category_archived: "Restore this category before changing its order.",
     category_slug_unavailable: "A unique category address could not be created.",
     category_not_found: "Category not found.",
     category_in_use: "This category is still used by products. Remove or replace it on those products before archiving it.",
@@ -764,6 +769,21 @@ export async function handleAdminRequest(
       return json({
         category: categories.find((category) => category.id === categoryId) ?? null,
       });
+    } catch (cause) {
+      return categoryMutationError(cause);
+    }
+  }
+
+  const categoryMoveMatch = url.pathname.match(
+    /^\/admin\/api\/categories\/([^/]+)\/move$/,
+  );
+  if (categoryMoveMatch && request.method === "POST") {
+    const categoryId = decodeURIComponent(categoryMoveMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      const direction = String(raw.direction ?? "").toUpperCase() as "UP" | "DOWN";
+      await deps.moveAdminCategoryFn(env.DB, categoryId, direction);
+      return json({ ok: true });
     } catch (cause) {
       return categoryMutationError(cause);
     }
