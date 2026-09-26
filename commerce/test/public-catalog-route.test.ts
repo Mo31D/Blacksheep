@@ -60,14 +60,29 @@ const publicRow = {
   primaryImageUrl: "/images/highland-cow.webp",
 };
 
+const storefrontRow = {
+  id: "sfn_gifts",
+  stableKey: "gifts",
+  name: "Gifts & Souvenirs",
+  slug: "gifts",
+  parentNodeId: null,
+  sortOrder: 10,
+  showInNavigation: 1,
+  shortDescription: "Gift range",
+  imageUrl: "/images/1.png",
+  legacyPath: "/gifts.html",
+  publishedVersionId: "sfv_gifts_1",
+};
+
 class Db implements D1DatabaseLike {
   readonly prepared: Statement[] = [];
 
   prepare(query: string): Statement {
+    const isStorefront = query.includes("FROM storefront_nodes n");
     const statement = new Statement(
       query,
-      publicRow,
-      [publicRow],
+      isStorefront ? null : publicRow,
+      isStorefront ? [storefrontRow] : [publicRow],
     );
     this.prepared.push(statement);
     return statement;
@@ -160,6 +175,41 @@ describe("Phase 6 public catalogue route", () => {
       "HC-001",
       "HC-001",
     ]);
+  });
+
+  it("returns the published Storefront Structure contract", async () => {
+    const db = new Db();
+    const response = await handlePublicCatalogRequest(
+      new Request("https://api.example.test/v1/storefront-structure"),
+      {
+        DB: db,
+        D1_PUBLIC_CATALOG_ENABLED: "true",
+      },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      contract: "storefront-structure-published-v1",
+      nodes: [
+        {
+          id: "sfn_gifts",
+          stableKey: "gifts",
+          name: "Gifts & Souvenirs",
+          slug: "gifts",
+          parentNodeId: null,
+          sortOrder: 10,
+          showInNavigation: true,
+          legacyPath: "/gifts.html",
+          publishedVersionId: "sfv_gifts_1",
+        },
+      ],
+    });
+    expect(db.prepared[0].sql).toContain(
+      "JOIN storefront_node_versions nv ON nv.id = n.current_published_version_id",
+    );
+    expect(db.prepared[0].sql).toContain(
+      "WHERE n.publication_status = 'ACTIVE'",
+    );
   });
 
   it("rejects non-GET requests without querying D1", async () => {
