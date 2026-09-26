@@ -1645,7 +1645,7 @@ export async function listAdminCategories(
         "c.active, c.sort_order AS sortOrder, " +
         "(SELECT COUNT(DISTINCT p.id) " +
         " FROM products p " +
-        " JOIN product_version_categories pvc ON pvc.product_version_id = COALESCE(p.current_draft_version_id, p.current_published_version_id) " +
+        " JOIN product_version_categories pvc ON (pvc.product_version_id = p.current_published_version_id OR pvc.product_version_id = p.current_draft_version_id) " +
         " WHERE pvc.category_id = c.id AND p.publication_status <> 'ARCHIVED') AS productCount " +
         "FROM categories c " +
         where +
@@ -1801,7 +1801,7 @@ export async function archiveAdminCategory(
 ): Promise<void> {
   const current = await db
     .prepare(
-      "SELECT id, active, (SELECT COUNT(DISTINCT p.id) FROM products p JOIN product_version_categories pvc ON pvc.product_version_id = COALESCE(p.current_draft_version_id, p.current_published_version_id) WHERE pvc.category_id = categories.id AND p.publication_status <> 'ARCHIVED') AS productCount FROM categories WHERE id = ? LIMIT 1",
+      "SELECT id, active, (SELECT COUNT(DISTINCT p.id) FROM products p JOIN product_version_categories pvc ON (pvc.product_version_id = p.current_published_version_id OR pvc.product_version_id = p.current_draft_version_id) WHERE pvc.category_id = categories.id AND p.publication_status <> 'ARCHIVED') AS productCount FROM categories WHERE id = ? LIMIT 1",
     )
     .bind(categoryId)
     .first<Record<string, unknown>>();
