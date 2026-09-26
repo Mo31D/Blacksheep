@@ -27,7 +27,9 @@
     "product-core:parity:staging": "node scripts/product-core-parity.mjs --remote --env staging",
     "inventory-core:test": "node scripts/test-inventory-core.mjs",
     "order-reservations:test": "node scripts/test-order-reservations.mjs",
-    "phase6:catalog-parity": "node scripts/phase6-catalog-parity.mjs"
+    "phase6:catalog-parity": "node scripts/phase6-catalog-parity.mjs",
+    "product-core:import:production": "node scripts/product-core-import.mjs --remote --env production --confirmation IMPORT-PRODUCTION-PRODUCTS",
+    "product-core:parity:production": "node scripts/product-core-parity.mjs --remote --env production"
   },
   "devDependencies": {
     "typescript": "^5.9.0",
