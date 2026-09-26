@@ -222,6 +222,12 @@ jobs:
             --compare-to .. \
             --check
 
+      - name: Install ephemeral browser audit dependency
+        run: npm install --no-save --package-lock=false playwright@1.55.0
+
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+
       - name: Admin Add Publish Archive publication E2E
         run: node scripts/staging-publication-admin-e2e.mjs
 
@@ -233,12 +239,6 @@ jobs:
 
       - name: Resend webhook staging E2E
         run: node scripts/staging-webhook-event-e2e.mjs
-
-      - name: Install ephemeral browser audit dependency
-        run: npm install --no-save --package-lock=false playwright@1.55.0
-
-      - name: Install Chromium and WebKit
-        run: npx playwright install --with-deps chromium webkit
 
       - name: Shopping basket and checkout browser E2E
         run: node scripts/staging-checkout-browser-e2e.mjs
