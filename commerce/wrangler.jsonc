@@ -21,7 +21,7 @@
     "TURNSTILE_ALLOWED_HOSTNAMES": "theblacksheepshop.co.uk,www.theblacksheepshop.co.uk",
     "TURNSTILE_EXPECTED_ACTION": "order_request",
     "ORDER_EMAIL_FROM": "orders@theblacksheepshop.co.uk",
-    "ADMIN_BASE_URL": "https://api.theblacksheepshop.co.uk/admin",
+    "ADMIN_BASE_URL": "https://admin.theblacksheepshop.co.uk",
     "ORDER_RESERVATIONS_ENABLED": "true",
     "D1_PUBLIC_CATALOG_ENABLED": "true"
   },
