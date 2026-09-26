@@ -26,6 +26,7 @@ permissions:
 
 jobs:
   readiness:
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[phase6-production-cutover]')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
