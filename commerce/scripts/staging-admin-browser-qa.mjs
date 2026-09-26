@@ -336,6 +336,14 @@ async function addAdminCookie(context) {
 
 async function waitForOrderList(page, label) {
   const apiResponses = [];
+  const pageErrors = [];
+  const consoleErrors = [];
+  page.on("pageerror", (error) => {
+    pageErrors.push(String(error?.stack || error?.message || error));
+  });
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
   page.on("response", (response) => {
     if (response.url().includes("/admin/api/orders")) {
       apiResponses.push({
@@ -349,6 +357,12 @@ async function waitForOrderList(page, label) {
     waitUntil: "domcontentloaded",
     timeout: 60_000,
   });
+  await page.waitForTimeout(600);
+  if (pageErrors.length) {
+    throw new Error(
+      label + " Admin runtime error: " + pageErrors.join(" | "),
+    );
+  }
 
   await page.waitForSelector("#orders", { timeout: 20_000 });
   await page.waitForSelector('[data-order-class="TEST"]', { timeout: 20_000 });
@@ -367,7 +381,7 @@ async function waitForOrderList(page, label) {
 
     console.error(
       "ADMIN UI ORDER LIST DIAGNOSTIC:",
-      JSON.stringify({ label, apiResponses, diagnostic }),
+      JSON.stringify({ label, apiResponses, pageErrors, consoleErrors, diagnostic }),
     );
 
     await page.screenshot({
