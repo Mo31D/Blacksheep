@@ -1,5 +1,6 @@
 import type { D1DatabaseLike } from "./d1";
 import {
+  getPublicCommerceProduct,
   getPublicCommerceProductsByIds,
   type PublicCommerceProduct,
 } from "./public-catalog";
@@ -8,7 +9,7 @@ import type {
   RequestedCartLine,
 } from "../domain/pricing";
 
-function purchasabilityError(
+export function purchasabilityError(
   product: PublicCommerceProduct,
 ): string {
   switch (product.nonPurchasableReason) {
@@ -21,6 +22,24 @@ function purchasabilityError(
     default:
       return "catalog_product_not_purchasable";
   }
+}
+
+export async function requirePurchasableCommerceProductFromD1(
+  db: D1DatabaseLike,
+  productId: string,
+): Promise<PublicCommerceProduct> {
+  const id = String(productId ?? "").trim();
+  if (!id) throw new Error("catalog_product_not_found");
+
+  const product = await getPublicCommerceProduct(db, id);
+  if (!product) throw new Error("catalog_product_not_found");
+  if (!product.purchasable) {
+    throw new Error(purchasabilityError(product));
+  }
+  if (product.priceMinor === null) {
+    throw new Error("price_unavailable");
+  }
+  return product;
 }
 
 export async function priceRequestedCartFromD1(
