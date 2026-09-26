@@ -193,12 +193,27 @@ assert.match(source,/commerce-preview/);
 assert.match(source,/black-sheep-commerce-api-staging/);
 assert.match(source,/config\.liveCatalog===true/);
 assert.match(source,/previewBlocked=window\.BLACK_SHEEP_LIVE_COMMERCE\?\.preview===true/);
-assert.match(liveCommerceSource,/\/v1\/catalog\?limit=200/);
+assert.match(liveCommerceSource,/\/v1\/catalog/);
+assert.match(liveCommerceSource,/\?limit=200/);
+assert.match(liveCommerceSource,/catalog_pagination_guard/);
 assert.match(liveCommerceSource,/cache:'no-store'/);
 assert.match(liveCommerceSource,/commercePurchasable/);
 assert.match(liveCommerceSource,/commerceAvailable/);
+assert.match(liveCommerceSource,/commerceDynamic:true/);
+assert.match(liveCommerceSource,/syncDynamicCatalogCards/);
+assert.match(liveCommerceSource,/mediaUrl\(product\.primaryImageUrl\)/);
+assert.match(source,/product\.html\?type=/);
+assert.match(source,/function syncDynamicCatalogCards/);
+assert.match(source,/function productImageSrc/);
 assert.match(liveCommerceSource,/dataset\.commerceLive='fallback'/);
 assert.match(liveCommerceSource,/Order submission is disabled in preview mode/);
 assert.doesNotMatch(liveCommerceSource,/rel=["']canonical|history\.replaceState|location\.pathname\s*=/);
+
+const dynamicProductPath=path.join(repoRoot,"product.html");
+const dynamicProductHtml=fs.readFileSync(dynamicProductPath,"utf8");
+assert.match(dynamicProductHtml,/id="detail"/);
+assert.match(dynamicProductHtml,/black-sheep:commerce-live-ready/);
+assert.match(dynamicProductHtml,/renderDetail\(\)/);
+assert.match(dynamicProductHtml,/commerceDynamic/);
 console.log("Phase 6 live commerce overlay contract checks passed.");
 
