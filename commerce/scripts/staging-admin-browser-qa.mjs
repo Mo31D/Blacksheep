@@ -15,6 +15,9 @@ const ARTIFACT_DIR = path.resolve("admin-browser-qa-artifacts");
 const CATEGORY_NAME = "QA Category " + RUN_ID;
 const CATEGORY_RENAMED = "QA Seasonal " + RUN_ID;
 const CATEGORY_SLUG = "qa-category-" + RUN_ID;
+const STRUCTURE_ROOT_NAME = "QA Website Section " + RUN_ID;
+const STRUCTURE_CHILD_A = "QA Sub-section A " + RUN_ID;
+const STRUCTURE_CHILD_B = "QA Sub-section B " + RUN_ID;
 
 let sessionToken = "";
 let sessionHash = "";
@@ -92,6 +95,27 @@ function cleanupCategorySql() {
     "DELETE FROM product_version_categories WHERE category_id IN (SELECT id FROM categories WHERE slug=" + slug + ")",
     "DELETE FROM categories WHERE slug=" + slug,
   ].join(";");
+}
+
+function cleanupStorefrontStructureQa() {
+  const names = [STRUCTURE_ROOT_NAME, STRUCTURE_CHILD_A, STRUCTURE_CHILD_B];
+  const inList = names.map(q).join(",");
+  const rows = d1(
+    "SELECT DISTINCT node_id AS id FROM storefront_node_versions WHERE name IN (" +
+      inList +
+      ")",
+  );
+  const ids = rows.map((row) => String(row.id || "")).filter(Boolean);
+  if (!ids.length) return;
+  const idList = ids.map(q).join(",");
+  d1(
+    [
+      "DELETE FROM storefront_audit_events WHERE node_id IN (" + idList + ")",
+      "DELETE FROM product_version_storefront_placements WHERE storefront_node_id IN (" + idList + ")",
+      "DELETE FROM storefront_node_versions WHERE node_id IN (" + idList + ")",
+      "DELETE FROM storefront_nodes WHERE id IN (" + idList + ")",
+    ].join(";"),
+  );
 }
 
 function findOwnerEmail() {
@@ -625,169 +649,180 @@ async function ownerPolishViewsQa(viewport, label) {
     }
     await page.locator("[data-close-product-sheet]:visible").first().click();
 
-    if (label === "iPhone WebKit") {
-      await page.locator("#manageCategories").click();
-      await page.waitForSelector("#newCategoryName", { timeout: 10_000 });
-      await assertNoHorizontalOverflow(page, label + " Category Manager");
+    if (label === "iPhone WebKit" || label === "iPad portrait WebKit") {
+      await openView("catalogue");
+      await page.waitForFunction(
+        () => document.querySelectorAll("#storefrontStructureTree .structure-card").length >= 4,
+        null,
+        { timeout: 20_000 },
+      );
+      const catalogueText = await page.locator("#view-catalogue").innerText();
+      for (const expected of [
+        "Website structure",
+        "Brands & ranges",
+        "Gifts & Souvenirs",
+        "Ice Cream",
+        "Romney's",
+        "Hawkshead Relish",
+      ]) {
+        assert(
+          catalogueText.includes(expected),
+          label + " Catalogue is missing: " + expected,
+        );
+      }
+      for (const forbidden of [
+        "PRODUCT_CATEGORY",
+        "COLLECTION_THEME",
+        "BRAND_RANGE",
+      ]) {
+        assert(
+          !catalogueText.includes(forbidden),
+          label + " Catalogue exposes technical enum: " + forbidden,
+        );
+      }
+      await assertNoHorizontalOverflow(page, label + " Catalogue structure");
 
-      await page.locator("#newCategoryName").fill(CATEGORY_NAME);
-      await page.locator("#newCategoryType").selectOption("COLLECTION_THEME");
+      await page.locator('[data-catalogue-tab="brands"]').click();
+      await page.waitForSelector("#catalogueBrandsPanel:not(.hidden)", {
+        timeout: 10_000,
+      });
+      assert(
+        (await page.locator("#catalogueBrandsPanel").innerText()).includes(
+          "Brands & ranges",
+        ),
+        label + " Brands & ranges panel did not open.",
+      );
+      await assertNoHorizontalOverflow(page, label + " Brands & ranges");
+      await page.locator('[data-catalogue-tab="structure"]').click();
+    }
+
+    if (label === "iPhone WebKit") {
+      cleanupStorefrontStructureQa();
+
+      await page.locator("#addStorefrontSection").click();
+      await page.waitForSelector("#structureName", { timeout: 10_000 });
+      await page.locator("#structureName").fill(STRUCTURE_ROOT_NAME);
       await Promise.all([
         page.waitForResponse(
           (response) =>
-            response.url().includes("/admin/api/categories") &&
+            response.url().endsWith("/admin/api/storefront-structure") &&
             response.request().method() === "POST" &&
             response.status() === 201,
           { timeout: 20_000 },
         ),
-        page.locator("#createCategory").click(),
+        page.locator("#saveStructureNode").click(),
       ]);
 
-      const categoryId = await page.waitForFunction(
-        (name) => {
-          const input = Array.from(
-            document.querySelectorAll("input[data-category-name]"),
-          ).find((element) => element.value === name);
-          return input?.getAttribute("data-category-name") || "";
-        },
-        CATEGORY_NAME,
-        { timeout: 20_000 },
-      ).then((handle) => handle.jsonValue());
+      const rootCard = page
+        .locator("#storefrontStructureTree .structure-card")
+        .filter({ hasText: STRUCTURE_ROOT_NAME });
+      await rootCard.waitFor({ state: "visible", timeout: 20_000 });
+      const rootId = await rootCard
+        .locator("[data-structure-add-child]")
+        .getAttribute("data-structure-add-child");
+      assert(rootId, "New main Website section did not expose its node id.");
 
-      assert(categoryId, "Category Manager did not render the new category.");
-      let categoryRow = page.locator(
-        '[data-category-row="' + categoryId + '"]',
-      );
-      await categoryRow.waitFor({ state: "visible", timeout: 10_000 });
-      assert(
-        (await categoryRow.innerText()).includes("0 products"),
-        "New category did not report zero product usage.",
-      );
-      assert(
-        (await categoryRow.locator("[data-category-type-select]").inputValue()) ===
-          "COLLECTION_THEME",
-        "New category group was not persisted.",
-      );
-
-      await categoryRow.locator("[data-category-name]").fill(CATEGORY_RENAMED);
-      await categoryRow
-        .locator("[data-category-type-select]")
-        .selectOption("PRODUCT_CATEGORY");
-      await Promise.all([
-        page.waitForResponse(
-          (response) =>
-            response.url().includes("/admin/api/categories/") &&
-            response.request().method() === "PATCH" &&
-            response.status() === 200,
-          { timeout: 20_000 },
-        ),
-        categoryRow.locator("[data-category-save]").click(),
-      ]);
-
-      await page.waitForFunction(
-        ({ id, name }) => {
-          const row = document.querySelector(
-            '[data-category-row="' + id + '"]',
-          );
-          const input = row?.querySelector("[data-category-name]");
-          const select = row?.querySelector("[data-category-type-select]");
-          return (
-            input?.value === name &&
-            select?.value === "PRODUCT_CATEGORY"
-          );
-        },
-        { id: categoryId, name: CATEGORY_RENAMED },
-        { timeout: 20_000 },
-      );
-
-      categoryRow = page.locator(
-        '[data-category-row="' + categoryId + '"]',
-      );
-      const moveUp = categoryRow.locator('[data-category-move="UP"]');
-      if (await moveUp.isEnabled()) {
+      async function addChild(name) {
+        const freshRoot = page
+          .locator("#storefrontStructureTree .structure-card")
+          .filter({ hasText: STRUCTURE_ROOT_NAME });
+        await freshRoot.locator("[data-structure-add-child]").click();
+        await page.waitForSelector("#structureName", { timeout: 10_000 });
+        await page.locator("#structureName").fill(name);
         await Promise.all([
           page.waitForResponse(
             (response) =>
-              response.url().includes("/move") &&
+              response.url().endsWith("/admin/api/storefront-structure") &&
               response.request().method() === "POST" &&
-              response.status() === 200,
+              response.status() === 201,
             { timeout: 20_000 },
           ),
-          moveUp.click(),
+          page.locator("#saveStructureNode").click(),
         ]);
+        await page.waitForFunction(
+          ({ rootName, childName }) => {
+            const cards = Array.from(
+              document.querySelectorAll("#storefrontStructureTree .structure-card"),
+            );
+            const root = cards.find((card) =>
+              card.textContent?.includes(rootName),
+            );
+            return Boolean(root?.textContent?.includes(childName));
+          },
+          { rootName: STRUCTURE_ROOT_NAME, childName: name },
+          { timeout: 20_000 },
+        );
       }
 
-      categoryRow = page.locator(
-        '[data-category-row="' + categoryId + '"]',
+      await addChild(STRUCTURE_CHILD_A);
+      await addChild(STRUCTURE_CHILD_B);
+
+      let qaRoot = page
+        .locator("#storefrontStructureTree .structure-card")
+        .filter({ hasText: STRUCTURE_ROOT_NAME });
+      const childRows = qaRoot.locator(".structure-subrow");
+      assert(
+        (await childRows.count()) === 2,
+        "QA Website section did not render two nested sub-sections.",
       );
-      page.once("dialog", async (dialog) => {
-        await dialog.accept();
-      });
+
+      const firstBefore = (await childRows.nth(0).innerText()).trim();
+      assert(
+        firstBefore.includes(STRUCTURE_CHILD_A),
+        "Expected QA Sub-section A to start first.",
+      );
+
+      const firstMoveDown = childRows
+        .nth(0)
+        .locator('[data-structure-move="DOWN"]');
       await Promise.all([
         page.waitForResponse(
           (response) =>
-            response.url().includes("/archive") &&
+            response.url().includes("/admin/api/storefront-structure/") &&
+            response.url().endsWith("/move") &&
             response.request().method() === "POST" &&
             response.status() === 200,
           { timeout: 20_000 },
         ),
-        categoryRow.locator("[data-category-archive]").click(),
-      ]);
-
-      categoryRow = page.locator(
-        '[data-category-row="' + categoryId + '"]',
-      );
-      await categoryRow.locator("[data-category-restore]").waitFor({
-        state: "visible",
-        timeout: 10_000,
-      });
-
-      await Promise.all([
-        page.waitForResponse(
-          (response) =>
-            response.url().includes("/restore") &&
-            response.request().method() === "POST" &&
-            response.status() === 200,
-          { timeout: 20_000 },
-        ),
-        categoryRow.locator("[data-category-restore]").click(),
+        firstMoveDown.click(),
       ]);
 
       await page.waitForFunction(
-        (id) => {
-          const row = document.querySelector(
-            '[data-category-row="' + id + '"]',
+        ({ rootName, expectedFirst }) => {
+          const cards = Array.from(
+            document.querySelectorAll("#storefrontStructureTree .structure-card"),
           );
-          return Boolean(
-            row &&
-              row.querySelector("[data-category-archive]") &&
-              !row.querySelector("[data-category-name]")?.disabled,
+          const root = cards.find((card) =>
+            card.textContent?.includes(rootName),
           );
+          const first = root?.querySelector(".structure-subrow");
+          return Boolean(first?.textContent?.includes(expectedFirst));
         },
-        categoryId,
+        { rootName: STRUCTURE_ROOT_NAME, expectedFirst: STRUCTURE_CHILD_B },
         { timeout: 20_000 },
       );
 
-      await page.locator("[data-close-product-sheet]:visible").first().click();
-
-      await page.locator("#addProduct").click();
-      await page.waitForSelector("#newProductCategorySearch", {
-        timeout: 10_000,
-      });
-      await page.locator("#newProductCategorySearch").fill(CATEGORY_RENAMED);
-      const managedChoice = page
-        .locator("#newProductCategories .category-choice:not(.hidden)")
-        .filter({ hasText: CATEGORY_RENAMED });
-      await managedChoice.waitFor({ state: "visible", timeout: 10_000 });
-      await managedChoice.locator("input").check();
-      assert(
-        (await page.locator("#newProductCategorySelected").innerText()).includes(
-          CATEGORY_RENAMED,
-        ),
-        "Selected category summary did not update.",
+      qaRoot = page
+        .locator("#storefrontStructureTree .structure-card")
+        .filter({ hasText: STRUCTURE_ROOT_NAME });
+      await qaRoot.locator("[data-structure-archive]").click();
+      await page.waitForFunction(
+        () =>
+          document.getElementById("toast")?.textContent?.includes(
+            "Archive or move the sub-sections first.",
+          ),
+        null,
+        { timeout: 10_000 },
       );
-      await assertNoHorizontalOverflow(page, label + " compact category picker");
-      await page.locator("[data-close-product-sheet]:visible").first().click();
+
+      await assertNoHorizontalOverflow(page, label + " Catalogue nested editing");
+      await page.screenshot({
+        path: path.join(ARTIFACT_DIR, "iphone-catalogue-structure.png"),
+        fullPage: true,
+      });
+
+      cleanupStorefrontStructureQa();
+      structureLoaded = false;
     }
 
     await openView("stock");
@@ -893,8 +928,11 @@ try {
           "iphone-add-product-cost-supplier-fields",
           "iphone-add-product-footer-clearance",
           "iphone-category-search",
-          "iphone-category-manager-create-rename-group-move-archive-restore",
-          "iphone-category-picker-selected-summary",
+          "iphone-catalogue-hierarchy-create-main-and-subsections",
+          "iphone-catalogue-subsection-reorder",
+          "iphone-catalogue-parent-archive-guard",
+          "iphone-catalogue-no-technical-enums",
+          "ipad-portrait-catalogue-no-horizontal-overflow",
           "iphone-stock-value-report",
           "iphone-stocktake-no-horizontal-overflow",
           "iphone-reports-owner-copy",
@@ -915,8 +953,10 @@ try {
 } finally {
   try {
     try {
+      cleanupStorefrontStructureQa();
+      console.log("Synthetic Storefront Structure QA data cleaned up.");
       d1(cleanupCategorySql());
-      console.log("Synthetic Category Manager QA data cleaned up.");
+      console.log("Synthetic legacy Category QA data cleaned up.");
     } catch (categoryCleanupError) {
       console.error(
         "Category cleanup warning:",
