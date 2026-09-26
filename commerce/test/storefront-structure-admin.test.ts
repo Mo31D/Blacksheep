@@ -6,6 +6,7 @@ import type {
 import {
   archiveAdminStorefrontNode,
   createAdminStorefrontNode,
+  publishAdminStorefrontNode,
   updateAdminStorefrontNode,
 } from "../src/data/storefront-structure";
 
@@ -27,6 +28,20 @@ class AdminStatement implements D1PreparedStatementLike {
     if (this.sql.includes("LOWER(v.slug) = LOWER(?)")) return null;
     if (this.sql.includes("COALESCE(MAX(v.sort_order)")) {
       return { maxSort: 40 } as T;
+    }
+    if (
+      this.sql.includes(
+        "SELECT version, publication_status AS status, " +
+          "current_published_version_id AS publishedVersionId",
+      )
+    ) {
+      return {
+        version: this.db.afterVersion,
+        status: "ACTIVE",
+        publishedVersionId: this.db.afterPublishedVersionId,
+        draftVersionId: null,
+        updatedAt: this.db.afterUpdatedAt,
+      } as T;
     }
     if (
       this.sql.includes(
@@ -62,6 +77,7 @@ class AdminDb implements D1DatabaseLike {
   batches: AdminStatement[][] = [];
   afterVersion = 0;
   afterUpdatedAt = "";
+  afterPublishedVersionId: string | null = null;
 
   constructor(public adminRow: AdminRow) {}
 
@@ -74,6 +90,17 @@ class AdminDb implements D1DatabaseLike {
   async batch<T>(statements: D1PreparedStatementLike[]): Promise<T[]> {
     const typed = statements as AdminStatement[];
     this.batches.push(typed);
+
+    const publishUpdate = typed.find((statement) =>
+      statement.sql.startsWith(
+        "UPDATE storefront_nodes SET current_published_version_id",
+      ),
+    );
+    if (publishUpdate) {
+      this.afterUpdatedAt = String(publishUpdate.values[0]);
+      this.afterVersion = Number(publishUpdate.values[2]) + 1;
+      this.afterPublishedVersionId = String(publishUpdate.values[3]);
+    }
 
     const ownerUpdate = typed.find((statement) =>
       statement.sql.startsWith(
@@ -175,6 +202,42 @@ describe("CARD 02 Storefront Structure Admin data layer", () => {
       5,
       db.afterUpdatedAt,
     ]);
+  });
+
+  it("publishes a guarded Storefront draft and supersedes the previous live version", async () => {
+    const db = new AdminDb(
+      row({
+        version: 4,
+        draftVersionId: "sfv_gifts_2",
+        effectiveVersionId: "sfv_gifts_2",
+        effectiveVersionNumber: 2,
+        hasDraft: 1,
+      }),
+    );
+
+    await publishAdminStorefrontNode(
+      db,
+      "sfn_gifts",
+      4,
+      "owner@example.com",
+    );
+
+    expect(db.batches).toHaveLength(1);
+    const statements = db.batches[0];
+    expect(statements[0].sql).toContain(
+      "current_published_version_id = current_draft_version_id",
+    );
+    expect(statements.some((statement) =>
+      statement.sql.includes("SET superseded_at = ?"),
+    )).toBe(true);
+    expect(statements.some((statement) =>
+      statement.sql.includes("SET published_at = ?, superseded_at = NULL"),
+    )).toBe(true);
+    expect(statements.at(-1)?.values).toContain("NODE_UPDATED");
+    expect(statements.at(-1)?.values).toContain(
+      "Owner published Storefront section",
+    );
+    expect(db.afterPublishedVersionId).toBe("sfv_gifts_2");
   });
 
   it("blocks archiving a parent while active sub-sections remain", async () => {
