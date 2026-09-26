@@ -770,23 +770,42 @@ Status: **PHASE 13 PRODUCTION RELEASE COMPLETE — migrations, pinned Worker dep
 - [x] Confirm production health/Admin checks after deploy.
 - [x] Remove the stale failing production migration workflow that was creating false red checks.
 
+# POST-PHASE6 BACKEND / ADMIN REGRESSION AUDIT — COMPLETE
+
+- [x] Production has advanced beyond the historical Phase 13 `0000–0008` state.
+- [x] Current Production migration ledger: `0012_order_returns.sql`.
+- [x] Current Production active published Products: 146.
+- [x] Current Production active default variants: 146.
+- [x] Current Production D1/public catalogue parity: 146 / 146 / 0 mismatches.
+- [x] Full post-cutover backend audit run `36235314026`: SUCCESS.
+- [x] Commerce validation: 33 Vitest files / 195 tests PASS.
+- [x] Basket + Checkout real staging browser E2E PASS.
+- [x] Admin desktop/mobile browser QA PASS.
+- [x] Customer-review edge-case staging E2E PASS.
+- [x] Storefront live-overlay browser QA PASS.
+- [x] Search readiness PASS: 146 products / 17 active pages / 166 sitemap URLs / 0 placeholders.
+- [x] Owner-confirmed OTP/login flow PASS.
+- [x] Duplicate generated backend commerce authority removed; D1 is sole backend authority.
+- [x] Completed one-shot audit workflow removed.
+- [x] Audit report: `docs/BACKEND-AUDIT-CLEANUP-2026-09-26.md`.
+
+Historical Phase 13 migration/deployment entries above remain useful release evidence, but they are not the current Production state.
+
 # EXACT NEXT ACTION
 
-**POST-RELEASE VALIDATION — NO FURTHER MIGRATION/DEPLOY IS REQUIRED FOR THIS RELEASE.**
+**FINAL OWNER PRODUCTION ACCEPTANCE — NO MIGRATION OR BACKEND REBUILD REQUIRED.**
 
-Production Admin V2 is live.
+Remaining live-owner checks:
+1. Open live Products and Stock and confirm the normal workflow on the real owner device.
+2. Submit one ordinary live customer order.
+3. Confirm it appears in Admin.
+4. Confirm customer acknowledgement email.
+5. Confirm owner new-order email.
+6. Confirm no unexpected numeric stock reservation is created for an untracked baseline Product.
 
-Next validation work:
-1. owner opens production `/admin` on desktop and iPhone and confirms the real visual/interaction experience,
-2. perform one fresh owner OTP login on production,
-3. optionally run one controlled low-value real order through revision → customer review → payment recording → fulfilment,
-4. if an actual refund is performed, verify the production refund record/notification path,
-5. confirm the next natural production transactional email produces delivery telemetry through the enabled production webhook,
-6. inspect/archive release-only or stale failing GitHub workflows separately; do not rerun migrations.
+Repository cleanup:
+- PR #7 is closed and must not be merged.
+- Seven historical branches are classified obsolete/safe-to-delete.
+- The current GitHub connector has no branch-delete/delete-ref action, so those refs remain until removed through GitHub UI or a branch-delete capable connection.
 
-Release invariants:
-- do **not** rerun migrations `0003–0008`,
-- do **not** redeploy `8c546238...` again unless intentionally releasing a new runtime change,
-- use post-release bookmark `0000002b-00000000-000050f1-c99de2cbd416b44cc1ae27080bb939db` as the latest recorded recovery reference.
-
-**Current work is validation/polish only.**
+Do not rerun historical Phase 13 migrations. Future schema/deploy work must follow the current Product/Inventory/Phase 6 state.
