@@ -142,7 +142,8 @@ jobs:
           HTML="$(curl --fail --silent --show-error --max-time 30 https://theblacksheepshop.co.uk/products/hc-003-three-highland-cows-see-hear-speak-no-evil-ornament.html)"
           echo "$HTML" | grep -Fq '<link rel="canonical" href="https://theblacksheepshop.co.uk/products/hc-003-three-highland-cows-see-hear-speak-no-evil-ornament.html">'
           echo "$HTML" | grep -Fq '"@type":"Product"'
-          echo "$HTML" | grep -Fq 'data-product-id="HC-003"'
+          echo "$HTML" | grep -Fq 'onclick='\''addToBlackSheepList(event,"gifts","hc-003-three-highland-cows-see-hear-speak-no-evil-ornament")'\'''
+          echo "$HTML" | grep -Fq '"sku":"LP75455"'
           echo "Production static Product surface passed."
 
       - name: Summary
