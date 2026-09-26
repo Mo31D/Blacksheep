@@ -186,6 +186,8 @@ function exportAndRender(outDir, expectedCount, requireBaselineParity) {
   const renderReport = path.join(outDir, "render-report.json");
   const collectionsReport = path.join(outDir, "collections-report.json");
   const packageReport = path.join(outDir, "package-report.json");
+  const deterministicReport = path.join(outDir, "deterministic-package-report.json");
+  const deterministicSite = path.join(outDir, "deterministic-site");
 
   const exportArgs = [
     "--remote",
@@ -233,10 +235,27 @@ function exportAndRender(outDir, expectedCount, requireBaselineParity) {
     packageReport,
   ]);
 
+  runNode("scripts/phase6-publication-package.mjs", [
+    "--catalog",
+    catalog,
+    "--manifest",
+    manifest,
+    "--out-dir",
+    deterministicSite,
+    "--report-out",
+    deterministicReport,
+    "--compare-to",
+    "..",
+    "--check",
+  ]);
+
   const exportData = JSON.parse(fs.readFileSync(exportReport, "utf8"));
   const renderData = JSON.parse(fs.readFileSync(renderReport, "utf8"));
   const collectionsData = JSON.parse(fs.readFileSync(collectionsReport, "utf8"));
   const packageData = JSON.parse(fs.readFileSync(packageReport, "utf8"));
+  const deterministicData = JSON.parse(
+    fs.readFileSync(deterministicReport, "utf8"),
+  );
 
   assert.equal(
     exportData.candidateProducts,
@@ -266,6 +285,17 @@ function exportAndRender(outDir, expectedCount, requireBaselineParity) {
   assert.equal(packageData.ok, true, "Unified publication package verification failed.");
   assert.equal(packageData.products, expectedCount);
   assert.equal(packageData.manifestProducts, expectedCount);
+  assert.equal(
+    deterministicData.ok,
+    true,
+    "Deterministic publication package failed.",
+  );
+  assert.equal(deterministicData.deterministic, true);
+  assert.equal(deterministicData.deterministicDifferences.length, 0);
+  assert.equal(
+    deterministicData.comparison?.unsafeSlugRemovals?.length ?? -1,
+    0,
+  );
 
   return {
     catalog,
@@ -275,6 +305,7 @@ function exportAndRender(outDir, expectedCount, requireBaselineParity) {
     renderData,
     collectionsData,
     packageData,
+    deterministicData,
   };
 }
 
@@ -457,6 +488,12 @@ async function runQa() {
     assert.equal(fullRangePublishedReport?.products, 147);
     assert.equal(fullRangePublishedReport?.cardCount, 147);
     assert.equal(fullRangePublishedReport?.itemListCount, 147);
+    assert.ok(
+      published.deterministicData.comparison?.added?.includes(
+        "products/" + slug + ".html",
+      ),
+      "Published Admin Product is not present in the publication change plan.",
+    );
 
     await page.screenshot({
       path: path.join(ARTIFACT_DIR, "02-admin-published.png"),
@@ -541,6 +578,12 @@ async function runQa() {
     assert.equal(fullRangeArchivedReport?.products, 146);
     assert.equal(fullRangeArchivedReport?.cardCount, 146);
     assert.equal(fullRangeArchivedReport?.itemListCount, 146);
+    assert.ok(
+      !archived.deterministicData.comparison?.added?.includes(
+        "products/" + slug + ".html",
+      ),
+      "Archived QA Product remained in the publication change plan.",
+    );
 
     const audit = d1(
       "SELECT event_type AS eventType FROM product_audit_events WHERE product_id=" +
@@ -576,6 +619,8 @@ async function runQa() {
             "candidate-sitemap-inclusion",
             "candidate-full-range-card-and-itemlist-inclusion",
             "candidate-package-verifier",
+            "deterministic-publication-package",
+            "publication-change-plan-new-page",
             "admin-ui-archive",
             "public-api-404-after-archive",
             "publication-candidate-restored-146",
