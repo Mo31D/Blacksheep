@@ -4,6 +4,20 @@
 
   const apiBase=String(config.apiBase).replace(/\/$/,'');
   const normalizeReason=value=>String(value||'');
+  const supportedTypes=new Set(['gifts','icecream','romneys','hawkshead','fragrances']);
+  const normalizeType=value=>supportedTypes.has(String(value||'').toLowerCase())?String(value).toLowerCase():'gifts';
+  const titleFromSlug=value=>String(value||'').split('-').filter(Boolean).map(part=>part.charAt(0).toUpperCase()+part.slice(1)).join(' ');
+  const labelForProduct=(product,type)=>{
+    if(type==='hawkshead')return'Hawkshead Relish';
+    if(type==='romneys')return"Romney's";
+    if(type==='icecream')return'Ice Cream';
+    if(type==='fragrances')return'Fragrances';
+    return titleFromSlug(product.primaryCategory)||product.brand||'Gifts';
+  };
+  const mediaUrl=value=>{
+    if(!value)return'';
+    try{return new URL(String(value),apiBase+'/').href}catch{return String(value)}
+  };
   const catalogItems=()=>{
     const rows=[];
     for(const [type,list] of Object.entries(window.CATALOG||{})){
@@ -77,6 +91,7 @@
   }
 
   function syncUi(){
+    const dynamicCards=typeof syncDynamicCatalogCards==='function'?syncDynamicCatalogCards():0;
     if(typeof syncCatalogCardState==='function')syncCatalogCardState();
     if(typeof sortProductCardsByAvailability==='function')sortProductCardsByAvailability();
     if(typeof polishListButtons==='function')polishListButtons();
@@ -85,20 +100,31 @@
     if(typeof renderBasketPage==='function')renderBasketPage();
     syncCheckoutGuard();
     renderPreviewBanner();
+    return dynamicCards;
   }
 
   async function load(){
     document.documentElement.dataset.commerceLive='loading';
     try{
-      const response=await fetch(apiBase+'/v1/catalog?limit=200',{
-        method:'GET',
-        headers:{accept:'application/json'},
-        cache:'no-store'
-      });
-      if(!response.ok)throw new Error('catalog_http_'+response.status);
-      const payload=await response.json();
-      const products=Array.isArray(payload?.products)?payload.products:null;
-      if(!products)throw new Error('catalog_payload_invalid');
+      const products=[];
+      let cursor=null;
+      let pages=0;
+      do{
+        const suffix=cursor===null?'?limit=200':'?limit=200&cursor='+encodeURIComponent(cursor);
+        const response=await fetch(apiBase+'/v1/catalog'+suffix,{
+          method:'GET',
+          headers:{accept:'application/json'},
+          cache:'no-store'
+        });
+        if(!response.ok)throw new Error('catalog_http_'+response.status);
+        const payload=await response.json();
+        const pageProducts=Array.isArray(payload?.products)?payload.products:null;
+        if(!pageProducts)throw new Error('catalog_payload_invalid');
+        products.push(...pageProducts);
+        cursor=payload?.nextCursor===null||payload?.nextCursor===undefined?null:Number(payload.nextCursor);
+        pages+=1;
+        if(pages>25)throw new Error('catalog_pagination_guard');
+      }while(cursor!==null&&Number.isFinite(cursor));
 
       const byId=new Map();
       const bySlug=new Map();
@@ -109,11 +135,45 @@
       }
 
       let applied=0;
+      const matchedProducts=new Set();
       for(const {item} of catalogItems()){
         const product=byId.get(String(item.id||''))||bySlug.get(String(item.slug||''));
         if(!product)continue;
         applyLiveProduct(item,product);
+        matchedProducts.add(String(product.productId||product.id||product.slug||''));
         applied+=1;
+      }
+
+      let added=0;
+      for(const product of products){
+        const key=String(product?.productId||product?.id||product?.slug||'');
+        if(!key||matchedProducts.has(key))continue;
+        const type=normalizeType(product.type);
+        if(!Array.isArray(window.CATALOG[type]))window.CATALOG[type]=[];
+        if(window.CATALOG[type].some(item=>String(item.id||'')===String(product.id||'')||String(item.slug||'')===String(product.slug||'')))continue;
+        const item={
+          section:type,
+          id:product.id||product.productId,
+          productId:product.productId||product.id,
+          slug:String(product.slug||'').trim(),
+          name:String(product.name||'').trim()||'Product',
+          desc:String(product.shortDescription||'').trim(),
+          brand:product.brand||null,
+          label:labelForProduct(product,type),
+          type,
+          sku:product.sku||null,
+          categories:[product.primaryCategory].filter(Boolean),
+          category:product.primaryCategory||null,
+          img:mediaUrl(product.primaryImageUrl),
+          imageFit:'contain',
+          commerceDynamic:true
+        };
+        if(!item.slug)continue;
+        applyLiveProduct(item,product);
+        window.CATALOG[type].push(item);
+        matchedProducts.add(key);
+        applied+=1;
+        added+=1;
       }
 
       if(!applied)throw new Error('catalog_overlay_no_matches');
@@ -121,10 +181,13 @@
         mode:config.mode||'live',
         applied,
         received:products.length,
+        added,
+        pages,
         loadedAt:new Date().toISOString()
       };
       document.documentElement.dataset.commerceLive='ready';
-      syncUi();
+      const dynamicCards=syncUi();
+      window.BLACK_SHEEP_LIVE_COMMERCE_STATE.dynamicCards=dynamicCards;
       document.dispatchEvent(new CustomEvent('black-sheep:commerce-live-ready',{
         detail:window.BLACK_SHEEP_LIVE_COMMERCE_STATE
       }));
