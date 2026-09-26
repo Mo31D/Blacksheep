@@ -7,6 +7,8 @@ import {
   categorySlugsForIds,
   compatibilityPlacementStatements,
   compatibilityStorefrontPlacements,
+  ownerPlacementStatements,
+  resolveOwnerStorefrontPlacements,
 } from "../src/data/storefront-structure";
 
 class Statement implements D1PreparedStatementLike {
@@ -36,6 +38,22 @@ class Db implements D1DatabaseLike {
   prepare(sql: string): Statement {
     const rows = sql.includes("FROM categories") ? this.categoryRows : [];
     const statement = new Statement(sql, rows);
+    this.prepared.push(statement);
+    return statement;
+  }
+  async batch<T>(): Promise<T[]> {
+    return [] as T[];
+  }
+}
+
+class OwnerPlacementDb implements D1DatabaseLike {
+  prepared: Statement[] = [];
+  constructor(private readonly rows: unknown[]) {}
+  prepare(sql: string): Statement {
+    const resultRows = sql.includes("FROM storefront_nodes WHERE id IN")
+      ? this.rows
+      : [];
+    const statement = new Statement(sql, resultRows);
     this.prepared.push(statement);
     return statement;
   }
@@ -163,6 +181,101 @@ describe("CARD 01 legacy → Storefront compatibility mapping", () => {
     expect((statements[2] as Statement).values.slice(0, 2)).toEqual([
       "pver-1",
       "sfn_gifts_seasonal",
+    ]);
+  });
+});
+
+
+describe("CARD 03 owner-selected Storefront placements", () => {
+  it("accepts one primary plus unique additional live nodes", async () => {
+    const db = new OwnerPlacementDb([
+      {
+        id: "sfn_gifts_highland_cows",
+        publicationStatus: "ACTIVE",
+        publishedVersionId: "sfv-hc",
+      },
+      {
+        id: "sfn_gifts_seasonal",
+        publicationStatus: "ACTIVE",
+        publishedVersionId: "sfv-seasonal",
+      },
+    ]);
+
+    await expect(
+      resolveOwnerStorefrontPlacements(db, {
+        primaryNodeId: "sfn_gifts_highland_cows",
+        additionalNodeIds: [
+          "sfn_gifts_seasonal",
+          "sfn_gifts_seasonal",
+          "sfn_gifts_highland_cows",
+        ],
+      }),
+    ).resolves.toEqual([
+      {
+        storefrontNodeId: "sfn_gifts_highland_cows",
+        isPrimary: true,
+        position: 0,
+      },
+      {
+        storefrontNodeId: "sfn_gifts_seasonal",
+        isPrimary: false,
+        position: 10,
+      },
+    ]);
+  });
+
+  it("rejects draft or archived Storefront nodes for a publishable Product placement", async () => {
+    const db = new OwnerPlacementDb([
+      {
+        id: "sfn-draft",
+        publicationStatus: "DRAFT",
+        publishedVersionId: null,
+      },
+    ]);
+
+    await expect(
+      resolveOwnerStorefrontPlacements(db, {
+        primaryNodeId: "sfn-draft",
+        additionalNodeIds: [],
+      }),
+    ).rejects.toThrow("product_storefront_node_not_live");
+  });
+
+  it("writes explicit owner placements with one guarded primary", () => {
+    const db = new OwnerPlacementDb([]);
+    const statements = ownerPlacementStatements(db, {
+      productVersionId: "pver-owner",
+      placements: [
+        {
+          storefrontNodeId: "sfn_gifts_highland_cows",
+          isPrimary: true,
+          position: 0,
+        },
+        {
+          storefrontNodeId: "sfn_gifts_seasonal",
+          isPrimary: false,
+          position: 10,
+        },
+      ],
+      createdAt: "2026-09-26T22:00:00.000Z",
+      guard: {
+        productId: "prd-owner",
+        resultVersion: 9,
+        token: "token-9",
+      },
+    });
+
+    expect(statements).toHaveLength(3);
+    expect((statements[1] as Statement).sql).toContain("'OWNER'");
+    expect((statements[1] as Statement).values.slice(0, 3)).toEqual([
+      "pver-owner",
+      "sfn_gifts_highland_cows",
+      1,
+    ]);
+    expect((statements[2] as Statement).values.slice(0, 3)).toEqual([
+      "pver-owner",
+      "sfn_gifts_seasonal",
+      0,
     ]);
   });
 });
