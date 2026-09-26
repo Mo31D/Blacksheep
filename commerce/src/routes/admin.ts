@@ -51,13 +51,17 @@ import {
   listAdminProducts,
 } from "../data/products";
 import {
+  archiveAdminCategory,
   archiveAdminProduct,
+  createAdminCategory,
   createAdminProduct,
   duplicateAdminProduct,
   listAdminCategories,
   publishAdminProduct,
+  restoreAdminCategory,
   quickEditAdminProduct,
   saveAdminProductDraft,
+  updateAdminCategory,
   updateAdminProductOperations,
   updateAdminVariant,
 } from "../data/product-editor";
@@ -112,6 +116,10 @@ interface AdminDependencies {
   listAdminProductsFn: typeof listAdminProducts;
   getAdminProductDetailFn: typeof getAdminProductDetail;
   listAdminCategoriesFn: typeof listAdminCategories;
+  createAdminCategoryFn: typeof createAdminCategory;
+  updateAdminCategoryFn: typeof updateAdminCategory;
+  archiveAdminCategoryFn: typeof archiveAdminCategory;
+  restoreAdminCategoryFn: typeof restoreAdminCategory;
   createAdminProductFn: typeof createAdminProduct;
   duplicateAdminProductFn: typeof duplicateAdminProduct;
   archiveAdminProductFn: typeof archiveAdminProduct;
@@ -155,6 +163,10 @@ const defaults: AdminDependencies = {
   listAdminProductsFn: listAdminProducts,
   getAdminProductDetailFn: getAdminProductDetail,
   listAdminCategoriesFn: listAdminCategories,
+  createAdminCategoryFn: createAdminCategory,
+  updateAdminCategoryFn: updateAdminCategory,
+  archiveAdminCategoryFn: archiveAdminCategory,
+  restoreAdminCategoryFn: restoreAdminCategory,
   createAdminProductFn: createAdminProduct,
   duplicateAdminProductFn: duplicateAdminProduct,
   archiveAdminProductFn: archiveAdminProduct,
@@ -191,6 +203,25 @@ function json(body: unknown, status = 200): Response {
 function error(code: string, status: number, message = code): Response {
   return json({ error: { code, message } }, status);
 }
+function categoryMutationError(cause: unknown): Response {
+  const code = cause instanceof Error ? cause.message : "category_update_failed";
+  const messages: Record<string, string> = {
+    category_name_required: "Category name is required.",
+    category_name_too_long: "Category name must be 80 characters or fewer.",
+    category_name_conflict: "A category with that name already exists.",
+    category_type_invalid: "Choose a valid category group.",
+    category_sort_order_invalid: "Category order is invalid.",
+    category_slug_unavailable: "A unique category address could not be created.",
+    category_not_found: "Category not found.",
+    category_in_use: "This category is still used by products. Remove or replace it on those products before archiving it.",
+  };
+  const status =
+    code === "category_not_found" ? 404 :
+    code === "category_name_conflict" || code === "category_in_use" ? 409 :
+    400;
+  return error(code, status, messages[code] ?? "Unable to update category.");
+}
+
 function productMutationError(cause: unknown): Response {
   const code = cause instanceof Error ? cause.message : "product_update_failed";
   const conflictCodes = new Set([
@@ -692,8 +723,76 @@ export async function handleAdminRequest(
   }
 
   if (url.pathname === "/admin/api/categories" && request.method === "GET") {
-    const categories = await deps.listAdminCategoriesFn(env.DB);
+    const categories = await deps.listAdminCategoriesFn(env.DB, {
+      includeArchived: url.searchParams.get("includeArchived") === "1",
+    });
     return json({ categories });
+  }
+
+  if (url.pathname === "/admin/api/categories" && request.method === "POST") {
+    try {
+      const raw = await readProductJson(request);
+      const created = await deps.createAdminCategoryFn(
+        env.DB,
+        raw as unknown as Parameters<typeof createAdminCategory>[1],
+      );
+      const categories = await deps.listAdminCategoriesFn(env.DB, {
+        includeArchived: true,
+      });
+      return json(
+        { category: categories.find((category) => category.id === created.id) ?? null },
+        201,
+      );
+    } catch (cause) {
+      return categoryMutationError(cause);
+    }
+  }
+
+  const categoryMatch = url.pathname.match(/^\/admin\/api\/categories\/([^/]+)$/);
+  if (categoryMatch && request.method === "PATCH") {
+    const categoryId = decodeURIComponent(categoryMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      await deps.updateAdminCategoryFn(
+        env.DB,
+        categoryId,
+        raw as unknown as Parameters<typeof updateAdminCategory>[2],
+      );
+      const categories = await deps.listAdminCategoriesFn(env.DB, {
+        includeArchived: true,
+      });
+      return json({
+        category: categories.find((category) => category.id === categoryId) ?? null,
+      });
+    } catch (cause) {
+      return categoryMutationError(cause);
+    }
+  }
+
+  const categoryArchiveMatch = url.pathname.match(
+    /^\/admin\/api\/categories\/([^/]+)\/archive$/,
+  );
+  if (categoryArchiveMatch && request.method === "POST") {
+    const categoryId = decodeURIComponent(categoryArchiveMatch[1]);
+    try {
+      await deps.archiveAdminCategoryFn(env.DB, categoryId);
+      return json({ ok: true });
+    } catch (cause) {
+      return categoryMutationError(cause);
+    }
+  }
+
+  const categoryRestoreMatch = url.pathname.match(
+    /^\/admin\/api\/categories\/([^/]+)\/restore$/,
+  );
+  if (categoryRestoreMatch && request.method === "POST") {
+    const categoryId = decodeURIComponent(categoryRestoreMatch[1]);
+    try {
+      await deps.restoreAdminCategoryFn(env.DB, categoryId);
+      return json({ ok: true });
+    } catch (cause) {
+      return categoryMutationError(cause);
+    }
   }
 
   if (url.pathname === "/admin/api/products" && request.method === "POST") {
