@@ -103,7 +103,7 @@ Purpose: authoritative implementation board for the next architecture programme.
 ---
 
 ## CARD 03 — Product Editor: placement + multi-location + live verification
-**Status:** IMPLEMENTED ON STAGING · FINAL BROWSER QA BLOCKED BY CLOUDFLARE D1 DAILY READ LIMIT  
+**Status:** IMPLEMENTED · FINAL REMOTE D1 BROWSER QA DEFERRED  
 **Depends on:** CARD 01, CARD 02
 
 **Goal:** make product editing answer “Where should this product appear?”
@@ -144,7 +144,7 @@ Purpose: authoritative implementation board for the next architecture programme.
 ---
 
 ## CARD 04 — Dynamic collections & navigation engine
-**Status:** BLOCKED  
+**Status:** IN PROGRESS  
 **Depends on:** CARD 01, CARD 02, CARD 03
 
 **Goal:** allow Admin-created sections to become real website destinations/menu items without manual HTML edits.
@@ -552,4 +552,4 @@ CARD 00
 
 ## Immediate next action
 
-Start **CARD 03 — Product Editor: placement + multi-location + live verification**. CARD 02 is complete and Staging verified. Add an owner-facing placement card to Product Add/Edit using the Storefront Structure domain: one Primary section, one Primary sub-section, optional “Also show in” locations, Brands & ranges kept separate, and live-public verification after Publish. Do not modify Production until the card has passed its Staging gates.
+Continue **CARD 04 — Dynamic collections & navigation engine** while remote D1 browser verification remains deferred. Build the public Storefront Structure contract, dynamic collection routing and data-driven navigation with existing static URLs preserved as compatibility fallbacks. Do not modify Production.
