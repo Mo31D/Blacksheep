@@ -168,7 +168,7 @@
           label:labelForProduct(product,type),
           type,
           sku:product.sku||null,
-          categories:[product.primaryCategory].filter(Boolean),
+          categories:Array.isArray(product.categories)&&product.categories.length?product.categories:[product.primaryCategory].filter(Boolean),
           category:product.primaryCategory||null,
           img:mediaUrl(product.primaryImageUrl),
           imageFit:'contain',
