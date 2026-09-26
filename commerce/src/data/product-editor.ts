@@ -4,7 +4,10 @@ import { DEFAULT_VAT_RATE_BASIS_POINTS, resolveAdminSupplier } from "./inventory
 import {
   categorySlugsForIds,
   compatibilityPlacementStatements,
+  copyPlacementStatements,
   getProductVersionStorefrontPlacements,
+  ownerPlacementStatements,
+  resolveOwnerStorefrontPlacements,
 } from "./storefront-structure";
 
 const SELL_STATUSES = new Set([
@@ -241,6 +244,7 @@ export interface CreateAdminProductInput {
   sku?: unknown;
   barcode?: unknown;
   categoryIds?: unknown;
+  storefrontPlacement?: unknown;
 }
 
 export async function createAdminProduct(
@@ -281,6 +285,10 @@ export async function createAdminProduct(
   await assertCategories(db, categoryIds);
   const categorySlugs = await categorySlugsForIds(db, categoryIds);
   const primaryCategorySlug = categorySlugs[0] ?? null;
+  const ownerPlacements =
+    raw.storefrontPlacement === undefined
+      ? null
+      : await resolveOwnerStorefrontPlacements(db, raw.storefrontPlacement);
   await assertSkuBarcodeUnique(db, null, sku, barcode);
 
   const createdAt = now();
@@ -363,14 +371,20 @@ export async function createAdminProduct(
   });
 
   statements.push(
-    ...compatibilityPlacementStatements(db, {
-      productVersionId: draftId,
-      productType,
-      categorySlugs,
-      primaryCategorySlug,
-      source: "LEGACY_COMPAT",
-      createdAt,
-    }),
+    ...(ownerPlacements
+      ? ownerPlacementStatements(db, {
+          productVersionId: draftId,
+          placements: ownerPlacements,
+          createdAt,
+        })
+      : compatibilityPlacementStatements(db, {
+          productVersionId: draftId,
+          productType,
+          categorySlugs,
+          primaryCategorySlug,
+          source: "LEGACY_COMPAT",
+          createdAt,
+        })),
   );
 
   statements.push(
@@ -400,6 +414,12 @@ export async function createAdminProduct(
           sku,
           barcode,
           categoryIds,
+          storefrontPlacements: ownerPlacements
+            ? ownerPlacements.map((placement) => ({
+                storefrontNodeId: placement.storefrontNodeId,
+                isPrimary: placement.isPrimary,
+              }))
+            : null,
         }),
         "Product created as a private draft",
         createdAt,
@@ -1009,6 +1029,31 @@ export async function saveAdminProductDraft(
   const primaryCategorySlug =
     primaryCategoryIndex >= 0 ? categorySlugs[primaryCategoryIndex] ?? null : null;
 
+  const placementSourceId = current.draftVersionId ?? current.publishedVersionId;
+  const existingPlacements = placementSourceId
+    ? await allRows<{
+        storefrontNodeId: string;
+        isPrimary: number;
+        position: number;
+        source: string;
+      }>(
+        db
+          .prepare(
+            "SELECT storefront_node_id AS storefrontNodeId, is_primary AS isPrimary, " +
+              "position, source FROM product_version_storefront_placements " +
+              "WHERE product_version_id = ? ORDER BY is_primary DESC, position",
+          )
+          .bind(placementSourceId),
+      )
+    : [];
+  const ownerPlacements =
+    changes.storefrontPlacement === undefined
+      ? null
+      : await resolveOwnerStorefrontPlacements(
+          db,
+          changes.storefrontPlacement,
+        );
+
   const token = now();
   const resultVersion = expected + 1;
   const statements: D1PreparedStatementLike[] = [
@@ -1154,21 +1199,46 @@ export async function saveAdminProductDraft(
     );
   });
 
-  statements.push(
-    ...compatibilityPlacementStatements(db, {
-      productVersionId: draftId,
-      productType: next.productType,
-      categorySlugs,
-      primaryCategorySlug,
-      source: "LEGACY_COMPAT",
-      createdAt: token,
-      guard: {
+  if (ownerPlacements) {
+    statements.push(
+      ...ownerPlacementStatements(db, {
+        productVersionId: draftId,
+        placements: ownerPlacements,
+        createdAt: token,
+        guard: {
+          productId,
+          resultVersion,
+          token,
+        },
+      }),
+    );
+  } else if (newDraft && current.publishedVersionId && existingPlacements.length) {
+    statements.push(
+      ...copyPlacementStatements(db, {
+        sourceProductVersionId: current.publishedVersionId,
+        targetProductVersionId: draftId,
         productId,
         resultVersion,
         token,
-      },
-    }),
-  );
+      }),
+    );
+  } else if (newDraft && existingPlacements.length === 0) {
+    statements.push(
+      ...compatibilityPlacementStatements(db, {
+        productVersionId: draftId,
+        productType: next.productType,
+        categorySlugs,
+        primaryCategorySlug,
+        source: "LEGACY_COMPAT",
+        createdAt: token,
+        guard: {
+          productId,
+          resultVersion,
+          token,
+        },
+      }),
+    );
+  }
 
   statements.push(
     auditStatement(db, {
@@ -1182,11 +1252,24 @@ export async function saveAdminProductDraft(
         collectionLabel: current.collectionLabel,
         productType: current.productType,
         categoryIds: existingCategories.map((row) => row.categoryId),
+        storefrontPlacements: existingPlacements.map((placement) => ({
+          storefrontNodeId: placement.storefrontNodeId,
+          isPrimary: Number(placement.isPrimary) === 1,
+        })),
       },
       after: {
         ...next,
         categoryIds,
         primaryCategoryId,
+        storefrontPlacements: ownerPlacements
+          ? ownerPlacements.map((placement) => ({
+              storefrontNodeId: placement.storefrontNodeId,
+              isPrimary: placement.isPrimary,
+            }))
+          : existingPlacements.map((placement) => ({
+              storefrontNodeId: placement.storefrontNodeId,
+              isPrimary: Number(placement.isPrimary) === 1,
+            })),
       },
       reason: "Owner edited product content draft",
       resultVersion,
@@ -1248,15 +1331,27 @@ export async function publishAdminProduct(
     throw new Error("product_publish_requires_category");
   }
 
-  const placementCount = await db
+  const placementState = await db
     .prepare(
-      "SELECT COUNT(*) AS count FROM product_version_storefront_placements WHERE product_version_id = ?",
+      "SELECT COUNT(*) AS count, " +
+        "SUM(CASE WHEN p.is_primary = 1 THEN 1 ELSE 0 END) AS primaryCount, " +
+        "SUM(CASE WHEN n.id IS NULL OR n.publication_status <> 'ACTIVE' " +
+          "OR n.current_published_version_id IS NULL THEN 1 ELSE 0 END) AS invalidCount " +
+        "FROM product_version_storefront_placements p " +
+        "LEFT JOIN storefront_nodes n ON n.id = p.storefront_node_id " +
+        "WHERE p.product_version_id = ?",
     )
     .bind(current.draftVersionId)
-    .first<{ count: number }>();
+    .first<{ count: number; primaryCount: number; invalidCount: number }>();
 
-  if (Number(placementCount?.count ?? 0) < 1) {
+  if (Number(placementState?.count ?? 0) < 1) {
     throw new Error("product_publish_requires_storefront_placement");
+  }
+  if (Number(placementState?.primaryCount ?? 0) !== 1) {
+    throw new Error("product_publish_requires_primary_storefront_placement");
+  }
+  if (Number(placementState?.invalidCount ?? 0) !== 0) {
+    throw new Error("product_publish_requires_live_storefront_placement");
   }
   if (
     Number(current.onlineOrderingEnabled) === 1 &&
