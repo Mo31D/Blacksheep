@@ -21,7 +21,10 @@ export function stableId(prefix, value) {
 }
 
 export function loadFrozenCatalogue() {
-  const path = resolve(process.cwd(), "../assets/catalog.js");
+  const path = resolve(
+    process.cwd(),
+    "fixtures/product-core-baseline.catalog.js",
+  );
   const content = readFileSync(path, "utf8");
   const blob = gitBlobSha(content);
   if (blob !== EXPECTED_CATALOG_BLOB) {
