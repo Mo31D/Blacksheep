@@ -1,63 +1,59 @@
 # Black Sheep — Session Handoff
 
-> **CURRENT AUTHORITATIVE HANDOFF — 25 September 2026**
+> **CURRENT AUTHORITATIVE HANDOFF — 26 September 2026**
 >
 > Repository: `Mo31D/Blacksheep` · branch: `main`.
 >
-> **Live execution tracker:** `docs/ADMIN-V2-CHECKLIST.md`.
->
-> **Production Admin V2 is live. Phase 13 is complete and the first post-release storefront/stock patch is also live.**
->
-> Current verified production state:
-> - current storefront/commerce source patch: `43757734376c3c4b7f8a139ee096927bbb09a251`
-> - production deploy workflow run: `36163025684` / job `108163975400` — SUCCESS
-> - production D1 migrations: `0000–0008` — unchanged by the patch
-> - production Worker deployment ID: `2bbc3281-a57a-4cd0-aba5-594dd4563939`
-> - production Worker version: `f4a9ba95-b144-436e-9e4d-808cc5218792`
-> - production D1 ID: `c1afdb87-47a8-4f6b-bf4b-0ce9b5b41e52`
-> - current verified production order count: 4
-> - production health/Admin gates: PASS in the deployment workflow
-> - production secrets remain `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `TURNSTILE_SECRET_KEY`
-> - production Resend webhook ID: `db1d278b-aea6-4b52-90f4-b233252f5cf0` — ENABLED
-> - DMARC: `v=DMARC1; p=none; pct=100; adkim=r; aspf=r`
-> - latest observed D1 Time Travel bookmark: `00000031-00000000-000050f1-2c19ebc9178ac245e54f7e8b94badfbc`
->
-> Post-release patch content:
-> - homepage quick-category strip now links every category tile to a real destination
-> - homepage gift collections use a compact two-column mobile grid
-> - basket mobile layout has clearer order progress, tighter item cards and a lighter summary
-> - `PR-046 Peter Rabbit Hanging Ornaments (Set of 4)` is now explicitly `out-of-stock`
-> - the generated server-authoritative commerce catalogue also marks PR-046 non-purchasable
-> - no production migration was applied for this patch
-> - Search Readiness, Commerce CI, GitHub Pages and production deploy/health gates passed for the implementation/release
-> - stale failing `.github/workflows/commerce-production-migrations.yml` was removed after it produced false red workflow noise on ordinary pushes; Git history retains it
->
-> Original Phase 13 release remains the migration foundation:
-> - migration run `36157961810` / job `108147083426`
-> - migrations `0003–0008` were additive and must not be rerun
-> - the original Admin V2 runtime release was `8c5462388648235acd3a41b853d1adee057a11a7`; it has now been superseded by the stock-sync runtime patch above
->
-> **Owner-email polish release — 25 September 2026**
-> - source commit: `ecc05a588cbb2a07210661d4c34cf5b9bb8afb62`
-> - production deploy run: `36165501995` / job `108172137498` — SUCCESS
-> - production Worker deployment: `97549177-a3c5-4334-8968-d1dec7cd4db7`
-> - production Worker version: `2c9a0a9d-7eb7-46b1-81cd-e02db425aaef`
-> - no D1 migration applied; migration ledger remains `0000–0008`
-> - existing production order count remains 3
-> - owner new-order emails now use the premium Owner Operations template
-> - customer-question owner emails use the same owner template
-> - Admin OTP email now uses the owner template
-> - owner emails include environment-correct Admin CTA links
-> - new-order/customer-question CTAs deep-link to the exact order after authentication
->
-> **Product / Inventory project is active and advanced on staging:**
-> - `docs/PRODUCT-INVENTORY-ADMIN-MASTERPLAN-2026-09-25.md`
+> Authoritative trackers/reports:
 > - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
-> - Phases 1–3 complete on staging.
-> - Phase 4 Inventory Core is COMPLETE ON STAGING; owner confirmed corrected OTP login + iPad portrait UX re-test passed.
-> - Phase 5 Order Reservations is COMPLETE + REAL-STAGING VERIFIED.
-> - Phase 6 milestones 6.1–6.7 have been executed through the automated Production cutover.
-> - Automated Production cutover is COMPLETE; final owner Admin/Stock + ordinary customer-order/email smoke is pending.
+> - `docs/BACKEND-AUDIT-CLEANUP-2026-09-26.md`
+> - `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-CUTOVER-2026-09-26.md`
+>
+> **Current production architecture**
+> - Admin V2 is live.
+> - Product Core + Inventory Core + Order Reservations + Phase 6 D1 commerce authority are live in Production.
+> - Production D1 latest migration: `0012_order_returns.sql`.
+> - Production active published Products: 146.
+> - Production active default variants: 146.
+> - Production order count at final audit: 4.
+> - Production active reservations at final audit: 0.
+> - Production public catalogue: 146 products / 0 parity mismatches.
+> - D1 is the sole backend commerce authority; the old generated backend catalogue authority has been removed.
+> - Production health + Admin reachability passed in the final backend audit.
+>
+> **Final backend / Admin / Basket audit — 26 September 2026**
+> - workflow `36235314026` — SUCCESS.
+> - full `npm run check` — PASS.
+> - 33 Vitest files / 195 tests — PASS.
+> - Basket + Checkout real staging browser E2E — PASS.
+> - Admin desktop/mobile browser QA — PASS.
+> - customer-review edge-case staging E2E — PASS.
+> - Storefront live-overlay browser QA — PASS.
+> - Search Readiness: 146 products / 17 active pages / 166 sitemap URLs / 0 placeholders.
+> - owner-confirmed OTP/login flow — PASS.
+> - automated WebKit/mobile Admin QA — PASS.
+> - completed one-shot audit workflow removed after success.
+>
+> **Cleanup state**
+> - stale generated backend commerce authority files removed.
+> - stale Ice Cream/Romney generated builder path removed from active search/build flow.
+> - no TODO/FIXME/HACK markers found in active Commerce runtime/scripts during the final audit.
+> - runtime import scan found no obvious orphan `commerce/src` module.
+> - Draft PR #7 is closed and must not be merged.
+> - historical branches `commerce-v1-catalog`, `commerce-v1-pricing`, `commerce-v1`, `exact-local-v2`, `recovery/black-sheep-work-2026-09-23`, `restore-local-exact`, and `romneys-rebuild-2026-09-24` are obsolete/safe cleanup candidates.
+> - the current GitHub connector does not expose branch deletion, so those seven branch refs remain; do not merge them back into `main`.
+>
+> **Cloudflare access note**
+> - the direct Cloudflare ChatGPT connector was unavailable in the cleanup session.
+> - GitHub Actions Cloudflare credentials were available and the final audit performed read-only Production D1 / health / public-catalogue verification successfully.
+>
+> **Next work**
+> - do not revive old Commerce V1 branches or generated backend catalogue authority.
+> - use D1 Product Core / Inventory Core as the backend source of truth.
+> - for future changes, keep Commerce CI + Search Readiness green and run the targeted staging browser/E2E workflow for the affected surface.
+> - optional manual cleanup: delete the seven obsolete Git branch refs using GitHub UI or a branch-delete capable connection.
+>
+> The sections below are retained as historical implementation evidence. When a historical note conflicts with this header, this header is authoritative.
 >
 > **PRODUCT / INVENTORY — PHASE 4 INVENTORY CORE LIVE ON STAGING**
 > - Phase 1 Product Core: COMPLETE.
