@@ -200,11 +200,13 @@ Non-main branches are now historical/obsolete relative to the completed `main`:
 
 Branch tips range from 8 September to 24 September 2026; `main` is hundreds of commits ahead and the completed backend/storefront regression suite passes on current `main`.
 
-The linked GitHub connector currently exposes branch reads/updates but **does not expose a delete-ref/delete-branch mutation**, so these refs were not falsely reported as deleted. They are safe cleanup candidates in GitHub once a branch-delete capable connection/UI is used.
+All seven obsolete historical branches were deleted by a guarded one-shot GitHub Actions cleanup after verifying PR #7 was closed and preserving `main`.
 
-Do not merge these historical branches back into `main`.
+Branch cleanup workflow run: `36236510282` — SUCCESS.
 
-## Remaining non-code limitation
+Post-cleanup branch list: **main only**.
+
+## Remaining connector limitation
 
 The Cloudflare ChatGPT connector was not available in this session. This did not block the audit because the final GitHub Actions audit had working Cloudflare credentials and performed the required D1/health/parity checks.
 
@@ -216,4 +218,4 @@ Backend, Basket, Checkout, Admin, Product Core, Inventory, Reservations and Phas
 
 The repository is clear of the known duplicate backend catalogue authority and the completed one-shot audit workflow.
 
-The only workspace cleanup not executed programmatically is deletion of the seven obsolete Git branch refs because the currently exposed GitHub connector has no delete-branch operation.
+The seven obsolete Git branch refs were deleted successfully, and the temporary branch-cleanup workflow was then removed.
