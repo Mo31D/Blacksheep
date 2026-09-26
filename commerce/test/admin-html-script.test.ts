@@ -29,6 +29,27 @@ describe("generated Admin HTML scripts", () => {
     expect(html).toContain("openOrder(requestedOrder)");
   });
 
+  it("renders owner-ready production copy and staging-only test controls", () => {
+    const production = adminHtml("owner@example.com", "production");
+    const staging = adminHtml("owner@example.com", "staging");
+
+    compileInlineScripts(production);
+    compileInlineScripts(staging);
+
+    expect(production).not.toContain("Phase 2 · Editing");
+    expect(production).not.toContain("Phase 4 · Staging");
+    expect(production).not.toContain("Staging Product Core");
+    expect(production).not.toContain("before storefront cutover");
+    expect(production).not.toContain("dedicated Media phase");
+    expect(production).not.toContain("resetTestOrders");
+    expect(staging).toContain("STAGING");
+    expect(staging).toContain("Reset test orders");
+    expect(staging).toContain("RESET TEST ORDERS");
+    expect(staging).toContain("Current payment &amp; fulfilment status");
+    expect(staging).toContain("#dashboardMetrics,#orderMetrics{grid-template-columns:repeat(2");
+    expect(staging).toContain("<svg viewBox=");
+  });
+
   it("emits syntactically valid Admin login JavaScript", () => {
     const html = adminLoginHtml();
     compileInlineScripts(html);
