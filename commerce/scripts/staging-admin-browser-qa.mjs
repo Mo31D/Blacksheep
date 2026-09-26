@@ -256,13 +256,15 @@ async function waitForOrderList(page, label) {
 
   await page.waitForSelector("#orders", { timeout: 20_000 });
   await page.waitForSelector('[data-order-class="TEST"]', { timeout: 20_000 });
-  await page.locator('[data-order-class="TEST"]').click();
-  await page.waitForResponse(
-    (response) =>
-      response.url().includes("/admin/api/orders?dataClass=TEST") &&
-      response.status() === 200,
-    { timeout: 20_000 },
-  );
+  await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/admin/api/orders?dataClass=TEST") &&
+        response.status() === 200,
+      { timeout: 20_000 },
+    ),
+    page.locator('[data-order-class="TEST"]').click(),
+  ]);
 
   const row = page.locator('#orders [data-ref="' + REF + '"]');
 
