@@ -24,6 +24,8 @@ interface Env {
   PRODUCT_MEDIA?: R2BucketLike;
   ORDER_RESERVATIONS_ENABLED?: string;
   D1_PUBLIC_CATALOG_ENABLED?: string;
+  ADMIN_ACCESS_MODE?: string;
+  ADMIN_BASE_URL?: string;
 }
 
 const SERVICE = "black-sheep-commerce-api";
