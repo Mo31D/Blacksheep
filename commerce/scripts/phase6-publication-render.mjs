@@ -325,6 +325,26 @@ function patchExistingPage(source, item, publication) {
   return html;
 }
 
+function slugRedirectPage(oldSlug, item) {
+  const targetPath = "/products/" + item.slug + ".html";
+  const targetUrl = base + targetPath;
+  const title = item.name + " | The Black Sheep Shop Ambleside";
+  return (
+    '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    "<title>" + esc(title) + "</title>" +
+    '<meta name="robots" content="noindex,follow">' +
+    '<link rel="canonical" href="' + esc(targetUrl) + '">' +
+    '<meta http-equiv="refresh" content="0;url=' + esc(targetPath) + '">' +
+    '<script>location.replace(' + JSON.stringify(targetPath) + ')</script>' +
+    '</head><body><main><p>This product page has moved. <a href="' +
+    esc(targetPath) +
+    '">Continue to ' +
+    esc(item.name) +
+    "</a>.</p></main></body></html>"
+  );
+}
+
 function genericPage(item, publication) {
   const url = base + "/products/" + item.slug + ".html";
   const title = publication.seoTitle || item.name + " | The Black Sheep Shop Ambleside";
@@ -504,6 +524,10 @@ const coreMismatches = [];
 const specialistDetailRegressions = [];
 let existingTemplates = 0;
 let genericPages = 0;
+let slugAliasPages = 0;
+const slugAliasConflicts = [];
+const currentSlugs = new Set(items.map((item) => item.slug));
+const aliasTargets = new Map();
 
 for (const item of items) {
   const publication = publicationById.get(item.id);
@@ -535,6 +559,46 @@ for (const item of items) {
   const problems = pageProblems(html, item);
   if (problems.length) coreMismatches.push({ id: item.id, problems });
   writeFileSync(resolve(outDir, "products", item.slug + ".html"), html, "utf8");
+}
+
+for (const item of items) {
+  const publication = publicationById.get(item.id);
+  const history = Array.isArray(publication?.slugHistory)
+    ? publication.slugHistory
+    : [];
+
+  for (const entry of history) {
+    const oldSlug = String(entry?.slug || "").trim();
+    if (!oldSlug || oldSlug === item.slug) continue;
+
+    if (currentSlugs.has(oldSlug)) {
+      slugAliasConflicts.push({
+        id: item.id,
+        alias: oldSlug,
+        problem: "alias_conflicts_with_current_slug",
+      });
+      continue;
+    }
+
+    const existingTarget = aliasTargets.get(oldSlug);
+    if (existingTarget && existingTarget !== item.slug) {
+      slugAliasConflicts.push({
+        id: item.id,
+        alias: oldSlug,
+        problem: "alias_points_to_multiple_products",
+        targets: [existingTarget, item.slug],
+      });
+      continue;
+    }
+
+    aliasTargets.set(oldSlug, item.slug);
+    writeFileSync(
+      resolve(outDir, "products", oldSlug + ".html"),
+      slugRedirectPage(oldSlug, item),
+      "utf8",
+    );
+    slugAliasPages += 1;
+  }
 }
 
 const sitemapSource = readFileSync(resolve(repoRoot, "sitemap.xml"), "utf8");
@@ -569,12 +633,15 @@ const report = {
   ok:
     coreMismatches.length === 0 &&
     specialistDetailRegressions.length === 0 &&
+    slugAliasConflicts.length === 0 &&
     items.length === manifest.products.length,
   candidateProducts: items.length,
   manifestProducts: manifest.products.length,
   productPages: items.length,
   existingTemplates,
   genericPages,
+  slugAliasPages,
+  slugAliasConflicts,
   specialistDetailRegressions,
   coreMismatches,
   sitemapNonProductUrls: nonProductBlocks.length,
