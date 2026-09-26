@@ -95,6 +95,7 @@ import {
   finalizeStocktakeSession,
   getStocktakeSession,
   listOpenStocktakeSessions,
+  previewStocktakeScope,
   saveStocktakeItem,
 } from "../data/stocktake";
 import {
@@ -175,6 +176,7 @@ interface AdminDependencies {
   bulkInventoryCountFn: typeof bulkInventoryCount;
   listInventoryHistoryFn: typeof listInventoryHistory;
   listOpenStocktakeSessionsFn: typeof listOpenStocktakeSessions;
+  previewStocktakeScopeFn: typeof previewStocktakeScope;
   getStocktakeSessionFn: typeof getStocktakeSession;
   createStocktakeSessionFn: typeof createStocktakeSession;
   saveStocktakeItemFn: typeof saveStocktakeItem;
@@ -240,6 +242,7 @@ const defaults: AdminDependencies = {
   bulkInventoryCountFn: bulkInventoryCount,
   listInventoryHistoryFn: listInventoryHistory,
   listOpenStocktakeSessionsFn: listOpenStocktakeSessions,
+  previewStocktakeScopeFn: previewStocktakeScope,
   getStocktakeSessionFn: getStocktakeSession,
   createStocktakeSessionFn: createStocktakeSession,
   saveStocktakeItemFn: saveStocktakeItem,
@@ -811,6 +814,16 @@ export async function handleAdminRequest(
         priceMinor: product.priceMinor,
       }));
     return json({ products });
+  }
+
+  if (url.pathname === "/admin/api/stocktakes/preview" && request.method === "POST") {
+    try {
+      const raw = await readProductJson(request);
+      const preview = await deps.previewStocktakeScopeFn(env.DB, raw);
+      return json(preview);
+    } catch (cause) {
+      return stocktakeMutationError(cause);
+    }
   }
 
   if (url.pathname === "/admin/api/stocktakes" && request.method === "GET") {
