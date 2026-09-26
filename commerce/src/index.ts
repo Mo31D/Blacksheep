@@ -7,6 +7,7 @@ import { handleProductMediaRequest } from "./routes/product-media";
 import { handlePublicCatalogRequest } from "./routes/catalog";
 import type { R2BucketLike } from "./data/product-media";
 import { expireDueReservations } from "./data/order-reservations";
+import { captureAdminStockValuationSnapshot } from "./data/inventory-valuation";
 
 interface Env {
   ENVIRONMENT?: string;
@@ -178,12 +179,18 @@ export default {
   },
 
   async scheduled(_controller: unknown, env: Env): Promise<void> {
-    if (
-      env.ORDER_RESERVATIONS_ENABLED !== "true" ||
-      !env.DB
-    ) {
-      return;
+    if (!env.DB) return;
+
+    if (env.ORDER_RESERVATIONS_ENABLED === "true") {
+      await expireDueReservations(env.DB, { limit: 100 });
     }
-    await expireDueReservations(env.DB, { limit: 100 });
+
+    // The cron already runs every 30 minutes. The valuation snapshot is an
+    // idempotent daily upsert, so this keeps today's stock value current while
+    // retaining one historical point per day for the report graph.
+    await captureAdminStockValuationSnapshot(env.DB, {
+      locationId: "loc_ambleside",
+      days: 90,
+    });
   },
 };
