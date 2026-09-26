@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
 
+# Final post-cleanup rerun: 2026-09-26
 jobs:
   backend-full-audit:
     runs-on: ubuntu-latest
@@ -170,40 +171,6 @@ jobs:
           const products=Number(b?.[1]?.results?.[0]?.active_products??-1);
           if(latest!=="0012_order_returns.sql"||products!==146){
             console.error({latest,products});
-            process.exit(1);
-          }
-          NODE
-
-      - name: Clean failed-audit orphan rows from the previous run
-        shell: bash
-        run: |
-          IDS="'e2e-36232650278','e2e-cancel-36232650278'"
-          npx wrangler d1 execute black-sheep-commerce-staging --remote --env staging --json \
-            --command "SELECT COUNT(*) AS reservation_items FROM inventory_reservation_items iri JOIN inventory_reservations ir ON ir.id=iri.reservation_id WHERE ir.order_id IN ($IDS); SELECT COUNT(*) AS movements FROM inventory_movements WHERE order_id IN ($IDS);" \
-            > /tmp/backend-orphan-safety.json
-          cat /tmp/backend-orphan-safety.json
-          node - /tmp/backend-orphan-safety.json <<'NODE'
-          const fs=require("fs");
-          const b=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
-          const reservationItems=Number(b?.[0]?.results?.[0]?.reservation_items??-1);
-          const movements=Number(b?.[1]?.results?.[0]?.movements??-1);
-          if(reservationItems!==0||movements!==0){
-            console.error("Refusing orphan cleanup: immutable inventory evidence exists.",{reservationItems,movements});
-            process.exit(1);
-          }
-          console.log("Orphan cleanup safety gate passed.");
-          NODE
-          npx wrangler d1 execute black-sheep-commerce-staging --remote --env staging --json \
-            --command "DELETE FROM order_messages WHERE order_id IN ($IDS); DELETE FROM customer_review_tokens WHERE order_id IN ($IDS); DELETE FROM refunds WHERE order_id IN ($IDS); DELETE FROM order_adjustments WHERE revision_id IN (SELECT id FROM order_revisions WHERE order_id IN ($IDS)); DELETE FROM inventory_reservations WHERE order_id IN ($IDS); DELETE FROM order_revision_items WHERE revision_id IN (SELECT id FROM order_revisions WHERE order_id IN ($IDS)); DELETE FROM order_revisions WHERE order_id IN ($IDS); DELETE FROM order_events WHERE order_id IN ($IDS); DELETE FROM order_items WHERE order_id IN ($IDS); DELETE FROM orders WHERE id IN ($IDS);"
-          npx wrangler d1 execute black-sheep-commerce-staging --remote --env staging --json \
-            --command "SELECT COUNT(*) AS remaining_orders FROM orders WHERE id IN ($IDS); SELECT COUNT(*) AS remaining_reservations FROM inventory_reservations WHERE order_id IN ($IDS);" \
-            > /tmp/backend-orphan-cleanup-result.json
-          cat /tmp/backend-orphan-cleanup-result.json
-          node - /tmp/backend-orphan-cleanup-result.json <<'NODE'
-          const fs=require("fs");
-          const b=JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
-          if(Number(b?.[0]?.results?.[0]?.remaining_orders??-1)!==0||Number(b?.[1]?.results?.[0]?.remaining_reservations??-1)!==0){
-            console.error("Failed-audit orphan cleanup did not complete.",b);
             process.exit(1);
           }
           NODE
