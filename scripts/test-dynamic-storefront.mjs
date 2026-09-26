@@ -1,7 +1,10 @@
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+const repoRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const fail=[];
-const read=p=>fs.readFileSync(p,'utf8');
+const read=p=>fs.readFileSync(path.join(repoRoot,p),'utf8');
 
 const live=read('assets/commerce-live.js');
 const site=read('assets/site.js');
