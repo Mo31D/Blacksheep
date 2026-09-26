@@ -67,8 +67,11 @@ jobs:
           const crons=config.triggers?.crons||[];
           const site=fs.readFileSync("../assets/site.js","utf8");
           const failures=[];
-          for(const key of ["ORDER_RESERVATIONS_ENABLED","D1_PUBLIC_CATALOG_ENABLED","D1_COMMERCE_AUTHORITY_ENABLED"]){
+          for(const key of ["ORDER_RESERVATIONS_ENABLED","D1_PUBLIC_CATALOG_ENABLED"]){
             if(vars[key]!=="true") failures.push(key+" not enabled");
+          }
+          if(Object.prototype.hasOwnProperty.call(vars,"D1_COMMERCE_AUTHORITY_ENABLED")){
+            failures.push("obsolete D1_COMMERCE_AUTHORITY_ENABLED switch still present");
           }
           if(!r2.some(x=>x.binding==="PRODUCT_MEDIA"&&x.bucket_name==="black-sheep-product-media-prod")){
             failures.push("Production PRODUCT_MEDIA binding missing");
@@ -125,6 +128,7 @@ jobs:
           if(h.features?.orderReservations!==true) failures.push("orderReservations");
           if(h.features?.publicCatalog!==true) failures.push("publicCatalog");
           if(h.features?.commerceAuthority!==true) failures.push("commerceAuthority");
+          if(h.features?.commerceAuthorityContract!=="d1-published-v1") failures.push("commerceAuthorityContract");
           if(h.notifications?.provider!=="resend") failures.push("resend");
           if(h.notifications?.fromConfigured!==true) failures.push("fromConfigured");
           if(h.notifications?.ownerConfigured!==true) failures.push("ownerConfigured");
