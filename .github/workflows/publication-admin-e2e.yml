@@ -51,7 +51,7 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN"
           test -n "$CLOUDFLARE_ACCOUNT_ID"
 
-      - name: Confirm staging/production safety baseline
+      - name: Confirm staging baseline and post-cutover Production safety
         shell: bash
         run: |
           npx wrangler d1 execute black-sheep-commerce-staging --remote --env staging --json             --command "SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT COUNT(*) AS active FROM products WHERE publication_status='ACTIVE' AND current_published_version_id IS NOT NULL;"             > /tmp/phase6-publish-staging-baseline.json
@@ -67,15 +67,24 @@ jobs:
           }
           NODE
 
-          npx wrangler d1 execute black-sheep-commerce-prod --remote --json             --command "SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT COUNT(*) AS forbidden_tables FROM sqlite_master WHERE type='table' AND name IN ('products','product_variants','inventory_balances','inventory_reservations');"             > /tmp/phase6-publish-production-safety.json
+          npx wrangler d1 execute black-sheep-commerce-prod --remote --json             --command "SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT COUNT(*) AS active FROM products WHERE publication_status='ACTIVE' AND current_published_version_id IS NOT NULL; SELECT COUNT(*) AS missing_published FROM products WHERE publication_status='ACTIVE' AND current_published_version_id IS NULL;"             > /tmp/phase6-publish-production-safety.json
           cat /tmp/phase6-publish-production-safety.json
           node - /tmp/phase6-publish-production-safety.json <<'NODE'
           const fs = require("fs");
           const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
           const latest = String(blocks?.[0]?.results?.[0]?.name ?? "");
-          const forbidden = Number(blocks?.[1]?.results?.[0]?.forbidden_tables ?? -1);
-          if (latest !== "0008_concurrency_guards.sql" || forbidden !== 0) {
-            console.error("Production isolation gate failed.", { latest, forbidden });
+          const active = Number(blocks?.[1]?.results?.[0]?.active ?? -1);
+          const missingPublished = Number(blocks?.[2]?.results?.[0]?.missing_published ?? -1);
+          if (
+            latest !== "0012_order_returns.sql" ||
+            active < 1 ||
+            missingPublished !== 0
+          ) {
+            console.error("Post-cutover Production publication safety gate failed.", {
+              latest,
+              active,
+              missingPublished,
+            });
             process.exit(1);
           }
           NODE
