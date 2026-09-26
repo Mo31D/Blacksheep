@@ -184,6 +184,8 @@ function exportAndRender(outDir, expectedCount, requireBaselineParity) {
   const exportReport = path.join(outDir, "export-report.json");
   const site = path.join(outDir, "site");
   const renderReport = path.join(outDir, "render-report.json");
+  const collectionsReport = path.join(outDir, "collections-report.json");
+  const packageReport = path.join(outDir, "package-report.json");
 
   const exportArgs = [
     "--remote",
@@ -211,8 +213,30 @@ function exportAndRender(outDir, expectedCount, requireBaselineParity) {
     renderReport,
   ]);
 
+  runNode("scripts/phase6-publication-collections.mjs", [
+    "--catalog",
+    catalog,
+    "--out-dir",
+    site,
+    "--report-out",
+    collectionsReport,
+  ]);
+
+  runNode("scripts/phase6-publication-verify.mjs", [
+    "--catalog",
+    catalog,
+    "--manifest",
+    manifest,
+    "--site-dir",
+    site,
+    "--report-out",
+    packageReport,
+  ]);
+
   const exportData = JSON.parse(fs.readFileSync(exportReport, "utf8"));
   const renderData = JSON.parse(fs.readFileSync(renderReport, "utf8"));
+  const collectionsData = JSON.parse(fs.readFileSync(collectionsReport, "utf8"));
+  const packageData = JSON.parse(fs.readFileSync(packageReport, "utf8"));
 
   assert.equal(
     exportData.candidateProducts,
@@ -229,8 +253,29 @@ function exportAndRender(outDir, expectedCount, requireBaselineParity) {
     expectedCount,
     "Unexpected rendered sitemap Product URL count.",
   );
+  assert.equal(
+    collectionsData.collectionPages,
+    14,
+    "Unexpected rendered collection page count.",
+  );
+  assert.equal(
+    collectionsData.problems.length,
+    0,
+    "Collection publication candidate has problems.",
+  );
+  assert.equal(packageData.ok, true, "Unified publication package verification failed.");
+  assert.equal(packageData.products, expectedCount);
+  assert.equal(packageData.manifestProducts, expectedCount);
 
-  return { catalog, manifest, site, exportData, renderData };
+  return {
+    catalog,
+    manifest,
+    site,
+    exportData,
+    renderData,
+    collectionsData,
+    packageData,
+  };
 }
 
 async function runQa() {
@@ -392,6 +437,27 @@ async function runQa() {
       "Published candidate Product missing from sitemap.",
     );
 
+    const fullRangePublished = fs.readFileSync(
+      path.join(published.site, "all-products.html"),
+      "utf8",
+    );
+    assert.ok(
+      fullRangePublished.includes('data-url="/products/' + slug + '.html"'),
+      "Published Admin Product missing from candidate full-range cards.",
+    );
+    assert.ok(
+      fullRangePublished.includes(
+        "https://theblacksheepshop.co.uk/products/" + slug + ".html",
+      ),
+      "Published Admin Product missing from candidate full-range ItemList.",
+    );
+    const fullRangePublishedReport = published.collectionsData.pages.find(
+      (entry) => entry.file === "all-products.html",
+    );
+    assert.equal(fullRangePublishedReport?.products, 147);
+    assert.equal(fullRangePublishedReport?.cardCount, 147);
+    assert.equal(fullRangePublishedReport?.itemListCount, 147);
+
     await page.screenshot({
       path: path.join(ARTIFACT_DIR, "02-admin-published.png"),
       fullPage: true,
@@ -455,6 +521,27 @@ async function runQa() {
       "Archived QA Product remained in generated sitemap.",
     );
 
+    const fullRangeArchived = fs.readFileSync(
+      path.join(archived.site, "all-products.html"),
+      "utf8",
+    );
+    assert.ok(
+      !fullRangeArchived.includes('data-url="/products/' + slug + '.html"'),
+      "Archived QA Product remained in candidate full-range cards.",
+    );
+    assert.ok(
+      !fullRangeArchived.includes(
+        "https://theblacksheepshop.co.uk/products/" + slug + ".html",
+      ),
+      "Archived QA Product remained in candidate full-range ItemList.",
+    );
+    const fullRangeArchivedReport = archived.collectionsData.pages.find(
+      (entry) => entry.file === "all-products.html",
+    );
+    assert.equal(fullRangeArchivedReport?.products, 146);
+    assert.equal(fullRangeArchivedReport?.cardCount, 146);
+    assert.equal(fullRangeArchivedReport?.itemListCount, 146);
+
     const audit = d1(
       "SELECT event_type AS eventType FROM product_audit_events WHERE product_id=" +
         q(productId) +
@@ -487,11 +574,14 @@ async function runQa() {
             "generic-product-page-generated",
             "candidate-canonical-jsonld-price",
             "candidate-sitemap-inclusion",
+            "candidate-full-range-card-and-itemlist-inclusion",
+            "candidate-package-verifier",
             "admin-ui-archive",
             "public-api-404-after-archive",
             "publication-candidate-restored-146",
             "candidate-page-removed-after-archive",
             "candidate-sitemap-removal",
+            "candidate-full-range-card-and-itemlist-removal",
             "audit-created-published-archived",
           ],
         },
