@@ -21,7 +21,10 @@
     "TURNSTILE_ALLOWED_HOSTNAMES": "theblacksheepshop.co.uk,www.theblacksheepshop.co.uk",
     "TURNSTILE_EXPECTED_ACTION": "order_request",
     "ORDER_EMAIL_FROM": "orders@theblacksheepshop.co.uk",
-    "ADMIN_BASE_URL": "https://api.theblacksheepshop.co.uk/admin"
+    "ADMIN_BASE_URL": "https://api.theblacksheepshop.co.uk/admin",
+    "ORDER_RESERVATIONS_ENABLED": "true",
+    "D1_PUBLIC_CATALOG_ENABLED": "true",
+    "D1_COMMERCE_AUTHORITY_ENABLED": "true"
   },
   "previews": {
     "vars": {
@@ -33,7 +36,9 @@
     "staging": {
       "workers_dev": true,
       "triggers": {
-        "crons": ["*/30 * * * *"]
+        "crons": [
+          "*/30 * * * *"
+        ]
       },
       "d1_databases": [
         {
@@ -81,6 +86,17 @@
         "limit": 5,
         "period": 60
       }
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "*/30 * * * *"
+    ]
+  },
+  "r2_buckets": [
+    {
+      "binding": "PRODUCT_MEDIA",
+      "bucket_name": "black-sheep-product-media-prod"
     }
   ]
 }

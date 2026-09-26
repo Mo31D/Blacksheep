@@ -645,7 +645,7 @@ document.addEventListener('DOMContentLoaded',initCommerceLegalFooter);
 
 
 /* PHASE 6 LIVE COMMERCE OVERLAY LOADER START */
-const BLACK_SHEEP_PRODUCTION_LIVE_COMMERCE=false;
+const BLACK_SHEEP_PRODUCTION_LIVE_COMMERCE=true;
 const blackSheepCommercePreviewKey='black-sheep-commerce-preview-v1';
 function blackSheepLiveCommerceConfig(){
   const params=new URLSearchParams(location.search);
