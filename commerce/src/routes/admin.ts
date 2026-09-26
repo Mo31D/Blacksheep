@@ -90,6 +90,14 @@ import {
   listAdminSuppliers,
 } from "../data/inventory-valuation";
 import {
+  cancelStocktakeSession,
+  createStocktakeSession,
+  finalizeStocktakeSession,
+  getStocktakeSession,
+  listOpenStocktakeSessions,
+  saveStocktakeItem,
+} from "../data/stocktake";
+import {
   archiveAdminStorefrontNode,
   createAdminStorefrontNode,
   getAdminStorefrontNode,
@@ -166,6 +174,12 @@ interface AdminDependencies {
   physicalInventoryCountFn: typeof physicalInventoryCount;
   bulkInventoryCountFn: typeof bulkInventoryCount;
   listInventoryHistoryFn: typeof listInventoryHistory;
+  listOpenStocktakeSessionsFn: typeof listOpenStocktakeSessions;
+  getStocktakeSessionFn: typeof getStocktakeSession;
+  createStocktakeSessionFn: typeof createStocktakeSession;
+  saveStocktakeItemFn: typeof saveStocktakeItem;
+  finalizeStocktakeSessionFn: typeof finalizeStocktakeSession;
+  cancelStocktakeSessionFn: typeof cancelStocktakeSession;
   getAdminStockValuationFn: typeof getAdminStockValuation;
   captureAdminStockValuationSnapshotFn: typeof captureAdminStockValuationSnapshot;
   listAdminSuppliersFn: typeof listAdminSuppliers;
@@ -225,6 +239,12 @@ const defaults: AdminDependencies = {
   physicalInventoryCountFn: physicalInventoryCount,
   bulkInventoryCountFn: bulkInventoryCount,
   listInventoryHistoryFn: listInventoryHistory,
+  listOpenStocktakeSessionsFn: listOpenStocktakeSessions,
+  getStocktakeSessionFn: getStocktakeSession,
+  createStocktakeSessionFn: createStocktakeSession,
+  saveStocktakeItemFn: saveStocktakeItem,
+  finalizeStocktakeSessionFn: finalizeStocktakeSession,
+  cancelStocktakeSessionFn: cancelStocktakeSession,
   getAdminStockValuationFn: getAdminStockValuation,
   captureAdminStockValuationSnapshotFn: captureAdminStockValuationSnapshot,
   listAdminSuppliersFn: listAdminSuppliers,
@@ -538,6 +558,46 @@ function inventoryMutationError(cause: unknown): Response {
   return error(code, status, messages[code] ?? "Unable to update inventory.");
 }
 
+function stocktakeMutationError(cause: unknown): Response {
+  const code =
+    cause instanceof Error ? cause.message : "stocktake_update_failed";
+  const notFound = new Set([
+    "stocktake_not_found",
+    "stocktake_item_not_found",
+    "stocktake_scope_not_found",
+    "stocktake_location_not_found",
+  ]);
+  const conflicts = new Set([
+    "stocktake_item_version_conflict",
+    "stocktake_session_version_conflict",
+    "stocktake_not_editable",
+    "stocktake_not_finalizable",
+  ]);
+  const messages: Record<string, string> = {
+    stocktake_scope_type_invalid: "Choose what you want to count.",
+    stocktake_scope_ref_required: "Choose a section, brand or category.",
+    stocktake_scope_not_found: "That stocktake scope is no longer available.",
+    stocktake_scope_type_mismatch: "That option does not match the selected stocktake type.",
+    stocktake_custom_items_required: "Choose at least one product for a custom stocktake.",
+    stocktake_custom_items_invalid: "Choose between 1 and 500 products.",
+    stocktake_scope_empty: "There are no products in this stocktake scope.",
+    stocktake_scope_too_large: "This stocktake contains too many products.",
+    stocktake_location_not_found: "Stock location not found.",
+    stocktake_not_found: "Stocktake session not found.",
+    stocktake_item_not_found: "This stocktake product is no longer available.",
+    stocktake_item_version_conflict: "This count changed in another tab. Refresh the stocktake before continuing.",
+    stocktake_session_version_conflict: "This stocktake changed in another tab. Refresh it before continuing.",
+    stocktake_item_action_invalid: "Choose Count or Skip.",
+    stocktake_count_invalid: "Physical quantity must be a whole number.",
+    stocktake_position_invalid: "Stocktake position is invalid.",
+    stocktake_not_editable: "This stocktake can no longer be edited.",
+    stocktake_not_finalizable: "This stocktake can no longer be finalized.",
+    stocktake_no_counts: "Enter at least one physical count before finishing.",
+  };
+  const status = notFound.has(code) ? 404 : conflicts.has(code) ? 409 : 400;
+  return error(code, status, messages[code] ?? "Unable to update stocktake.");
+}
+
 async function readProductJson(request: Request): Promise<Record<string, unknown>> {
   const raw = await readJson(request);
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
@@ -751,6 +811,98 @@ export async function handleAdminRequest(
         priceMinor: product.priceMinor,
       }));
     return json({ products });
+  }
+
+  if (url.pathname === "/admin/api/stocktakes" && request.method === "GET") {
+    try {
+      const sessions = await deps.listOpenStocktakeSessionsFn(
+        env.DB,
+        url.searchParams.get("location") ?? undefined,
+      );
+      return json({ sessions });
+    } catch (cause) {
+      return stocktakeMutationError(cause);
+    }
+  }
+
+  if (url.pathname === "/admin/api/stocktakes" && request.method === "POST") {
+    try {
+      const raw = await readProductJson(request);
+      const detail = await deps.createStocktakeSessionFn(
+        env.DB,
+        raw,
+        identity.email,
+      );
+      return json(detail, 201);
+    } catch (cause) {
+      return stocktakeMutationError(cause);
+    }
+  }
+
+  const stocktakeItemMatch = url.pathname.match(
+    /^\/admin\/api\/stocktakes\/([^/]+)\/items\/([^/]+)$/,
+  );
+  if (stocktakeItemMatch && request.method === "PATCH") {
+    try {
+      const raw = await readProductJson(request);
+      const detail = await deps.saveStocktakeItemFn(
+        env.DB,
+        decodeURIComponent(stocktakeItemMatch[1]),
+        decodeURIComponent(stocktakeItemMatch[2]),
+        raw,
+      );
+      return json(detail);
+    } catch (cause) {
+      return stocktakeMutationError(cause);
+    }
+  }
+
+  const stocktakeFinalizeMatch = url.pathname.match(
+    /^\/admin\/api\/stocktakes\/([^/]+)\/finalize$/,
+  );
+  if (stocktakeFinalizeMatch && request.method === "POST") {
+    try {
+      const detail = await deps.finalizeStocktakeSessionFn(
+        env.DB,
+        decodeURIComponent(stocktakeFinalizeMatch[1]),
+        identity.email,
+      );
+      return json(detail);
+    } catch (cause) {
+      return stocktakeMutationError(cause);
+    }
+  }
+
+  const stocktakeCancelMatch = url.pathname.match(
+    /^\/admin\/api\/stocktakes\/([^/]+)\/cancel$/,
+  );
+  if (stocktakeCancelMatch && request.method === "POST") {
+    try {
+      const raw = await readProductJson(request);
+      const result = await deps.cancelStocktakeSessionFn(
+        env.DB,
+        decodeURIComponent(stocktakeCancelMatch[1]),
+        raw.expectedVersion,
+      );
+      return json(result);
+    } catch (cause) {
+      return stocktakeMutationError(cause);
+    }
+  }
+
+  const stocktakeMatch = url.pathname.match(
+    /^\/admin\/api\/stocktakes\/([^/]+)$/,
+  );
+  if (stocktakeMatch && request.method === "GET") {
+    try {
+      const detail = await deps.getStocktakeSessionFn(
+        env.DB,
+        decodeURIComponent(stocktakeMatch[1]),
+      );
+      return json(detail);
+    } catch (cause) {
+      return stocktakeMutationError(cause);
+    }
   }
 
   if (url.pathname === "/admin/api/inventory/locations" && request.method === "GET") {
