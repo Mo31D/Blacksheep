@@ -253,7 +253,7 @@ async function runQa() {
       timeout: 60_000,
     });
 
-    await page.locator('[data-nav="products"]').click();
+    await page.locator('aside.sidebar [data-nav="products"]').click();
     await page.locator("#view-products.active").waitFor({
       state: "visible",
       timeout: 20_000,
