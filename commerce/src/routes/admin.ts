@@ -90,6 +90,15 @@ import {
   listAdminSuppliers,
 } from "../data/inventory-valuation";
 import {
+  archiveAdminStorefrontNode,
+  createAdminStorefrontNode,
+  getAdminStorefrontNode,
+  listAdminStorefrontNodes,
+  moveAdminStorefrontNode,
+  restoreAdminStorefrontNode,
+  updateAdminStorefrontNode,
+} from "../data/storefront-structure";
+import {
   expireDueReservations,
   getRevisionReservationAdminView,
   returnConsumedReservationToStock,
@@ -123,6 +132,13 @@ interface AdminDependencies {
   listAdminProductsFn: typeof listAdminProducts;
   getAdminProductDetailFn: typeof getAdminProductDetail;
   listAdminCategoriesFn: typeof listAdminCategories;
+  listAdminStorefrontNodesFn: typeof listAdminStorefrontNodes;
+  getAdminStorefrontNodeFn: typeof getAdminStorefrontNode;
+  createAdminStorefrontNodeFn: typeof createAdminStorefrontNode;
+  updateAdminStorefrontNodeFn: typeof updateAdminStorefrontNode;
+  moveAdminStorefrontNodeFn: typeof moveAdminStorefrontNode;
+  archiveAdminStorefrontNodeFn: typeof archiveAdminStorefrontNode;
+  restoreAdminStorefrontNodeFn: typeof restoreAdminStorefrontNode;
   createAdminCategoryFn: typeof createAdminCategory;
   updateAdminCategoryFn: typeof updateAdminCategory;
   archiveAdminCategoryFn: typeof archiveAdminCategory;
@@ -174,6 +190,13 @@ const defaults: AdminDependencies = {
   listAdminProductsFn: listAdminProducts,
   getAdminProductDetailFn: getAdminProductDetail,
   listAdminCategoriesFn: listAdminCategories,
+  listAdminStorefrontNodesFn: listAdminStorefrontNodes,
+  getAdminStorefrontNodeFn: getAdminStorefrontNode,
+  createAdminStorefrontNodeFn: createAdminStorefrontNode,
+  updateAdminStorefrontNodeFn: updateAdminStorefrontNode,
+  moveAdminStorefrontNodeFn: moveAdminStorefrontNode,
+  archiveAdminStorefrontNodeFn: archiveAdminStorefrontNode,
+  restoreAdminStorefrontNodeFn: restoreAdminStorefrontNode,
   createAdminCategoryFn: createAdminCategory,
   updateAdminCategoryFn: updateAdminCategory,
   archiveAdminCategoryFn: archiveAdminCategory,
@@ -236,6 +259,42 @@ function categoryMutationError(cause: unknown): Response {
     code === "category_name_conflict" ? 409 :
     400;
   return error(code, status, messages[code] ?? "Unable to update category.");
+}
+
+function storefrontMutationError(cause: unknown): Response {
+  const code =
+    cause instanceof Error ? cause.message : "storefront_update_failed";
+  const conflicts = new Set([
+    "storefront_version_conflict",
+    "storefront_archive_has_children",
+    "storefront_parent_archived",
+    "storefront_archived",
+  ]);
+  const notFound = new Set([
+    "storefront_not_found",
+    "storefront_parent_not_found",
+  ]);
+  const messages: Record<string, string> = {
+    storefront_name_required: "Section name is required.",
+    storefront_name_too_long: "Section name must be 100 characters or fewer.",
+    storefront_description_too_long: "Section description must be 500 characters or fewer.",
+    storefront_image_url_too_long: "Section image address is too long.",
+    storefront_navigation_invalid: "Menu visibility value is invalid.",
+    storefront_expected_version_invalid: "Section version is invalid.",
+    storefront_version_conflict: "This section changed while you were editing it. Refresh and try again.",
+    storefront_slug_unavailable: "A unique section address could not be created.",
+    storefront_parent_invalid: "A section cannot be its own parent.",
+    storefront_parent_not_found: "Parent section not found.",
+    storefront_parent_archived: "Restore the parent section before using it.",
+    storefront_depth_invalid: "Sub-sections can only sit directly under a main section.",
+    storefront_sort_order_invalid: "Section order is invalid.",
+    storefront_move_invalid: "Section move is invalid.",
+    storefront_archived: "Restore this section before editing it.",
+    storefront_archive_has_children: "Archive or move the sub-sections first.",
+    storefront_not_found: "Section not found.",
+  };
+  const status = notFound.has(code) ? 404 : conflicts.has(code) ? 409 : 400;
+  return error(code, status, messages[code] ?? "Unable to update website structure.");
 }
 
 function productMutationError(cause: unknown): Response {
@@ -796,6 +855,112 @@ export async function handleAdminRequest(
       limit: Number(url.searchParams.get("limit") ?? "60"),
     });
     return json(result);
+  }
+
+  if (
+    url.pathname === "/admin/api/storefront-structure" &&
+    request.method === "GET"
+  ) {
+    const nodes = await deps.listAdminStorefrontNodesFn(env.DB, {
+      includeArchived: url.searchParams.get("includeArchived") === "1",
+    });
+    return json({ nodes });
+  }
+
+  if (
+    url.pathname === "/admin/api/storefront-structure" &&
+    request.method === "POST"
+  ) {
+    try {
+      const raw = await readProductJson(request);
+      const created = await deps.createAdminStorefrontNodeFn(
+        env.DB,
+        raw,
+        identity.email,
+      );
+      const node = await deps.getAdminStorefrontNodeFn(env.DB, created.id);
+      return json({ node }, 201);
+    } catch (cause) {
+      return storefrontMutationError(cause);
+    }
+  }
+
+  const storefrontMatch = url.pathname.match(
+    /^\/admin\/api\/storefront-structure\/([^/]+)$/,
+  );
+  if (storefrontMatch && request.method === "PATCH") {
+    const nodeId = decodeURIComponent(storefrontMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      await deps.updateAdminStorefrontNodeFn(
+        env.DB,
+        nodeId,
+        raw,
+        identity.email,
+      );
+      const node = await deps.getAdminStorefrontNodeFn(env.DB, nodeId);
+      return json({ node });
+    } catch (cause) {
+      return storefrontMutationError(cause);
+    }
+  }
+
+  const storefrontMoveMatch = url.pathname.match(
+    /^\/admin\/api\/storefront-structure\/([^/]+)\/move$/,
+  );
+  if (storefrontMoveMatch && request.method === "POST") {
+    const nodeId = decodeURIComponent(storefrontMoveMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      await deps.moveAdminStorefrontNodeFn(
+        env.DB,
+        nodeId,
+        String(raw.direction ?? "").toUpperCase() as "UP" | "DOWN",
+        raw.expectedVersion,
+        identity.email,
+      );
+      return json({ ok: true });
+    } catch (cause) {
+      return storefrontMutationError(cause);
+    }
+  }
+
+  const storefrontArchiveMatch = url.pathname.match(
+    /^\/admin\/api\/storefront-structure\/([^/]+)\/archive$/,
+  );
+  if (storefrontArchiveMatch && request.method === "POST") {
+    const nodeId = decodeURIComponent(storefrontArchiveMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      await deps.archiveAdminStorefrontNodeFn(
+        env.DB,
+        nodeId,
+        raw.expectedVersion,
+        identity.email,
+      );
+      return json({ ok: true });
+    } catch (cause) {
+      return storefrontMutationError(cause);
+    }
+  }
+
+  const storefrontRestoreMatch = url.pathname.match(
+    /^\/admin\/api\/storefront-structure\/([^/]+)\/restore$/,
+  );
+  if (storefrontRestoreMatch && request.method === "POST") {
+    const nodeId = decodeURIComponent(storefrontRestoreMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      await deps.restoreAdminStorefrontNodeFn(
+        env.DB,
+        nodeId,
+        raw.expectedVersion,
+        identity.email,
+      );
+      return json({ ok: true });
+    } catch (cause) {
+      return storefrontMutationError(cause);
+    }
   }
 
   if (url.pathname === "/admin/api/categories" && request.method === "GET") {
