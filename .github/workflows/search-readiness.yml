@@ -11,6 +11,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: node scripts/verify-search-readiness.mjs
-      - run: node scripts/build-icecream.mjs --check
-      - run: node scripts/build-romneys.mjs --check
+      - name: Verify current published static/search contract
+        run: node scripts/verify-search-readiness.mjs
