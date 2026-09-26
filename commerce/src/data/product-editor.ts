@@ -1577,12 +1577,212 @@ export async function archiveAdminProduct(
   await verifyProductToken(db, productId, resultVersion, token);
 }
 
+export type AdminCategoryType =
+  | "BRAND_RANGE"
+  | "PRODUCT_CATEGORY"
+  | "COLLECTION_THEME";
+
+export interface AdminCategory {
+  id: string;
+  slug: string;
+  name: string;
+  categoryType: AdminCategoryType;
+  active: boolean;
+  sortOrder: number;
+  productCount: number;
+}
+
+const CATEGORY_TYPES = new Set<AdminCategoryType>([
+  "BRAND_RANGE",
+  "PRODUCT_CATEGORY",
+  "COLLECTION_THEME",
+]);
+
+function categoryTypeValue(value: unknown): AdminCategoryType {
+  const type = String(value ?? "").trim().toUpperCase() as AdminCategoryType;
+  if (!CATEGORY_TYPES.has(type)) throw new Error("category_type_invalid");
+  return type;
+}
+
+async function uniqueCategorySlug(
+  db: D1DatabaseLike,
+  name: string,
+): Promise<string> {
+  const base = slugify(name);
+  for (let index = 1; index <= 100; index += 1) {
+    const slug = index === 1 ? base : base + "-" + index;
+    const found = await db
+      .prepare("SELECT id FROM categories WHERE slug = ? LIMIT 1")
+      .bind(slug)
+      .first<{ id: string }>();
+    if (!found) return slug;
+  }
+  throw new Error("category_slug_unavailable");
+}
+
+async function assertCategoryNameAvailable(
+  db: D1DatabaseLike,
+  name: string,
+  excludeId: string | null = null,
+): Promise<void> {
+  const found = await db
+    .prepare(
+      "SELECT id FROM categories WHERE LOWER(name) = LOWER(?) AND (? IS NULL OR id <> ?) LIMIT 1",
+    )
+    .bind(name, excludeId, excludeId)
+    .first<{ id: string }>();
+  if (found) throw new Error("category_name_conflict");
+}
+
 export async function listAdminCategories(
   db: D1DatabaseLike,
-): Promise<Array<{ id: string; slug: string; name: string; sortOrder: number }>> {
-  return allRows(
+  options: { includeArchived?: boolean } = {},
+): Promise<AdminCategory[]> {
+  const where = options.includeArchived ? "" : "WHERE c.active = 1";
+  const rows = await allRows<Record<string, unknown>>(
     db.prepare(
-      "SELECT id, slug, name, sort_order AS sortOrder FROM categories WHERE active = 1 ORDER BY sort_order, name COLLATE NOCASE",
+      "SELECT c.id, c.slug, c.name, c.category_type AS categoryType, " +
+        "c.active, c.sort_order AS sortOrder, " +
+        "(SELECT COUNT(DISTINCT p.id) " +
+        " FROM products p " +
+        " JOIN product_version_categories pvc ON pvc.product_version_id = COALESCE(p.current_draft_version_id, p.current_published_version_id) " +
+        " WHERE pvc.category_id = c.id AND p.publication_status <> 'ARCHIVED') AS productCount " +
+        "FROM categories c " +
+        where +
+        " ORDER BY CASE c.category_type WHEN 'BRAND_RANGE' THEN 0 WHEN 'PRODUCT_CATEGORY' THEN 1 ELSE 2 END, c.sort_order, c.name COLLATE NOCASE",
     ),
   );
+  return rows.map((row) => ({
+    id: String(row.id),
+    slug: String(row.slug),
+    name: String(row.name),
+    categoryType: categoryTypeValue(row.categoryType),
+    active: Number(row.active) === 1,
+    sortOrder: Number(row.sortOrder ?? 0),
+    productCount: Number(row.productCount ?? 0),
+  }));
+}
+
+export async function createAdminCategory(
+  db: D1DatabaseLike,
+  raw: {
+    name?: unknown;
+    categoryType?: unknown;
+  },
+): Promise<{ id: string }> {
+  const name = textValue(raw.name, "category_name", {
+    required: true,
+    max: 80,
+  })!;
+  const categoryType = categoryTypeValue(raw.categoryType ?? "PRODUCT_CATEGORY");
+  await assertCategoryNameAvailable(db, name);
+  const slug = await uniqueCategorySlug(db, name);
+  const categoryId = uid("cat");
+  const timestamp = now();
+  const maxRow = await db
+    .prepare(
+      "SELECT COALESCE(MAX(sort_order), 0) AS maxSort FROM categories WHERE category_type = ?",
+    )
+    .bind(categoryType)
+    .first<{ maxSort: number }>();
+  const sortOrder = Number(maxRow?.maxSort ?? 0) + 10;
+  await db
+    .prepare(
+      "INSERT INTO categories (id, slug, name, parent_id, active, sort_order, created_at, updated_at, category_type) VALUES (?, ?, ?, NULL, 1, ?, ?, ?, ?)",
+    )
+    .bind(
+      categoryId,
+      slug,
+      name,
+      sortOrder,
+      timestamp,
+      timestamp,
+      categoryType,
+    )
+    .run();
+  return { id: categoryId };
+}
+
+export async function updateAdminCategory(
+  db: D1DatabaseLike,
+  categoryId: string,
+  raw: {
+    name?: unknown;
+    categoryType?: unknown;
+    sortOrder?: unknown;
+  },
+): Promise<void> {
+  const current = await db
+    .prepare(
+      "SELECT id, name, category_type AS categoryType, sort_order AS sortOrder FROM categories WHERE id = ? LIMIT 1",
+    )
+    .bind(categoryId)
+    .first<Record<string, unknown>>();
+  if (!current) throw new Error("category_not_found");
+
+  const name =
+    raw.name === undefined
+      ? String(current.name)
+      : textValue(raw.name, "category_name", {
+          required: true,
+          max: 80,
+        })!;
+  const categoryType =
+    raw.categoryType === undefined
+      ? categoryTypeValue(current.categoryType)
+      : categoryTypeValue(raw.categoryType);
+  const sortOrder =
+    raw.sortOrder === undefined
+      ? Number(current.sortOrder ?? 0)
+      : Number(raw.sortOrder);
+
+  if (!Number.isInteger(sortOrder) || sortOrder < 0 || sortOrder > 1_000_000) {
+    throw new Error("category_sort_order_invalid");
+  }
+  if (name.toLowerCase() !== String(current.name).toLowerCase()) {
+    await assertCategoryNameAvailable(db, name, categoryId);
+  }
+
+  await db
+    .prepare(
+      "UPDATE categories SET name = ?, category_type = ?, sort_order = ?, updated_at = ? WHERE id = ?",
+    )
+    .bind(name, categoryType, sortOrder, now(), categoryId)
+    .run();
+}
+
+export async function archiveAdminCategory(
+  db: D1DatabaseLike,
+  categoryId: string,
+): Promise<void> {
+  const current = await db
+    .prepare(
+      "SELECT id, active, (SELECT COUNT(DISTINCT p.id) FROM products p JOIN product_version_categories pvc ON pvc.product_version_id = COALESCE(p.current_draft_version_id, p.current_published_version_id) WHERE pvc.category_id = categories.id AND p.publication_status <> 'ARCHIVED') AS productCount FROM categories WHERE id = ? LIMIT 1",
+    )
+    .bind(categoryId)
+    .first<Record<string, unknown>>();
+  if (!current) throw new Error("category_not_found");
+  if (Number(current.active) !== 1) return;
+  if (Number(current.productCount ?? 0) > 0) {
+    throw new Error("category_in_use");
+  }
+  await db
+    .prepare("UPDATE categories SET active = 0, updated_at = ? WHERE id = ?")
+    .bind(now(), categoryId)
+    .run();
+}
+
+export async function restoreAdminCategory(
+  db: D1DatabaseLike,
+  categoryId: string,
+): Promise<void> {
+  const current = await db
+    .prepare("SELECT id FROM categories WHERE id = ? LIMIT 1")
+    .bind(categoryId)
+    .first<{ id: string }>();
+  if (!current) throw new Error("category_not_found");
+  await db
+    .prepare("UPDATE categories SET active = 1, updated_at = ? WHERE id = ?")
+    .bind(now(), categoryId)
+    .run();
 }
