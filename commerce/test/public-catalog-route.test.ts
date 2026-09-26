@@ -114,6 +114,8 @@ describe("Phase 6 public catalogue route", () => {
       name: "Highland Cow",
       sku: "LP00001",
       priceMinor: 950,
+      primaryCategory: "highland-cow",
+      categories: ["highland-cow", "seasonal", "home-gifts"],
       purchasable: true,
       inventory: {
         tracked: true,
