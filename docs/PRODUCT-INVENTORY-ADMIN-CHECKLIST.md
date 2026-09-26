@@ -306,7 +306,7 @@ Release report:
 
 # PHASE 6 — STOREFRONT / COMMERCE INTEGRATION
 
-**Status: ACTIVE — Milestones 6.1–6.5 COMPLETE + REAL-STAGING/BROWSER VERIFIED. Production authority remains locked.**
+**Status: ACTIVE — Milestones 6.1–6.6 COMPLETE + REAL-STAGING/BROWSER/PUBLICATION VERIFIED. Phase 6.7 Production Cutover Readiness is active; Production authority remains locked.**
 
 - [x] Phase 6 cutover principles locked before code — `docs/STOREFRONT-COMMERCE-PHASE6-IMPLEMENTATION-PLAN-2026-09-25.md`.
 - [x] D1 public commerce catalogue/query layer — published content only; Draft never used by the public query.
@@ -328,47 +328,85 @@ Release report:
   - manual OUT_OF_STOCK blocks,
   - archive removes the Product from public D1 catalogue.
 - [x] Published-vs-Draft proof — synthetic Product had a separate secret Draft and the public contract returned only the Published version.
-- [x] Synthetic Phase 6 QA Product/orders/balance cleaned after proof.
+- [x] Synthetic Phase 6 checkout QA Product/orders/balance cleaned after proof.
 - [x] Temporary Phase 6 checkout QA Worker deleted.
-- [~] Add/Publish/Archive propagation proof from **Admin UI** → public API → storefront preview — price/archive/public-layer mechanics proved; full Admin Add/Publish + storefront preview remains.
 - [x] Live stock/price storefront overlay — safe staging preview, static fallback, card/detail/basket/checkout state synchronization.
-- [ ] Static product publication pipeline.
-- [ ] Structured-data parity.
-- [x] Canonical URL preservation under live overlay — preview query never rewrites canonical URLs.
-- [ ] Canonical URL preservation under generated publication.
-- [ ] Remove legacy duplicate catalogue authority only after publication/cutover proof.
+- [x] Overlay canonical URL preservation — preview query never rewrites canonical URLs.
 - [x] Overlay search-readiness/browser regression coverage — Search Readiness + Chromium + WebKit/mobile pass.
-- [ ] Phase 6 publication-specific SEO assertions for milestone 6.6.
-- [ ] Production cutover plan reviewed separately before Product/Inventory migrations or authority switch.
+- [x] Static Product publication pipeline — deterministic D1 candidate package for:
+  - `assets/catalog.js`,
+  - all static `/products/<slug>.html` pages,
+  - 14 collection/full-range pages,
+  - sitemap,
+  - Product JSON-LD,
+  - canonical metadata.
+- [x] D1 Published Product + legacy specialist extension merge authority implemented; specialist page detail counts preserved.
+- [x] Structured-data parity — Product JSON-LD name/url/SKU + Offer price/currency/availability are verified against publication state.
+- [x] Static selling controls generated from D1 state — non-orderable Product buttons are disabled in the HTML before JavaScript.
+- [x] Canonical URL preservation under generated publication.
+- [x] Product slug-history preservation:
+  - current slug remains canonical,
+  - retired alias renders a `noindex,follow` redirect shell,
+  - retired alias stays out of sitemap,
+  - alias removed when Product is archived.
+- [x] Collection/full-range publication:
+  - cards generated from candidate D1 catalogue,
+  - ItemList JSON-LD synchronized,
+  - card/ItemList counts verified.
+- [x] Admin Add → Publish → candidate static output → Archive proof:
+  - new Product creates 147-product candidate,
+  - new static Product page,
+  - full-range card + ItemList + sitemap inclusion,
+  - archive restores exact 146-product baseline,
+  - Product page/card/ItemList/sitemap removed,
+  - audit CREATED/PUBLISHED/ARCHIVED retained.
+- [x] Unified publication package verifier.
+- [x] Deterministic package `--check` — repeated render is byte-for-byte identical.
+- [x] Publication change plan generated against the repo without applying it.
+- [x] Phase 6 publication-specific SEO/canonical/schema assertions.
+- [ ] Remove legacy duplicate catalogue authority only after Production cutover proof.
+- [~] Production cutover review/readiness — read-only gate active; no migration/import/deploy/apply is permitted until separately approved.
 
-### Phase 6 staging evidence
+### Phase 6 evidence
 
+#### 6.1–6.5
 - Public D1 catalogue + exact parity workflow: `36199480713` — SUCCESS.
 - D1 checkout authority + real tracked-stock proof workflow: `36200073433` — SUCCESS.
-- Current staging Worker deployment: `4e358034-e033-472c-a450-a52550058d25`.
-- Current staging Worker version: `3603f5da-1521-4c01-8888-65b9ebea0d29`.
+- Storefront overlay browser QA workflow: `36226261021` — SUCCESS.
+- Real tracked-stock QA run: `05d821c4e1` — PASS.
+- Exact public parity: generated 146 / D1 146 / missing 0 / extra 0 / mismatches 0.
+
+#### 6.6 Publication pipeline
+- Unified 146-product publication candidate workflow: `36229207557` — SUCCESS.
+- Admin Add/Publish/Archive publication E2E: `36229294654` — SUCCESS.
+- Publication Admin QA run: `ebf60e69ab` — PASS.
+- Baseline Product slug rows: 146; retired aliases: 0.
+- Synthetic retired-slug redirect proof: PASS.
+- Baseline deterministic package SHA-256: `61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7`.
+- First candidate apply plan against current repo:
+  - added files: 0,
+  - changed publication-owned files: 162,
+  - deletions: 0,
+  - unsafe slug removals: 0.
+- The 162 files are intentionally **not applied yet**; first Production publication is part of the separate cutover gate.
+
+#### Current staging runtime
 - Staging migration ledger: `0012_order_returns.sql`.
 - Staging flags:
   - `D1_PUBLIC_CATALOG_ENABLED=true`,
   - `D1_COMMERCE_AUTHORITY_ENABLED=true`,
   - `ORDER_RESERVATIONS_ENABLED=true`.
-- Exact parity: generated 146 / D1 146 / missing 0 / extra 0 / mismatches 0.
-- Public staging catalogue: 146 products / 115 purchasable / 0 active tracked baseline products.
-- Real tracked-stock QA run: `05d821c4e1` — PASS.
-- Storefront overlay browser QA workflow: `36226261021` — SUCCESS.
-- Overlay browser QA source commit: `2b0063d22dff0df70617cd37eb9cc196b1f54a07`.
-- Browser checks: real 146-product staging overlay, preview persistence, card/detail live state, canonical query isolation, desktop/mobile WebKit overflow, checkout preview lock, mocked live repricing/out-of-stock, tracked Available=1 basket cap, API failure static fallback and preview exit.
-- QA cleanup restored staging to 146 ACTIVE baseline Products with no synthetic live Product/variant/balance/order.
-- Production remains:
-  - migration `0008_concurrency_guards.sql`,
-  - Product/Inventory/Reservation tables absent,
-  - `D1_PUBLIC_CATALOG_ENABLED` absent,
-  - `D1_COMMERCE_AUTHORITY_ENABLED` absent,
-  - checkout authority remains generated static catalogue,
-  - current order count: 4.
+- Staging baseline restored to 146 ACTIVE Published Products after QA cleanup.
+
+#### Production isolation
+- Production migration remains `0008_concurrency_guards.sql`.
+- Product/Inventory/Reservation tables remain absent.
+- Phase 6 Product/commerce flags remain absent.
+- Production checkout authority remains the generated static catalogue.
+- No Phase 6 Production migration/import/Worker deploy/static package apply has been performed.
 
 Exit gate:
-- [~] Admin, storefront and checkout share one operational truth — Admin + staging API/checkout + staging-preview storefront now share D1; publication pipeline and Production cutover remain.
+- [~] Staging Admin + API + checkout + storefront preview + publication pipeline share D1 truth. Production cutover remains the final Phase 6 gate.
 
 ---
 
@@ -417,24 +455,24 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 6.6 — Product publication pipeline
+## Phase 6.7 — Production Cutover Readiness / Review
 
-Milestones 6.1–6.5 are complete and verified.
+Milestones 6.1–6.6 are complete and verified.
 
-Next implementation sequence:
+Current sequence:
 
-1. Define one deterministic **Published Product export** contract from staging D1.
-2. Generate a candidate static catalogue from D1 Published Product state without overwriting Production files.
-3. Compare the candidate against the current `assets/catalog.js` baseline for the existing 146 Products.
-4. Build one unified publication layer for:
-   - `assets/catalog.js`,
-   - static `/products/<slug>.html` pages,
-   - collection/full-range cards,
-   - sitemap,
-   - Product JSON-LD / canonical metadata.
-5. Preserve specialist product detail content and media where Product Core does not yet contain an equivalent structured field; do not silently discard Romney's/ice-cream/supplier factual detail.
-6. Prove Admin Add → Publish → candidate static output and Archive → removal behavior on staging QA data.
-7. Add deterministic `--check` / CI drift detection.
-8. Only after candidate parity passes, plan how publication writes are committed/deployed. Do not make Production D1 authoritative yet.
+1. Complete the read-only `Phase 6 Production Cutover Readiness` workflow.
+2. Record exact Production before-state, pending migrations `0009–0012`, staging truth and publication package plan.
+3. Lock a Production cutover runbook with:
+   - pre-cutover backup/time-travel checkpoint,
+   - migrations,
+   - initial 146-Product import,
+   - Product/Inventory parity checks,
+   - Worker feature flags,
+   - first 162-file static publication apply,
+   - post-cutover browser/order proof,
+   - rollback conditions.
+4. Keep Production on migration `0008` and generated catalogue authority until the cutover receives explicit approval.
+5. Do **not** run Production Product import, `d1 migrations apply`, Worker deploy or publication package apply during readiness.
 
-Production D1 remains at `0008`; both Phase 6 authority flags remain absent there.
+The next irreversible action is a separate Production cutover decision, not part of readiness.
