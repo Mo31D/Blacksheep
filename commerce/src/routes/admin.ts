@@ -8,7 +8,7 @@ import {
   listAdminOrders,
 } from "../data/admin-orders";
 import { validateAdminOrderAction } from "../domain/admin-order";
-import { listPurchasableProducts } from "../domain/catalog";
+import { listPublicCommerceProducts } from "../data/public-catalog";
 import {
   getOrderRefundSummary,
   recordManualRefund,
@@ -543,14 +543,20 @@ export async function handleAdminRequest(
 
   if (url.pathname === "/admin/api/catalog" && request.method === "GET") {
     const query = url.searchParams.get("q") ?? "";
-    const products = listPurchasableProducts(query, 60).map((product) => ({
-      id: product.id,
-      sku: product.sku,
-      slug: product.slug,
-      name: product.name,
-      type: product.type,
-      priceMinor: product.priceMinor,
-    }));
+    const result = await listPublicCommerceProducts(env.DB, {
+      query,
+      limit: 60,
+    });
+    const products = result.products
+      .filter((product) => product.purchasable)
+      .map((product) => ({
+        id: product.id,
+        sku: product.sku,
+        slug: product.slug,
+        name: product.name,
+        type: product.type,
+        priceMinor: product.priceMinor,
+      }));
     return json({ products });
   }
 
