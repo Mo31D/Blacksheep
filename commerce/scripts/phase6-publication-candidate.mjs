@@ -15,11 +15,19 @@ const reportPath = reportIndex >= 0 ? argv[reportIndex + 1] : null;
 const manifestPath = manifestIndex >= 0 ? argv[manifestIndex + 1] : null;
 const requireParity = argv.includes("--require-baseline-parity");
 
-if (!remote || environment !== "staging") {
+if (
+  !remote ||
+  !["staging", "production"].includes(String(environment))
+) {
   throw new Error(
-    "Phase 6 publication candidate export is staging-only. Run with --remote --env staging.",
+    "Phase 6 publication candidate export requires --remote --env staging|production.",
   );
 }
+
+const wranglerDatabaseArgs =
+  environment === "staging"
+    ? ["DB", "--remote", "--env", "staging"]
+    : ["black-sheep-commerce-prod", "--remote"];
 
 const repoRoot = resolve(process.cwd(), "..");
 const legacyCataloguePath = resolve(repoRoot, "assets/catalog.js");
@@ -33,10 +41,7 @@ function query(command) {
       "wrangler",
       "d1",
       "execute",
-      "DB",
-      "--remote",
-      "--env",
-      "staging",
+      ...wranglerDatabaseArgs,
       "--command",
       command,
       "--json",
@@ -593,7 +598,7 @@ const report = {
   ok:
     semanticMismatches.length === 0 &&
     archivedOrMissing.length === 0,
-  environment: "staging",
+  environment,
   activePublishedProducts: productRows.length,
   baselineProducts: legacyItems.length,
   candidateProducts: built.length,
@@ -625,7 +630,7 @@ if (candidatePath) {
 if (manifestPath) {
   const manifest = {
     version: 1,
-    environment: "staging",
+    environment,
     products: built
       .map((entry) => ({
         id: entry.item.id,
