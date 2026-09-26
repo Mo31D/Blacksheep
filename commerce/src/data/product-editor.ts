@@ -1,5 +1,6 @@
 
 import type { D1DatabaseLike, D1PreparedStatementLike } from "./d1";
+import { DEFAULT_VAT_RATE_BASIS_POINTS, resolveAdminSupplier } from "./inventory-valuation";
 
 const SELL_STATUSES = new Set([
   "AUTO",
@@ -56,6 +57,15 @@ function intValue(value: unknown, name: string): number | null | undefined {
   const number = Number(value);
   if (!Number.isInteger(number) || number < 0 || number > 1_000_000) {
     throw new Error("product_" + name + "_invalid");
+  }
+  return number;
+}
+
+function vatRateValue(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < 0 || number > 10_000) {
+    throw new Error("product_vat_rate_invalid");
   }
   return number;
 }
@@ -219,6 +229,10 @@ export interface CreateAdminProductInput {
   brand?: unknown;
   collectionLabel?: unknown;
   priceMinor?: unknown;
+  costMinor?: unknown;
+  vatRateBasisPoints?: unknown;
+  supplierName?: unknown;
+  supplierProductCode?: unknown;
   sku?: unknown;
   barcode?: unknown;
   categoryIds?: unknown;
@@ -241,6 +255,17 @@ export async function createAdminProduct(
       nullable: true,
     }) ?? null;
   const priceMinor = intMoney(raw.priceMinor, "price");
+  const costMinor = intMoney(raw.costMinor, "cost");
+  const vatRateBasisPoints =
+    vatRateValue(raw.vatRateBasisPoints) ?? DEFAULT_VAT_RATE_BASIS_POINTS;
+  const supplierName =
+    textValue(raw.supplierName, "supplier_name", { max: 160, nullable: true }) ?? null;
+  const supplier = await resolveAdminSupplier(db, supplierName);
+  const supplierProductCode =
+    textValue(raw.supplierProductCode, "supplier_product_code", {
+      max: 120,
+      nullable: true,
+    }) ?? null;
   const sku = textValue(raw.sku, "sku", { max: 80, nullable: true }) ?? null;
   const barcode =
     textValue(raw.barcode, "barcode", { max: 80, nullable: true }) ?? null;
@@ -301,8 +326,8 @@ export async function createAdminProduct(
           "INSERT INTO product_variants (",
           "id, product_id, title, sku, barcode, price_minor, compare_at_price_minor,",
           "cost_minor, currency, track_inventory, low_stock_threshold, active, is_default,",
-          "version, created_at, updated_at",
-          ") VALUES (?, ?, 'Default', ?, ?, ?, NULL, NULL, 'GBP', 0, NULL, 1, 1, 1, ?, ?)",
+          "version, created_at, updated_at, supplier_id, supplier_product_code, vat_rate_basis_points",
+          ") VALUES (?, ?, 'Default', ?, ?, ?, NULL, ?, 'GBP', 0, NULL, 1, 1, 1, ?, ?, ?, ?, ?)",
         ),
       )
       .bind(
@@ -311,8 +336,12 @@ export async function createAdminProduct(
         sku,
         barcode,
         priceMinor ?? null,
+        costMinor ?? null,
         createdAt,
         createdAt,
+        supplier?.id ?? null,
+        supplierProductCode,
+        vatRateBasisPoints,
       ),
   ];
 
@@ -345,6 +374,11 @@ export async function createAdminProduct(
           title,
           slug,
           priceMinor: priceMinor ?? null,
+          costMinor: costMinor ?? null,
+          vatRateBasisPoints,
+          supplierId: supplier?.id ?? null,
+          supplierName: supplier?.name ?? null,
+          supplierProductCode,
           sku,
           barcode,
           categoryIds,
@@ -441,6 +475,10 @@ export interface VariantUpdateInput {
   expectedVersion: unknown;
   priceMinor?: unknown;
   compareAtPriceMinor?: unknown;
+  costMinor?: unknown;
+  vatRateBasisPoints?: unknown;
+  supplierName?: unknown;
+  supplierProductCode?: unknown;
   sku?: unknown;
   barcode?: unknown;
   lowStockThreshold?: unknown;
@@ -458,9 +496,12 @@ export async function updateAdminVariant(
     .prepare(
       q(
         "SELECT v.id, v.product_id AS productId, v.version, v.price_minor AS priceMinor,",
-        "v.compare_at_price_minor AS compareAtPriceMinor, v.sku, v.barcode,",
+        "v.compare_at_price_minor AS compareAtPriceMinor, v.cost_minor AS costMinor,",
+        "v.vat_rate_basis_points AS vatRateBasisPoints, v.supplier_id AS supplierId,",
+        "s.name AS supplierName, v.supplier_product_code AS supplierProductCode, v.sku, v.barcode,",
         "v.low_stock_threshold AS lowStockThreshold, v.active, p.version AS productVersion",
         "FROM product_variants v JOIN products p ON p.id = v.product_id",
+        "LEFT JOIN suppliers s ON s.id = v.supplier_id",
         "WHERE v.id = ? LIMIT 1",
       ),
     )
@@ -471,6 +512,11 @@ export async function updateAdminVariant(
       version: number;
       priceMinor: number | null;
       compareAtPriceMinor: number | null;
+      costMinor: number | null;
+      vatRateBasisPoints: number;
+      supplierId: string | null;
+      supplierName: string | null;
+      supplierProductCode: string | null;
       sku: string | null;
       barcode: string | null;
       lowStockThreshold: number | null;
@@ -485,6 +531,21 @@ export async function updateAdminVariant(
 
   const priceMinor = intMoney(raw.priceMinor, "price");
   const compareAtPriceMinor = intMoney(raw.compareAtPriceMinor, "compare_price");
+  const costMinor = intMoney(raw.costMinor, "cost");
+  const vatRateBasisPoints = vatRateValue(raw.vatRateBasisPoints);
+  const supplierName = textValue(raw.supplierName, "supplier_name", {
+    max: 160,
+    nullable: true,
+  });
+  const supplier =
+    supplierName === undefined
+      ? { id: current.supplierId, name: current.supplierName }
+      : await resolveAdminSupplier(db, supplierName);
+  const supplierProductCode = textValue(
+    raw.supplierProductCode,
+    "supplier_product_code",
+    { max: 120, nullable: true },
+  );
   const sku = textValue(raw.sku, "sku", { max: 80, nullable: true });
   const barcode = textValue(raw.barcode, "barcode", { max: 80, nullable: true });
   const lowStockThreshold = intValue(raw.lowStockThreshold, "low_stock_threshold");
@@ -496,6 +557,17 @@ export async function updateAdminVariant(
       compareAtPriceMinor === undefined
         ? current.compareAtPriceMinor
         : compareAtPriceMinor,
+    costMinor: costMinor === undefined ? current.costMinor : costMinor,
+    vatRateBasisPoints:
+      vatRateBasisPoints === undefined
+        ? Number(current.vatRateBasisPoints ?? DEFAULT_VAT_RATE_BASIS_POINTS)
+        : vatRateBasisPoints,
+    supplierId: supplier?.id ?? null,
+    supplierName: supplier?.name ?? null,
+    supplierProductCode:
+      supplierProductCode === undefined
+        ? current.supplierProductCode
+        : supplierProductCode,
     sku: sku === undefined ? current.sku : sku,
     barcode: barcode === undefined ? current.barcode : barcode,
     lowStockThreshold:
@@ -513,6 +585,11 @@ export async function updateAdminVariant(
   const before = {
     priceMinor: current.priceMinor,
     compareAtPriceMinor: current.compareAtPriceMinor,
+    costMinor: current.costMinor,
+    vatRateBasisPoints: current.vatRateBasisPoints,
+    supplierId: current.supplierId,
+    supplierName: current.supplierName,
+    supplierProductCode: current.supplierProductCode,
     sku: current.sku,
     barcode: current.barcode,
     lowStockThreshold: current.lowStockThreshold,
@@ -540,6 +617,7 @@ export async function updateAdminVariant(
         .prepare(
           q(
             "UPDATE product_variants SET price_minor = ?, compare_at_price_minor = ?,",
+            "cost_minor = ?, vat_rate_basis_points = ?, supplier_id = ?, supplier_product_code = ?,",
             "sku = ?, barcode = ?, low_stock_threshold = ?, active = ?,",
             "version = version + 1, updated_at = ?",
             "WHERE id = ? AND version = ? AND EXISTS (",
@@ -549,6 +627,10 @@ export async function updateAdminVariant(
         .bind(
           next.priceMinor,
           next.compareAtPriceMinor,
+          next.costMinor,
+          next.vatRateBasisPoints,
+          next.supplierId,
+          next.supplierProductCode,
           next.sku,
           next.barcode,
           next.lowStockThreshold,
