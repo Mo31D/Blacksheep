@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 
-# Final post-cleanup rerun: 2026-09-26 after D1 authority consolidation
+# Final post-cleanup rerun: 2026-09-26 after static-to-D1 parity consolidation
 jobs:
   backend-full-audit:
     runs-on: ubuntu-latest
