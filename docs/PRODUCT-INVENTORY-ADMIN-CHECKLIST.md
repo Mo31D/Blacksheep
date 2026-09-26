@@ -364,7 +364,7 @@ Release report:
 - [x] Deterministic package `--check` — repeated render is byte-for-byte identical.
 - [x] Publication change plan generated against the repo without applying it.
 - [x] Phase 6 publication-specific SEO/canonical/schema assertions.
-- [ ] Remove legacy duplicate catalogue authority only after Production cutover proof.
+- [x] Legacy duplicate backend catalogue authority removed after Production cutover proof; D1 is now the sole backend commerce authority.
 - [x] Production cutover review/readiness — read-only audit, exact post-cutover source simulation, Commerce validation and Worker dry-run all PASS.
 - [x] Guarded Production Product Core importer — exact confirmation required; non-empty Product Core blocks destructive re-import.
 - [x] Production Product Core parity command — read-only exact baseline verifier.
@@ -436,10 +436,10 @@ Release report:
 - Existing orders preserved: 4.
 - Production Product Media R2 bucket: `black-sheep-product-media-prod`.
 - Production Worker version: `b1a4f431-6054-4e24-a84f-ec2f663d6c2b`.
-- Production flags now enabled:
+- Production runtime flags:
   - `ORDER_RESERVATIONS_ENABLED=true`,
-  - `D1_PUBLIC_CATALOG_ENABLED=true`,
-  - `D1_COMMERCE_AUTHORITY_ENABLED=true`.
+  - `D1_PUBLIC_CATALOG_ENABLED=true`.
+- Obsolete transitional `D1_COMMERCE_AUTHORITY_ENABLED` switch has been removed from current source after authority consolidation.
 - Production live-commerce marker is enabled.
 - Production reservation expiry Cron: `*/30 * * * *`.
 - Final Cron/post-cutover remediation workflow `36231541379` — SUCCESS.
@@ -451,6 +451,13 @@ Release report:
 Exit gate:
 - [x] All automated Phase 6 Production cutover gates are complete.
 - [ ] Owner Admin/Stock smoke + one ordinary live customer order and owner/customer notification proof remain the final Phase 6 acceptance gate.
+- [x] Post-cutover backend cleanup/full regression audit `36235314026` — SUCCESS.
+- [x] 33 Vitest files / 195 tests — PASS.
+- [x] Basket/Checkout browser E2E, Admin browser QA, customer-review edge E2E and storefront overlay QA — PASS.
+- [x] Production public D1 catalogue parity — 146 / 146 / 0 mismatches.
+- [x] Search readiness — 146 products / 17 active pages / 166 sitemap URLs / 0 placeholders.
+- [x] Completed one-shot backend audit workflow removed.
+- [x] Cleanup report — `docs/BACKEND-AUDIT-CLEANUP-2026-09-26.md`.
 
 ---
 
@@ -499,23 +506,28 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 6 — Final owner Production smoke
+## Phase 6 — Final owner Production acceptance
 
-The automated Production cutover is complete and verified.
+The automated Production cutover and the post-cutover backend cleanup/regression audit are complete.
 
-Owner acceptance steps:
+Already confirmed:
+1. Owner OTP/login flow works.
+2. Automated Admin desktop/mobile browser QA passes.
+3. Basket/Checkout staging browser E2E passes.
+4. Production D1/public-catalogue parity and health gates pass.
 
-1. Log into the live Production Admin.
-2. Open Products and Stock and confirm the workspaces load and behave normally.
-3. Submit one ordinary order request from the live storefront using a normal currently-orderable Product.
-4. Confirm the order appears in Admin.
-5. Confirm the customer acknowledgement email arrives.
-6. Confirm the owner new-order email arrives.
-7. Confirm the baseline untracked Product did not create an unexpected numeric reservation/stock movement.
+Remaining owner acceptance:
+1. Open live Production Products and Stock and confirm the normal owner workflow on the actual device you use.
+2. Submit one ordinary live customer order from the Production storefront.
+3. Confirm the order appears in Admin.
+4. Confirm customer acknowledgement email arrives.
+5. Confirm owner new-order email arrives.
+6. Confirm an untracked baseline Product does not create an unexpected numeric reservation/stock movement.
 
-Once these checks pass:
-- mark Phase 6 **CLOSED**,
-- record the real order reference and notification proof in the handoff,
-- then move to the next project phase.
+Once those live-owner checks pass, mark Phase 6 CLOSED and move to Phase 7.
+
+Repository cleanup note:
+- the seven historical non-main branches are classified obsolete/safe-to-delete,
+- the current GitHub connector does not expose delete-branch/delete-ref, so those refs remain and must not be merged back into `main`.
 
 Do not use the saved Time Travel bookmark unless following the documented rollback matrix; legitimate post-cutover orders must be preserved.
