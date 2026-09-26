@@ -42,6 +42,10 @@
       :null;
     item.commercePublishedVersionId=product.publishedVersionId||null;
     item.commerceUpdatedAt=product.updatedAt||null;
+    item.commercePrimaryStorefrontNodeId=product.primaryStorefrontNodeId||null;
+    item.commerceStorefrontNodeIds=Array.isArray(product.storefrontNodeIds)
+      ?product.storefrontNodeIds.map(String)
+      :[];
 
     item.price=Number.isInteger(product.priceMinor)
       ?product.priceMinor/100
@@ -96,7 +100,10 @@
       :'<strong>Staging commerce preview</strong><span>Live D1 price and availability are overlaid on the static storefront.</span><a href="?commerce-preview=off">Exit preview</a>';
   }
 
-  function syncUi(){
+  function syncUi(structureNodes){
+    if(Array.isArray(structureNodes)&&typeof syncDynamicStorefrontStructure==='function'){
+      syncDynamicStorefrontStructure(structureNodes);
+    }
     const dynamicCards=typeof syncDynamicCatalogCards==='function'?syncDynamicCatalogCards():0;
     if(typeof syncCatalogCardState==='function')syncCatalogCardState();
     if(typeof sortProductCardsByAvailability==='function')sortProductCardsByAvailability();
@@ -183,16 +190,36 @@
       }
 
       if(!applied)throw new Error('catalog_overlay_no_matches');
+
+      let structureNodes=null;
+      let structureError=null;
+      try{
+        const structureResponse=await fetch(apiBase+'/v1/storefront-structure',{
+          method:'GET',
+          headers:{accept:'application/json'},
+          cache:'no-store'
+        });
+        if(!structureResponse.ok)throw new Error('storefront_structure_http_'+structureResponse.status);
+        const structurePayload=await structureResponse.json();
+        if(!Array.isArray(structurePayload?.nodes))throw new Error('storefront_structure_payload_invalid');
+        structureNodes=structurePayload.nodes;
+      }catch(error){
+        structureError=error instanceof Error?error.message:String(error);
+      }
+
       window.BLACK_SHEEP_LIVE_COMMERCE_STATE={
         mode:config.mode||'live',
         applied,
         received:products.length,
         added,
         pages,
+        structureNodes:Array.isArray(structureNodes)?structureNodes.length:0,
+        structureFallback:!Array.isArray(structureNodes),
+        structureError,
         loadedAt:new Date().toISOString()
       };
       document.documentElement.dataset.commerceLive='ready';
-      const dynamicCards=syncUi();
+      const dynamicCards=syncUi(structureNodes);
       window.BLACK_SHEEP_LIVE_COMMERCE_STATE.dynamicCards=dynamicCards;
       document.dispatchEvent(new CustomEvent('black-sheep:commerce-live-ready',{
         detail:window.BLACK_SHEEP_LIVE_COMMERCE_STATE
