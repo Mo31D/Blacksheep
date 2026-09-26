@@ -67,7 +67,7 @@ function seedIdempotentReplayOrder() {
       sqlQuote(REPLAY_REFERENCE) +
       ";" +
       "INSERT INTO orders (" +
-      "id,public_reference,idempotency_key,status,currency,fulfilment_method," +
+      "id,public_reference,idempotency_key,data_class,status,currency,fulfilment_method," +
       "customer_name,customer_email,delivery_address_line1,delivery_town," +
       "delivery_postcode,delivery_country,items_subtotal_minor,created_at,updated_at" +
       ") VALUES (" +
@@ -75,6 +75,7 @@ function seedIdempotentReplayOrder() {
         sqlQuote(REPLAY_ORDER_ID),
         sqlQuote(REPLAY_REFERENCE),
         sqlQuote(REPLAY_KEY),
+        "'E2E'",
         "'SUBMITTED'",
         "'GBP'",
         "'delivery'",
