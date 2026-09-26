@@ -9,7 +9,7 @@ import {
   type RevisionItemStatus,
   type RevisionState,
 } from "../domain/order-revision";
-import { requirePurchasableProduct } from "../domain/catalog";
+import { requirePurchasableCommerceProductFromD1 } from "./commerce-pricing";
 import {
   buildRevisionReservationPlan,
   expireDueReservations,
@@ -1084,7 +1084,10 @@ export async function addCatalogItemToDraftRevision(
     throw new Error("revision_version_conflict");
   }
 
-  const product = requirePurchasableProduct(String(input.catalogProductId || ""));
+  const product = await requirePurchasableCommerceProductFromD1(
+    db,
+    String(input.catalogProductId || ""),
+  );
   if (product.priceMinor === null) throw new Error("price_unavailable");
 
   const items = await revisionItems(db, revisionId);
@@ -1232,7 +1235,10 @@ export async function substituteDraftRevisionLine(
     throw new Error("revision_version_conflict");
   }
 
-  const product = requirePurchasableProduct(String(input.catalogProductId || ""));
+  const product = await requirePurchasableCommerceProductFromD1(
+    db,
+    String(input.catalogProductId || ""),
+  );
   if (product.priceMinor === null) throw new Error("price_unavailable");
 
   const items = await revisionItems(db, revisionId);
