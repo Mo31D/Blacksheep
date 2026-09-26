@@ -1604,6 +1604,14 @@ function categoryTypeValue(value: unknown): AdminCategoryType {
   return type;
 }
 
+function categoryNameValue(value: unknown): string {
+  const name = String(value ?? "").trim();
+  if (!name) throw new Error("category_name_required");
+  if (name.length > 80) throw new Error("category_name_too_long");
+  return name;
+}
+
+
 async function uniqueCategorySlug(
   db: D1DatabaseLike,
   name: string,
@@ -1670,10 +1678,7 @@ export async function createAdminCategory(
     categoryType?: unknown;
   },
 ): Promise<{ id: string }> {
-  const name = textValue(raw.name, "category_name", {
-    required: true,
-    max: 80,
-  })!;
+  const name = categoryNameValue(raw.name);
   const categoryType = categoryTypeValue(raw.categoryType ?? "PRODUCT_CATEGORY");
   await assertCategoryNameAvailable(db, name);
   const slug = await uniqueCategorySlug(db, name);
@@ -1723,10 +1728,7 @@ export async function updateAdminCategory(
   const name =
     raw.name === undefined
       ? String(current.name)
-      : textValue(raw.name, "category_name", {
-          required: true,
-          max: 80,
-        })!;
+      : categoryNameValue(raw.name);
   const categoryType =
     raw.categoryType === undefined
       ? categoryTypeValue(current.categoryType)
