@@ -73,7 +73,7 @@ try {
 
   if (!latestMigration?.startsWith("0016_")) {
     throw new Error(
-      `Expected latest migration to be 0016, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0017, found ${latestMigration ?? "none"}.`,
     );
   }
   if (baselineMigrations.at(-1)?.startsWith("0015_") !== true) {
@@ -130,6 +130,9 @@ try {
     "SELECT cost_minor, supplier_id, supplier_product_code, vat_rate_basis_points FROM product_variants LIMIT 0",
     "SELECT snapshot_date, location_id, cost_value_inc_vat_minor, retail_value_inc_vat_minor, potential_gross_profit_minor FROM inventory_valuation_snapshots LIMIT 0",
     "SELECT id, failed_attempts, locked_until, updated_at FROM admin_password_security LIMIT 0",
+    "SELECT id, stable_key, publication_status, current_published_version_id FROM storefront_nodes LIMIT 0",
+    "SELECT node_id, slug, parent_node_id, sort_order, show_in_navigation, legacy_path FROM storefront_node_versions LIMIT 0",
+    "SELECT product_version_id, storefront_node_id, is_primary, position, source FROM product_version_storefront_placements LIMIT 0",
   ];
 
   for (const sql of schemaQueries) {
@@ -177,9 +180,33 @@ try {
     "idx_suppliers_active_name",
     "idx_product_variants_supplier",
     "idx_inventory_valuation_snapshots_location_date",
+    "idx_storefront_nodes_status_updated",
+    "idx_storefront_live_slug",
+    "idx_storefront_one_live_version",
+    "idx_storefront_node_versions_parent_sort",
+    "idx_product_storefront_one_primary",
+    "idx_product_storefront_node_version",
   ]) {
     if (!indexOutput.includes(required)) {
       throw new Error(`Required index missing after upgrade: ${required}`);
+    }
+  }
+
+  const storefrontSeed = runWrangler([
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    configPath,
+    "--persist-to",
+    persistDir,
+    "--command",
+    "SELECT COUNT(*) AS node_count FROM storefront_nodes; SELECT COUNT(*) AS root_count FROM storefront_node_versions WHERE parent_node_id IS NULL AND published_at IS NOT NULL AND superseded_at IS NULL; SELECT COUNT(*) AS nav_roots FROM storefront_node_versions WHERE parent_node_id IS NULL AND show_in_navigation=1 AND published_at IS NOT NULL AND superseded_at IS NULL;",
+  ]);
+  for (const expected of ['"node_count": 23', '"root_count": 4', '"nav_roots": 4']) {
+    if (!storefrontSeed.includes(expected)) {
+      throw new Error("Storefront Structure seed invariant missing: " + expected + "\\n" + storefrontSeed);
     }
   }
 

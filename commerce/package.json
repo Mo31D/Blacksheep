@@ -20,6 +20,7 @@
     "cart:test": "node ../scripts/test-cart-core.mjs",
     "legal:test": "node ../scripts/test-commerce-legal.mjs",
     "db:migrate:upgrade-test": "node scripts/test-migration-upgrade.mjs",
+    "storefront-structure:test": "vitest run test/storefront-structure.test.ts",
     "product-core:validate": "node scripts/product-core-validate.mjs",
     "product-core:import:staging": "node scripts/product-core-import.mjs --remote --env staging",
     "product-core:parity:staging": "node scripts/product-core-parity.mjs --remote --env staging",
