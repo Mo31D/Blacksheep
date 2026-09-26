@@ -426,7 +426,12 @@ async function verifyStaticFallback() {
       timeout: 60_000,
     });
     const config = await page.evaluate(() => window.BLACK_SHEEP_LIVE_COMMERCE);
-    assert(config?.mode === "static", "Preview exit did not restore static mode");
+    assert(
+      config?.mode === "live" &&
+        config?.preview === false &&
+        config?.apiBase === "https://api.theblacksheepshop.co.uk",
+      "Preview exit did not restore Production live commerce",
+    );
     assert(
       (await page.locator("#commercePreviewBanner").count()) === 0,
       "Preview banner remained after exit",
@@ -475,7 +480,7 @@ try {
           "mocked-live-out-of-stock-card",
           "mocked-live-out-of-stock-product-detail",
           "api-failure-static-fallback",
-          "preview-exit-restores-static-mode",
+          "preview-exit-restores-production-live-mode",
         ],
       },
       null,
