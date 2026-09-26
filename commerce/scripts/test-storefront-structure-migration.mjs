@@ -154,6 +154,42 @@ try {
     }
   }
 
+  // Archive semantics are non-destructive: the stable node remains and all
+  // Product-version placement history continues to reference it.
+  execute(
+    "UPDATE storefront_nodes SET publication_status='ARCHIVED', archived_at='2026-09-26T20:00:00.000Z' " +
+    "WHERE id='sfn_gifts_highland_cows';"
+  );
+  const archiveCheck = execute(
+    "SELECT n.publication_status AS status, COUNT(p.product_version_id) AS placements " +
+    "FROM storefront_nodes n LEFT JOIN product_version_storefront_placements p " +
+    "ON p.storefront_node_id=n.id WHERE n.id='sfn_gifts_highland_cows' GROUP BY n.id;"
+  )?.[0]?.results?.[0];
+  if (
+    archiveCheck?.status !== "ARCHIVED" ||
+    Number(archiveCheck?.placements ?? 0) !== 1
+  ) {
+    throw new Error("Archive semantics did not preserve Storefront placement history.");
+  }
+
+  let deleteRestricted = false;
+  try {
+    execute("DELETE FROM storefront_nodes WHERE id='sfn_gifts_highland_cows';");
+  } catch (error) {
+    deleteRestricted = String(error).includes("FOREIGN KEY") ||
+      String(error).includes("constraint");
+  }
+  if (!deleteRestricted) {
+    throw new Error("Expected Storefront node deletion with Product history to be restricted.");
+  }
+
+  // Restore only inside this disposable migration test so the idempotency
+  // assertion below operates on the original active seed shape.
+  execute(
+    "UPDATE storefront_nodes SET publication_status='ACTIVE', archived_at=NULL " +
+    "WHERE id='sfn_gifts_highland_cows';"
+  );
+
   execute(
     "INSERT OR IGNORE INTO product_version_storefront_placements " +
     "(product_version_id,storefront_node_id,is_primary,position,source,created_at) " +
@@ -168,7 +204,7 @@ try {
   }
 
   console.log(
-    "PASS: 0017 backfills hierarchical Storefront placements deterministically and duplicate inserts are idempotent.",
+    "PASS: 0017 backfills versioned Storefront placements, preserves history on archive, restricts destructive deletion, and duplicate inserts are idempotent.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
