@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0017_")) {
+  if (!latestMigration?.startsWith("0018_")) {
     throw new Error(
-      `Expected latest migration to be 0017, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0018, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0016_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0016.");
+  if (baselineMigrations.at(-1)?.startsWith("0017_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0017.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -133,6 +133,7 @@ try {
     "SELECT id, stable_key, publication_status, current_published_version_id FROM storefront_nodes LIMIT 0",
     "SELECT node_id, slug, parent_node_id, sort_order, show_in_navigation, legacy_path FROM storefront_node_versions LIMIT 0",
     "SELECT product_version_id, storefront_node_id, is_primary, position, source FROM product_version_storefront_placements LIMIT 0",
+    "SELECT node_id, event_type, actor_id, before_json, after_json, reason FROM storefront_audit_events LIMIT 0",
   ];
 
   for (const sql of schemaQueries) {
@@ -160,7 +161,7 @@ try {
     "--persist-to",
     persistDir,
     "--command",
-    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort','idx_suppliers_active_name','idx_product_variants_supplier','idx_inventory_valuation_snapshots_location_date','idx_storefront_nodes_status_updated','idx_storefront_live_slug','idx_storefront_one_live_version','idx_storefront_node_versions_parent_sort','idx_product_storefront_one_primary','idx_product_storefront_node_version') ORDER BY name",
+    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort','idx_suppliers_active_name','idx_product_variants_supplier','idx_inventory_valuation_snapshots_location_date','idx_storefront_nodes_status_updated','idx_storefront_live_slug','idx_storefront_one_live_version','idx_storefront_node_versions_parent_sort','idx_product_storefront_one_primary','idx_product_storefront_node_version','idx_storefront_audit_node_created','idx_storefront_audit_event_created') ORDER BY name",
   ]);
 
   for (const required of [
@@ -186,6 +187,8 @@ try {
     "idx_storefront_node_versions_parent_sort",
     "idx_product_storefront_one_primary",
     "idx_product_storefront_node_version",
+    "idx_storefront_audit_node_created",
+    "idx_storefront_audit_event_created",
   ]) {
     if (!indexOutput.includes(required)) {
       throw new Error(`Required index missing after upgrade: ${required}`);
@@ -270,9 +273,9 @@ try {
   }
 
   console.log(
-    "PASS: migrations 0000–0016 upgraded cleanly to 0017; Storefront Structure schema/seeds are present.",
+    "PASS: migrations 0000–0017 upgraded cleanly to 0018; Storefront Structure Admin audit schema is present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
 }
-// CARD 01 migration guard updated for 0017.
+// CARD 02 migration guard updated for 0018.

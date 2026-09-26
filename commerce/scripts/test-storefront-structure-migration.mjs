@@ -75,12 +75,13 @@ try {
   const all = readdirSync(sourceMigrations)
     .filter((name) => /^\d{4}_.+\.sql$/.test(name))
     .sort();
-  const latest = all.at(-1);
-  if (!latest?.startsWith("0017_")) {
-    throw new Error(`Expected 0017 latest migration, found ${latest ?? "none"}.`);
+  const card01Index = all.findIndex((name) => name.startsWith("0017_"));
+  const latest = card01Index >= 0 ? all[card01Index] : null;
+  if (!latest) {
+    throw new Error("Expected CARD 01 migration 0017_storefront_structure.sql.");
   }
 
-  for (const name of all.slice(0, -1)) {
+  for (const name of all.slice(0, card01Index)) {
     copyFileSync(join(sourceMigrations, name), join(migrations, name));
   }
   wrangler([
