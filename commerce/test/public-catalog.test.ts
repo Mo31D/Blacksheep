@@ -76,6 +76,7 @@ function row(
     brand: "Brand",
     productType: "gifts",
     primaryCategory: "highland-cow",
+    categorySlugs: "highland-cow,seasonal,home-gifts",
     variantId: "var-1",
     sku: "SKU-1",
     priceMinor: 950,
@@ -99,6 +100,8 @@ describe("Phase 6 public commerce state", () => {
       status: "available",
       purchasable: true,
       nonPurchasableReason: null,
+      primaryCategory: "highland-cow",
+      categories: ["highland-cow", "seasonal", "home-gifts"],
       inventory: {
         tracked: false,
         available: null,
