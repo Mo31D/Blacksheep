@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/phase6-production-cutover-readiness.yml"
+      - ".github/workflows/phase6-production-cutover.yml"
+      - ".github/workflows/commerce-deploy.yml"
       - "docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-CUTOVER-PLAN-2026-09-26.md"
       - "commerce/scripts/phase6-publication-candidate.mjs"
       - "commerce/scripts/phase6-publication-render.mjs"
@@ -76,6 +78,36 @@ jobs:
             process.exit(1);
           }
           console.log("Production source config remains pre-cutover.");
+          NODE
+
+      - name: Verify Production cutover workflow remains manual and guarded
+        shell: bash
+        working-directory: .
+        run: |
+          node - <<'NODE'
+          const fs = require("fs");
+          const cutover = fs.readFileSync(".github/workflows/phase6-production-cutover.yml", "utf8");
+          const legacy = fs.readFileSync(".github/workflows/commerce-deploy.yml", "utf8");
+          const failures = [];
+          if (!cutover.includes("workflow_dispatch:")) failures.push("cutover workflow is not workflow_dispatch");
+          if (/\n\s{2}push:/.test(cutover)) failures.push("cutover workflow has a push trigger");
+          if (!cutover.includes("CUTOVER-PRODUCTION-D1")) failures.push("cutover confirmation literal missing");
+          if (!cutover.includes("expected_package_sha")) failures.push("approved package SHA input missing");
+          if (!cutover.includes("environment: production")) failures.push("GitHub production environment gate missing");
+          if (!cutover.includes("contents: write")) failures.push("cutover contents write permission missing");
+          if (!cutover.includes("d1 time-travel info black-sheep-commerce-prod")) failures.push("Time Travel bookmark capture missing");
+          if (!cutover.includes("product-core:import:production")) failures.push("guarded Production import missing");
+          if (!cutover.includes("product-core:parity:production")) failures.push("Production parity gate missing");
+          if (!cutover.includes("phase6-production-activate.mjs")) failures.push("activation step missing");
+          if (!cutover.includes("ownerSmokePending: true")) failures.push("post-cutover owner smoke gate missing");
+          if (!legacy.includes("Production deploy is intentionally blocked here.")) {
+            failures.push("legacy Production deploy is not blocked");
+          }
+          if (failures.length) {
+            console.error("Production cutover workflow guard failed.", failures);
+            process.exit(1);
+          }
+          console.log("Production cutover workflow remains manual-only and guarded.");
           NODE
 
       - name: Capture Production before-state
