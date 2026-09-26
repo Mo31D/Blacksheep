@@ -91,14 +91,14 @@ describe("commerce worker", () => {
     });
   });
 
-  it("runs scheduled reservation expiry only when the staging feature flag is enabled", async () => {
-    let prepares = 0;
+  it("captures stock valuation on schedule while reservation expiry follows its feature flag", async () => {
+    const sqlSeen: string[] = [];
     const scheduledEnv = {
       ...env,
       ORDER_RESERVATIONS_ENABLED: "true",
       DB: {
-        prepare() {
-          prepares += 1;
+        prepare(sql: string) {
+          sqlSeen.push(sql);
           return {
             bind() {
               return this;
@@ -121,11 +121,24 @@ describe("commerce worker", () => {
     };
 
     await worker.scheduled({}, scheduledEnv);
-    expect(prepares).toBeGreaterThan(0);
+    expect(
+      sqlSeen.some((sql) => sql.includes("FROM inventory_reservations r")),
+    ).toBe(true);
+    expect(
+      sqlSeen.some((sql) => sql.includes("inventory_valuation_snapshots")),
+    ).toBe(true);
 
-    prepares = 0;
-    await worker.scheduled({}, { ...scheduledEnv, ORDER_RESERVATIONS_ENABLED: "false" });
-    expect(prepares).toBe(0);
+    sqlSeen.length = 0;
+    await worker.scheduled({}, {
+      ...scheduledEnv,
+      ORDER_RESERVATIONS_ENABLED: "false",
+    });
+    expect(
+      sqlSeen.some((sql) => sql.includes("FROM inventory_reservations r")),
+    ).toBe(false);
+    expect(
+      sqlSeen.some((sql) => sql.includes("inventory_valuation_snapshots")),
+    ).toBe(true);
   });
 
   it("returns structured 404 responses", async () => {
