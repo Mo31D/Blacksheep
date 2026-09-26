@@ -3,6 +3,7 @@ import type {
   D1DatabaseLike,
   D1PreparedStatementLike,
 } from "../src/data/d1";
+import { archiveAdminCategory } from "../src/data/product-editor";
 import { handleAdminRequest } from "../src/routes/admin";
 
 class Statement implements D1PreparedStatementLike {
@@ -166,24 +167,63 @@ describe("Admin Category Manager", () => {
     expect(moved).toBe("UP");
   });
 
-  it("blocks unsafe category archive with an owner-friendly conflict", async () => {
+  it("allows non-destructive archive even when products still use the category", async () => {
+    let archived = false;
     const response = await handleAdminRequest(
       mutationRequest("/admin/api/categories/cat_highland/archive", {}),
       { DB: new Db() },
       {
         verifyAccessFn: identity,
         archiveAdminCategoryFn: async () => {
-          throw new Error("category_in_use");
+          archived = true;
         },
       },
     );
 
-    expect(response.status).toBe(409);
-    await expect(response.json()).resolves.toMatchObject({
-      error: {
-        code: "category_in_use",
+    expect(response.status).toBe(200);
+    expect(archived).toBe(true);
+  });
+
+  it("archives without deleting existing product-category relationships", async () => {
+    const sqlSeen: string[] = [];
+    let archiveUpdateRan = false;
+    const db: D1DatabaseLike = {
+      prepare(sql: string): D1PreparedStatementLike {
+        sqlSeen.push(sql);
+        return {
+          bind(): D1PreparedStatementLike {
+            return this;
+          },
+          async first<T>(): Promise<T | null> {
+            if (sql.startsWith("SELECT id, active FROM categories")) {
+              return { id: "cat_highland", active: 1 } as T;
+            }
+            return null;
+          },
+          async all<T>(): Promise<{ results: T[] }> {
+            return { results: [] };
+          },
+          async run(): Promise<unknown> {
+            if (sql.startsWith("UPDATE categories SET active = 0")) {
+              archiveUpdateRan = true;
+            }
+            return {};
+          },
+        };
       },
-    });
+      async batch<T>(): Promise<T[]> {
+        return [];
+      },
+    };
+
+    await archiveAdminCategory(db, "cat_highland");
+
+    expect(archiveUpdateRan).toBe(true);
+    expect(
+      sqlSeen.some((sql) =>
+        /DELETE\s+FROM\s+product_version_categories/i.test(sql),
+      ),
+    ).toBe(false);
   });
 
   it("restores an archived category", async () => {
