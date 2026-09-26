@@ -5,6 +5,7 @@
 > Repository: `Mo31D/Blacksheep` · branch: `main`.
 >
 > Authoritative trackers/reports:
+> - `docs/PLATFORM-IMPLEMENTATION-CARDS-2026-09-26.md` — **next architecture programme; start with CARD 00 before dependent implementation**
 > - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 > - `docs/BLACK-SHEEP-BACKEND-AUDIT-CLEANUP-2026-09-26.md`
 > - `docs/FINAL-OWNER-POLISH-TICKETS-2026-09-26.md`
@@ -114,6 +115,13 @@
 > **Cloudflare access note**
 > - the direct Cloudflare ChatGPT connector was unavailable in the cleanup session.
 > - GitHub Actions Cloudflare credentials were available and the final audit performed read-only Production D1 / health / public-catalogue verification successfully.
+>
+> **Next architecture programme**
+> - The owner approved a deeper platform rebuild rather than isolated UI patches.
+> - Repository-native implementation cards now live at `docs/PLATFORM-IMPLEMENTATION-CARDS-2026-09-26.md`.
+> - GitHub Issues are disabled for this repository, so that file is the card board/source of truth.
+> - Immediate next implementation milestone: **CARD 00 — Architecture freeze & source-of-truth map**.
+> - Do not jump directly to dropdown/UI changes; Storefront Structure must become the shared backbone for Product placement, Stocktake scoping, Navigation, Homepage merchandising and future themes.
 >
 > **Next work**
 > - Stock Value + Category Manager are live on Production; no promotion step remains for migrations `0014`/`0015`.
