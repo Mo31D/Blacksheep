@@ -310,13 +310,18 @@ async function runQa() {
       state: "visible",
       timeout: 10_000,
     });
-    await page.locator("#productPublish").click();
-
-    await page.waitForFunction(
-      () =>
-        document.getElementById("productDetail")?.textContent?.includes("Active"),
-      null,
+    const publishResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes(
+          "/admin/api/products/" + encodeURIComponent(productId) + "/publish",
+        ) && response.request().method() === "POST",
       { timeout: 20_000 },
+    );
+    await page.locator("#productPublish").click();
+    const publishResponse = await publishResponsePromise;
+    assert.ok(
+      publishResponse.ok(),
+      "Admin Publish request failed with HTTP " + publishResponse.status(),
     );
 
     row = findProduct();
@@ -391,13 +396,18 @@ async function runQa() {
       state: "visible",
       timeout: 10_000,
     });
-    await page.locator("#productArchive").click();
-
-    await page.waitForFunction(
-      () =>
-        document.getElementById("productDetail")?.textContent?.includes("Archived"),
-      null,
+    const archiveResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes(
+          "/admin/api/products/" + encodeURIComponent(productId) + "/archive",
+        ) && response.request().method() === "POST",
       { timeout: 20_000 },
+    );
+    await page.locator("#productArchive").click();
+    const archiveResponse = await archiveResponsePromise;
+    assert.ok(
+      archiveResponse.ok(),
+      "Admin Archive request failed with HTTP " + archiveResponse.status(),
     );
 
     row = findProduct();
