@@ -645,6 +645,7 @@ document.addEventListener('DOMContentLoaded',initCommerceLegalFooter);
 
 
 /* PHASE 6 LIVE COMMERCE OVERLAY LOADER START */
+const BLACK_SHEEP_PRODUCTION_LIVE_COMMERCE=false;
 const blackSheepCommercePreviewKey='black-sheep-commerce-preview-v1';
 function blackSheepLiveCommerceConfig(){
   const params=new URLSearchParams(location.search);
@@ -664,6 +665,14 @@ function blackSheepLiveCommerceConfig(){
     };
   }
   const config=window.BLACK_SHEEP_COMMERCE_CONFIG||{};
+  if(BLACK_SHEEP_PRODUCTION_LIVE_COMMERCE===true){
+    return{
+      enabled:true,
+      preview:false,
+      mode:'live',
+      apiBase:'https://api.theblacksheepshop.co.uk'
+    };
+  }
   if(config.liveCatalog===true&&config.apiBase){
     return{
       enabled:true,
