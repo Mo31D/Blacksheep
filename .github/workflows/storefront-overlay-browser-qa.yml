@@ -6,6 +6,7 @@ on:
     paths:
       - "assets/site.js"
       - "assets/commerce-live.js"
+      - "product.html"
       - "assets/style.css"
       - "scripts/test-cart-core.mjs"
       - "commerce/scripts/staging-storefront-overlay-qa.mjs"
@@ -49,7 +50,12 @@ jobs:
           for attempt in $(seq 1 36); do
             LIVE="$(curl --silent --show-error --max-time 20 "https://theblacksheepshop.co.uk/assets/commerce-live.js?qa=$GITHUB_SHA" || true)"
             SITE="$(curl --silent --show-error --max-time 20 "https://theblacksheepshop.co.uk/assets/site.js?qa=$GITHUB_SHA" || true)"
-            if echo "$LIVE" | grep -q "Staging commerce preview unavailable"               && echo "$SITE" | grep -q "PHASE 6 LIVE COMMERCE OVERLAY LOADER START"               && echo "$SITE" | grep -q "previewBlocked"; then
+            PRODUCT="$(curl --silent --show-error --max-time 20 "https://theblacksheepshop.co.uk/product.html?qa=$GITHUB_SHA" || true)"
+            if echo "$LIVE" | grep -q "commerceDynamic:true" \
+              && echo "$LIVE" | grep -q "catalog_pagination_guard" \
+              && echo "$SITE" | grep -q "function syncDynamicCatalogCards" \
+              && echo "$SITE" | grep -q "product.html?type=" \
+              && echo "$PRODUCT" | grep -q "black-sheep:commerce-live-ready"; then
               READY=1
               break
             fi
