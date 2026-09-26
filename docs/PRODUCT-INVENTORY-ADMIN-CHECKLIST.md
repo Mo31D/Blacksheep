@@ -15,6 +15,42 @@ This checklist began as the separate Product/Inventory execution tracker and is 
 
 ---
 
+# STOCK VALUE + MOBILE ADD PRODUCT — PRODUCTION RELEASE — 26 SEPTEMBER 2026
+
+- [x] Fixed the owner-reported iPhone Add Product issue where the sticky **Cancel / Create draft** action bar could cover lower form/category controls.
+- [x] Product editor now has sufficient bottom safe-area/scroll clearance; the action bar remains sticky without making the last controls unreachable.
+- [x] Add Product includes optional **Item cost ex VAT / VAT rate / Supplier / Supplier product code** fields.
+- [x] Existing Product detail includes **Cost & supplier** and an **Edit cost** action.
+- [x] Actual supplier cost uses existing `product_variants.cost_minor`; no duplicate cost authority was introduced.
+- [x] Product VAT defaults to 20% and is persisted per variant.
+- [x] Missing actual cost falls back to the explicit estimate: cost inc VAT = retail / 2; cost ex VAT = estimated cost inc VAT / (1 + VAT rate).
+- [x] Missing actual cost + missing retail price remains **missing valuation data**; no invented value.
+- [x] Supplier records + supplier product code are persisted and reused by the Admin.
+- [x] Migration `0015_stock_valuation.sql` adds supplier metadata and daily valuation snapshots.
+- [x] Stock page now includes **£ Stock value**, opening a separate valuation workspace rather than adding a sixth bottom-nav item.
+- [x] Stock Value reports: stock at cost, retail value, potential gross profit, on-hand/sellable/reserved units, confidence/coverage, supplier breakdown, primary-category breakdown, high-value stock and attention items.
+- [x] 7/30/90/365-day cost-vs-retail history is backed by `inventory_valuation_snapshots`.
+- [x] Existing 30-minute Worker cron performs an idempotent current-day valuation snapshot upsert; inventory quantities are not mutated.
+- [x] Staging migration `0015` applied; Staging deploy `36253829542` — **SUCCESS**.
+- [x] Staging full validation — **36 test files / 210 tests PASS**; migration ledger clean.
+- [x] Staging Worker `88f9833d-b1bb-4609-b0a5-43505aabb074`; health PASS.
+- [x] Post-deploy Staging Admin Browser QA `36253997892` — **SUCCESS**, including iPhone cost/supplier fields, sticky-footer clearance and Stock Value; iPad portrait checks also pass.
+- [x] Production guarded deploy `36254188859` — **SUCCESS**.
+- [x] Production promoted staging-validated `0014_category_management.sql` plus `0015_stock_valuation.sql`; no migrations pending afterward.
+- [x] Production Worker `1b8948d2-228c-4ec6-8803-8b45191930a2`; health + public catalogue PASS.
+- [x] Live Production mobile Admin smoke `36254525389` — **SUCCESS**:
+  - Cost/VAT/Supplier controls live.
+  - Add Product final controls clear the sticky footer.
+  - Stock Value page + API live.
+  - No supported mobile horizontal overflow.
+  - Temporary QA Admin session cleaned afterward.
+- [x] Production valuation smoke state: 146 included tracked variants / 1,460 recorded on-hand units / 132 estimated-cost variants / 14 missing valuation / 0 actual-cost variants / 90.4% valuation coverage.
+- [x] Release report: `docs/STOCK-VALUE-PRODUCTION-RELEASE-2026-09-26.md`.
+
+**Status: LIVE AND VERIFIED ON PRODUCTION.** Current value figures remain estimates until physical counts are confirmed and real supplier costs are entered; the report exposes that confidence explicitly.
+
+---
+
 # DYNAMIC STOREFRONT PUBLICATION HOTFIX — 26 SEPTEMBER 2026
 
 - [x] Owner-reported defect reproduced: a new Admin-created Product could reach `ACTIVE` / Published in Product Core but remain absent from the storefront.
@@ -66,7 +102,7 @@ This checklist began as the separate Product/Inventory execution tracker and is 
 - [x] Search Readiness `36250012438` — **SUCCESS**.
 - [x] Synthetic Category Manager QA data cleaned after the successful run.
 
-**Status: COMPLETE ON STAGING.** Production was intentionally not modified by this Category Manager release. Production promotion of migration `0014` + the Worker remains a separate guarded release decision.
+**Status: LIVE ON PRODUCTION.** Migration `0014` was promoted as the staging-validated prerequisite during guarded Stock Value Production deploy `36254188859`; Production migration ledger is now through `0015_stock_valuation.sql`.
 
 ---
 
