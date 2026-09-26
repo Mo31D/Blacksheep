@@ -396,6 +396,25 @@ async function waitForOrderList(page, label) {
   );
 }
 
+async function assertMutationResponse(responsePromise, label, expectedStatus) {
+  const response = await responsePromise;
+  const text = await response.text();
+  if (response.status() !== expectedStatus) {
+    throw new Error(
+      label +
+        " returned HTTP " +
+        response.status() +
+        ": " +
+        text.slice(0, 1200),
+    );
+  }
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error(label + " returned invalid JSON: " + text.slice(0, 500));
+  }
+}
+
 async function assertNoHorizontalOverflow(page, label) {
   const dimensions = await page.evaluate(() => ({
     viewport: window.innerWidth,
@@ -653,16 +672,19 @@ async function productPlacementQa() {
 
     await assertNoHorizontalOverflow(page, "CARD 03 Add Product iPad portrait");
 
+    console.log("CARD03 QA: creating Product draft");
     const createResponsePromise = page.waitForResponse(
       (response) =>
         response.url().endsWith("/admin/api/products") &&
-        response.request().method() === "POST" &&
-        response.status() === 201,
+        response.request().method() === "POST",
       { timeout: 20_000 },
     );
     await page.locator("#createProductSave").click();
-    const createResponse = await createResponsePromise;
-    const created = await createResponse.json();
+    const created = await assertMutationResponse(
+      createResponsePromise,
+      "CARD 03 Product create",
+      201,
+    );
     const productId = String(created?.product?.id || "");
     assert(productId, "CARD 03 Product creation did not return a Product id.");
 
@@ -700,15 +722,19 @@ async function productPlacementQa() {
       '#peAdditionalPlacements input[value="sfn_gifts_home_gifts"]',
     );
     await homeGifts.check();
+    console.log("CARD03 QA: saving edited placements");
     const saveResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/admin/api/products/" + productId + "/draft") &&
-        response.request().method() === "PATCH" &&
-        response.status() === 200,
+        response.request().method() === "PATCH",
       { timeout: 20_000 },
     );
     await page.locator("#peSave").click();
-    await saveResponsePromise;
+    await assertMutationResponse(
+      saveResponsePromise,
+      "CARD 03 Product draft save",
+      200,
+    );
 
     await page.waitForSelector("#productPreview", { timeout: 10_000 });
     await page.locator("#productPreview").click();
@@ -726,16 +752,19 @@ async function productPlacementQa() {
     page.once("dialog", async (dialog) => {
       await dialog.accept();
     });
+    console.log("CARD03 QA: publishing Product draft");
     const publishResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes("/admin/api/products/" + productId + "/publish") &&
-        response.request().method() === "POST" &&
-        response.status() === 200,
+        response.request().method() === "POST",
       { timeout: 20_000 },
     );
     await page.locator("#productPublish").click();
-    const publishResponse = await publishResponsePromise;
-    const publishedPayload = await publishResponse.json();
+    const publishedPayload = await assertMutationResponse(
+      publishResponsePromise,
+      "CARD 03 Product publish",
+      200,
+    );
     const publishedVersionId = String(
       publishedPayload?.product?.publishedVersionId || "",
     );
@@ -1241,10 +1270,15 @@ try {
   await seedSession();
   await verifyInjectedSessionAndOrder();
 
+  console.log("QA stage: desktop orders");
   await desktopQa();
+  console.log("QA stage: mobile orders");
   await mobileWebkitQa();
+  console.log("QA stage: CARD03 Product placement");
   await productPlacementQa();
+  console.log("QA stage: iPhone owner views");
   await ownerPolishViewsQa({ width: 390, height: 844 }, "iPhone WebKit");
+  console.log("QA stage: iPad owner views");
   await ownerPolishViewsQa({ width: 820, height: 1180 }, "iPad portrait WebKit");
 
   completed = true;
