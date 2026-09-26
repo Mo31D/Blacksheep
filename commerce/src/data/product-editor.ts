@@ -102,6 +102,7 @@ async function uniqueSlug(db: D1DatabaseLike, title: string): Promise<string> {
 async function assertCategories(
   db: D1DatabaseLike,
   categoryIds: string[],
+  options: { allowInactiveIds?: string[] } = {},
 ): Promise<void> {
   const unique = [...new Set(categoryIds.filter(Boolean))];
   if (unique.length !== categoryIds.length) {
@@ -109,16 +110,25 @@ async function assertCategories(
   }
   if (!unique.length) return;
   const placeholders = unique.map(() => "?").join(",");
-  const rows = await allRows<{ id: string }>(
+  const rows = await allRows<{ id: string; active: number }>(
     db
       .prepare(
-        "SELECT id FROM categories WHERE active = 1 AND id IN (" +
+        "SELECT id, active FROM categories WHERE id IN (" +
           placeholders +
           ")",
       )
       .bind(...unique),
   );
   if (rows.length !== unique.length) throw new Error("product_category_not_found");
+
+  const allowedInactive = new Set(options.allowInactiveIds ?? []);
+  if (
+    rows.some(
+      (row) => Number(row.active) !== 1 && !allowedInactive.has(String(row.id)),
+    )
+  ) {
+    throw new Error("product_category_archived");
+  }
 }
 
 async function assertSkuBarcodeUnique(
@@ -874,7 +884,9 @@ export async function saveAdminProductDraft(
     : null;
   const categoryIds =
     requestedCategories ?? existingCategories.map((row) => row.categoryId);
-  await assertCategories(db, categoryIds);
+  await assertCategories(db, categoryIds, {
+    allowInactiveIds: existingCategories.map((row) => row.categoryId),
+  });
 
   const requestedPrimary =
     changes.primaryCategoryId === undefined
@@ -1802,16 +1814,15 @@ export async function archiveAdminCategory(
   categoryId: string,
 ): Promise<void> {
   const current = await db
-    .prepare(
-      "SELECT id, active, (SELECT COUNT(DISTINCT p.id) FROM products p JOIN product_version_categories pvc ON (pvc.product_version_id = p.current_published_version_id OR pvc.product_version_id = p.current_draft_version_id) WHERE pvc.category_id = categories.id AND p.publication_status <> 'ARCHIVED') AS productCount FROM categories WHERE id = ? LIMIT 1",
-    )
+    .prepare("SELECT id, active FROM categories WHERE id = ? LIMIT 1")
     .bind(categoryId)
     .first<Record<string, unknown>>();
   if (!current) throw new Error("category_not_found");
   if (Number(current.active) !== 1) return;
-  if (Number(current.productCount ?? 0) > 0) {
-    throw new Error("category_in_use");
-  }
+
+  // Archiving is intentionally non-destructive. Existing product-version
+  // relationships remain in place so published history and current products
+  // are not rewritten merely because the category is hidden from new choices.
   await db
     .prepare("UPDATE categories SET active = 0, updated_at = ? WHERE id = ?")
     .bind(now(), categoryId)
