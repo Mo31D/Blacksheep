@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "npm run catalog:check && npm run product-core:validate && npm run product-core:production-guards:test && npm run cart:test && npm run legal:test && npm run typecheck && npm run db:migrate:local && npm run db:migrate:upgrade-test && npm run inventory-core:test && npm run order-reservations:test && npm run test && npm run dry-run",
+    "check": "npm run product-core:validate && npm run product-core:production-guards:test && npm run cart:test && npm run legal:test && npm run typecheck && npm run db:migrate:local && npm run db:migrate:upgrade-test && npm run inventory-core:test && npm run order-reservations:test && npm run test && npm run dry-run",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply DB --local --env staging",
@@ -17,8 +17,6 @@
     "preview": "wrangler preview --env staging",
     "deploy:staging": "npm run db:migrate:staging && wrangler deploy --env staging",
     "deploy:production": "npm run db:migrate:production && wrangler deploy",
-    "catalog:build": "node ../scripts/build-commerce-catalog.mjs",
-    "catalog:check": "node ../scripts/build-commerce-catalog.mjs --check",
     "cart:test": "node ../scripts/test-cart-core.mjs",
     "legal:test": "node ../scripts/test-commerce-legal.mjs",
     "db:migrate:upgrade-test": "node scripts/test-migration-upgrade.mjs",
