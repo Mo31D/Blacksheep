@@ -6,20 +6,53 @@ function arg(name) {
   return index >= 0 ? process.argv[index + 1] : null;
 }
 
-function readGeneratedCatalogue() {
-  const file = resolve(process.cwd(), "src/generated/catalog.ts");
-  const source = readFileSync(file, "utf8");
-  const marker = "export const COMMERCE_CATALOG = ";
-  const markerIndex = source.indexOf(marker);
-  if (markerIndex < 0) {
-    throw new Error("generated_catalog_marker_missing");
+function readStaticStorefrontCatalogue() {
+  const file = resolve(process.cwd(), "../assets/catalog.js");
+  const raw = readFileSync(file, "utf8").trim();
+  const prefix = "window.CATALOG=";
+  if (!raw.startsWith(prefix)) {
+    throw new Error("static_catalog_format_invalid");
   }
-  const start = source.indexOf("[", markerIndex);
-  const end = source.lastIndexOf("] as const satisfies");
-  if (start < 0 || end < start) {
-    throw new Error("generated_catalog_array_missing");
+
+  const catalogue = JSON.parse(
+    raw.slice(prefix.length).replace(/;$/, ""),
+  );
+  const products = [];
+
+  for (const section of Object.values(catalogue)) {
+    for (const item of section || []) {
+      const status =
+        item.availabilityStatus ||
+        item.stockStatus ||
+        "available";
+      const hasPrice =
+        typeof item.price === "number" &&
+        Number.isFinite(item.price);
+
+      let nonPurchasableReason = null;
+      if (status === "arriving-soon") {
+        nonPurchasableReason = "arriving_soon";
+      } else if (status === "out-of-stock") {
+        nonPurchasableReason = "out_of_stock";
+      } else if (!hasPrice) {
+        nonPurchasableReason = "price_unavailable";
+      }
+
+      products.push({
+        id: item.id,
+        slug: item.slug,
+        name: item.name,
+        type: item.type,
+        sku: item.sku ?? null,
+        priceMinor: hasPrice ? Math.round(item.price * 100) : null,
+        status,
+        purchasable: nonPurchasableReason === null,
+        nonPurchasableReason,
+      });
+    }
   }
-  return JSON.parse(source.slice(start, end + 1));
+
+  return products.sort((a, b) => a.id.localeCompare(b.id));
 }
 
 function normalize(product) {
@@ -32,7 +65,8 @@ function normalize(product) {
     priceMinor: product.priceMinor ?? null,
     status: product.status,
     purchasable: Boolean(product.purchasable),
-    nonPurchasableReason: product.nonPurchasableReason ?? null,
+    nonPurchasableReason:
+      product.nonPurchasableReason ?? null,
   };
 }
 
@@ -55,9 +89,24 @@ async function fetchD1Catalogue(endpoint) {
 }
 
 function compare(staticProducts, d1Products) {
-  const staticById = new Map(staticProducts.map((p) => [p.id, normalize(p)]));
-  const d1ById = new Map(d1Products.map((p) => [p.id, normalize(p)]));
-  const ids = [...new Set([...staticById.keys(), ...d1ById.keys()])].sort();
+  const staticById = new Map(
+    staticProducts.map((product) => [
+      product.id,
+      normalize(product),
+    ]),
+  );
+  const d1ById = new Map(
+    d1Products.map((product) => [
+      product.id,
+      normalize(product),
+    ]),
+  );
+  const ids = [
+    ...new Set([
+      ...staticById.keys(),
+      ...d1ById.keys(),
+    ]),
+  ].sort();
   const fields = [
     "slug",
     "name",
@@ -89,7 +138,7 @@ function compare(staticProducts, d1Products) {
         mismatches.push({
           id,
           field,
-          generated: expected[field],
+          static: expected[field],
           d1: actual[field],
         });
       }
@@ -97,7 +146,7 @@ function compare(staticProducts, d1Products) {
   }
 
   return {
-    generatedCount: staticProducts.length,
+    staticCount: staticProducts.length,
     d1Count: d1Products.length,
     missingInD1,
     extraInD1,
@@ -109,20 +158,25 @@ function compare(staticProducts, d1Products) {
   };
 }
 
-const endpoint = arg("--endpoint") || process.env.PHASE6_PUBLIC_CATALOG_ENDPOINT;
+const endpoint =
+  arg("--endpoint") ||
+  process.env.PHASE6_PUBLIC_CATALOG_ENDPOINT;
 if (!endpoint) {
   throw new Error(
     "Provide --endpoint or PHASE6_PUBLIC_CATALOG_ENDPOINT.",
   );
 }
 
-const generated = readGeneratedCatalogue();
+const staticProducts = readStaticStorefrontCatalogue();
 const d1 = await fetchD1Catalogue(endpoint);
-const report = compare(generated, d1);
+const report = compare(staticProducts, d1);
 
 const output = arg("--output");
 if (output) {
-  writeFileSync(resolve(process.cwd(), output), JSON.stringify(report, null, 2) + "\n");
+  writeFileSync(
+    resolve(process.cwd(), output),
+    JSON.stringify(report, null, 2) + "\n",
+  );
 }
 
 console.log(JSON.stringify(report, null, 2));
