@@ -8,6 +8,7 @@ on:
       - "commerce/scripts/phase6-publication-render.mjs"
       - "commerce/scripts/phase6-publication-collections.mjs"
       - "commerce/scripts/phase6-publication-verify.mjs"
+      - "commerce/scripts/phase6-publication-package.mjs"
       - ".github/workflows/publication-candidate-staging.yml"
   workflow_dispatch:
 
@@ -165,6 +166,32 @@ jobs:
         run: |
           node scripts/phase6-publication-verify.mjs             --catalog publication-candidate-artifacts/catalog.candidate.js             --manifest publication-candidate-artifacts/publication-manifest.json             --site-dir publication-candidate-artifacts/site             --report-out publication-candidate-artifacts/package-report.json
           cat publication-candidate-artifacts/package-report.json
+
+      - name: Prove deterministic publication package and generate change plan
+        shell: bash
+        run: |
+          node scripts/phase6-publication-package.mjs             --catalog publication-candidate-artifacts/catalog.candidate.js             --manifest publication-candidate-artifacts/publication-manifest.json             --out-dir /tmp/phase6-publication-package             --report-out publication-candidate-artifacts/package-plan.json             --compare-to ..             --check
+          cat publication-candidate-artifacts/package-plan.json
+          node - publication-candidate-artifacts/package-plan.json <<'NODE'
+          const fs = require("fs");
+          const report = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          if (
+            report.ok !== true ||
+            report.deterministic !== true ||
+            report.deterministicDifferences.length !== 0 ||
+            (report.comparison?.unsafeSlugRemovals?.length ?? -1) !== 0
+          ) {
+            console.error("Deterministic publication package gate failed.", report);
+            process.exit(1);
+          }
+          console.log("Deterministic Phase 6 publication package passed.", {
+            files: report.files,
+            packageSha256: report.packageSha256,
+            added: report.comparison?.added?.length ?? 0,
+            changed: report.comparison?.changed?.length ?? 0,
+            deletions: report.comparison?.deletions?.length ?? 0,
+          });
+          NODE
 
       - name: Upload publication candidate artifacts
         if: always()
