@@ -226,6 +226,210 @@ export function compatibilityPlacementStatements(
   return statements;
 }
 
+
+export interface OwnerStorefrontPlacementSelection {
+  primaryNodeId: string;
+  additionalNodeIds: string[];
+}
+
+export interface ResolvedOwnerStorefrontPlacement {
+  storefrontNodeId: string;
+  isPrimary: boolean;
+  position: number;
+}
+
+function normalizeStorefrontNodeId(value: unknown): string {
+  return String(value ?? "").trim();
+}
+
+export async function resolveOwnerStorefrontPlacements(
+  db: D1DatabaseLike,
+  raw: unknown,
+): Promise<ResolvedOwnerStorefrontPlacement[]> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("product_storefront_placement_required");
+  }
+
+  const input = raw as Record<string, unknown>;
+  const primaryNodeId = normalizeStorefrontNodeId(input.primaryNodeId);
+  if (!primaryNodeId) {
+    throw new Error("product_storefront_primary_required");
+  }
+
+  const additionalRaw = Array.isArray(input.additionalNodeIds)
+    ? input.additionalNodeIds
+    : [];
+  const additionalNodeIds = additionalRaw
+    .map(normalizeStorefrontNodeId)
+    .filter(Boolean)
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .filter((value) => value !== primaryNodeId);
+
+  if (additionalNodeIds.length > 24) {
+    throw new Error("product_storefront_too_many_placements");
+  }
+
+  const ids = [primaryNodeId, ...additionalNodeIds];
+  const placeholders = ids.map(() => "?").join(",");
+  const rows = await allRows<{
+    id: string;
+    publicationStatus: string;
+    publishedVersionId: string | null;
+  }>(
+    db
+      .prepare(
+        "SELECT id, publication_status AS publicationStatus, " +
+          "current_published_version_id AS publishedVersionId " +
+          "FROM storefront_nodes WHERE id IN (" + placeholders + ")",
+      )
+      .bind(...ids),
+  );
+
+  const byId = new Map(rows.map((row) => [String(row.id), row]));
+  for (const id of ids) {
+    const row = byId.get(id);
+    if (!row) throw new Error("product_storefront_node_not_found");
+    if (
+      String(row.publicationStatus) !== "ACTIVE" ||
+      !row.publishedVersionId
+    ) {
+      throw new Error("product_storefront_node_not_live");
+    }
+  }
+
+  return ids.map((storefrontNodeId, index) => ({
+    storefrontNodeId,
+    isPrimary: index === 0,
+    position: index * 10,
+  }));
+}
+
+export function ownerPlacementStatements(
+  db: D1DatabaseLike,
+  input: {
+    productVersionId: string;
+    placements: ResolvedOwnerStorefrontPlacement[];
+    createdAt: string;
+    guard?: {
+      productId: string;
+      resultVersion: number;
+      token: string;
+    };
+  },
+): D1PreparedStatementLike[] {
+  const statements: D1PreparedStatementLike[] = [];
+
+  if (input.guard) {
+    statements.push(
+      db
+        .prepare(
+          "DELETE FROM product_version_storefront_placements " +
+            "WHERE product_version_id = ? AND EXISTS (" +
+            "SELECT 1 FROM products WHERE id = ? AND version = ? AND updated_at = ?)",
+        )
+        .bind(
+          input.productVersionId,
+          input.guard.productId,
+          input.guard.resultVersion,
+          input.guard.token,
+        ),
+    );
+  } else {
+    statements.push(
+      db
+        .prepare(
+          "DELETE FROM product_version_storefront_placements WHERE product_version_id = ?",
+        )
+        .bind(input.productVersionId),
+    );
+  }
+
+  for (const placement of input.placements) {
+    if (input.guard) {
+      statements.push(
+        db
+          .prepare(
+            "INSERT INTO product_version_storefront_placements (" +
+              "product_version_id, storefront_node_id, is_primary, position, source, created_at" +
+              ") SELECT ?, ?, ?, ?, 'OWNER', ? FROM products " +
+              "WHERE id = ? AND version = ? AND updated_at = ?",
+          )
+          .bind(
+            input.productVersionId,
+            placement.storefrontNodeId,
+            placement.isPrimary ? 1 : 0,
+            placement.position,
+            input.createdAt,
+            input.guard.productId,
+            input.guard.resultVersion,
+            input.guard.token,
+          ),
+      );
+    } else {
+      statements.push(
+        db
+          .prepare(
+            "INSERT INTO product_version_storefront_placements (" +
+              "product_version_id, storefront_node_id, is_primary, position, source, created_at" +
+              ") VALUES (?, ?, ?, ?, 'OWNER', ?)",
+          )
+          .bind(
+            input.productVersionId,
+            placement.storefrontNodeId,
+            placement.isPrimary ? 1 : 0,
+            placement.position,
+            input.createdAt,
+          ),
+      );
+    }
+  }
+
+  return statements;
+}
+
+export function copyPlacementStatements(
+  db: D1DatabaseLike,
+  input: {
+    sourceProductVersionId: string;
+    targetProductVersionId: string;
+    productId: string;
+    resultVersion: number;
+    token: string;
+  },
+): D1PreparedStatementLike[] {
+  return [
+    db
+      .prepare(
+        "DELETE FROM product_version_storefront_placements " +
+          "WHERE product_version_id = ? AND EXISTS (" +
+          "SELECT 1 FROM products WHERE id = ? AND version = ? AND updated_at = ?)",
+      )
+      .bind(
+        input.targetProductVersionId,
+        input.productId,
+        input.resultVersion,
+        input.token,
+      ),
+    db
+      .prepare(
+        "INSERT INTO product_version_storefront_placements (" +
+          "product_version_id, storefront_node_id, is_primary, position, source, created_at" +
+          ") SELECT ?, p.storefront_node_id, p.is_primary, p.position, p.source, ? " +
+          "FROM product_version_storefront_placements p " +
+          "WHERE p.product_version_id = ? AND EXISTS (" +
+          "SELECT 1 FROM products WHERE id = ? AND version = ? AND updated_at = ?)",
+      )
+      .bind(
+        input.targetProductVersionId,
+        input.token,
+        input.sourceProductVersionId,
+        input.productId,
+        input.resultVersion,
+        input.token,
+      ),
+  ];
+}
+
 export async function listPublishedStorefrontNodes(
   db: D1DatabaseLike,
 ): Promise<StorefrontNodeSnapshot[]> {
