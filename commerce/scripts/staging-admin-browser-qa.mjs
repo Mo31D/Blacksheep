@@ -899,7 +899,9 @@ async function ownerPolishViewsQa(viewport, label) {
       qaRoot = page
         .locator("#storefrontStructureTree .structure-card")
         .filter({ hasText: STRUCTURE_ROOT_NAME });
-      await qaRoot.locator("[data-structure-archive]").click();
+      await qaRoot
+        .locator(":scope > .structure-body > .structure-actions [data-structure-archive]")
+        .click();
       await page.waitForFunction(
         () =>
           document.getElementById("toast")?.textContent?.includes(
@@ -1065,12 +1067,12 @@ try {
     if (sessionHash) {
       d1("DELETE FROM admin_sessions WHERE token_hash=" + q(sessionHash));
     }
-    if (completed) {
-      d1(cleanupSql());
-      console.log("Synthetic Admin UI browser QA data cleaned up.");
-    } else {
-      console.error("Synthetic order preserved for failure investigation:", REF);
-    }
+    d1(cleanupSql());
+    console.log(
+      completed
+        ? "Synthetic Admin UI browser QA data cleaned up."
+        : "Synthetic Admin UI browser QA data cleaned up after failure.",
+    );
   } catch (cleanupError) {
     console.error(
       "Cleanup warning:",
