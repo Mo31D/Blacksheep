@@ -9,8 +9,10 @@ const envIndex = argv.indexOf("--env");
 const environment = envIndex >= 0 ? argv[envIndex + 1] : null;
 const candidateIndex = argv.indexOf("--candidate-out");
 const reportIndex = argv.indexOf("--report-out");
+const manifestIndex = argv.indexOf("--manifest-out");
 const candidatePath = candidateIndex >= 0 ? argv[candidateIndex + 1] : null;
 const reportPath = reportIndex >= 0 ? argv[reportIndex + 1] : null;
+const manifestPath = manifestIndex >= 0 ? argv[manifestIndex + 1] : null;
 const requireParity = argv.includes("--require-baseline-parity");
 
 if (!remote || environment !== "staging") {
@@ -584,6 +586,29 @@ if (candidatePath) {
   writeFileSync(
     resolve(process.cwd(), candidatePath),
     "window.CATALOG=" + JSON.stringify(candidateCatalogue) + ";\n",
+    "utf8",
+  );
+}
+
+if (manifestPath) {
+  const manifest = {
+    version: 1,
+    environment: "staging",
+    products: built
+      .map((entry) => ({
+        id: entry.item.id,
+        slug: entry.item.slug,
+        type: entry.item.type,
+        categories: entry.item.categories ?? [],
+        category: entry.item.category ?? null,
+        item: entry.item,
+        publication: entry.publication,
+      }))
+      .sort((a, b) => String(a.id).localeCompare(String(b.id))),
+  };
+  writeFileSync(
+    resolve(process.cwd(), manifestPath),
+    JSON.stringify(manifest, null, 2) + "\n",
     "utf8",
   );
 }
