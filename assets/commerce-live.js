@@ -16,7 +16,13 @@
   };
   const mediaUrl=value=>{
     if(!value)return'';
-    try{return new URL(String(value),apiBase+'/').href}catch{return String(value)}
+    const raw=String(value);
+    if(/^https?:\/\//i.test(raw))return raw;
+    try{
+      if(raw.startsWith('/media/'))return new URL(raw,apiBase+'/').href;
+      if(raw.startsWith('/'))return new URL(raw,location.origin).href;
+      return new URL(raw,apiBase+'/').href;
+    }catch{return raw}
   };
   const catalogItems=()=>{
     const rows=[];
