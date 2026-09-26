@@ -49,6 +49,14 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("COLLECTION_THEME");
     expect(production).toContain('id="newProductCategorySearch"');
     expect(production).toContain('id="newProductCategorySelected"');
+    expect(production).toContain(
+      "Archiving hides a category from new choices without deleting it or breaking existing product links.",
+    );
+    expect(production).toContain("ensureProductEditorCategories");
+    expect(production).toContain("· Archived");
+    expect(production).not.toContain(
+      "Categories used by products cannot be archived until those products are moved to another category.",
+    );
 
     expect(staging).toContain("STAGING");
     expect(staging).toContain("Reset test orders");
