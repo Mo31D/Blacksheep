@@ -110,7 +110,10 @@ describe("CARD 05 persistent Stocktake Admin", () => {
       { DB: new Db() },
       {
         verifyAccessFn: identity,
-        previewStocktakeScopeFn: (async (_db, input) => {
+        previewStocktakeScopeFn: (async (
+          _db: D1DatabaseLike,
+          input: unknown,
+        ) => {
           raw = input as Record<string, unknown>;
           return {
             locationId: "loc_ambleside",
@@ -188,7 +191,12 @@ describe("CARD 05 persistent Stocktake Admin", () => {
       { DB: new Db() },
       {
         verifyAccessFn: identity,
-        saveStocktakeItemFn: (async (_db, sessionId, variantId, raw) => {
+        saveStocktakeItemFn: (async (
+          _db: D1DatabaseLike,
+          sessionId: string,
+          variantId: string,
+          raw: unknown,
+        ) => {
           captured = { sessionId, variantId, ...(raw as object) };
           return {
             session: { ...session, countedItems: 8, currentPosition: 9, version: 5 },
