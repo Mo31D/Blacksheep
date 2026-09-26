@@ -68,7 +68,3 @@ jobs:
           echo "This workflow targets only the staging Worker and black-sheep-commerce-staging D1."
           echo "Synthetic staging order/session records are used for QA and cleaned after success."
           echo "No production Worker deploy, production D1 migration or production write command is present."
-
-
-
-# trigger-1790348268715
