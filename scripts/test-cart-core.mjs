@@ -38,6 +38,8 @@ const catalog=[
   {id:"D",type:"gifts",slug:"d",name:"D"},
   {id:"E",type:"gifts",slug:"e",name:"E",price:8,commerceLive:true,commercePurchasable:true,commerceInventoryTracked:true,commerceAvailable:1},
   {id:"F",type:"gifts",slug:"f",name:"F",price:9,commerceLive:true,commercePurchasable:false,commerceUnavailableReason:"online_ordering_disabled"},
+  {id:"G",type:"gifts",slug:"g",name:"G",price:11,sellStatus:"NOT_FOR_SALE"},
+  {id:"H",type:"gifts",slug:"h",name:"H",price:12,onlineOrderingEnabled:false},
 ];
 const resolve=(type,slug,productId)=>{
   if(productId){
@@ -104,6 +106,18 @@ const resolve=(type,slug,productId)=>{
   const result=cart.add("gifts","f",1);
   assert.equal(result.ok,false);
   assert.equal(result.reason,"not-available-online");
+  assert.equal(cart.count(),0);
+}
+
+{
+  const storage=new MemoryStorage();
+  const cart=createCart(storage,resolve);
+  const notForSale=cart.add("gifts","g",1);
+  assert.equal(notForSale.ok,false);
+  assert.equal(notForSale.reason,"not-for-sale");
+  const offline=cart.add("gifts","h",1);
+  assert.equal(offline.ok,false);
+  assert.equal(offline.reason,"not-available-online");
   assert.equal(cart.count(),0);
 }
 
