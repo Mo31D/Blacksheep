@@ -1,0 +1,24 @@
+name: Dispatch Approved Phase 6 Production Cutover Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/phase6-production-cutover-dispatch-once.yml"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    if: github.event.head_commit.message == 'ops: dispatch approved Phase 6 Production cutover once'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch guarded Production cutover
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh workflow run phase6-production-cutover.yml             --repo "$GH_REPO"             --ref main             -f confirmation=CUTOVER-PRODUCTION-D1             -f expected_package_sha=61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7
+          echo "Guarded Phase 6 Production cutover dispatched."
