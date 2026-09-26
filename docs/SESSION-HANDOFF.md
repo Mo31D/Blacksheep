@@ -662,3 +662,46 @@ Read `docs/WORK-REPORT-ROMNEYS-2026-09-24.md` and `docs/ROMNEYS-SOURCE-MAP.md` b
 - Product facts were verified by exact LP code against Lesser & Pavey/Leonardo and Joe Davies, with reputable retailer support only where needed.
 - No source image binary could be safely stored locally without hotlinking/screenshotting, so all 14 use the honest Product image being added state.
 - Product Information remains open by default; pages are indexable canonical static routes and included in sitemap.
+
+
+---
+
+## CRITICAL LATEST HANDOFF — CARD 02 Catalogue Structure complete, 26 September 2026
+
+**Source of truth:** newest GitHub `main`.
+
+CARD 02 is now **COMPLETE / STAGING VERIFIED**.
+
+### What changed
+- Admin now has a top-level **Catalogue** area.
+- Catalogue separates **Website structure** from **Brands & ranges**.
+- Website Structure uses real hierarchical Storefront nodes, not Categories.
+- Owner can add Main sections and Sub-sections, rename, reorder, hide/show in website navigation, archive/restore, search and show archived entries.
+- Technical enums are not exposed in the Catalogue UI.
+- Storefront Structure mutations have optimistic version checks and a dedicated audit ledger.
+- Parent Archive is blocked while active child sections remain.
+- iPad portrait/mobile layouts are explicitly covered.
+
+### Staging proof
+- Migration `0018_storefront_structure_admin.sql` applied to staging.
+- Staging deploy run: `36270522076` — PASS.
+- Commerce CI run: `36271016142` — PASS.
+- Admin Browser QA run: `36271024200` — PASS.
+- Browser QA created/reordered/hid/archived/restored synthetic hierarchy data and cleaned all synthetic records afterward.
+- Production Worker and Production D1 were intentionally not modified.
+
+Full evidence: `docs/CATALOGUE-STRUCTURE-CARD02-STAGING-2026-09-26.md`.
+
+### Exact next action
+Start **CARD 03 — Product Editor: placement + multi-location + live verification**.
+
+Product Add/Edit should gain:
+1. Primary website section.
+2. Primary sub-section.
+3. Optional “Also show in” destinations.
+4. Brands & ranges kept separate from website placement.
+5. Draft → Publish → public-catalogue verification.
+6. **Published & live on storefront ✓** only after verification.
+7. **View on website** after successful verification.
+
+Continue on Staging first. Do not promote these architecture changes to Production until the appropriate release gate passes.

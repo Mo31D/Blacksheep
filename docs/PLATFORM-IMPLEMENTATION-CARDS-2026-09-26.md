@@ -75,7 +75,9 @@ Purpose: authoritative implementation board for the next architecture programme.
 ---
 
 ## CARD 02 — Catalogue Structure Admin redesign
-**Status:** IN PROGRESS  
+**Status:** COMPLETE
+
+**Completion evidence:** `docs/CATALOGUE-STRUCTURE-CARD02-STAGING-2026-09-26.md` · Commerce CI `36271016142` · Staging deploy `36270522076` · Staging Admin Browser QA `36271024200`. Production was intentionally not modified.  
 **Depends on:** CARD 01
 
 **Goal:** replace the current long category manager with a simple Store Structure workspace.
@@ -91,17 +93,17 @@ Purpose: authoritative implementation board for the next architecture programme.
 - Do not expose enums such as `PRODUCT_CATEGORY` or `COLLECTION_THEME`.
 
 **Acceptance criteria**
-- [ ] Owner can create a new main website section without GitHub.
-- [ ] Owner can create/reorder sub-sections.
-- [ ] Owner can choose whether a section appears in the main menu.
-- [ ] iPad portrait UX is clean and usable.
-- [ ] Existing structure is migrated without duplicate destinations.
-- [ ] Destructive actions are guarded and audited.
+- [x] Owner can create a new main website section without GitHub.
+- [x] Owner can create/reorder sub-sections.
+- [x] Owner can choose whether a section appears in the main menu.
+- [x] iPad portrait UX is clean and usable.
+- [x] Existing structure is migrated without duplicate destinations.
+- [x] Destructive actions are guarded and audited.
 
 ---
 
 ## CARD 03 — Product Editor: placement + multi-location + live verification
-**Status:** BLOCKED  
+**Status:** READY  
 **Depends on:** CARD 01, CARD 02
 
 **Goal:** make product editing answer “Where should this product appear?”
@@ -541,4 +543,4 @@ CARD 00
 
 ## Immediate next action
 
-Start **CARD 02 — Catalogue Structure Admin redesign**. CARD 01 is complete and Staging verified. Build the owner-facing hierarchical Website Structure workspace on the new Storefront Structure domain; do not fall back to using Categories as the website hierarchy.
+Start **CARD 03 — Product Editor: placement + multi-location + live verification**. CARD 02 is complete and Staging verified. Add an owner-facing placement card to Product Add/Edit using the Storefront Structure domain: one Primary section, one Primary sub-section, optional “Also show in” locations, Brands & ranges kept separate, and live-public verification after Publish. Do not modify Production until the card has passed its Staging gates.
