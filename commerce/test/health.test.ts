@@ -141,6 +141,28 @@ describe("commerce worker", () => {
     ).toBe(true);
   });
 
+  it("serves the Admin shell from the dedicated admin hostname root", async () => {
+    const response = await worker.fetch(
+      new Request("https://admin.theblacksheepshop.co.uk/"),
+      { ...env, ADMIN_ACCESS_MODE: "off" },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
+    const html = await response.text();
+    expect(html).toContain("Black Sheep");
+  });
+
+  it("keeps the legacy API-host /admin route available during migration", async () => {
+    const response = await worker.fetch(
+      new Request("https://api.theblacksheepshop.co.uk/admin"),
+      { ...env, ADMIN_ACCESS_MODE: "off" },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/html");
+  });
+
   it("returns structured 404 responses", async () => {
     const response = await worker.fetch(
       new Request("https://api.example.test/unknown"),
