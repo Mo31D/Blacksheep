@@ -75,7 +75,7 @@ Purpose: authoritative implementation board for the next architecture programme.
 ---
 
 ## CARD 02 — Catalogue Structure Admin redesign
-**Status:** READY  
+**Status:** IN PROGRESS  
 **Depends on:** CARD 01
 
 **Goal:** replace the current long category manager with a simple Store Structure workspace.
