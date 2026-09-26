@@ -126,7 +126,7 @@ export function adminHtml(identityEmail: string, environment = "production"): st
   </div>
   <section class="panel catalogue-workspace">
     <div id="catalogueStructurePanel">
-      <div class="catalogue-note"><strong>Website structure</strong> controls the sections and sub-sections customers will browse. Changes here are stored safely as drafts; the current live website is not changed by this screen yet.</div>
+      <div class="catalogue-note"><strong>Website structure</strong> controls the sections and sub-sections customers browse. Edits are saved safely as drafts. Use <strong>Publish</strong> when a section is ready for the public website.</div>
       <div class="catalogue-toolbar"><input class="field" id="catalogueSearch" placeholder="Search sections…" autocomplete="off"><label class="catalogue-switch"><input type="checkbox" id="catalogueShowArchived"> Show archived</label><button class="btn" id="addStorefrontSection">+ Add main section</button></div>
       <div class="structure-tree" id="storefrontStructureTree"><div class="empty">Open Catalogue to load website structure.</div></div>
     </div>
