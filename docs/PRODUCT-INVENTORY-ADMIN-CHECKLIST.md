@@ -4,7 +4,7 @@ Updated: 26 September 2026
 Repository: `Mo31D/Blacksheep`  
 Branch: `main`
 
-This checklist is intentionally separate from `ADMIN-V2-CHECKLIST.md` until Product/Inventory implementation begins.
+This checklist began as the separate Product/Inventory execution tracker and is now one of the authoritative current-state records. Historical phase notes are preserved for implementation evidence; when an older phase note conflicts with the **FINAL BACKEND AUDIT REFRESH** or **CURRENT EXACT NEXT ACTION**, the newer sections are authoritative.
 
 ## Status legend
 
@@ -42,6 +42,8 @@ This checklist is intentionally separate from `ADMIN-V2-CHECKLIST.md` until Prod
 - [x] Final report created: `docs/BLACK-SHEEP-BACKEND-AUDIT-CLEANUP-2026-09-26.md`.
 
 **Remaining acceptance is manual owner Production smoke only:** live Products/Stock check, one ordinary live order request, order visibility in Admin, customer + owner email delivery, and confirmation that an untracked baseline Product creates no unexpected numeric stock movement.
+
+---
 
 # PHASE 0 — ARCHITECTURE LOCK
 

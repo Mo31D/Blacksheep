@@ -23,10 +23,10 @@
 >
 > **Final backend / Admin / Basket audit — 26 September 2026**
 > - workflow `36235314026` — SUCCESS.
-- final post-cleanup refresh workflow `36240828154` — **SUCCESS** on source commit `4dcadb906f2fc4a1a43e68064eddf3783437b369`.
-- cleanup commit `48bfd632344a4d7d5493503d13f830b0408ec497` removed five stale QA trigger markers and tightened Commerce CI to explicit `contents: read`.
-- dedicated post-cleanup Commerce CI `36240439223`, Search Readiness `36240439155`, Checkout E2E `36240439171`, Admin Browser QA `36240439189`, Admin V2 E2E `36240439178`, Review Edge E2E `36240439190` and Webhook E2E `36240439169` — all **SUCCESS**.
-- the final one-shot audit was removed after success at `1decb00b0b01ab1a90ca199c87cdd343a25400f9`; Search Readiness `36241123400` and Pages deployment `36241123221` then passed on the cleaned tree.
+> - final post-cleanup refresh workflow `36240828154` — **SUCCESS** on source commit `4dcadb906f2fc4a1a43e68064eddf3783437b369`.
+> - cleanup commit `48bfd632344a4d7d5493503d13f830b0408ec497` removed five stale QA trigger markers and tightened Commerce CI to explicit `contents: read`.
+> - dedicated post-cleanup Commerce CI `36240439223`, Search Readiness `36240439155`, Checkout E2E `36240439171`, Admin Browser QA `36240439189`, Admin V2 E2E `36240439178`, Review Edge E2E `36240439190` and Webhook E2E `36240439169` — all **SUCCESS**.
+> - the final one-shot audit was removed after success at `1decb00b0b01ab1a90ca199c87cdd343a25400f9`; Search Readiness `36241123400` and Pages deployment `36241123221` then passed on the cleaned tree.
 > - full `npm run check` — PASS.
 > - 33 Vitest files / 195 tests — PASS.
 > - Basket + Checkout real staging browser E2E — PASS.
