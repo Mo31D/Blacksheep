@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 
-# Final post-cleanup rerun: 2026-09-26
+# Final post-cleanup rerun: 2026-09-26 after legacy generator removal
 jobs:
   backend-full-audit:
     runs-on: ubuntu-latest
