@@ -5,7 +5,7 @@
 > Repository: `Mo31D/Blacksheep` · branch: `main`.
 >
 > Authoritative trackers/reports:
-> - `docs/PLATFORM-IMPLEMENTATION-CARDS-2026-09-26.md` — **next architecture programme; CARD 00 complete, CARD 01 is the current next milestone**
+> - `docs/PLATFORM-IMPLEMENTATION-CARDS-2026-09-26.md` — **next architecture programme; CARD 00–01 complete, CARD 02 is the current next milestone**
 > - `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`
 > - `docs/BLACK-SHEEP-BACKEND-AUDIT-CLEANUP-2026-09-26.md`
 > - `docs/FINAL-OWNER-POLISH-TICKETS-2026-09-26.md`
@@ -116,6 +116,22 @@
 > - the direct Cloudflare ChatGPT connector was unavailable in the cleanup session.
 > - GitHub Actions Cloudflare credentials were available and the final audit performed read-only Production D1 / health / public-catalogue verification successfully.
 >
+> **CARD 01 Storefront Structure — COMPLETE / STAGING VERIFIED, 26 September 2026**
+> - implementation report: `docs/STOREFRONT-STRUCTURE-CARD01-STAGING-2026-09-26.md`.
+> - migration `0017_storefront_structure.sql` adds separate versioned Storefront nodes and Product-version placements; it does not repurpose `categories`.
+> - seeded/backfilled Staging: 23 nodes, 4 roots, 150 Product versions with placements, 0 invalid Primary counts, 0 known versions missing placement, 135 multi-placement versions.
+> - staging operational parity across migration: Products 158, Product versions 150, variants 158, inventory balances 148, on-hand 1,477, reserved 0, orders 32 — all unchanged.
+> - Staging public catalogue remained 146 before/after; no canonical/SEO cutover occurred.
+> - frozen-catalogue compatibility: 146 Products → 313 deterministic placements.
+> - Product Add/Edit draft/Duplicate and importer now maintain compatibility placements until CARD 03 replaces the legacy placement UX.
+> - archive-history and destructive-delete protection are automated.
+> - Commerce CI `36268779500`: 37 files / 218 tests PASS; Search Readiness `36268779540` PASS.
+> - primary staging verification `36268539305` PASS; final clean staging deploy `36268976000` PASS.
+> - current Staging Worker `a63ec645-9ab9-4dce-be7f-ea751b83b2e6`; deployment `240eb9b1-13c9-478a-99a0-067ff71f6a01`; no migrations pending.
+> - `env.staging.routes=[]` now prevents staging inheritance of Production custom domains; deploy workflow retains an explicit Production-domain rejection guard.
+> - **Production was not modified**; Production D1 remains through `0016`.
+> - CARD 02 — Catalogue Structure Admin redesign — is now READY.
+>
 > **CARD 00 architecture freeze — COMPLETE, 26 September 2026**
 > - authoritative freeze: `docs/PLATFORM-ARCHITECTURE-FREEZE-2026-09-26.md`.
 > - read-only Production baseline run `36266787042` — SUCCESS.
@@ -130,7 +146,7 @@
 > - The owner approved a deeper platform rebuild rather than isolated UI patches.
 > - Repository-native implementation cards now live at `docs/PLATFORM-IMPLEMENTATION-CARDS-2026-09-26.md`.
 > - GitHub Issues are disabled for this repository, so that file is the card board/source of truth.
-> - CARD 00 is COMPLETE. Immediate next implementation milestone: **CARD 01 — Storefront Structure data model**.
+> - CARD 00 and CARD 01 are COMPLETE. Immediate next implementation milestone: **CARD 02 — Catalogue Structure Admin redesign**.
 > - Do not jump directly to dropdown/UI changes; Storefront Structure must become the shared backbone for Product placement, Stocktake scoping, Navigation, Homepage merchandising and future themes.
 >
 > **Next work**

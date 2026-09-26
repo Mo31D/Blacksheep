@@ -52,7 +52,9 @@ Purpose: authoritative implementation board for the next architecture programme.
 ---
 
 ## CARD 01 — Storefront Structure data model
-**Status:** IN PROGRESS  
+**Status:** COMPLETE
+
+**Completion evidence:** `docs/STOREFRONT-STRUCTURE-CARD01-STAGING-2026-09-26.md` · Commerce CI `36268779500` · Staging proof `36268539305` · final clean staging deploy `36268976000`.  
 **Depends on:** CARD 00
 
 **Goal:** create a real hierarchical website structure instead of overloading flat categories.
@@ -64,16 +66,16 @@ Purpose: authoritative implementation board for the next architecture programme.
 - Safe migration from current product types/categories.
 
 **Acceptance criteria**
-- [ ] Product can have one primary and multiple secondary storefront placements.
-- [ ] Placements are part of the product draft/publish lifecycle.
-- [ ] Archiving a node does not destroy history.
-- [ ] Existing live catalogue remains functional through migration.
-- [ ] Migration has a tested rollback path.
+- [x] Product can have one primary and multiple secondary storefront placements.
+- [x] Placements are part of the product draft/publish lifecycle.
+- [x] Archiving a node does not destroy history.
+- [x] Existing live catalogue remains functional through migration.
+- [x] Migration has a tested rollback path.
 
 ---
 
 ## CARD 02 — Catalogue Structure Admin redesign
-**Status:** BLOCKED  
+**Status:** READY  
 **Depends on:** CARD 01
 
 **Goal:** replace the current long category manager with a simple Store Structure workspace.
@@ -539,4 +541,4 @@ CARD 00
 
 ## Immediate next action
 
-Start **CARD 01 — Storefront Structure data model**. Use the frozen decisions in `docs/PLATFORM-ARCHITECTURE-FREEZE-2026-09-26.md`: Storefront Structure is distinct from Categories, the migration must be additive/backfilled, and no customer-facing routing or SEO cutover occurs in the schema milestone.
+Start **CARD 02 — Catalogue Structure Admin redesign**. CARD 01 is complete and Staging verified. Build the owner-facing hierarchical Website Structure workspace on the new Storefront Structure domain; do not fall back to using Categories as the website hierarchy.
