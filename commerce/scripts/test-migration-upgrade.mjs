@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0014_")) {
+  if (!latestMigration?.startsWith("0015_")) {
     throw new Error(
-      `Expected latest migration to be 0014, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0015, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0013_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0013.");
+  if (baselineMigrations.at(-1)?.startsWith("0014_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0014.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -126,6 +126,9 @@ try {
     "SELECT returned_at FROM inventory_reservations LIMIT 0",
     "SELECT data_class, admin_hidden_at FROM orders LIMIT 0",
     "SELECT category_type FROM categories LIMIT 0",
+    "SELECT id, name, active FROM suppliers LIMIT 0",
+    "SELECT cost_minor, supplier_id, supplier_product_code, vat_rate_basis_points FROM product_variants LIMIT 0",
+    "SELECT snapshot_date, location_id, cost_value_inc_vat_minor, retail_value_inc_vat_minor, potential_gross_profit_minor FROM inventory_valuation_snapshots LIMIT 0",
   ];
 
   for (const sql of schemaQueries) {
@@ -153,7 +156,7 @@ try {
     "--persist-to",
     persistDir,
     "--command",
-    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort') ORDER BY name",
+    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort','idx_suppliers_active_name','idx_product_variants_supplier','idx_inventory_valuation_snapshots_location_date') ORDER BY name",
   ]);
 
   for (const required of [
@@ -170,6 +173,9 @@ try {
     "idx_inventory_reservations_returned",
     "idx_orders_data_class_created",
     "idx_categories_type_active_sort",
+    "idx_suppliers_active_name",
+    "idx_product_variants_supplier",
+    "idx_inventory_valuation_snapshots_location_date",
   ]) {
     if (!indexOutput.includes(required)) {
       throw new Error(`Required index missing after upgrade: ${required}`);
@@ -236,7 +242,7 @@ try {
   }
 
   console.log(
-    "PASS: migrations 0000–0013 upgraded cleanly to 0014; managed category types, order data classification/reset and return-to-stock schema are present.",
+    "PASS: migrations 0000–0014 upgraded cleanly to 0015; supplier metadata, variant VAT/cost linkage and stock valuation snapshots are present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
