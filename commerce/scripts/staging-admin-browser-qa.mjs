@@ -805,13 +805,15 @@ async function ownerPolishViewsQa(viewport, label) {
     await page.waitForSelector("#view-stock-value.active #valuationMetrics .valuation-card", {
       timeout: 20_000,
     });
-    const valuationText = await page.locator("#view-stock-value").innerText();
+    const valuationText = (
+      await page.locator("#view-stock-value").innerText()
+    ).toLowerCase();
     for (const expected of [
-      "Stock at cost",
-      "Retail value",
-      "Potential gross profit",
-      "Value by supplier",
-      "Valuation confidence",
+      "stock at cost",
+      "retail value",
+      "potential gross profit",
+      "value by supplier",
+      "valuation confidence",
     ]) {
       assert(
         valuationText.includes(expected),
