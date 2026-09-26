@@ -40,8 +40,8 @@
 > - no TODO/FIXME/HACK markers found in active Commerce runtime/scripts during the final audit.
 > - runtime import scan found no obvious orphan `commerce/src` module.
 > - Draft PR #7 is closed and must not be merged.
-> - historical branches `commerce-v1-catalog`, `commerce-v1-pricing`, `commerce-v1`, `exact-local-v2`, `recovery/black-sheep-work-2026-09-23`, `restore-local-exact`, and `romneys-rebuild-2026-09-24` are obsolete/safe cleanup candidates.
-> - the current GitHub connector does not expose branch deletion, so those seven branch refs remain; do not merge them back into `main`.
+> - historical branches `commerce-v1-catalog`, `commerce-v1-pricing`, `commerce-v1`, `exact-local-v2`, `recovery/black-sheep-work-2026-09-23`, `restore-local-exact`, and `romneys-rebuild-2026-09-24` were deleted by guarded cleanup workflow `36236510282`.
+> - post-cleanup branch list: `main` only.
 >
 > **Cloudflare access note**
 > - the direct Cloudflare ChatGPT connector was unavailable in the cleanup session.
@@ -51,7 +51,7 @@
 > - do not revive old Commerce V1 branches or generated backend catalogue authority.
 > - use D1 Product Core / Inventory Core as the backend source of truth.
 > - for future changes, keep Commerce CI + Search Readiness green and run the targeted staging browser/E2E workflow for the affected surface.
-> - optional manual cleanup: delete the seven obsolete Git branch refs using GitHub UI or a branch-delete capable connection.
+> - keep `main` as the only active branch unless a new isolated task explicitly needs another branch.
 >
 > The sections below are retained as historical implementation evidence. When a historical note conflicts with this header, this header is authoritative.
 >
