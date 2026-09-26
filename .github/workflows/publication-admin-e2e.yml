@@ -9,6 +9,7 @@ on:
       - "commerce/scripts/phase6-publication-render.mjs"
       - "commerce/scripts/phase6-publication-collections.mjs"
       - "commerce/scripts/phase6-publication-verify.mjs"
+      - "commerce/scripts/phase6-publication-package.mjs"
       - ".github/workflows/publication-admin-e2e.yml"
   workflow_dispatch:
 
