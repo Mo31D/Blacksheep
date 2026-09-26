@@ -160,7 +160,7 @@ try {
     "--persist-to",
     persistDir,
     "--command",
-    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort','idx_suppliers_active_name','idx_product_variants_supplier','idx_inventory_valuation_snapshots_location_date') ORDER BY name",
+    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort','idx_suppliers_active_name','idx_product_variants_supplier','idx_inventory_valuation_snapshots_location_date','idx_storefront_nodes_status_updated','idx_storefront_live_slug','idx_storefront_one_live_version','idx_storefront_node_versions_parent_sort','idx_product_storefront_one_primary','idx_product_storefront_node_version') ORDER BY name",
   ]);
 
   for (const required of [
