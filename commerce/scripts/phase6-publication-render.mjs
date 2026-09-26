@@ -79,7 +79,10 @@ function availability(item) {
   if (item.sellStatus === "NOT_FOR_SALE") {
     return { code: "not-for-sale", label: "Not available to order" };
   }
-  if (item.onlineOrderingEnabled === false && typeof item.price === "number") {
+  if (typeof item.price !== "number" || !Number.isFinite(item.price)) {
+    return { code: "price-unavailable", label: "Price not confirmed" };
+  }
+  if (item.onlineOrderingEnabled === false) {
     return { code: "not-online", label: "Not available to order online" };
   }
   return { code: "available", label: null };
