@@ -237,6 +237,33 @@ const productRows = rows(
   ),
 );
 
+const slugRows = rows(
+  query(
+    `SELECT
+      p.id AS productId,
+      ps.slug,
+      ps.is_primary AS isPrimary,
+      ps.created_at AS createdAt,
+      ps.retired_at AS retiredAt
+    FROM products p
+    JOIN product_slugs ps ON ps.product_id = p.id
+    WHERE p.publication_status = 'ACTIVE'
+      AND p.current_published_version_id IS NOT NULL
+    ORDER BY p.id, ps.created_at, ps.id`,
+  ),
+);
+
+const slugsByProduct = new Map();
+for (const row of slugRows) {
+  if (!slugsByProduct.has(row.productId)) slugsByProduct.set(row.productId, []);
+  slugsByProduct.get(row.productId).push({
+    slug: String(row.slug),
+    isPrimary: Number(row.isPrimary) === 1,
+    createdAt: row.createdAt ?? null,
+    retiredAt: row.retiredAt ?? null,
+  });
+}
+
 const categoryRows = rows(
   query(
     `SELECT
@@ -480,6 +507,7 @@ function buildCandidateItem(row) {
       seoDescription: row.seoDescription ?? null,
       longDescription: row.longDescription ?? null,
       trackInventory: Number(row.trackInventory) === 1,
+      slugHistory: (slugsByProduct.get(row.productId) ?? []).map((entry) => ({ ...entry })),
       r2Media: publishedMedia
         .filter((entry) => entry.storageProvider === "R2")
         .map((entry) => ({
@@ -579,6 +607,10 @@ const report = {
   mediaLinks: mediaRows.length,
   publicAttributes: attributeRows.length,
   sourceRecords: sourceRows.length,
+  slugHistoryRows: slugRows.length,
+  retiredSlugAliases: slugRows.filter(
+    (row) => row.retiredAt != null || Number(row.isPrimary) !== 1,
+  ).length,
   r2MediaNeedingProductionPublication: r2Media,
 };
 
