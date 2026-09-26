@@ -85,6 +85,30 @@ function availability(item) {
   return { code: "available", label: null };
 }
 
+function schemaOffer(item) {
+  if (typeof item.price !== "number" || !Number.isFinite(item.price)) {
+    return null;
+  }
+  if (item.sellStatus === "NOT_FOR_SALE") return null;
+  if (item.onlineOrderingEnabled === false) return null;
+
+  let availabilityUrl = "https://schema.org/InStock";
+  if (item.availabilityStatus === "arriving-soon") {
+    availabilityUrl = "https://schema.org/PreOrder";
+  } else if (item.stockStatus === "out-of-stock") {
+    availabilityUrl = "https://schema.org/OutOfStock";
+  }
+
+  return {
+    "@type": "Offer",
+    priceCurrency: "GBP",
+    price: item.price.toFixed(2),
+    availability: availabilityUrl,
+    url: base + "/products/" + item.slug + ".html",
+    seller: { "@id": base + "/#store" },
+  };
+}
+
 function regexEscape(value) {
   return String(value).replace(/[|\\{}()[\]^$+*?.-]/g, "\\$&");
 }
@@ -207,6 +231,9 @@ function patchJsonLd(html, item, publication) {
               if (/price/i.test(String(prop?.name || ""))) prop.value = priceText;
             }
           }
+          const offer = schemaOffer(item);
+          if (offer) node.offers = offer;
+          else delete node.offers;
         }
       }
       return open + JSON.stringify(data).replace(/</g, "\\u003c") + close;
@@ -311,6 +338,7 @@ function genericPage(item, publication) {
         ...(item.brand ? { brand: { "@type": "Brand", name: item.brand } } : {}),
         ...(item.sku ? { sku: String(item.sku) } : {}),
         category: item.label || item.category || item.type,
+        ...(schemaOffer(item) ? { offers: schemaOffer(item) } : {}),
       },
     ],
   };
@@ -408,6 +436,19 @@ function pageProblems(html, item) {
     if (product.name !== item.name) problems.push("schema_name");
     if (product.url !== url) problems.push("schema_url");
     if ((product.sku ?? null) !== (item.sku ?? null)) problems.push("schema_sku");
+    const expectedOffer = schemaOffer(item);
+    if (!expectedOffer) {
+      if (product.offers != null) problems.push("schema_offer_should_be_absent");
+    } else {
+      const offer = Array.isArray(product.offers) ? product.offers[0] : product.offers;
+      if (!offer) problems.push("schema_offer_missing");
+      else {
+        if (String(offer.priceCurrency || "") !== "GBP") problems.push("schema_offer_currency");
+        if (String(offer.price || "") !== expectedOffer.price) problems.push("schema_offer_price");
+        if (String(offer.availability || "") !== expectedOffer.availability) problems.push("schema_offer_availability");
+        if (String(offer.url || "") !== expectedOffer.url) problems.push("schema_offer_url");
+      }
+    }
   }
   return problems;
 }
