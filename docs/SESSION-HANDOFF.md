@@ -116,11 +116,21 @@
 > - the direct Cloudflare ChatGPT connector was unavailable in the cleanup session.
 > - GitHub Actions Cloudflare credentials were available and the final audit performed read-only Production D1 / health / public-catalogue verification successfully.
 >
+> **CARD 00 architecture freeze — COMPLETE, 26 September 2026**
+> - authoritative freeze: `docs/PLATFORM-ARCHITECTURE-FREEZE-2026-09-26.md`.
+> - read-only Production baseline run `36266787042` — SUCCESS.
+> - Production migrations are current through `0016_admin_password_auth.sql`.
+> - Production snapshot: 140 ACTIVE + 12 ARCHIVED products; 22 active categories; **0 categories use parent_id**; 153 product versions; 324 version/category links; 139 active product media (3 R2 / 136 repository); 148 tracked variants; 1,491 on-hand units; 0 reserved units; 6 TEST orders.
+> - frozen decision: existing `categories` remains Product classification (Brand/Range, Product Category, Collection/Theme) and will **not** become the website/menu hierarchy.
+> - CARD 01 will add a distinct Storefront Structure domain with version-aware product placements; migration is additive/backfilled and must not change canonical SEO URLs.
+> - mandatory release-safety item before the next staging Worker deploy: stop `env.staging` inheriting Production custom-domain routes.
+> - CARD 01 is now READY.
+>
 > **Next architecture programme**
 > - The owner approved a deeper platform rebuild rather than isolated UI patches.
 > - Repository-native implementation cards now live at `docs/PLATFORM-IMPLEMENTATION-CARDS-2026-09-26.md`.
 > - GitHub Issues are disabled for this repository, so that file is the card board/source of truth.
-> - Immediate next implementation milestone: **CARD 00 — Architecture freeze & source-of-truth map**.
+> - CARD 00 is COMPLETE. Immediate next implementation milestone: **CARD 01 — Storefront Structure data model**.
 > - Do not jump directly to dropdown/UI changes; Storefront Structure must become the shared backbone for Product placement, Stocktake scoping, Navigation, Homepage merchandising and future themes.
 >
 > **Next work**
