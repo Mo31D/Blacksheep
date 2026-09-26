@@ -352,4 +352,6 @@ Current Production remains pre-cutover:
 
 The next action is not another implementation milestone. It is a separate owner decision to dispatch the guarded workflow `.github/workflows/phase6-production-cutover.yml`.
 
+Final readiness evidence: `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-READINESS-2026-09-26.md` / workflow `36230644182` — SUCCESS.
+
 That workflow must perform a fresh drift check before its first Production write and must abort if the approved package SHA or `main` has changed.
