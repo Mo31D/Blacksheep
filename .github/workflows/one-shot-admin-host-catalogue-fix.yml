@@ -68,3 +68,4 @@ jobs:
           echo "::error::Dedicated Admin hostname did not become ready."
           exit 1
 # retry-after-catalogue-fixture-fix-2026-09-26
+# deploy-admin-password-auth-2026-09-26
