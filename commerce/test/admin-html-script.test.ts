@@ -43,15 +43,22 @@ describe("generated Admin HTML scripts", () => {
     expect(production).not.toContain("dedicated Media phase");
     expect(production).not.toContain('id="resetTestOrders"');
     expect(production).not.toContain('data-order-class="TEST"');
-    expect(production).toContain('id="manageCategories"');
-    expect(production).toContain("Manage categories");
-    expect(production).toContain("categoryTypeLabel");
-    expect(production).toContain("COLLECTION_THEME");
+    expect(production).toContain('id="view-catalogue"');
+    expect(production).toContain('data-nav="catalogue"');
+    expect(production).toContain('id="openCatalogue"');
+    expect(production).toContain("Website structure");
+    expect(production).toContain("Brands &amp; ranges");
+    expect(production).toContain('id="addStorefrontSection"');
+    expect(production).toContain('id="storefrontStructureTree"');
+    expect(production).toContain("loadCatalogue");
+    expect(production).toContain("renderWebsiteStructure");
+    expect(production).toContain("openStructureEditor");
+    expect(production).toContain("/admin/api/storefront-structure");
+    expect(production).not.toContain('id="manageCategories"');
+    expect(production).not.toContain('id="newCategoryType"');
+    expect(production).not.toContain(">Manage categories<");
     expect(production).toContain('id="newProductCategorySearch"');
     expect(production).toContain('id="newProductCategorySelected"');
-    expect(production).toContain(
-      "Archiving hides a category from new choices without deleting it or breaking existing product links.",
-    );
     expect(production).toContain("ensureProductEditorCategories");
     expect(production).toContain("· Archived");
     expect(production).toContain('id="stockValueButton"');
@@ -105,6 +112,12 @@ describe("generated Admin HTML scripts", () => {
     );
     expect(html).toContain(
       ".product-detail-open .product-detail-panel{display:block;position:fixed;inset:72px 0 0 78px",
+    );
+    expect(html).toContain(
+      ".structure-subrow,.brand-range-row{grid-template-columns:1fr}",
+    );
+    expect(html).toContain(
+      ".mobile-bottom{position:fixed;display:grid;grid-template-columns:repeat(6,1fr)",
     );
   });
 });
