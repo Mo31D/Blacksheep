@@ -306,7 +306,7 @@ Release report:
 
 # PHASE 6 — STOREFRONT / COMMERCE INTEGRATION
 
-**Status: READY FOR PRODUCTION CUTOVER APPROVAL — Milestones 6.1–6.6 COMPLETE; Phase 6.7 Readiness COMPLETE. Production cutover itself is NOT executed.**
+**Status: AUTOMATED PRODUCTION CUTOVER COMPLETE — Milestones 6.1–6.7 executed and verified. Final owner smoke is pending.**
 
 - [x] Phase 6 cutover principles locked before code — `docs/STOREFRONT-COMMERCE-PHASE6-IMPLEMENTATION-PLAN-2026-09-25.md`.
 - [x] D1 public commerce catalogue/query layer — published content only; Draft never used by the public query.
@@ -375,7 +375,8 @@ Release report:
 - [x] Production cutover runbook locked — `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-CUTOVER-PLAN-2026-09-26.md`.
 - [x] Final Production readiness report — `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-READINESS-2026-09-26.md`.
 - [x] Dedicated manual-only Production cutover workflow prepared — `.github/workflows/phase6-production-cutover.yml`.
-- [ ] Execute Production cutover — requires separate explicit owner approval plus the exact approved package SHA.
+- [x] Execute Production cutover — owner approved; guarded Production workflow executed with the approved package SHA.
+- [x] Automated post-cutover verification — Production D1/Worker/public catalogue/storefront/canonical/Cron gates PASS.
 - [ ] Post-cutover owner smoke: Admin Products/Stock + one ordinary customer order + owner/customer notification proof.
 
 ### Phase 6 evidence
@@ -426,18 +427,30 @@ Release report:
 - Failure handling is non-destructive by default; no automatic Time Travel restore is performed.
 - Cloudflare Time Travel/R2/Worker command syntax was cross-checked against current official documentation before the runbook was locked.
 
-#### Production isolation
-- Production migration remains `0008_concurrency_guards.sql`.
-- Product/Inventory/Reservation tables remain absent.
-- Phase 6 Product/commerce flags remain absent.
-- Production live-commerce marker remains `false`.
-- Production checkout authority remains the generated static catalogue.
-- Current verified Production order count at readiness: 4.
-- No Phase 6 Production migration/import/Worker deploy/static package apply has been performed.
+#### Production cutover
+- Guarded cutover workflow `36231139658` executed the approved Production cutover.
+- Production source cutover commit: `97099d67c6a85afbcc90b797520873d9e44bb9b4`.
+- Production migration ledger: `0012_order_returns.sql`.
+- Active Published Products: 146.
+- Baseline tracked variants: 0.
+- Existing orders preserved: 4.
+- Production Product Media R2 bucket: `black-sheep-product-media-prod`.
+- Production Worker version: `b1a4f431-6054-4e24-a84f-ec2f663d6c2b`.
+- Production flags now enabled:
+  - `ORDER_RESERVATIONS_ENABLED=true`,
+  - `D1_PUBLIC_CATALOG_ENABLED=true`,
+  - `D1_COMMERCE_AUTHORITY_ENABLED=true`.
+- Production live-commerce marker is enabled.
+- Production reservation expiry Cron: `*/30 * * * *`.
+- Final Cron/post-cutover remediation workflow `36231541379` — SUCCESS.
+- Public catalogue parity: PASS.
+- Production storefront canonical/static surface: PASS.
+- Pre-cutover D1 Time Travel bookmark: `00000069-00000000-000050f2-520c7a223d69419dc3f15f11a8565f4f`.
+- Final report: `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-CUTOVER-2026-09-26.md`.
 
 Exit gate:
-- [x] All staging/readiness engineering gates are complete.
-- [ ] Production D1 cutover + post-cutover owner/order proof remain the final Phase 6 gate.
+- [x] All automated Phase 6 Production cutover gates are complete.
+- [ ] Owner Admin/Stock smoke + one ordinary live customer order and owner/customer notification proof remain the final Phase 6 acceptance gate.
 
 ---
 
@@ -486,23 +499,23 @@ Exit gate:
 
 # CURRENT EXACT NEXT ACTION
 
-## Phase 6.7 — Explicit Production Cutover Decision
+## Phase 6 — Final owner Production smoke
 
-All reversible implementation and readiness work is complete.
+The automated Production cutover is complete and verified.
 
-**Current Production remains unchanged and safe:**
-- migration `0008_concurrency_guards.sql`,
-- Product/Inventory/Reservation tables absent,
-- D1 commerce/public-catalogue/reservation flags absent,
-- Production live-commerce marker `false`,
-- generated static catalogue still checkout authority,
-- current readiness snapshot: 4 Production orders.
+Owner acceptance steps:
 
-The dedicated cutover path is prepared but **has not been executed**.
+1. Log into the live Production Admin.
+2. Open Products and Stock and confirm the workspaces load and behave normally.
+3. Submit one ordinary order request from the live storefront using a normal currently-orderable Product.
+4. Confirm the order appears in Admin.
+5. Confirm the customer acknowledgement email arrives.
+6. Confirm the owner new-order email arrives.
+7. Confirm the baseline untracked Product did not create an unexpected numeric reservation/stock movement.
 
-Execution requires a separate explicit owner instruction to run the Production cutover. The guarded workflow then requires:
-1. confirmation `CUTOVER-PRODUCTION-D1`,
-2. the approved package SHA `61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7`,
-3. a fresh preflight proving `main`, staging truth and package SHA have not drifted.
+Once these checks pass:
+- mark Phase 6 **CLOSED**,
+- record the real order reference and notification proof in the handoff,
+- then move to the next project phase.
 
-No further Production mutation should be performed before that approval.
+Do not use the saved Time Travel bookmark unless following the documented rollback matrix; legitimate post-cutover orders must be preserved.
