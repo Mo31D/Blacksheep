@@ -13,6 +13,7 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export type FulfilmentMethod = "delivery" | "collection";
+export type OrderDataClass = "BUSINESS" | "TEST" | "E2E";
 
 export interface DeliveryAddress {
   line1: string;
@@ -38,6 +39,7 @@ export interface SubmittedOrderInput {
   id: string;
   publicReference: string;
   idempotencyKey: string;
+  dataClass?: OrderDataClass;
   currency: string;
   fulfilmentMethod: FulfilmentMethod;
   customerName: string;
