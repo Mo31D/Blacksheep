@@ -244,6 +244,30 @@ function patchJsonLd(html, item, publication) {
   );
 }
 
+function patchDetailOrderButton(html, item) {
+  const state = availability(item);
+  const purchasable = state.code === "available";
+  return html.replace(
+    /<button\b([^>]*\blist-detail-add\b[^>]*)>([\s\S]*?)<\/button>/i,
+    (_, attrs, body) => {
+      let next = attrs
+        .replace(/\sdisabled(?:=["'][^"']*["'])?/gi, "")
+        .replace(/\saria-disabled=["'][^"']*["']/gi, "");
+      if (purchasable) {
+        return "<button" + next + ">" + body + "</button>";
+      }
+      next += ' disabled aria-disabled="true"';
+      return (
+        "<button" +
+        next +
+        ">" +
+        esc(state.label || "Not available to order") +
+        "</button>"
+      );
+    },
+  );
+}
+
 function patchExistingPage(source, item, publication) {
   const url = base + "/products/" + item.slug + ".html";
   const title = publication.seoTitle || item.name + " | The Black Sheep Shop Ambleside";
@@ -296,6 +320,7 @@ function patchExistingPage(source, item, publication) {
     /addToBlackSheepList\(event,\s*["'][^"']+["'],\s*["'][^"']+["']\)/,
     'addToBlackSheepList(event,"' + item.type + '","' + item.slug + '")',
   );
+  html = patchDetailOrderButton(html, item);
   html = patchJsonLd(html, item, publication);
   return html;
 }
@@ -409,7 +434,11 @@ function genericPage(item, publication) {
     esc(item.type) +
     '","' +
     esc(item.slug) +
-    '")\'>Add to basket</button><a class="btn secondary" href="/visit.html">Visit the shop</a><a class="btn secondary" href="/all-products.html">Back to full range</a></div></div></article></main>' +
+    '")\'' +
+    (state.code === "available" ? "" : ' disabled aria-disabled="true"') +
+    '>' +
+    esc(state.code === "available" ? "Add to basket" : state.label || "Not available to order") +
+    '</button><a class="btn secondary" href="/visit.html">Visit the shop</a><a class="btn secondary" href="/all-products.html">Back to full range</a></div></div></article></main>' +
     '<script src="../assets/catalog.js"></script><script src="../assets/site.js"></script></body></html>'
   );
 }
@@ -452,6 +481,11 @@ function pageProblems(html, item) {
         if (String(offer.url || "") !== expectedOffer.url) problems.push("schema_offer_url");
       }
     }
+    const detailButton =
+      html.match(/<button\b[^>]*\blist-detail-add\b[^>]*>/i)?.[0] || "";
+    const shouldDisable = availability(item).code !== "available";
+    const isDisabled = /\sdisabled(?:\s|=|>)/i.test(detailButton);
+    if (shouldDisable !== isDisabled) problems.push("static_order_button_state");
   }
   return problems;
 }
