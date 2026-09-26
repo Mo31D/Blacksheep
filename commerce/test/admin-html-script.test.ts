@@ -65,7 +65,7 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("VAT rate %");
     expect(production).toContain("Supplier product code");
     expect(production).toContain(
-      "padding-bottom:calc(148px + env(safe-area-inset-bottom))",
+      "padding-bottom:calc(164px + env(safe-area-inset-bottom))",
     );
     expect(production).not.toContain(
       "Categories used by products cannot be archived until those products are moved to another category.",
