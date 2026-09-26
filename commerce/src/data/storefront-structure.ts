@@ -65,6 +65,9 @@ export interface ProductVersionStorefrontPlacement {
   isPrimary: boolean;
   position: number;
   source: "LEGACY_BACKFILL" | "LEGACY_COMPAT" | "OWNER";
+  nodePublicationStatus?: string;
+  nodePublishedVersionId?: string | null;
+  nodeDraftVersionId?: string | null;
 }
 
 async function allRows<T>(
@@ -275,11 +278,13 @@ export async function resolveOwnerStorefrontPlacements(
     id: string;
     publicationStatus: string;
     publishedVersionId: string | null;
+    draftVersionId: string | null;
   }>(
     db
       .prepare(
         "SELECT id, publication_status AS publicationStatus, " +
-          "current_published_version_id AS publishedVersionId " +
+          "current_published_version_id AS publishedVersionId, " +
+          "current_draft_version_id AS draftVersionId " +
           "FROM storefront_nodes WHERE id IN (" + placeholders + ")",
       )
       .bind(...ids),
@@ -289,11 +294,11 @@ export async function resolveOwnerStorefrontPlacements(
   for (const id of ids) {
     const row = byId.get(id);
     if (!row) throw new Error("product_storefront_node_not_found");
-    if (
-      String(row.publicationStatus) !== "ACTIVE" ||
-      !row.publishedVersionId
-    ) {
-      throw new Error("product_storefront_node_not_live");
+    if (String(row.publicationStatus) === "ARCHIVED") {
+      throw new Error("product_storefront_node_archived");
+    }
+    if (!row.publishedVersionId && !row.draftVersionId) {
+      throw new Error("product_storefront_node_not_ready");
     }
   }
 
@@ -472,12 +477,14 @@ export async function getProductVersionStorefrontPlacements(
     db
       .prepare(
         "SELECT p.storefront_node_id AS storefrontNodeId, " +
-          "n.stable_key AS stableKey, nv.name, nv.slug, " +
+          "n.stable_key AS stableKey, n.publication_status AS nodePublicationStatus, " +
+          "n.current_published_version_id AS nodePublishedVersionId, " +
+          "n.current_draft_version_id AS nodeDraftVersionId, nv.name, nv.slug, " +
           "nv.parent_node_id AS parentNodeId, p.is_primary AS isPrimary, " +
           "p.position, p.source " +
           "FROM product_version_storefront_placements p " +
           "JOIN storefront_nodes n ON n.id = p.storefront_node_id " +
-          "JOIN storefront_node_versions nv ON nv.id = n.current_published_version_id " +
+          "JOIN storefront_node_versions nv ON nv.id = COALESCE(n.current_draft_version_id, n.current_published_version_id) " +
           "WHERE p.product_version_id = ? " +
           "ORDER BY p.is_primary DESC, p.position, nv.name COLLATE NOCASE",
       )
@@ -493,6 +500,12 @@ export async function getProductVersionStorefrontPlacements(
     isPrimary: Number(row.isPrimary) === 1,
     position: Number(row.position ?? 0),
     source: String(row.source) as ProductVersionStorefrontPlacement["source"],
+    nodePublicationStatus:
+      row.nodePublicationStatus == null ? undefined : String(row.nodePublicationStatus),
+    nodePublishedVersionId:
+      row.nodePublishedVersionId == null ? null : String(row.nodePublishedVersionId),
+    nodeDraftVersionId:
+      row.nodeDraftVersionId == null ? null : String(row.nodeDraftVersionId),
   }));
 }
 
