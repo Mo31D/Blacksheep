@@ -59,14 +59,21 @@
     }
   }
 
-  function renderPreviewBanner(){
-    if(config.preview!==true||document.getElementById('commercePreviewBanner'))return;
-    const banner=document.createElement('div');
-    banner.id='commercePreviewBanner';
-    banner.className='commerce-preview-banner';
-    banner.setAttribute('role','status');
-    banner.innerHTML='<strong>Staging commerce preview</strong><span>Live D1 price and availability are overlaid on the static storefront.</span><a href="?commerce-preview=off">Exit preview</a>';
-    document.body.prepend(banner);
+  function renderPreviewBanner(state='ready'){
+    if(config.preview!==true)return;
+    let banner=document.getElementById('commercePreviewBanner');
+    if(!banner){
+      banner=document.createElement('div');
+      banner.id='commercePreviewBanner';
+      banner.className='commerce-preview-banner';
+      banner.setAttribute('role','status');
+      document.body.prepend(banner);
+    }
+    const fallback=state==='fallback';
+    banner.classList.toggle('is-fallback',fallback);
+    banner.innerHTML=fallback
+      ?'<strong>Staging commerce preview unavailable</strong><span>The live D1 feed could not be loaded. Static catalogue fallback is being shown.</span><a href="?commerce-preview=off">Exit preview</a>'
+      :'<strong>Staging commerce preview</strong><span>Live D1 price and availability are overlaid on the static storefront.</span><a href="?commerce-preview=off">Exit preview</a>';
   }
 
   function syncUi(){
@@ -129,6 +136,7 @@
         error:error instanceof Error?error.message:String(error)
       };
       document.documentElement.dataset.commerceLive='fallback';
+      renderPreviewBanner('fallback');
       document.dispatchEvent(new CustomEvent('black-sheep:commerce-live-fallback',{
         detail:window.BLACK_SHEEP_LIVE_COMMERCE_STATE
       }));
