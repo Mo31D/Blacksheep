@@ -29,7 +29,9 @@ Purpose: authoritative implementation board for the next architecture programme.
 ---
 
 ## CARD 00 — Architecture freeze & source-of-truth map
-**Status:** READY  
+**Status:** COMPLETE
+
+**Completion evidence:** `docs/PLATFORM-ARCHITECTURE-FREEZE-2026-09-26.md` · read-only Production baseline run `36266787042`.  
 **Depends on:** none
 
 **Goal:** freeze the target architecture before feature implementation.
@@ -41,16 +43,16 @@ Purpose: authoritative implementation board for the next architecture programme.
 - Define one publishing lifecycle for all public-facing domains.
 
 **Acceptance criteria**
-- [ ] Every major domain has exactly one source of truth.
-- [ ] No new feature requires a duplicate category/storefront authority.
-- [ ] Current Production behaviour is documented before schema changes.
-- [ ] Rollback path is defined for every later phase.
-- [ ] Architecture diagram + data ownership matrix committed.
+- [x] Every major domain has exactly one source of truth.
+- [x] No new feature requires a duplicate category/storefront authority.
+- [x] Current Production behaviour is documented before schema changes.
+- [x] Rollback path is defined for every later phase.
+- [x] Architecture diagram + data ownership matrix committed.
 
 ---
 
 ## CARD 01 — Storefront Structure data model
-**Status:** BLOCKED  
+**Status:** READY  
 **Depends on:** CARD 00
 
 **Goal:** create a real hierarchical website structure instead of overloading flat categories.
@@ -537,4 +539,4 @@ CARD 00
 
 ## Immediate next action
 
-Start **CARD 00** only: audit current `main`, freeze the domain boundaries/data ownership/migration strategy, and update this board before CARD 01 schema work begins.
+Start **CARD 01 — Storefront Structure data model**. Use the frozen decisions in `docs/PLATFORM-ARCHITECTURE-FREEZE-2026-09-26.md`: Storefront Structure is distinct from Categories, the migration must be additive/backfilled, and no customer-facing routing or SEO cutover occurs in the schema milestone.
