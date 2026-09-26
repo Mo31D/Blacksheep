@@ -191,7 +191,7 @@ export async function handleCreateOrder(
     id: deps.randomUUID(),
     publicReference: deps.createReference(),
     idempotencyKey,
-    dataClass: env.ENVIRONMENT === "staging" ? "TEST" : "BUSINESS",
+    dataClass: env.ENVIRONMENT === "staging" ? ("TEST" as const) : ("BUSINESS" as const),
     currency: priced.currency,
     fulfilmentMethod: input.fulfilmentMethod,
     customerName: input.customerName,
