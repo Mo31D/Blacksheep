@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0016_")) {
+  if (!latestMigration?.startsWith("0017_")) {
     throw new Error(
       `Expected latest migration to be 0017, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0015_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0015.");
+  if (baselineMigrations.at(-1)?.startsWith("0016_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0016.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -270,9 +270,9 @@ try {
   }
 
   console.log(
-    "PASS: migrations 0000–0015 upgraded cleanly to 0016; stock valuation and Admin password lockout state are present.",
+    "PASS: migrations 0000–0016 upgraded cleanly to 0017; Storefront Structure schema/seeds are present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
 }
-// CI trigger: admin-password migration guard updated for 0016.
+// CARD 01 migration guard updated for 0017.
