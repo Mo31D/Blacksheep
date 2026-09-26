@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "npm run catalog:check && npm run product-core:validate && npm run cart:test && npm run legal:test && npm run typecheck && npm run db:migrate:local && npm run db:migrate:upgrade-test && npm run inventory-core:test && npm run order-reservations:test && npm run test && npm run dry-run",
+    "check": "npm run catalog:check && npm run product-core:validate && npm run product-core:production-guards:test && npm run cart:test && npm run legal:test && npm run typecheck && npm run db:migrate:local && npm run db:migrate:upgrade-test && npm run inventory-core:test && npm run order-reservations:test && npm run test && npm run dry-run",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply DB --local --env staging",
@@ -29,7 +29,8 @@
     "order-reservations:test": "node scripts/test-order-reservations.mjs",
     "phase6:catalog-parity": "node scripts/phase6-catalog-parity.mjs",
     "product-core:import:production": "node scripts/product-core-import.mjs --remote --env production --confirmation IMPORT-PRODUCTION-PRODUCTS",
-    "product-core:parity:production": "node scripts/product-core-parity.mjs --remote --env production"
+    "product-core:parity:production": "node scripts/product-core-parity.mjs --remote --env production",
+    "product-core:production-guards:test": "node scripts/test-product-core-production-guards.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0",
