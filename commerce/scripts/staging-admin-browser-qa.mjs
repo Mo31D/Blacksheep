@@ -12,6 +12,9 @@ const ORDER_ID = "admin-browser-" + RUN_ID;
 const REF = "E2E-ADMIN-UI-" + RUN_ID;
 const NOW = new Date().toISOString();
 const ARTIFACT_DIR = path.resolve("admin-browser-qa-artifacts");
+const CATEGORY_NAME = "QA Category " + RUN_ID;
+const CATEGORY_RENAMED = "QA Seasonal " + RUN_ID;
+const CATEGORY_SLUG = "qa-category-" + RUN_ID;
 
 let sessionToken = "";
 let sessionHash = "";
@@ -80,6 +83,14 @@ function cleanupSql() {
     "DELETE FROM order_events WHERE order_id=" + id,
     "DELETE FROM order_items WHERE order_id=" + id,
     "DELETE FROM orders WHERE id=" + id,
+  ].join(";");
+}
+
+function cleanupCategorySql() {
+  const slug = q(CATEGORY_SLUG);
+  return [
+    "DELETE FROM product_version_categories WHERE category_id IN (SELECT id FROM categories WHERE slug=" + slug + ")",
+    "DELETE FROM categories WHERE slug=" + slug,
   ].join(";");
 }
 
@@ -577,6 +588,156 @@ async function ownerPolishViewsQa(viewport, label) {
     await assertNoHorizontalOverflow(page, label + " Add Product");
     await page.locator("[data-close-product-sheet]:visible").first().click();
 
+    if (label === "iPhone WebKit") {
+      await page.locator("#manageCategories").click();
+      await page.waitForSelector("#newCategoryName", { timeout: 10_000 });
+      await assertNoHorizontalOverflow(page, label + " Category Manager");
+
+      await page.locator("#newCategoryName").fill(CATEGORY_NAME);
+      await page.locator("#newCategoryType").selectOption("COLLECTION_THEME");
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/admin/api/categories") &&
+            response.request().method() === "POST" &&
+            response.status() === 201,
+          { timeout: 20_000 },
+        ),
+        page.locator("#createCategory").click(),
+      ]);
+
+      const categoryId = await page.waitForFunction(
+        (name) => {
+          const input = Array.from(
+            document.querySelectorAll("input[data-category-name]"),
+          ).find((element) => element.value === name);
+          return input?.getAttribute("data-category-name") || "";
+        },
+        CATEGORY_NAME,
+        { timeout: 20_000 },
+      ).then((handle) => handle.jsonValue());
+
+      assert(categoryId, "Category Manager did not render the new category.");
+      let categoryRow = page.locator(
+        '[data-category-row="' + categoryId + '"]',
+      );
+      await categoryRow.waitFor({ state: "visible", timeout: 10_000 });
+      assert(
+        (await categoryRow.innerText()).includes("0 products"),
+        "New category did not report zero product usage.",
+      );
+      assert(
+        (await categoryRow.locator("[data-category-type-select]").inputValue()) ===
+          "COLLECTION_THEME",
+        "New category group was not persisted.",
+      );
+
+      await categoryRow.locator("[data-category-name]").fill(CATEGORY_RENAMED);
+      await categoryRow
+        .locator("[data-category-type-select]")
+        .selectOption("PRODUCT_CATEGORY");
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/admin/api/categories/") &&
+            response.request().method() === "PATCH" &&
+            response.status() === 200,
+          { timeout: 20_000 },
+        ),
+        categoryRow.locator("[data-category-save]").click(),
+      ]);
+
+      await page.waitForFunction(
+        ({ id, name }) => {
+          const row = document.querySelector(
+            '[data-category-row="' + id + '"]',
+          );
+          const input = row?.querySelector("[data-category-name]");
+          const select = row?.querySelector("[data-category-type-select]");
+          return (
+            input?.value === name &&
+            select?.value === "PRODUCT_CATEGORY"
+          );
+        },
+        { id: categoryId, name: CATEGORY_RENAMED },
+        { timeout: 20_000 },
+      );
+
+      categoryRow = page.locator(
+        '[data-category-row="' + categoryId + '"]',
+      );
+      const moveUp = categoryRow.locator('[data-category-move="UP"]');
+      if (await moveUp.isEnabled()) {
+        await Promise.all([
+          page.waitForResponse(
+            (response) =>
+              response.url().includes("/move") &&
+              response.request().method() === "POST" &&
+              response.status() === 200,
+            { timeout: 20_000 },
+          ),
+          moveUp.click(),
+        ]);
+      }
+
+      categoryRow = page.locator(
+        '[data-category-row="' + categoryId + '"]',
+      );
+      page.once("dialog", async (dialog) => {
+        await dialog.accept();
+      });
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/archive") &&
+            response.request().method() === "POST" &&
+            response.status() === 200,
+          { timeout: 20_000 },
+        ),
+        categoryRow.locator("[data-category-archive]").click(),
+      ]);
+
+      categoryRow = page.locator(
+        '[data-category-row="' + categoryId + '"]',
+      );
+      await categoryRow.locator("[data-category-restore]").waitFor({
+        state: "visible",
+        timeout: 10_000,
+      });
+
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.url().includes("/restore") &&
+            response.request().method() === "POST" &&
+            response.status() === 200,
+          { timeout: 20_000 },
+        ),
+        categoryRow.locator("[data-category-restore]").click(),
+      ]);
+
+      await page.locator("[data-close-product-sheet]:visible").first().click();
+
+      await page.locator("#addProduct").click();
+      await page.waitForSelector("#newProductCategorySearch", {
+        timeout: 10_000,
+      });
+      await page.locator("#newProductCategorySearch").fill(CATEGORY_RENAMED);
+      const managedChoice = page
+        .locator("#newProductCategories .category-choice:not(.hidden)")
+        .filter({ hasText: CATEGORY_RENAMED });
+      await managedChoice.waitFor({ state: "visible", timeout: 10_000 });
+      await managedChoice.locator("input").check();
+      assert(
+        (await page.locator("#newProductCategorySelected").innerText()).includes(
+          CATEGORY_RENAMED,
+        ),
+        "Selected category summary did not update.",
+      );
+      await assertNoHorizontalOverflow(page, label + " compact category picker");
+      await page.locator("[data-close-product-sheet]:visible").first().click();
+    }
+
     await openView("stock");
     await page.waitForFunction(
       () => document.querySelectorAll("#stockList .product-row").length > 0,
@@ -656,6 +817,8 @@ try {
           "iphone-dashboard-2x2-kpis",
           "iphone-products-add-product-controlled-type",
           "iphone-category-search",
+          "iphone-category-manager-create-rename-group-move-archive-restore",
+          "iphone-category-picker-selected-summary",
           "iphone-stocktake-no-horizontal-overflow",
           "iphone-reports-owner-copy",
           "ipad-portrait-products-stock-reports",
@@ -674,6 +837,18 @@ try {
   process.exitCode = 1;
 } finally {
   try {
+    try {
+      d1(cleanupCategorySql());
+      console.log("Synthetic Category Manager QA data cleaned up.");
+    } catch (categoryCleanupError) {
+      console.error(
+        "Category cleanup warning:",
+        categoryCleanupError instanceof Error
+          ? categoryCleanupError.message
+          : categoryCleanupError,
+      );
+      if (completed) process.exitCode = 1;
+    }
     if (sessionHash) {
       d1("DELETE FROM admin_sessions WHERE token_hash=" + q(sessionHash));
     }
