@@ -12,6 +12,18 @@
 > - `docs/CATEGORY-MANAGEMENT-2026-09-26.md`
 > - `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-CUTOVER-2026-09-26.md`
 >
+> **Dynamic storefront publication hotfix — LIVE verified, 26 September 2026**
+> - owner reproduced a real Production defect with Product `Test`: Product Core/Admin showed ACTIVE + Published, but Hawkshead Relish remained at 15 products and the item was absent from the storefront.
+> - root cause: the Phase 6 live commerce layer only overlaid D1 state onto pre-existing static `assets/catalog.js` products; D1-only Products were silently ignored by storefront rendering.
+> - `assets/commerce-live.js` now merges unmatched ACTIVE published D1 Products into `window.CATALOG`, supports safe catalogue pagination and resolves Admin-uploaded `/media/<id>` R2 media against the Commerce API.
+> - `assets/site.js` now injects runtime Product cards into Full range / relevant range surfaces, recalculates filters/counts and supports dynamic Product URLs without changing canonical static URLs for legacy products.
+> - `product.html` is now the live detail fallback for D1-only Admin-published Products; static products still redirect/use their permanent `/products/<slug>.html` pages.
+> - permanent storefront regression QA `36251543339` — **SUCCESS** for D1-only Full range insertion, range placement and dynamic detail.
+> - Commerce CI `36250967119` — **SUCCESS**, 35 files / 206 tests.
+> - read-only live Production smoke `36251721592` — **SUCCESS** against the actual `Test` product: Production API 147 received/applied, 1 runtime-added Product, Hawkshead count 16, card £0.01, WebP image 1200×800 loaded, dynamic detail £0.01, Add-to-basket enabled and mobile overflow PASS.
+> - no Production D1 mutation or Commerce Worker deploy was required for this hotfix; the Product was already correctly published in Production D1.
+> - current Production public catalogue at the smoke timestamp: **147** products = previous 146 baseline + owner-created `Test`.
+>
 > **Category Manager — staging complete, 26 September 2026**
 > - `0014_category_management.sql` persists Brand / Range, Product category and Collection / Theme instead of relying on name inference.
 > - Products → Manage categories supports Add, Rename, Group change, Reorder, Archive and Restore with product usage counts.
@@ -34,7 +46,7 @@
 > - Production clean-start state: 6 pre-existing confirmed test orders preserved as hidden TEST history; 0 visible BUSINESS orders.
 > - Production active/committed reservations at owner-polish cutover: 0.
 > - Future Production orders default to BUSINESS.
-> - Production public catalogue: 146 products / 0 parity mismatches.
+> - Production public catalogue baseline was 146 products; after the owner published `Test`, live D1 reported 147 products during smoke `36251721592`.
 > - D1 is the sole backend commerce authority; the old generated backend catalogue authority has been removed.
 > - Production health + Admin reachability passed in the final backend audit.
 >
