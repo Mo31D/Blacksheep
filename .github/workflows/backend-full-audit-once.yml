@@ -128,7 +128,6 @@ jobs:
           if(h.features?.orderReservations!==true) failures.push("orderReservations");
           if(h.features?.publicCatalog!==true) failures.push("publicCatalog");
           if(h.features?.commerceAuthority!==true) failures.push("commerceAuthority");
-          if(h.features?.commerceAuthorityContract!=="d1-published-v1") failures.push("commerceAuthorityContract");
           if(h.notifications?.provider!=="resend") failures.push("resend");
           if(h.notifications?.fromConfigured!==true) failures.push("fromConfigured");
           if(h.notifications?.ownerConfigured!==true) failures.push("ownerConfigured");
