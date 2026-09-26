@@ -86,6 +86,13 @@ async function route(request: Request, env: Env): Promise<Response> {
     return handleProductMediaRequest(request, env);
   }
 
+  const isAdminHost = url.hostname.toLowerCase() === "admin.theblacksheepshop.co.uk";
+  if (isAdminHost && (url.pathname === "/" || url.pathname === "")) {
+    const adminUrl = new URL(request.url);
+    adminUrl.pathname = "/admin";
+    return handleAdminRequest(new Request(adminUrl.toString(), request), env);
+  }
+
   if (url.pathname === "/admin" || url.pathname.startsWith("/admin/")) {
     return handleAdminRequest(request, env);
   }
