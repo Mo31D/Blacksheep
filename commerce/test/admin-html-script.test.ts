@@ -43,6 +43,13 @@ describe("generated Admin HTML scripts", () => {
     expect(production).not.toContain("dedicated Media phase");
     expect(production).not.toContain('id="resetTestOrders"');
     expect(production).not.toContain('data-order-class="TEST"');
+    expect(production).toContain('id="manageCategories"');
+    expect(production).toContain("Manage categories");
+    expect(production).toContain("categoryTypeLabel");
+    expect(production).toContain("COLLECTION_THEME");
+    expect(production).toContain('id="newProductCategorySearch"');
+    expect(production).toContain('id="newProductCategorySelected"');
+
     expect(staging).toContain("STAGING");
     expect(staging).toContain("Reset test orders");
     expect(staging).toContain("RESET TEST ORDERS");
