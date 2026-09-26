@@ -15,6 +15,32 @@ This checklist began as the separate Product/Inventory execution tracker and is 
 
 ---
 
+# CATEGORY MANAGER — 26 SEPTEMBER 2026
+
+- [x] Migration `0014_category_management.sql` persists category groups as `BRAND_RANGE`, `PRODUCT_CATEGORY`, and `COLLECTION_THEME`.
+- [x] Name-based visual inference is no longer the source of truth for category grouping.
+- [x] Products → **Manage categories** is implemented.
+- [x] Owner can Add, Rename, change Group, Reorder, Archive and Restore categories.
+- [x] Product usage count is shown for every category.
+- [x] No destructive Category Delete action is exposed in owner Admin.
+- [x] Archive is non-destructive even when a category is used by products: existing `product_version_categories` relationships and published history are preserved.
+- [x] Archived categories disappear from new-product choices and cannot be newly attached through the API.
+- [x] Existing products retain already-linked archived categories while unrelated product edits are saved; the editor labels them `Archived` and allows intentional removal.
+- [x] Add/Edit Product category picker is searchable, compact, grouped and multi-select with selected categories surfaced above the list.
+- [x] Category API supports list/include-archived, create, update, move, archive and restore with owner-friendly validation.
+- [x] Clear operating rules documented in `docs/CATEGORY-MANAGEMENT-2026-09-26.md`.
+- [x] Commerce CI `36249831392` — **SUCCESS**; 35 Vitest files / 206 tests.
+- [x] Migration upgrade test — **PASS** through `0014`.
+- [x] Staging deploy `36249871178` — **SUCCESS**; `0014` applied and remote ledger clean.
+- [x] Staging Worker version `7c251e43-4e2e-4b68-8453-a10e316cea7e`; health verification **PASS**.
+- [x] Post-deploy Admin Browser QA `36250012439` — **SUCCESS**, including iPhone Category Manager create/rename/group/move/archive/restore, category search and selected summary.
+- [x] Search Readiness `36250012438` — **SUCCESS**.
+- [x] Synthetic Category Manager QA data cleaned after the successful run.
+
+**Status: COMPLETE ON STAGING.** Production was intentionally not modified by this Category Manager release. Production promotion of migration `0014` + the Worker remains a separate guarded release decision.
+
+---
+
 # FINAL OWNER POLISH — 26 SEPTEMBER 2026
 
 - [x] Owner-facing Admin copy no longer exposes Phase/cutover/Product Core/D1 implementation language.
