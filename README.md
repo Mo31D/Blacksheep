@@ -11,13 +11,15 @@ Production domain: **https://theblacksheepshop.co.uk**
 - `products/<slug>.html` is the canonical, indexable product-detail layer. Each product page contains its customer-facing content, metadata, canonical URL and Product/Breadcrumb/WebPage/Store JSON-LD directly in HTML.
 - `product.html?type=...&slug=...` is legacy-only, `noindex`, and redirects visitors to the matching static product URL.
 
-## Current curated catalogue
-Only products with real product imagery and descriptions are retained:
-- 41 Gifts: 29 Peter Rabbit + 12 Highland Cow.
+## Current published/static catalogue baseline
+The current D1/static publication baseline contains:
+- 64 Gifts: 29 Peter Rabbit + 35 Highland Cow.
 - 12 Luxury Lakes Ice Cream flavours.
 - 55 Romney's / confectionery products.
-- 16 Hawkshead Relish products.
+- 15 Hawkshead Relish products.
 - 146 product records total.
+
+Product completeness is controlled by current Product Core/publication state. Do not infer missing owner prices, images or product facts, and do not revive removed legacy catalogue records.
 - Hawkshead Relish now has canonical individual product pages using verified manufacturer facts; Black Sheep prices are not inferred from manufacturer retail prices.
 - Lakeland Fragrances and other empty legacy gift categories redirect to the current Gifts page.
 
@@ -47,7 +49,7 @@ The storefront now includes a persistent browser basket backed by the current ca
 - Retired empty pages use noindex + immediate redirects.
 
 ## Images
-Active Peter Rabbit/Highland Cow collection views now use the smaller real product WebP files where possible. Many old numbered PNG placeholders and recovery assets remain in the repository for history/recovery but are not part of the active catalogue.
+Active Peter Rabbit/Highland Cow collection views use the smaller real product WebP files where available. The 26 September 2026 cleanup removed 170 proven-unused historical placeholder PNGs; remaining recovery/history assets are retained only where still referenced or intentionally useful.
 
 ## Current publishing rule
 GitHub `main` is the source of truth for deployed code and generated static storefront files. Production D1 Published Product state is the operational product/commerce authority. Routine product, price, selling-state and stock changes should be made through Admin rather than by hand-editing catalogue code. Preserve newer commits, canonical `/products/<slug>.html` URLs and the request-order architecture; do not restore the old broad placeholder catalogue or nested Gifts menu.
@@ -87,6 +89,6 @@ Romney's/confectionery product provenance is stored internally in `docs/ROMNEYS-
 Production D1 Published Product state is authoritative for Black Sheep product identity, price and selling state. The former standalone Romney's builder has been retired; specialist confectionery provenance remains in `docs/ROMNEYS-SOURCE-MAP.md` and published static output is reconciled through the Phase 6 publication pipeline. `scripts/verify-search-readiness.mjs` continues to reject supplier-link leakage, schema mismatches, missing assets and collection-card drift. Supplier retail prices are never a data source for Black Sheep pricing.
 
 
-### Highland Cow placeholders
+### Highland Cow catalogue follow-up
 
-23 owner-supplied Highland Cow / seasonal product codes and names were added on 24 September 2026 as explicit placeholders. They have no inferred image or price, their product pages are `noindex,follow`, and they are excluded from the sitemap until image, price and verified product details are completed. Mapping: `docs/HIGHLAND-COW-PLACEHOLDERS.md`.
+The current published/static baseline contains **35 Highland Cow records** inside the 64-product Gifts section. Some newer seasonal records still need owner-supplied dedicated imagery or final data; missing values must not be inferred. Their current publication/orderability state is governed by Product Core and the Phase 6 publication pipeline, not by the older 24 September placeholder assumptions. `docs/HIGHLAND-COW-PLACEHOLDERS.md` is retained as historical mapping evidence.

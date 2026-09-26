@@ -15,6 +15,34 @@ This checklist is intentionally separate from `ADMIN-V2-CHECKLIST.md` until Prod
 
 ---
 
+# FINAL BACKEND AUDIT REFRESH — 26 SEPTEMBER 2026
+
+- [x] Current GitHub `main` re-fetched and treated as source of truth.
+- [x] Current branch inventory re-verified: `main` only.
+- [x] PR inventory re-verified: PRs #1–#7 closed; Draft PR #7 was not merged.
+- [x] Legacy builders `build-icecream.mjs` / `build-romneys.mjs` absent from current source and Search Readiness.
+- [x] Duplicate generated backend commerce authority remains removed; D1 remains sole backend commerce authority.
+- [x] Five stale `# trigger-...` workflow markers removed.
+- [x] Commerce CI explicitly restricted to `contents: read`.
+- [x] Post-cleanup Commerce CI `36240439223` — SUCCESS.
+- [x] Post-cleanup Search Readiness `36240439155` — SUCCESS.
+- [x] Post-cleanup dedicated staging E2E/browser workflows — SUCCESS:
+  - Checkout Browser `36240439171`
+  - Admin Browser `36240439189`
+  - Admin V2 `36240439178`
+  - Review Edge `36240439190`
+  - Resend Webhook `36240439169`
+- [x] Final combined backend audit `36240828154` — SUCCESS.
+- [x] Full `npm run check`: 33 Vitest files / 195 tests — PASS.
+- [x] Production read-only D1 integrity: migration `0012_order_returns.sql`, 146 Active Published Products, 146 active default variants, 4 orders, 0 active reservations.
+- [x] Production public catalogue: 146 products; privacy contract + D1/static parity PASS.
+- [x] Phase 6 deterministic publication package: 146 products; SHA-256 `61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7`.
+- [x] Search Readiness: 146 products / 17 active pages / 166 sitemap URLs / 0 placeholders.
+- [x] Final one-shot audit workflow removed after success; Search Readiness `36241123400` + Pages `36241123221` passed on the cleaned tree.
+- [x] Final report created: `docs/BLACK-SHEEP-BACKEND-AUDIT-CLEANUP-2026-09-26.md`.
+
+**Remaining acceptance is manual owner Production smoke only:** live Products/Stock check, one ordinary live order request, order visibility in Admin, customer + owner email delivery, and confirmation that an untracked baseline Product creates no unexpected numeric stock movement.
+
 # PHASE 0 — ARCHITECTURE LOCK
 
 - [x] Create masterplan.

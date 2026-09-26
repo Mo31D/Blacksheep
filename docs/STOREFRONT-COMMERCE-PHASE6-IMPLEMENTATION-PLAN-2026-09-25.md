@@ -5,6 +5,10 @@
 **Target:** Production cutover executed and verified  
 **Production:** D1 Product/Inventory/Reservation authority live at migration `0012_order_returns.sql`
 
+> **AUTHORITATIVE STATUS NOTE — 26 September 2026**
+>
+> This file is retained as the Phase 6 implementation/runbook history. Sections below that describe a pre-cutover generated-catalogue authority, a staging-only authority flag, or “do not cut over Production” are historical execution steps and must not be used to restore old architecture. Current authority is the top of `docs/SESSION-HANDOFF.md`, `docs/PRODUCT-INVENTORY-ADMIN-CHECKLIST.md`, the Production cutover report, and `docs/BLACK-SHEEP-BACKEND-AUDIT-CLEANUP-2026-09-26.md`.
+
 ## 1. Objective
 
 Make Product Core + Inventory Core the operational source of truth for public price, orderability and stock state without breaking the current static storefront, canonical product URLs, search readiness or the existing basket/order-request experience.
