@@ -74,7 +74,11 @@ jobs:
           const products = Number(blocks?.[1]?.results?.[0]?.products ?? -1);
           const tracked = Number(blocks?.[2]?.results?.[0]?.tracked ?? -1);
           const orders = Number(blocks?.[3]?.results?.[0]?.orders ?? -1);
-          const rows = Array.isArray(schedules?.result) ? schedules.result : [];
+          const rows = Array.isArray(schedules?.result)
+            ? schedules.result
+            : Array.isArray(schedules?.result?.schedules)
+              ? schedules.result.schedules
+              : [];
           const cronOk = rows.some((row) => row.cron === "*/30 * * * *");
           if (latest !== "0012_order_returns.sql" || products !== 146 || tracked !== 0 || orders < 4 || !cronOk) {
             console.error("Production D1/Cron remediation gate failed.", {latest,products,tracked,orders,rows});
