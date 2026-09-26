@@ -51,11 +51,11 @@ jobs:
             LIVE="$(curl --silent --show-error --max-time 20 "https://theblacksheepshop.co.uk/assets/commerce-live.js?qa=$GITHUB_SHA" || true)"
             SITE="$(curl --silent --show-error --max-time 20 "https://theblacksheepshop.co.uk/assets/site.js?qa=$GITHUB_SHA" || true)"
             PRODUCT="$(curl --silent --show-error --max-time 20 "https://theblacksheepshop.co.uk/product.html?qa=$GITHUB_SHA" || true)"
-            if echo "$LIVE" | grep -q "commerceDynamic:true" \
-              && echo "$LIVE" | grep -q "catalog_pagination_guard" \
-              && echo "$SITE" | grep -q "function syncDynamicCatalogCards" \
-              && echo "$SITE" | grep -q "product.html?type=" \
-              && echo "$PRODUCT" | grep -q "black-sheep:commerce-live-ready"; then
+            if grep -q "commerceDynamic:true" <<<"$LIVE" \
+              && grep -q "catalog_pagination_guard" <<<"$LIVE" \
+              && grep -q "function syncDynamicCatalogCards" <<<"$SITE" \
+              && grep -q "product.html?type=" <<<"$SITE" \
+              && grep -q "black-sheep:commerce-live-ready" <<<"$PRODUCT"; then
               READY=1
               break
             fi
