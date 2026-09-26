@@ -65,7 +65,7 @@ describe("Phase 2 Product Admin", () => {
     const html = adminHtml("owner@example.com");
     expect(html).toContain('data-nav="products"');
     expect(html).toContain('id="view-products"');
-    expect(html).toContain("Phase 2 · Editing");
+    expect(html).toContain("Manage products, prices, availability and catalogue content.");
     expect(html).toContain('id="addProduct"');
     expect(html).toContain("Quick edit");
     expect(html).toContain("Edit details");
