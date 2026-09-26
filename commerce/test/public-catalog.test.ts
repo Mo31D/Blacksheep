@@ -77,6 +77,8 @@ function row(
     productType: "gifts",
     primaryCategory: "highland-cow",
     categorySlugs: "highland-cow,seasonal,home-gifts",
+    primaryStorefrontNodeId: "sfn_gifts_highland_cows",
+    storefrontNodeIds: "sfn_gifts_highland_cows,sfn_gifts_seasonal",
     variantId: "var-1",
     sku: "SKU-1",
     priceMinor: 950,
@@ -102,6 +104,11 @@ describe("Phase 6 public commerce state", () => {
       nonPurchasableReason: null,
       primaryCategory: "highland-cow",
       categories: ["highland-cow", "seasonal", "home-gifts"],
+      primaryStorefrontNodeId: "sfn_gifts_highland_cows",
+      storefrontNodeIds: [
+        "sfn_gifts_highland_cows",
+        "sfn_gifts_seasonal",
+      ],
       inventory: {
         tracked: false,
         available: null,
@@ -262,6 +269,15 @@ describe("Phase 6 published-only D1 query", () => {
     );
     expect(sql).toContain(
       "pvm.product_version_id = pv.id",
+    );
+    expect(sql).toContain(
+      "ps.product_version_id = pv.id",
+    );
+    expect(sql).toContain(
+      "sn.publication_status = 'ACTIVE'",
+    );
+    expect(sql).toContain(
+      "sn.current_published_version_id IS NOT NULL",
     );
   });
 

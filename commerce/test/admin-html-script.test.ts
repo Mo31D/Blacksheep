@@ -60,6 +60,17 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain('id="newProductCategorySearch"');
     expect(production).toContain('id="newProductCategorySelected"');
     expect(production).toContain("ensureProductEditorCategories");
+    expect(production).toContain("Where should this product appear?");
+    expect(production).toContain("Primary section");
+    expect(production).toContain("Primary sub-section");
+    expect(production).toContain("Also show in");
+    expect(production).toContain("Product labels &amp; classification");
+    expect(production).toContain("Preview draft");
+    expect(production).toContain("Published & live on storefront");
+    expect(production).toContain("/v1/catalog/");
+    expect(production).toContain("View on website");
+    expect(production).not.toContain('id="newProductType"');
+    expect(production).not.toContain('id="peType"');
     expect(production).toContain("· Archived");
     expect(production).toContain('id="stockValueButton"');
     expect(production).toContain('id="view-stock-value"');
@@ -118,6 +129,9 @@ describe("generated Admin HTML scripts", () => {
     );
     expect(html).toContain(
       ".mobile-bottom{position:fixed;display:grid;grid-template-columns:repeat(6,1fr)",
+    );
+    expect(html).toContain(
+      "@media(max-width:720px){.placement-grid,.placement-options{grid-template-columns:1fr}",
     );
   });
 });
