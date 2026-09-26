@@ -243,12 +243,12 @@ export async function getAdminReportsV2(
   const emailFailures = await allRows<Record<string, unknown>>(
     db
       .prepare(
-        "SELECT publicReference, customerName, eventType, createdAt FROM (" +
-          "SELECT o.public_reference AS publicReference, o.customer_name AS customerName, m.delivery_status AS eventType, m.updated_at AS createdAt " +
+        "SELECT publicReference, customerName, eventType, createdAt, isActive FROM (" +
+          "SELECT o.public_reference AS publicReference, o.customer_name AS customerName, m.delivery_status AS eventType, m.updated_at AS createdAt, 1 AS isActive " +
           "FROM order_messages m INNER JOIN orders o ON o.id = m.order_id " +
           "WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ? AND m.delivery_status IN ('FAILED','BOUNCED','COMPLAINED','DELAYED') " +
           "UNION ALL " +
-          "SELECT o.public_reference AS publicReference, o.customer_name AS customerName, e.event_type AS eventType, e.created_at AS createdAt " +
+          "SELECT o.public_reference AS publicReference, o.customer_name AS customerName, e.event_type AS eventType, e.created_at AS createdAt, 0 AS isActive " +
           "FROM order_events e INNER JOIN orders o ON o.id = e.order_id " +
           "WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ? AND e.event_type LIKE '%_FAILED' AND NOT EXISTS (" +
           "SELECT 1 FROM order_messages m2 WHERE m2.order_id = o.id AND m2.delivery_status = 'FAILED' AND abs(strftime('%s',m2.updated_at)-strftime('%s',e.created_at)) < 300" +
@@ -256,6 +256,11 @@ export async function getAdminReportsV2(
           ") ORDER BY createdAt DESC LIMIT 30",
       )
       .bind(since, since),
+  );
+
+  const activeEmailFailureCount = emailFailures.reduce(
+    (count, row) => count + (number(row.isActive) === 1 ? 1 : 0),
+    0,
   );
 
   const topCustomers = await allRows<Record<string, unknown>>(
@@ -303,7 +308,7 @@ export async function getAdminReportsV2(
         paidCount > 0
           ? Math.round((refundedOrders / paidCount) * 1000) / 10
           : 0,
-      emailFailureCount: emailFailures.length,
+      emailFailureCount: activeEmailFailureCount,
     },
     statusCounts,
     revenueTrend,
