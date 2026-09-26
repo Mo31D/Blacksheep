@@ -1,5 +1,20 @@
-export function adminHtml(identityEmail: string): string {
+export function adminHtml(identityEmail: string, environment = "production"): string {
   const email = identityEmail.replace(/[&<>"']/g, "");
+  const env = environment === "staging" ? "staging" : "production";
+  const envJson = JSON.stringify(env);
+  const environmentBadge =
+    env === "staging" ? '<span class="env-pill">STAGING</span>' : "";
+  const testOrderTools =
+    env === "staging"
+      ? '<div class="test-data-tools"><div><strong>Order data</strong><small>Business orders stay separate from staging tests.</small></div><div class="test-data-actions"><button class="chip active" data-order-class="BUSINESS">Business</button><button class="chip" data-order-class="TEST">Test data</button><button class="btn secondary" id="resetTestOrders">Reset test orders</button></div></div>'
+      : "";
+  const navIcons = {
+    dashboard: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9 20v-6h6v6"/></svg>',
+    orders: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4.5"/></svg>',
+    products: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 8 8-4 8 4-8 4-8-4Z"/><path d="M4 8v8l8 4 8-4V8M12 12v8"/></svg>',
+    stock: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="7" height="7" rx="1"/><rect x="13.5" y="4" width="7" height="7" rx="1"/><rect x="3.5" y="14" width="7" height="6" rx="1"/><rect x="13.5" y="14" width="7" height="6" rx="1"/></svg>',
+    reports: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+  };
   return `<!doctype html>
 <html lang="en">
 <head>
