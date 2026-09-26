@@ -53,6 +53,9 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("loadCatalogue");
     expect(production).toContain("renderWebsiteStructure");
     expect(production).toContain("openStructureEditor");
+    expect(production).toContain("publishStorefrontNode");
+    expect(production).toContain("data-structure-publish");
+    expect(production).toContain("/publish");
     expect(production).toContain("/admin/api/storefront-structure");
     expect(production).not.toContain('id="manageCategories"');
     expect(production).not.toContain('id="newCategoryType"');

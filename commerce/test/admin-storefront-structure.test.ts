@@ -120,7 +120,7 @@ describe("Admin Storefront Structure API", () => {
     });
   });
 
-  it("updates, moves, archives and restores with optimistic version input", async () => {
+  it("updates, moves, publishes, archives and restores with optimistic version input", async () => {
     const calls: Array<Record<string, unknown>> = [];
 
     const update = await handleAdminRequest(
@@ -168,11 +168,45 @@ describe("Admin Storefront Structure API", () => {
     );
     expect(move.status).toBe(200);
 
+    const publish = await handleAdminRequest(
+      jsonRequest(
+        "/admin/api/storefront-structure/sfn_test/publish",
+        "POST",
+        { expectedVersion: 9 },
+      ),
+      { DB: new Db() },
+      {
+        verifyAccessFn: identity,
+        publishAdminStorefrontNodeFn: async (
+          _db,
+          id,
+          expectedVersion,
+          actorEmail,
+        ) => {
+          calls.push({
+            op: "publish",
+            id,
+            expectedVersion,
+            actorEmail,
+          });
+        },
+        getAdminStorefrontNodeFn: async () => ({
+          ...node,
+          publicationStatus: "ACTIVE",
+          version: 10,
+          publishedVersionId: node.draftVersionId,
+          draftVersionId: null,
+          hasDraft: false,
+        }),
+      },
+    );
+    expect(publish.status).toBe(200);
+
     const archive = await handleAdminRequest(
       jsonRequest(
         "/admin/api/storefront-structure/sfn_test/archive",
         "POST",
-        { expectedVersion: 9 },
+        { expectedVersion: 10 },
       ),
       { DB: new Db() },
       {
@@ -198,7 +232,7 @@ describe("Admin Storefront Structure API", () => {
       jsonRequest(
         "/admin/api/storefront-structure/sfn_test/restore",
         "POST",
-        { expectedVersion: 10 },
+        { expectedVersion: 11 },
       ),
       { DB: new Db() },
       {
@@ -234,15 +268,21 @@ describe("Admin Storefront Structure API", () => {
         actorEmail: "owner@example.com",
       },
       {
-        op: "archive",
+        op: "publish",
         id: "sfn_test",
         expectedVersion: 9,
         actorEmail: "owner@example.com",
       },
       {
-        op: "restore",
+        op: "archive",
         id: "sfn_test",
         expectedVersion: 10,
+        actorEmail: "owner@example.com",
+      },
+      {
+        op: "restore",
+        id: "sfn_test",
+        expectedVersion: 11,
         actorEmail: "owner@example.com",
       },
     ]);
