@@ -33,6 +33,8 @@ interface PublicCommerceRow {
   productType: string;
   primaryCategory: string | null;
   categorySlugs: string | null;
+  primaryStorefrontNodeId: string | null;
+  storefrontNodeIds: string | null;
   variantId: string;
   sku: string | null;
   priceMinor: number | null;
@@ -55,6 +57,8 @@ export interface PublicCommerceProduct {
   type: string;
   primaryCategory: string | null;
   categories: string[];
+  primaryStorefrontNodeId: string | null;
+  storefrontNodeIds: string[];
   sku: string | null;
   priceMinor: number | null;
   currency: "GBP";
@@ -137,6 +141,11 @@ export function toPublicCommerceProduct(
     type: row.productType,
     primaryCategory: row.primaryCategory,
     categories: String(row.categorySlugs ?? "").split(",").map((value) => value.trim()).filter(Boolean),
+    primaryStorefrontNodeId: row.primaryStorefrontNodeId ?? null,
+    storefrontNodeIds: String(row.storefrontNodeIds ?? "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
     sku: row.sku,
     priceMinor,
     currency: "GBP",
@@ -185,6 +194,26 @@ const PUBLIC_PRODUCT_SELECT = `
       WHERE pvc.product_version_id = pv.id
         AND c.active = 1
     ) AS categorySlugs,
+    (
+      SELECT ps.storefront_node_id
+      FROM product_version_storefront_placements ps
+      JOIN storefront_nodes sn ON sn.id = ps.storefront_node_id
+      WHERE ps.product_version_id = pv.id
+        AND ps.is_primary = 1
+        AND sn.publication_status = 'ACTIVE'
+        AND sn.current_published_version_id IS NOT NULL
+      ORDER BY ps.position ASC
+      LIMIT 1
+    ) AS primaryStorefrontNodeId,
+    (
+      SELECT GROUP_CONCAT(ps.storefront_node_id, ',')
+      FROM product_version_storefront_placements ps
+      JOIN storefront_nodes sn ON sn.id = ps.storefront_node_id
+      WHERE ps.product_version_id = pv.id
+        AND sn.publication_status = 'ACTIVE'
+        AND sn.current_published_version_id IS NOT NULL
+      ORDER BY ps.is_primary DESC, ps.position ASC
+    ) AS storefrontNodeIds,
     v.id AS variantId,
     v.sku,
     v.price_minor AS priceMinor,
