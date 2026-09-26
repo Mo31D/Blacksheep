@@ -18,6 +18,8 @@ const CATEGORY_SLUG = "qa-category-" + RUN_ID;
 const STRUCTURE_ROOT_NAME = "QA Website Section " + RUN_ID;
 const STRUCTURE_CHILD_A = "QA Sub-section A " + RUN_ID;
 const STRUCTURE_CHILD_B = "QA Sub-section B " + RUN_ID;
+const PRODUCT_PLACEMENT_QA_TITLE = "QA Placement Product " + RUN_ID;
+const PRODUCT_PLACEMENT_QA_SKU = "QA-PLACE-" + RUN_ID;
 
 let sessionToken = "";
 let sessionHash = "";
@@ -125,6 +127,38 @@ function cleanupStorefrontStructureQa() {
       "DELETE FROM storefront_nodes WHERE id IN (" + idList + ")",
     ].join(";"),
   );
+}
+
+function cleanupProductPlacementQa() {
+  const ids = d1(
+    "SELECT DISTINCT p.id AS id FROM products p " +
+      "LEFT JOIN product_versions pv ON pv.product_id=p.id " +
+      "LEFT JOIN product_variants v ON v.product_id=p.id " +
+      "WHERE pv.title=" + q(PRODUCT_PLACEMENT_QA_TITLE) +
+      " OR v.sku=" + q(PRODUCT_PLACEMENT_QA_SKU),
+  ).map((row) => String(row.id || "")).filter(Boolean);
+
+  for (const productId of ids) {
+    const pid = q(productId);
+    const versionSub = "(SELECT id FROM product_versions WHERE product_id=" + pid + ")";
+    const variantSub = "(SELECT id FROM product_variants WHERE product_id=" + pid + ")";
+    d1([
+      "DELETE FROM inventory_reservation_items WHERE variant_id IN " + variantSub,
+      "DELETE FROM inventory_movements WHERE variant_id IN " + variantSub,
+      "DELETE FROM inventory_incoming WHERE variant_id IN " + variantSub,
+      "DELETE FROM inventory_balances WHERE variant_id IN " + variantSub,
+      "DELETE FROM product_version_media WHERE product_version_id IN " + versionSub,
+      "DELETE FROM product_attributes WHERE product_version_id IN " + versionSub,
+      "DELETE FROM product_version_storefront_placements WHERE product_version_id IN " + versionSub,
+      "DELETE FROM product_version_categories WHERE product_version_id IN " + versionSub,
+      "DELETE FROM product_source_records WHERE product_id=" + pid,
+      "DELETE FROM product_audit_events WHERE product_id=" + pid,
+      "DELETE FROM product_slugs WHERE product_id=" + pid,
+      "DELETE FROM product_variants WHERE product_id=" + pid,
+      "DELETE FROM product_versions WHERE product_id=" + pid,
+      "DELETE FROM products WHERE id=" + pid,
+    ].join(";"));
+  }
 }
 
 function ownerEmailCandidates() {
@@ -560,6 +594,207 @@ async function mobileWebkitQa() {
 }
 
 
+async function productPlacementQa() {
+  const browser = await webkit.launch({ headless: true });
+  const context = await browser.newContext({
+    viewport: { width: 820, height: 1180 },
+  });
+  const page = await context.newPage();
+
+  try {
+    cleanupProductPlacementQa();
+    await addAdminCookie(context);
+    await page.goto(BASE + "/admin#products", {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    await page.waitForFunction(
+      () => document.querySelectorAll("#productList .product-row").length > 0,
+      null,
+      { timeout: 20_000 },
+    );
+
+    await page.locator("#addProduct").click();
+    await page.waitForSelector("#newProductTitle", { timeout: 10_000 });
+    await page.locator("#newProductTitle").fill(PRODUCT_PLACEMENT_QA_TITLE);
+    await page.locator("#newProductPrice").fill("1.23");
+    await page.locator("#newProductSku").fill(PRODUCT_PLACEMENT_QA_SKU);
+    await page
+      .locator("#newProductDesc")
+      .fill("Synthetic CARD 03 placement and publishing verification.");
+
+    assert(
+      (await page.locator("#newProductType").count()) === 0,
+      "CARD 03 Add Product still exposes Product type.",
+    );
+
+    await page
+      .locator("#newProductPrimarySection")
+      .selectOption("sfn_gifts");
+    await page
+      .locator("#newProductPrimarySubsection")
+      .selectOption("sfn_gifts_highland_cows");
+
+    const seasonal = page.locator(
+      '#newProductAdditionalPlacements input[value="sfn_gifts_seasonal"]',
+    );
+    await seasonal.check();
+
+    const category = page
+      .locator("#newProductCategories input[type=checkbox]")
+      .first();
+    await category.check();
+
+    await assertNoHorizontalOverflow(page, "CARD 03 Add Product iPad portrait");
+
+    const createResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/admin/api/products") &&
+        response.request().method() === "POST" &&
+        response.status() === 201,
+      { timeout: 20_000 },
+    );
+    await page.locator("#createProductSave").click();
+    const createResponse = await createResponsePromise;
+    const created = await createResponse.json();
+    const productId = String(created?.product?.id || "");
+    assert(productId, "CARD 03 Product creation did not return a Product id.");
+
+    await page.waitForFunction(
+      (title) =>
+        document.getElementById("productDetail")?.textContent?.includes(title),
+      PRODUCT_PLACEMENT_QA_TITLE,
+      { timeout: 20_000 },
+    );
+    let detailText = await page.locator("#productDetail").innerText();
+    assert(
+      detailText.includes("Highland Cows") &&
+        detailText.includes("Seasonal"),
+      "Created Product does not show the selected Storefront placements.",
+    );
+
+    await page.locator("#productEditDetails").click();
+    await page.waitForSelector("#pePrimarySection", { timeout: 10_000 });
+    assert(
+      (await page.locator("#pePrimarySection").inputValue()) === "sfn_gifts" &&
+        (await page.locator("#pePrimarySubsection").inputValue()) ===
+          "sfn_gifts_highland_cows",
+      "CARD 03 Edit Product did not persist the primary website location.",
+    );
+    assert(
+      await page
+        .locator(
+          '#peAdditionalPlacements input[value="sfn_gifts_seasonal"]',
+        )
+        .isChecked(),
+      "CARD 03 Edit Product did not persist the additional website location.",
+    );
+
+    const homeGifts = page.locator(
+      '#peAdditionalPlacements input[value="sfn_gifts_home_gifts"]',
+    );
+    await homeGifts.check();
+    const saveResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/admin/api/products/" + productId + "/draft") &&
+        response.request().method() === "PATCH" &&
+        response.status() === 200,
+      { timeout: 20_000 },
+    );
+    await page.locator("#peSave").click();
+    await saveResponsePromise;
+
+    await page.waitForSelector("#productPreview", { timeout: 10_000 });
+    await page.locator("#productPreview").click();
+    await page.waitForSelector(".preview-product-card", { timeout: 10_000 });
+    const previewText = await page.locator(".product-editor-panel").innerText();
+    assert(
+      previewText.includes("Private preview") &&
+        previewText.includes("Highland Cows") &&
+        previewText.includes("Seasonal") &&
+        previewText.includes("Home Gifts"),
+      "CARD 03 private Preview does not reflect Product placements.",
+    );
+    await page.locator("[data-close-product-sheet]:visible").first().click();
+
+    page.once("dialog", async (dialog) => {
+      await dialog.accept();
+    });
+    const publishResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes("/admin/api/products/" + productId + "/publish") &&
+        response.request().method() === "POST" &&
+        response.status() === 200,
+      { timeout: 20_000 },
+    );
+    await page.locator("#productPublish").click();
+    const publishResponse = await publishResponsePromise;
+    const publishedPayload = await publishResponse.json();
+    const publishedVersionId = String(
+      publishedPayload?.product?.publishedVersionId || "",
+    );
+    assert(publishedVersionId, "CARD 03 publish did not return a published version.");
+
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector(".live-verification.good")
+          ?.textContent?.includes("Published & verified in staging"),
+      null,
+      { timeout: 20_000 },
+    );
+    assert(
+      (await page.locator("#productDetail").innerText()).includes(
+        "Production link appears after Production release.",
+      ),
+      "Staging Product verification incorrectly exposes a Production live-link claim.",
+    );
+
+    const publicResponse = await fetch(BASE + "/v1/catalog/" + productId);
+    assert(publicResponse.ok, "Published QA Product is missing from public catalogue.");
+    const publicPayload = await publicResponse.json();
+    const publicProduct = publicPayload?.product;
+    assert(
+      publicProduct?.publishedVersionId === publishedVersionId,
+      "Public catalogue version does not match the published Product version.",
+    );
+    assert(
+      publicProduct?.primaryStorefrontNodeId === "sfn_gifts_highland_cows",
+      "Public catalogue primary Storefront placement is incorrect.",
+    );
+    const publicPlacements = Array.isArray(publicProduct?.storefrontNodeIds)
+      ? publicProduct.storefrontNodeIds
+      : [];
+    for (const expected of [
+      "sfn_gifts_highland_cows",
+      "sfn_gifts_seasonal",
+      "sfn_gifts_home_gifts",
+    ]) {
+      assert(
+        publicPlacements.includes(expected),
+        "Public catalogue is missing Storefront placement " + expected,
+      );
+    }
+    assert(
+      new Set(publicPlacements).size === publicPlacements.length,
+      "Public catalogue returned duplicate Product placements.",
+    );
+
+    await assertNoHorizontalOverflow(
+      page,
+      "CARD 03 Product detail iPad portrait",
+    );
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "ipad-card03-product-placement.png"),
+      fullPage: true,
+    });
+  } finally {
+    await context.close();
+    await browser.close();
+    cleanupProductPlacementQa();
+  }
+}
+
 async function ownerPolishViewsQa(viewport, label) {
   const browser = await webkit.launch({ headless: true });
   const context = await browser.newContext({ viewport });
@@ -628,8 +863,14 @@ async function ownerPolishViewsQa(viewport, label) {
     await page.locator("#addProduct").click();
     await page.waitForSelector("#newProductTitle", { timeout: 10_000 });
     assert(
-      (await page.locator("#newProductType").evaluate((el) => el.tagName)) === "SELECT",
-      label + " Add Product type is not a controlled select.",
+      (await page.locator("#newProductType").count()) === 0,
+      label + " Add Product still exposes the retired Product type control.",
+    );
+    assert(
+      (await page.locator("#newProductPrimarySection").count()) === 1 &&
+        (await page.locator("#newProductPrimarySubsection").count()) === 1 &&
+        (await page.locator("#newProductAdditionalPlacements").count()) === 1,
+      label + " Add Product website-placement controls are incomplete.",
     );
     await page.locator("#newProductCategorySearch").fill("highland");
     const visibleCategories = await page
@@ -996,6 +1237,7 @@ try {
 
   await desktopQa();
   await mobileWebkitQa();
+  await productPlacementQa();
   await ownerPolishViewsQa({ width: 390, height: 844 }, "iPhone WebKit");
   await ownerPolishViewsQa({ width: 820, height: 1180 }, "iPad portrait WebKit");
 
@@ -1020,10 +1262,16 @@ try {
           "webkit-mobile-revision-controls-not-clipped",
           "webkit-mobile-no-horizontal-overflow",
           "iphone-dashboard-2x2-kpis",
-          "iphone-products-add-product-controlled-type",
+          "iphone-products-add-product-storefront-placement",
           "iphone-add-product-cost-supplier-fields",
           "iphone-add-product-footer-clearance",
           "iphone-category-search",
+          "card03-product-primary-and-multi-location-placement",
+          "card03-product-edit-placement-persistence",
+          "card03-private-draft-preview",
+          "card03-publish-public-version-placement-verification",
+          "card03-staging-never-claims-production-live-link",
+          "card03-ipad-portrait-product-placement-no-overflow",
           "iphone-catalogue-hierarchy-create-main-and-subsections",
           "iphone-catalogue-menu-visibility-toggle",
           "iphone-catalogue-subsection-reorder",
@@ -1051,6 +1299,8 @@ try {
 } finally {
   try {
     try {
+      cleanupProductPlacementQa();
+      console.log("Synthetic Product placement QA data cleaned up.");
       cleanupStorefrontStructureQa();
       console.log("Synthetic Storefront Structure QA data cleaned up.");
       d1(cleanupCategorySql());
