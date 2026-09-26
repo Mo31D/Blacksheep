@@ -84,6 +84,11 @@ import {
   physicalInventoryCount,
 } from "../data/inventory";
 import {
+  captureAdminStockValuationSnapshot,
+  getAdminStockValuation,
+  listAdminSuppliers,
+} from "../data/inventory-valuation";
+import {
   expireDueReservations,
   getRevisionReservationAdminView,
   returnConsumedReservationToStock,
@@ -142,6 +147,9 @@ interface AdminDependencies {
   physicalInventoryCountFn: typeof physicalInventoryCount;
   bulkInventoryCountFn: typeof bulkInventoryCount;
   listInventoryHistoryFn: typeof listInventoryHistory;
+  getAdminStockValuationFn: typeof getAdminStockValuation;
+  captureAdminStockValuationSnapshotFn: typeof captureAdminStockValuationSnapshot;
+  listAdminSuppliersFn: typeof listAdminSuppliers;
 }
 
 const defaults: AdminDependencies = {
@@ -190,6 +198,9 @@ const defaults: AdminDependencies = {
   physicalInventoryCountFn: physicalInventoryCount,
   bulkInventoryCountFn: bulkInventoryCount,
   listInventoryHistoryFn: listInventoryHistory,
+  getAdminStockValuationFn: getAdminStockValuation,
+  captureAdminStockValuationSnapshotFn: captureAdminStockValuationSnapshot,
+  listAdminSuppliersFn: listAdminSuppliers,
 };
 
 function json(body: unknown, status = 200): Response {
@@ -269,6 +280,10 @@ function productMutationError(cause: unknown): Response {
     product_media_order_invalid: "The gallery order is invalid.",
     product_media_primary_invalid: "Primary image value is invalid.",
     product_media_archived: "Archived products cannot be edited.",
+    product_cost_invalid: "Item cost must be a valid non-negative amount.",
+    product_vat_rate_invalid: "VAT rate must be between 0% and 100%.",
+    product_supplier_name_too_long: "Supplier name must be 160 characters or fewer.",
+    product_supplier_product_code_too_long: "Supplier product code must be 120 characters or fewer.",
   };
   return error(code, status, messages[code] ?? "Unable to update product.");
 }
@@ -630,6 +645,34 @@ export async function handleAdminRequest(
   if (url.pathname === "/admin/api/inventory/locations" && request.method === "GET") {
     const locations = await deps.listInventoryLocationsFn(env.DB);
     return json({ locations });
+  }
+
+  if (url.pathname === "/admin/api/suppliers" && request.method === "GET") {
+    const suppliers = await deps.listAdminSuppliersFn(env.DB);
+    return json({ suppliers });
+  }
+
+  if (url.pathname === "/admin/api/inventory/valuation" && request.method === "GET") {
+    const report = await deps.getAdminStockValuationFn(env.DB, {
+      locationId: url.searchParams.get("location") ?? undefined,
+      days: Number(url.searchParams.get("days") ?? "90"),
+    });
+    return json(report);
+  }
+
+  if (
+    url.pathname === "/admin/api/inventory/valuation/snapshot" &&
+    request.method === "POST"
+  ) {
+    const raw = await readProductJson(request);
+    const report = await deps.captureAdminStockValuationSnapshotFn(env.DB, {
+      locationId:
+        raw.locationId === undefined || raw.locationId === null
+          ? undefined
+          : String(raw.locationId),
+      days: Number(raw.days ?? 90),
+    });
+    return json(report);
   }
 
   if (url.pathname === "/admin/api/inventory" && request.method === "GET") {
