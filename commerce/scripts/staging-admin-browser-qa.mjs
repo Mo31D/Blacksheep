@@ -641,8 +641,14 @@ async function productPlacementQa() {
     await seasonal.check();
 
     const category = page
-      .locator("#newProductCategories input[type=checkbox]")
+      .locator("#newProductCategories .category-choice")
+      .filter({ hasText: "Highland Cows" })
+      .locator("input[type=checkbox]")
       .first();
+    assert(
+      (await category.count()) === 1,
+      "CARD 03 QA could not find the Highland Cows product classification.",
+    );
     await category.check();
 
     await assertNoHorizontalOverflow(page, "CARD 03 Add Product iPad portrait");
