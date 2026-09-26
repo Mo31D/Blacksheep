@@ -34,7 +34,7 @@ export async function getAdminReportsV2(
           "COALESCE(SUM(CASE WHEN o.status = 'CANCELLED' THEN 1 ELSE 0 END), 0) AS cancelledOrders, " +
           "COALESCE(SUM(CASE WHEN COALESCE((SELECT r.fulfilment_method FROM order_revisions r WHERE r.order_id = o.id AND r.state IN ('SENT','ACCEPTED') ORDER BY r.revision_number DESC LIMIT 1), o.fulfilment_method) = 'collection' THEN 1 ELSE 0 END), 0) AS collectionCount, " +
           "COALESCE(SUM(CASE WHEN COALESCE((SELECT r.fulfilment_method FROM order_revisions r WHERE r.order_id = o.id AND r.state IN ('SENT','ACCEPTED') ORDER BY r.revision_number DESC LIMIT 1), o.fulfilment_method) = 'delivery' THEN 1 ELSE 0 END), 0) AS deliveryCount " +
-          "FROM orders o WHERE o.created_at >= ?",
+          "FROM orders o WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ?",
       )
       .bind(since)
       .first<Record<string, unknown>>()) ?? {};
@@ -43,7 +43,7 @@ export async function getAdminReportsV2(
     (await db
       .prepare(
         "SELECT COALESCE(SUM(r.amount_minor), 0) AS refundedMinor, COUNT(DISTINCT r.order_id) AS refundedOrders " +
-          "FROM refunds r INNER JOIN orders o ON o.id = r.order_id WHERE o.created_at >= ?",
+          "FROM refunds r INNER JOIN orders o ON o.id = r.order_id WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ?",
       )
       .bind(since)
       .first<Record<string, unknown>>()) ?? {};
@@ -59,7 +59,7 @@ export async function getAdminReportsV2(
   const statusCounts = await allRows<Record<string, unknown>>(
     db
       .prepare(
-        "SELECT status, COUNT(*) AS count FROM orders WHERE created_at >= ? GROUP BY status ORDER BY count DESC, status ASC",
+        "SELECT status, COUNT(*) AS count FROM orders WHERE data_class = 'BUSINESS' AND admin_hidden_at IS NULL AND created_at >= ? GROUP BY status ORDER BY count DESC, status ASC",
       )
       .bind(since),
   );
@@ -70,7 +70,7 @@ export async function getAdminReportsV2(
         "SELECT substr(COALESCE(o.paid_at, o.created_at),1,10) AS day, COALESCE(SUM(" +
           effectiveTotalSql +
           "),0) AS grossMinor, COUNT(*) AS paidOrders FROM orders o " +
-          "WHERE o.created_at >= ? AND o.payment_status IN ('PAID','REFUNDED') " +
+          "WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ? AND o.payment_status IN ('PAID','REFUNDED') " +
           "GROUP BY substr(COALESCE(o.paid_at, o.created_at),1,10) ORDER BY day ASC",
       )
       .bind(since),
@@ -80,7 +80,7 @@ export async function getAdminReportsV2(
     db
       .prepare(
         "SELECT substr(r.created_at,1,10) AS day, COALESCE(SUM(r.amount_minor),0) AS refundedMinor " +
-          "FROM refunds r INNER JOIN orders o ON o.id = r.order_id WHERE o.created_at >= ? " +
+          "FROM refunds r INNER JOIN orders o ON o.id = r.order_id WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ? " +
           "GROUP BY substr(r.created_at,1,10) ORDER BY day ASC",
       )
       .bind(since),
@@ -126,10 +126,10 @@ export async function getAdminReportsV2(
         "SELECT productId, productName, SUM(quantity) AS quantity, COUNT(DISTINCT orderId) AS orderCount, SUM(lineTotalMinor) AS revenueMinor FROM (" +
           "SELECT ri.catalog_product_id AS productId, ri.product_name AS productName, ri.confirmed_quantity AS quantity, o.id AS orderId, ri.line_total_minor AS lineTotalMinor " +
           "FROM orders o INNER JOIN order_revisions r ON r.id = (SELECT r2.id FROM order_revisions r2 WHERE r2.order_id = o.id AND r2.state IN ('SENT','ACCEPTED') ORDER BY r2.revision_number DESC LIMIT 1) " +
-          "INNER JOIN order_revision_items ri ON ri.revision_id = r.id WHERE o.created_at >= ? AND o.payment_status IN ('PAID','REFUNDED') AND ri.confirmed_quantity > 0 " +
+          "INNER JOIN order_revision_items ri ON ri.revision_id = r.id WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ? AND o.payment_status IN ('PAID','REFUNDED') AND ri.confirmed_quantity > 0 " +
           "UNION ALL " +
           "SELECT i.catalog_product_id, i.product_name, i.quantity, o.id, i.line_total_minor FROM orders o INNER JOIN order_items i ON i.order_id = o.id " +
-          "WHERE o.created_at >= ? AND o.payment_status IN ('PAID','REFUNDED') AND NOT EXISTS (SELECT 1 FROM order_revisions r3 WHERE r3.order_id = o.id AND r3.state IN ('SENT','ACCEPTED'))" +
+          "WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ? AND o.payment_status IN ('PAID','REFUNDED') AND NOT EXISTS (SELECT 1 FROM order_revisions r3 WHERE r3.order_id = o.id AND r3.state IN ('SENT','ACCEPTED'))" +
           ") GROUP BY productId, productName ORDER BY revenueMinor DESC, quantity DESC LIMIT 12",
       )
       .bind(since, since),
@@ -143,7 +143,7 @@ export async function getAdminReportsV2(
           "SUM(CASE WHEN ri.requested_quantity > ri.confirmed_quantity THEN (ri.requested_quantity - ri.confirmed_quantity) * ri.unit_price_minor ELSE 0 END) AS lostValueMinor, " +
           "SUM(ri.requested_quantity) AS requestedQuantity, SUM(ri.confirmed_quantity) AS confirmedQuantity, COUNT(DISTINCT o.id) AS affectedOrders " +
           "FROM order_revision_items ri INNER JOIN order_revisions r ON r.id = ri.revision_id INNER JOIN orders o ON o.id = r.order_id " +
-          "WHERE o.created_at >= ? AND r.state IN ('SENT','ACCEPTED') AND r.id = (SELECT r2.id FROM order_revisions r2 WHERE r2.order_id = o.id AND r2.state IN ('SENT','ACCEPTED') ORDER BY r2.revision_number DESC LIMIT 1) " +
+          "WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ? AND r.state IN ('SENT','ACCEPTED') AND r.id = (SELECT r2.id FROM order_revisions r2 WHERE r2.order_id = o.id AND r2.state IN ('SENT','ACCEPTED') ORDER BY r2.revision_number DESC LIMIT 1) " +
           "GROUP BY ri.catalog_product_id, ri.product_name HAVING lostQuantity > 0 ORDER BY lostValueMinor DESC, lostQuantity DESC LIMIT 12",
       )
       .bind(since),
@@ -153,7 +153,7 @@ export async function getAdminReportsV2(
     db
       .prepare(
         "SELECT r.reason_code AS reasonCode, COUNT(*) AS count, SUM(r.amount_minor) AS amountMinor " +
-          "FROM refunds r INNER JOIN orders o ON o.id = r.order_id WHERE o.created_at >= ? " +
+          "FROM refunds r INNER JOIN orders o ON o.id = r.order_id WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ? " +
           "GROUP BY r.reason_code ORDER BY amountMinor DESC, count DESC",
       )
       .bind(since),
@@ -164,7 +164,7 @@ export async function getAdminReportsV2(
       .prepare(
         "SELECT CASE WHEN e.note IS NULL OR trim(e.note) = '' THEN 'No reason recorded' ELSE trim(e.note) END AS reason, COUNT(*) AS count " +
           "FROM order_events e INNER JOIN orders o ON o.id = e.order_id " +
-          "WHERE o.created_at >= ? AND e.event_type IN ('ORDER_CANCELLED','ORDER_REFUNDED_AND_CANCELLED') " +
+          "WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ? AND e.event_type IN ('ORDER_CANCELLED','ORDER_REFUNDED_AND_CANCELLED') " +
           "GROUP BY CASE WHEN e.note IS NULL OR trim(e.note) = '' THEN 'No reason recorded' ELSE trim(e.note) END ORDER BY count DESC LIMIT 10",
       )
       .bind(since),
@@ -175,7 +175,7 @@ export async function getAdminReportsV2(
       .prepare(
         "SELECT e.order_id AS orderId, e.event_type AS eventType, MIN(e.created_at) AS createdAt " +
           "FROM order_events e INNER JOIN orders o ON o.id = e.order_id " +
-          "WHERE o.created_at >= ? AND e.event_type IN ('ORDER_SUBMITTED','ORDER_REVIEW_STARTED','ORDER_QUOTED','ORDER_REVISION_SENT','PAYMENT_REQUEST_SENT','PAYMENT_CONFIRMED','ORDER_READY_FOR_COLLECTION','ORDER_SHIPPED','ORDER_COMPLETED') " +
+          "WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ? AND e.event_type IN ('ORDER_SUBMITTED','ORDER_REVIEW_STARTED','ORDER_QUOTED','ORDER_REVISION_SENT','PAYMENT_REQUEST_SENT','PAYMENT_CONFIRMED','ORDER_READY_FOR_COLLECTION','ORDER_SHIPPED','ORDER_COMPLETED') " +
           "GROUP BY e.order_id, e.event_type ORDER BY e.order_id",
       )
       .bind(since),
@@ -235,7 +235,7 @@ export async function getAdminReportsV2(
   const ageingQueues = await allRows<Record<string, unknown>>(
     db.prepare(
       "SELECT public_reference AS publicReference, customer_name AS customerName, status, payment_status AS paymentStatus, fulfilment_method AS fulfilmentMethod, created_at AS createdAt, updated_at AS updatedAt " +
-        "FROM orders WHERE status IN ('SUBMITTED','AWAITING_PAYMENT','READY_FOR_COLLECTION') " +
+        "FROM orders WHERE data_class = 'BUSINESS' AND admin_hidden_at IS NULL AND status IN ('SUBMITTED','AWAITING_PAYMENT','READY_FOR_COLLECTION') " +
         "ORDER BY CASE status WHEN 'SUBMITTED' THEN 1 WHEN 'AWAITING_PAYMENT' THEN 2 ELSE 3 END, updated_at ASC LIMIT 40",
     ),
   );
@@ -246,11 +246,11 @@ export async function getAdminReportsV2(
         "SELECT publicReference, customerName, eventType, createdAt FROM (" +
           "SELECT o.public_reference AS publicReference, o.customer_name AS customerName, m.delivery_status AS eventType, m.updated_at AS createdAt " +
           "FROM order_messages m INNER JOIN orders o ON o.id = m.order_id " +
-          "WHERE o.created_at >= ? AND m.delivery_status IN ('FAILED','BOUNCED','COMPLAINED','DELAYED') " +
+          "WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ? AND m.delivery_status IN ('FAILED','BOUNCED','COMPLAINED','DELAYED') " +
           "UNION ALL " +
           "SELECT o.public_reference AS publicReference, o.customer_name AS customerName, e.event_type AS eventType, e.created_at AS createdAt " +
           "FROM order_events e INNER JOIN orders o ON o.id = e.order_id " +
-          "WHERE o.created_at >= ? AND e.event_type LIKE '%_FAILED' AND NOT EXISTS (" +
+          "WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ? AND e.event_type LIKE '%_FAILED' AND NOT EXISTS (" +
           "SELECT 1 FROM order_messages m2 WHERE m2.order_id = o.id AND m2.delivery_status = 'FAILED' AND abs(strftime('%s',m2.updated_at)-strftime('%s',e.created_at)) < 300" +
           ")" +
           ") ORDER BY createdAt DESC LIMIT 30",
@@ -265,7 +265,7 @@ export async function getAdminReportsV2(
           "COALESCE(SUM(CASE WHEN o.payment_status IN ('PAID','REFUNDED') THEN " +
           effectiveTotalSql +
           " ELSE 0 END),0) - COALESCE(SUM((SELECT COALESCE(SUM(rf.amount_minor),0) FROM refunds rf WHERE rf.order_id = o.id)),0) AS revenueMinor " +
-          "FROM orders o WHERE o.created_at >= ? GROUP BY lower(o.customer_email) ORDER BY revenueMinor DESC, orderCount DESC LIMIT 10",
+          "FROM orders o WHERE o.data_class = 'BUSINESS' AND o.admin_hidden_at IS NULL AND o.created_at >= ? GROUP BY lower(o.customer_email) ORDER BY revenueMinor DESC, orderCount DESC LIMIT 10",
       )
       .bind(since),
   );
@@ -273,7 +273,7 @@ export async function getAdminReportsV2(
   const busiestHours = await allRows<Record<string, unknown>>(
     db
       .prepare(
-        "SELECT substr(created_at,12,2) AS hour, COUNT(*) AS count FROM orders WHERE created_at >= ? GROUP BY substr(created_at,12,2) ORDER BY count DESC, hour ASC LIMIT 6",
+        "SELECT substr(created_at,12,2) AS hour, COUNT(*) AS count FROM orders WHERE data_class = 'BUSINESS' AND admin_hidden_at IS NULL AND created_at >= ? GROUP BY substr(created_at,12,2) ORDER BY count DESC, hour ASC LIMIT 6",
       )
       .bind(since),
   );
