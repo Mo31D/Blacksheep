@@ -94,6 +94,38 @@ class LosingRevisionDb extends LosingBatchDb {
       });
     }
 
+    if (
+      query.includes("FROM products p") &&
+      query.includes("p.current_published_version_id")
+    ) {
+      return new Statement(query, {
+        productId: "prd-hc-003",
+        legacyId: "HC-003",
+        slug: "hc-003-three-highland-cows",
+        publicationStatus: "ACTIVE",
+        sellStatus: "AUTO",
+        onlineOrderingEnabled: 1,
+        productUpdatedAt: "2026-09-25T10:00:00.000Z",
+        publishedVersionId: "pver-hc-003",
+        publishedVersionNumber: 1,
+        title: "Highland Cow Trio",
+        shortDescription: "Published QA product",
+        brand: "Leonardo",
+        productType: "gifts",
+        primaryCategory: "highland-cow",
+        variantId: "var-hc-003",
+        sku: "LP75455",
+        priceMinor: 1495,
+        currency: "GBP",
+        trackInventory: 0,
+        onHand: null,
+        reserved: null,
+        safetyStock: null,
+        balanceVersion: null,
+        primaryImageUrl: null,
+      });
+    }
+
     if (query.includes("FROM order_revision_items")) {
       return new Statement(query, null, [
         {
