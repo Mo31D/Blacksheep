@@ -47,6 +47,7 @@ const publicRow = {
   brand: "Leonardo",
   productType: "gifts",
   primaryCategory: "highland-cow",
+  categorySlugs: "highland-cow,seasonal,home-gifts",
   variantId: "var-1",
   sku: "LP00001",
   priceMinor: 950,
