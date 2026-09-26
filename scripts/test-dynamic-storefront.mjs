@@ -26,6 +26,7 @@ for(const contract of [
   'function syncDynamicStorefrontStructure(nodes)',
   'function syncStorefrontNavigation(nodes)',
   'function renderDynamicCollectionPage(nodes)',
+  'function syncLegacyCollectionChildren(nodes)',
   'function dynamicCollectionRows(node,nodes)',
   'function storefrontCollectionUrl(node)'
 ]){
@@ -34,6 +35,7 @@ for(const contract of [
 expect(site.includes("if(node.legacyPath)return String(node.legacyPath)"),'Legacy Storefront URLs are not preserved.');
 expect(site.includes("'/collection.html?section='"),'New Storefront nodes do not receive dynamic collection URLs.');
 expect(site.includes("node.showInNavigation===true"),'Navigation does not respect show-in-navigation.');
+expect(site.includes("data.dynamicStorefrontChild='1'")||site.includes("dataset.dynamicStorefrontChild='1'"),'Legacy collection pages do not expose newly published child sections.');
 expect(site.includes("Number(a.sortOrder||0)-Number(b.sortOrder||0)"),'Navigation/collections do not respect Storefront ordering.');
 expect(site.includes('item.commerceStorefrontNodeIds'),'Dynamic collection membership is not placement-driven.');
 expect(site.includes("location.replace(node.legacyPath)"),'Dynamic collection route does not hand legacy nodes back to existing indexed URLs.');

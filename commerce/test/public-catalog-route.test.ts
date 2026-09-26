@@ -188,6 +188,7 @@ describe("Phase 6 public catalogue route", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
     await expect(response.json()).resolves.toMatchObject({
       contract: "storefront-structure-published-v1",
       nodes: [
