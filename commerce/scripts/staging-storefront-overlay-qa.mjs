@@ -269,6 +269,32 @@ async function verifyMockedLiveChanges(realPayload) {
   tracked.nonPurchasableReason = null;
   tracked.inventory = { tracked: true, available: 1 };
 
+  const dynamicImage =
+    trackedPayload.products.find(
+      (product) => product.type === "hawkshead" && product.primaryImageUrl,
+    )?.primaryImageUrl || tracked.primaryImageUrl;
+  const dynamicProduct = {
+    ...tracked,
+    id: "prd-dynamic-storefront-qa",
+    productId: "prd-dynamic-storefront-qa",
+    slug: "qa-live-dynamic-product",
+    name: "QA Live Dynamic Product",
+    shortDescription: "Published directly from Product Core for dynamic storefront QA.",
+    brand: "Hawkshead Relish Company",
+    type: "hawkshead",
+    primaryCategory: "hawkshead-relish",
+    sku: "QA-LIVE-DYNAMIC",
+    priceMinor: 321,
+    status: "available",
+    purchasable: true,
+    nonPurchasableReason: null,
+    inventory: { tracked: false, available: null },
+    primaryImageUrl: dynamicImage,
+    publishedVersionId: "pver-dynamic-storefront-qa",
+    publishedVersionNumber: 1,
+  };
+  trackedPayload.products.push(dynamicProduct);
+
   await page.route(API + "/v1/catalog?limit=200", async (route) => {
     await route.fulfill({
       status: 200,
@@ -314,6 +340,67 @@ async function verifyMockedLiveChanges(realPayload) {
       ),
       "Tracked quantity rejection did not surface a useful message",
     );
+
+    const dynamicUrl =
+      "/product.html?type=hawkshead&slug=qa-live-dynamic-product";
+    const dynamicAllProducts = page.locator(
+      '.product-card[data-url="' + dynamicUrl + '"]',
+    );
+    await dynamicAllProducts.waitFor({ state: "visible", timeout: 15_000 });
+    assert(
+      (await dynamicAllProducts.locator(".product-price").textContent())?.trim() ===
+        "£3.21",
+      "New D1-only product was not rendered in Full range",
+    );
+
+    await page.goto(SITE + "/hawkshead-relish.html", {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    await waitForCommerce(page, "ready");
+    const dynamicRangeCard = page.locator(
+      '.product-card[data-url="' + dynamicUrl + '"]',
+    );
+    await dynamicRangeCard.waitFor({ state: "visible", timeout: 15_000 });
+    assert(
+      (await page.locator("#giftCount").textContent())?.includes("16 products"),
+      "Hawkshead range count did not include the D1-only product",
+    );
+    assert(
+      (await dynamicRangeCard.locator("img").getAttribute("src"))?.startsWith(API),
+      "D1-only product image URL was not resolved against the commerce API",
+    );
+
+    await dynamicRangeCard.locator(".product-title").click();
+    await page.waitForURL("**/product.html?type=hawkshead&slug=qa-live-dynamic-product", {
+      timeout: 20_000,
+    });
+    await waitForCommerce(page, "ready");
+    await page.locator("#detail h1").waitFor({ state: "visible", timeout: 15_000 });
+    assert(
+      (await page.locator("#detail h1").textContent())?.trim() ===
+        "QA Live Dynamic Product",
+      "D1-only Product detail did not render",
+    );
+    assert(
+      (await page.locator("#detail .detail-price").textContent())?.trim() === "£3.21",
+      "D1-only Product detail price is wrong",
+    );
+    assert(
+      (await page.locator("#detail img").first().getAttribute("src"))?.startsWith(API),
+      "D1-only Product detail image did not use the API media URL",
+    );
+    assert(
+      !(await page.locator("#detail .list-detail-add").isDisabled()),
+      "D1-only Product detail Add button is unexpectedly disabled",
+    );
+    await assertNoHorizontalOverflow(page, "Dynamic D1 Product detail");
+
+    await page.goto(
+      SITE + "/all-products.html?commerce-preview=staging",
+      { waitUntil: "domcontentloaded", timeout: 60_000 },
+    );
+    await waitForCommerce(page, "ready");
 
     // Flip the same public response to an explicit unavailable state.
     tracked.status = "out-of-stock";
@@ -477,6 +564,9 @@ try {
           "checkout-preview-submit-disabled",
           "mocked-live-price-change",
           "mocked-tracked-available-one-basket-cap",
+          "mocked-d1-only-product-full-range",
+          "mocked-d1-only-product-range-placement",
+          "mocked-d1-only-product-dynamic-detail",
           "mocked-live-out-of-stock-card",
           "mocked-live-out-of-stock-product-detail",
           "api-failure-static-fallback",
