@@ -102,6 +102,7 @@
 > - staging foundation report: `docs/STOREFRONT-COMMERCE-PHASE6-STAGING-FOUNDATION-2026-09-25.md`.
 > - publication report: `docs/STOREFRONT-COMMERCE-PHASE6-PUBLICATION-2026-09-26.md`.
 > - Production cutover runbook: `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-CUTOVER-PLAN-2026-09-26.md`.
+> - final readiness report: `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-READINESS-2026-09-26.md`.
 > - milestones 6.1–6.6: COMPLETE + REAL-STAGING/BROWSER/PUBLICATION VERIFIED.
 > - Phase 6.7 readiness: COMPLETE; Production cutover execution NOT performed.
 > - public D1 routes on staging: `GET /v1/catalog` and `GET /v1/catalog/:id`.
@@ -114,7 +115,7 @@
 >   - SHA-256 `61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7`,
 >   - added 0 / changed 162 / deletions 0 / unsafe slug removals 0.
 > - Admin Add → Publish → static candidate → Archive E2E: workflow `36229294654` SUCCESS.
-> - final read-only Production readiness workflow `36230361643` — SUCCESS.
+> - final guarded Production readiness workflow `36230644182` — SUCCESS.
 > - readiness simulation applied the exact 162-file package + future Production Worker flags/R2/cron/live marker only inside the ephemeral CI runner, then:
 >   - full Commerce validation PASS,
 >   - 35 Vitest files PASS,
