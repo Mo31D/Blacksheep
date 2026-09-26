@@ -526,8 +526,9 @@ Remaining owner acceptance:
 
 Once those live-owner checks pass, mark Phase 6 CLOSED and move to Phase 7.
 
-Repository cleanup note:
-- the seven historical non-main branches are classified obsolete/safe-to-delete,
-- the current GitHub connector does not expose delete-branch/delete-ref, so those refs remain and must not be merged back into `main`.
+Repository cleanup:
+- [x] seven historical non-main branches deleted by guarded cleanup workflow `36236510282`,
+- [x] post-cleanup branch list contains `main` only,
+- [x] temporary branch-cleanup workflow removed after success.
 
 Do not use the saved Time Travel bookmark unless following the documented rollback matrix; legitimate post-cutover orders must be preserved.
