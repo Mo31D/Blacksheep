@@ -3,7 +3,6 @@ import {
   createSubmittedOrder,
   findOrderByIdempotencyKey,
 } from "../data/orders";
-import { priceRequestedCart } from "../domain/pricing";
 import { priceRequestedCartFromD1 } from "../data/commerce-pricing";
 import { createPublicOrderReference } from "../domain/order-reference";
 import {
@@ -24,7 +23,6 @@ export interface OrdersEnv extends NotificationEnv {
   TURNSTILE_SECRET_KEY?: string;
   TURNSTILE_ALLOWED_HOSTNAMES?: string;
   TURNSTILE_EXPECTED_ACTION?: string;
-  D1_COMMERCE_AUTHORITY_ENABLED?: string;
 }
 
 interface RouteDependencies {
@@ -32,7 +30,6 @@ interface RouteDependencies {
   notifyOrderSubmittedFn: typeof notifyOrderSubmitted;
   randomUUID: () => string;
   createReference: () => string;
-  priceRequestedCartFn: typeof priceRequestedCart;
   priceRequestedCartFromD1Fn: typeof priceRequestedCartFromD1;
 }
 
@@ -41,7 +38,6 @@ const defaultDependencies: RouteDependencies = {
   notifyOrderSubmittedFn: notifyOrderSubmitted,
   randomUUID: () => crypto.randomUUID(),
   createReference: () => createPublicOrderReference(),
-  priceRequestedCartFn: priceRequestedCart,
   priceRequestedCartFromD1Fn: priceRequestedCartFromD1,
 };
 
@@ -179,10 +175,10 @@ export async function handleCreateOrder(
 
   let priced;
   try {
-    priced =
-      env.D1_COMMERCE_AUTHORITY_ENABLED === "true"
-        ? await deps.priceRequestedCartFromD1Fn(env.DB, input.items)
-        : deps.priceRequestedCartFn(input.items);
+    priced = await deps.priceRequestedCartFromD1Fn(
+      env.DB,
+      input.items,
+    );
   } catch (error) {
     const response = catalogueErrorResponse(error);
     if (response) return response;
