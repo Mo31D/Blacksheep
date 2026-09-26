@@ -1,9 +1,9 @@
 # Black Sheep — Phase 6 Storefront / Commerce Integration Plan
 
 **Date:** 25 September 2026  
-**Status:** READY FOR EXPLICIT PRODUCTION CUTOVER APPROVAL — milestones 6.1–6.6 COMPLETE; 6.7 readiness COMPLETE; cutover NOT executed  
-**Target:** Production cutover only after explicit owner approval  
-**Production:** still pre-cutover at migration `0008_concurrency_guards.sql`
+**Status:** AUTOMATED PRODUCTION CUTOVER COMPLETE — final owner smoke pending  
+**Target:** Production cutover executed and verified  
+**Production:** D1 Product/Inventory/Reservation authority live at migration `0012_order_returns.sql`
 
 ## 1. Objective
 
@@ -285,7 +285,7 @@ Before Production cutover is considered:
 - Admin Add → Publish → static candidate → Archive E2E,
 - byte-for-byte deterministic package verification.
 
-### 6.7 — Production cutover review/readiness — COMPLETE; execution pending approval
+### 6.7 — Production cutover — AUTOMATED EXECUTION COMPLETE; owner smoke pending
 Readiness now includes:
 - exact Production before-state audit,
 - pending migration audit `0009–0012`,
@@ -332,26 +332,34 @@ Until Phase 6 Production cutover is explicitly approved:
 
 ## 14. Current exact milestone
 
-### Explicit Production cutover decision
+### Final owner Production smoke
 
-All reversible Phase 6 engineering/readiness work is complete.
+Automated Production cutover is complete.
 
-Current approved publication package:
-- Products: 146,
-- files: 162,
-- SHA-256: `61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7`,
-- semantic mismatches: 0,
-- unsafe slug removals: 0.
+Verified Production state:
+- migration `0012_order_returns.sql`,
+- 146 Active Published Products,
+- D1 commerce/public catalogue/reservation authority enabled,
+- Product Media R2 bound,
+- reservation expiry Cron `*/30 * * * *`,
+- public catalogue parity PASS,
+- static storefront/canonical surface PASS,
+- 4 pre-existing orders preserved.
 
-Current Production remains pre-cutover:
-- migration `0008_concurrency_guards.sql`,
-- Product/Inventory/Reservation tables absent,
-- Phase 6 runtime flags absent,
-- Production live-commerce marker disabled,
-- generated static catalogue remains checkout authority.
+Execution evidence:
+- cutover workflow `36231139658`,
+- source cutover commit `97099d67c6a85afbcc90b797520873d9e44bb9b4`,
+- Cron/post-cutover remediation workflow `36231541379` — SUCCESS,
+- Production Worker version `b1a4f431-6054-4e24-a84f-ec2f663d6c2b`,
+- final cutover report `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-CUTOVER-2026-09-26.md`.
 
-The next action is not another implementation milestone. It is a separate owner decision to dispatch the guarded workflow `.github/workflows/phase6-production-cutover.yml`.
+Remaining acceptance:
+1. owner Production Admin login,
+2. Products/Stock smoke,
+3. one ordinary customer order request,
+4. order visible in Admin,
+5. customer acknowledgement delivered,
+6. owner notification delivered,
+7. no unexpected numeric reservation for the baseline untracked Product.
 
-Final readiness evidence: `docs/STOREFRONT-COMMERCE-PHASE6-PRODUCTION-READINESS-2026-09-26.md` / workflow `36230644182` — SUCCESS.
-
-That workflow must perform a fresh drift check before its first Production write and must abort if the approved package SHA or `main` has changed.
+After that, Phase 6 is CLOSED.
