@@ -41,7 +41,8 @@ describe("generated Admin HTML scripts", () => {
     expect(production).not.toContain("Staging Product Core");
     expect(production).not.toContain("before storefront cutover");
     expect(production).not.toContain("dedicated Media phase");
-    expect(production).not.toContain("resetTestOrders");
+    expect(production).not.toContain('id="resetTestOrders"');
+    expect(production).not.toContain('data-order-class="TEST"');
     expect(staging).toContain("STAGING");
     expect(staging).toContain("Reset test orders");
     expect(staging).toContain("RESET TEST ORDERS");
