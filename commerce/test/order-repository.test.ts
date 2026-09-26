@@ -106,6 +106,14 @@ describe("D1 order repository", () => {
     expect(db.batched[2].sql).toContain("INSERT INTO order_items");
     expect(db.batched[3].sql).toContain("INSERT INTO order_events");
     expect(db.batched[0].values).toContain(input.idempotencyKey);
+    expect(db.batched[0].sql).toContain("data_class");
+    expect(db.batched[0].values).toContain("BUSINESS");
+  });
+
+  it("persists an explicit test data class", async () => {
+    const db = new FakeDb();
+    await createSubmittedOrder(db, { ...input, dataClass: "TEST" });
+    expect(db.batched[0].values).toContain("TEST");
   });
 
   it("rejects subtotal drift before writing", async () => {
