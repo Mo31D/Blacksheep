@@ -53,11 +53,11 @@ jobs:
           set -euo pipefail
           while IFS= read -r file; do
             base="$(basename "$file")"
-            if git grep -n -F -- "$file" --               '*.html' '*.js' '*.mjs' '*.ts' '*.json' '*.css' '*.md' '*.yml' '*.yaml' ':!images/*' ; then
+            if git grep -n -F -- "$file" --               '*.html' '*.js' '*.mjs' '*.ts' '*.json' '*.css' '*.md' '*.yml' '*.yaml' ':!images/*' ':!.github/workflows/remove-unused-placeholder-assets-once.yml' ; then
               echo "Refusing deletion: reference found for $file"
               exit 1
             fi
-            if git grep -n -F -- "$base" --               '*.html' '*.js' '*.mjs' '*.ts' '*.json' '*.css' '*.yml' '*.yaml' ':!images/*' ; then
+            if git grep -n -F -- "$base" --               '*.html' '*.js' '*.mjs' '*.ts' '*.json' '*.css' '*.yml' '*.yaml' ':!images/*' ':!.github/workflows/remove-unused-placeholder-assets-once.yml' ; then
               echo "Refusing deletion: basename reference found for $file"
               exit 1
             fi
