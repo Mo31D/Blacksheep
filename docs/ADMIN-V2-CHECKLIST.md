@@ -1,5 +1,14 @@
 # Black Sheep Admin V2 — Live Execution Checklist
 
+> **NEXT PLATFORM ARCHITECTURE PROGRAM — authoritative implementation cards**
+>
+> The approved next architecture programme is tracked in:
+> `docs/PLATFORM-IMPLEMENTATION-CARDS-2026-09-26.md`
+>
+> It covers Storefront Structure, multi-placement Product Editor, dynamic menu/collections, scoped persistent Stocktake, Homepage Merchandising/product rail, Website Appearance/seasonal themes, shared Media Library, unified Preview→Publish→Verify, Admin information architecture and clean-URL/SEO migration.
+>
+> **Execution rule:** start at CARD 00 and close/update each card before beginning a dependent card. Do not implement these features as isolated patches in the historical Admin V2 phases below.
+
 Updated: 25 September 2026  
 Repository: `Mo31D/Blacksheep`  
 Branch: `main`
