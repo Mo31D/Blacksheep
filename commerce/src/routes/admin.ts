@@ -218,11 +218,10 @@ function categoryMutationError(cause: unknown): Response {
     category_archived: "Restore this category before changing its order.",
     category_slug_unavailable: "A unique category address could not be created.",
     category_not_found: "Category not found.",
-    category_in_use: "This category is still used by products. Remove or replace it on those products before archiving it.",
   };
   const status =
     code === "category_not_found" ? 404 :
-    code === "category_name_conflict" || code === "category_in_use" ? 409 :
+    code === "category_name_conflict" ? 409 :
     400;
   return error(code, status, messages[code] ?? "Unable to update category.");
 }
@@ -237,6 +236,7 @@ function productMutationError(cause: unknown): Response {
     "product_no_draft",
     "product_publish_requires_category",
     "product_publish_requires_price",
+    "product_category_archived",
     "product_already_archived",
     "product_media_requires_draft",
     "product_media_primary_required",
@@ -261,6 +261,7 @@ function productMutationError(cause: unknown): Response {
     product_not_found: "Product not found.",
     product_variant_not_found: "Product variant not found.",
     product_category_not_found: "One of the selected categories no longer exists.",
+    product_category_archived: "That category is archived. Restore it before adding it to another product.",
     product_media_not_found: "That image is no longer attached to this product.",
     product_media_requires_draft: "A product draft is required before changing images.",
     product_media_primary_required: "Choose another primary image before clearing this one.",
