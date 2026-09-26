@@ -95,6 +95,7 @@ import {
   getAdminStorefrontNode,
   listAdminStorefrontNodes,
   moveAdminStorefrontNode,
+  publishAdminStorefrontNode,
   restoreAdminStorefrontNode,
   updateAdminStorefrontNode,
 } from "../data/storefront-structure";
@@ -137,6 +138,7 @@ interface AdminDependencies {
   createAdminStorefrontNodeFn: typeof createAdminStorefrontNode;
   updateAdminStorefrontNodeFn: typeof updateAdminStorefrontNode;
   moveAdminStorefrontNodeFn: typeof moveAdminStorefrontNode;
+  publishAdminStorefrontNodeFn: typeof publishAdminStorefrontNode;
   archiveAdminStorefrontNodeFn: typeof archiveAdminStorefrontNode;
   restoreAdminStorefrontNodeFn: typeof restoreAdminStorefrontNode;
   createAdminCategoryFn: typeof createAdminCategory;
@@ -195,6 +197,7 @@ const defaults: AdminDependencies = {
   createAdminStorefrontNodeFn: createAdminStorefrontNode,
   updateAdminStorefrontNodeFn: updateAdminStorefrontNode,
   moveAdminStorefrontNodeFn: moveAdminStorefrontNode,
+  publishAdminStorefrontNodeFn: publishAdminStorefrontNode,
   archiveAdminStorefrontNodeFn: archiveAdminStorefrontNode,
   restoreAdminStorefrontNodeFn: restoreAdminStorefrontNode,
   createAdminCategoryFn: createAdminCategory,
@@ -269,6 +272,7 @@ function storefrontMutationError(cause: unknown): Response {
     "storefront_archive_has_children",
     "storefront_parent_archived",
     "storefront_archived",
+    "storefront_publish_parent_not_live",
   ]);
   const notFound = new Set([
     "storefront_not_found",
@@ -291,6 +295,7 @@ function storefrontMutationError(cause: unknown): Response {
     storefront_move_invalid: "Section move is invalid.",
     storefront_archived: "Restore this section before editing it.",
     storefront_archive_has_children: "Archive or move the sub-sections first.",
+    storefront_publish_parent_not_live: "Publish the parent section before publishing this sub-section.",
     storefront_not_found: "Section not found.",
   };
   const status = notFound.has(code) ? 404 : conflicts.has(code) ? 409 : 400;
@@ -940,6 +945,26 @@ export async function handleAdminRequest(
         identity.email,
       );
       return json({ ok: true });
+    } catch (cause) {
+      return storefrontMutationError(cause);
+    }
+  }
+
+  const storefrontPublishMatch = url.pathname.match(
+    /^\/admin\/api\/storefront-structure\/([^/]+)\/publish$/,
+  );
+  if (storefrontPublishMatch && request.method === "POST") {
+    const nodeId = decodeURIComponent(storefrontPublishMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      await deps.publishAdminStorefrontNodeFn(
+        env.DB,
+        nodeId,
+        raw.expectedVersion,
+        identity.email,
+      );
+      const node = await deps.getAdminStorefrontNodeFn(env.DB, nodeId);
+      return json({ node });
     } catch (cause) {
       return storefrontMutationError(cause);
     }
