@@ -1751,6 +1751,50 @@ export async function updateAdminCategory(
     .run();
 }
 
+export async function moveAdminCategory(
+  db: D1DatabaseLike,
+  categoryId: string,
+  direction: "UP" | "DOWN",
+): Promise<void> {
+  if (direction !== "UP" && direction !== "DOWN") {
+    throw new Error("category_move_invalid");
+  }
+  const current = await db
+    .prepare(
+      "SELECT id, category_type AS categoryType, active FROM categories WHERE id = ? LIMIT 1",
+    )
+    .bind(categoryId)
+    .first<Record<string, unknown>>();
+  if (!current) throw new Error("category_not_found");
+  if (Number(current.active) !== 1) throw new Error("category_archived");
+
+  const rows = await allRows<{ id: string }>(
+    db
+      .prepare(
+        "SELECT id FROM categories WHERE active = 1 AND category_type = ? ORDER BY sort_order, name COLLATE NOCASE",
+      )
+      .bind(String(current.categoryType)),
+  );
+  const index = rows.findIndex((row) => row.id === categoryId);
+  if (index < 0) throw new Error("category_not_found");
+  const target = direction === "UP" ? index - 1 : index + 1;
+  if (target < 0 || target >= rows.length) return;
+
+  const reordered = rows.slice();
+  const [moved] = reordered.splice(index, 1);
+  reordered.splice(target, 0, moved);
+  const timestamp = now();
+  await db.batch(
+    reordered.map((row, position) =>
+      db
+        .prepare(
+          "UPDATE categories SET sort_order = ?, updated_at = ? WHERE id = ?",
+        )
+        .bind((position + 1) * 10, timestamp, row.id),
+    ),
+  );
+}
+
 export async function archiveAdminCategory(
   db: D1DatabaseLike,
   categoryId: string,
