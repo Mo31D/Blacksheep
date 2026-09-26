@@ -118,6 +118,16 @@ export function onlineOrderingEnabled(item) {
   return item.type === "icecream" ? 0 : 1;
 }
 
+export function categoryType(slug) {
+  if (["romneys", "hawkshead", "peter-rabbit"].includes(slug)) {
+    return "BRAND_RANGE";
+  }
+  if (["gift-boxes", "highland-cows", "home-gifts", "seasonal"].includes(slug)) {
+    return "COLLECTION_THEME";
+  }
+  return "PRODUCT_CATEGORY";
+}
+
 export function categoryName(slug) {
   const names = {
     romneys: "Romney's",
@@ -299,7 +309,7 @@ export function buildImportSql(items) {
   const categories = [...new Set(items.flatMap((item) => item.categories ?? []))].sort();
   categories.forEach((slug, index) => {
     statements.push(
-      `INSERT INTO categories (id, slug, name, parent_id, active, sort_order, created_at, updated_at) VALUES (${[
+      `INSERT INTO categories (id, slug, name, parent_id, active, sort_order, created_at, updated_at, category_type) VALUES (${[
         sql(categoryId(slug)),
         sql(slug),
         sql(categoryName(slug)),
@@ -308,6 +318,7 @@ export function buildImportSql(items) {
         String(index),
         sql(IMPORTED_AT),
         sql(IMPORTED_AT),
+        sql(categoryType(slug)),
       ].join(", ")});`,
     );
   });
