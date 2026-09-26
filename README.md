@@ -36,7 +36,7 @@ The storefront now includes a persistent browser basket backed by the current ca
 - The customer submits an **order request**; no payment is taken at submission.
 - The Commerce Worker accepts `POST /v1/orders` with validation, Turnstile verification, idempotency and D1 persistence.
 - Availability, reviewed quantities, fulfilment changes and the final amount are confirmed before payment.
-- Admin V2 review/refund/reporting work is tracked separately in `docs/ADMIN-V2-CHECKLIST.md`; staging completion must not be mistaken for a production Admin V2 release.
+- Admin V2, Product Core, Inventory Core and the reviewed-order workflow are live against Production D1; release history remains documented in `docs/ADMIN-V2-CHECKLIST.md` and the Product/Inventory phase reports.
 
 ## SEO
 - Production `CNAME` is set to `theblacksheepshop.co.uk`.
@@ -55,8 +55,8 @@ GitHub `main` is the source of truth for deployed code and generated static stor
 ## Commerce runtime boundary
 - Static storefront files and product pages remain on the website layer.
 - The separate `commerce/` Worker handles order API, admin routes, secure customer review and Resend webhook routes.
-- Customer order submission and Admin V2 release state are deliberately tracked separately.
-- Production Admin V2 must only move forward through the guarded release checklist; current staging success does not authorize a production migration/deploy.
+- Customer order submission, Admin operations, reviewed-order reservations and fulfilment now share Production D1 as their operational source of truth.
+- Commerce code changes still require guarded CI/staging regression before any explicit Production deployment.
 
 ## Search architecture rule
 - Treat `assets/catalog.js` as the generated published storefront snapshot, not as the operational Product Core authority.
@@ -70,7 +70,7 @@ GitHub `main` is the source of truth for deployed code and generated static stor
 
 `assets/catalog.js` is the data source. The `official` object on each ice-cream record preserves the manufacturer URL, exact image provenance, verification date, ingredients, allergens, dietary statements, awards and nutrition (per **100 ml**). See `docs/LAKES-ICE-CREAM-SOURCE-MAP.md`.
 
-The legacy `scripts/build-icecream.mjs` tool is retained only as a specialist-content maintenance helper for manufacturer ingredients/allergen/nutrition material that Product Core does not yet model. It is **not** a publication authority and is no longer part of Search Readiness CI. Any specialist-content maintenance must finish by reconciling through the Phase 6 publication pipeline and `scripts/verify-search-readiness.mjs`; do not commit builder output that contradicts D1 Published Product price, selling state, slug or online-orderability.
+The former standalone Ice Cream builder has been retired. Specialist manufacturer ingredients/allergen/nutrition provenance remains in `assets/catalog.js` and `docs/LAKES-ICE-CREAM-SOURCE-MAP.md`; any customer-facing publication must flow through the Phase 6 publication pipeline and `scripts/verify-search-readiness.mjs`.
 
 ### Verified Hawkshead Relish sources
 
@@ -84,7 +84,7 @@ Exact owner-supplied images are wired for every active Hawkshead Relish product 
 
 Romney's/confectionery product provenance is stored internally in `docs/ROMNEYS-SOURCE-MAP.md`. Manufacturer URLs are verification metadata only and must **not** appear on customer-facing product pages, product images/names, or Product JSON-LD.
 
-Production D1 Published Product state is authoritative for Black Sheep product identity, price and selling state. The legacy `scripts/build-romneys.mjs` helper remains only for specialist confectionery details that Product Core does not yet model; it is not part of CI publication authority. `scripts/verify-search-readiness.mjs` continues to reject supplier-link leakage, schema mismatches, missing assets and collection-card drift. Supplier retail prices are never a data source for Black Sheep pricing.
+Production D1 Published Product state is authoritative for Black Sheep product identity, price and selling state. The former standalone Romney's builder has been retired; specialist confectionery provenance remains in `docs/ROMNEYS-SOURCE-MAP.md` and published static output is reconciled through the Phase 6 publication pipeline. `scripts/verify-search-readiness.mjs` continues to reject supplier-link leakage, schema mismatches, missing assets and collection-card drift. Supplier retail prices are never a data source for Black Sheep pricing.
 
 
 ### Highland Cow placeholders
