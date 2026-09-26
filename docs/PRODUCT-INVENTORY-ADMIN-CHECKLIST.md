@@ -15,6 +15,37 @@ This checklist began as the separate Product/Inventory execution tracker and is 
 
 ---
 
+# FINAL OWNER POLISH — 26 SEPTEMBER 2026
+
+- [x] Owner-facing Admin copy no longer exposes Phase/cutover/Product Core/D1 implementation language.
+- [x] Dashboard and Orders mobile KPI layouts use balanced 2×2 cards on iPhone widths.
+- [x] Bottom navigation now uses a consistent inline SVG icon system.
+- [x] Orders mobile header/filter hierarchy polished; no supported mobile horizontal overflow in browser QA.
+- [x] Products list hierarchy polished; repetitive untracked badges de-emphasized.
+- [x] Add Product uses controlled Product type selection and searchable grouped category selection.
+- [x] Product editor sticky footer/safe-area overlap corrected.
+- [x] Stock owner terminology simplified; actionable KPIs prioritized.
+- [x] Stocktake results now use Updated / No change / Needs review with targeted conflict retry.
+- [x] Reports default to BUSINESS-only data; active email delivery exceptions are distinguished from historical events and are actionable.
+- [x] Order data classification added: BUSINESS / TEST / E2E.
+- [x] Staging provides a guarded Test data view + reset that clears test orders from owner-facing state while preserving audit history.
+- [x] Migration `0013_order_data_class.sql` applied to Staging and Production.
+- [x] Owner confirmed all pre-existing Production orders were tests; guarded Production preflight found 6 orders and 0 active/committed reservations.
+- [x] Production clean start completed: 6 pre-existing orders preserved as hidden TEST history, 0 visible BUSINESS orders.
+- [x] Future Production orders default to BUSINESS; staging customer submissions default to TEST; synthetic QA seeds use E2E.
+- [x] Final staging deploy `36245227443` — SUCCESS; Worker `30cac36f-516f-4902-b733-60c4eb7b6ec5`.
+- [x] Expanded staging Admin browser QA `36245380428` — SUCCESS, including iPhone Dashboard 2×2, Products/Add Product, category search, Stocktake, Reports, iPad portrait and no owner-facing dev copy.
+- [x] Final code-level Commerce CI `36245167048` — SUCCESS.
+- [x] Guarded Production deploy `36245568191` — SUCCESS.
+- [x] Production Worker version `4b600893-2a71-40e0-8fea-9d7f4cad34dd`.
+- [x] Production health PASS and public catalogue remains 146 products.
+- [x] Final one-shot Production preflight/deploy workflows removed after successful use.
+- [x] Search Readiness on cleaned final tree `36245693923` — SUCCESS.
+
+**Remaining acceptance:** owner real-device Production smoke only — open live Products/Stock, submit one ordinary live order, confirm it appears in Admin, confirm customer + owner emails, and verify an untracked baseline product does not create unexpected numeric stock movement.
+
+---
+
 # FINAL BACKEND AUDIT REFRESH — 26 SEPTEMBER 2026
 
 - [x] Current GitHub `main` re-fetched and treated as source of truth.
