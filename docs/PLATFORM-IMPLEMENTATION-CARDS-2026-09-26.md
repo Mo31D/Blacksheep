@@ -52,7 +52,7 @@ Purpose: authoritative implementation board for the next architecture programme.
 ---
 
 ## CARD 01 — Storefront Structure data model
-**Status:** READY  
+**Status:** IN PROGRESS  
 **Depends on:** CARD 00
 
 **Goal:** create a real hierarchical website structure instead of overloading flat categories.
