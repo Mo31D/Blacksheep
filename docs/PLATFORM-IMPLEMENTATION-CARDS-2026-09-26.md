@@ -144,7 +144,7 @@ Purpose: authoritative implementation board for the next architecture programme.
 ---
 
 ## CARD 04 — Dynamic collections & navigation engine
-**Status:** IN PROGRESS  
+**Status:** IMPLEMENTED · FINAL REMOTE D1 BROWSER QA DEFERRED  
 **Depends on:** CARD 01, CARD 02, CARD 03
 
 **Goal:** allow Admin-created sections to become real website destinations/menu items without manual HTML edits.
@@ -157,17 +157,17 @@ Purpose: authoritative implementation board for the next architecture programme.
 - Existing URLs preserved during migration.
 
 **Acceptance criteria**
-- [ ] New enabled main section can appear in website menu.
-- [ ] New section automatically has a browsable collection destination.
-- [ ] Product placements drive collection membership.
-- [ ] Menu order is Admin-controlled.
-- [ ] Existing links remain valid.
-- [ ] Desktop/mobile navigation regression passes.
+- [x] New enabled main section can appear in website menu from published Storefront Structure.
+- [x] New section automatically has a browsable compatibility collection destination.
+- [x] Product placements drive collection membership.
+- [x] Menu order is Admin-controlled through published Storefront Structure order.
+- [x] Existing links remain valid through legacyPath compatibility.
+- [ ] Final Remote D1 browser regression for live menu/collection publication is deferred until the Cloudflare D1 daily read quota resets.
 
 ---
 
 ## CARD 05 — Stocktake 2.0: scoped, persistent, keyboard-fast
-**Status:** BLOCKED  
+**Status:** IN PROGRESS  
 **Depends on:** CARD 01
 
 **Goal:** make physical stock counting match how the shop is actually organised.
@@ -552,4 +552,4 @@ CARD 00
 
 ## Immediate next action
 
-Continue **CARD 04 — Dynamic collections & navigation engine** while remote D1 browser verification remains deferred. Build the public Storefront Structure contract, dynamic collection routing and data-driven navigation with existing static URLs preserved as compatibility fallbacks. Do not modify Production.
+Build **CARD 05 — Stocktake 2.0** while Remote D1 browser verification for CARD 03/04 remains deferred. Implement scoped stocktake sessions, persistence/resume, review-safe conflicts and iPad keyboard continuity. Validate locally/CI; do not apply new migrations to Remote D1 until the quota permits it.
