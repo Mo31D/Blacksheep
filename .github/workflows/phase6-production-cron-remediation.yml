@@ -1,0 +1,147 @@
+name: Phase 6 Production Cron Remediation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/phase6-production-cron-remediation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  remediate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    defaults:
+      run:
+        working-directory: commerce
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: commerce/package.json
+
+      - name: Install commerce dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Verify current source is post-cutover
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require("fs");
+          const config = JSON.parse(fs.readFileSync("wrangler.jsonc","utf8"));
+          const vars = config.vars || {};
+          const crons = config.triggers?.crons || [];
+          const site = fs.readFileSync("../assets/site.js","utf8");
+          const failures = [];
+          if (vars.ORDER_RESERVATIONS_ENABLED !== "true") failures.push("reservations flag");
+          if (vars.D1_PUBLIC_CATALOG_ENABLED !== "true") failures.push("public catalogue flag");
+          if (vars.D1_COMMERCE_AUTHORITY_ENABLED !== "true") failures.push("commerce authority flag");
+          if (!crons.includes("*/30 * * * *")) failures.push("source cron");
+          if (!site.includes("const BLACK_SHEEP_PRODUCTION_LIVE_COMMERCE=true;")) failures.push("live storefront marker");
+          if (failures.length) {
+            console.error("Post-cutover source gate failed.", failures);
+            process.exit(1);
+          }
+          console.log("Post-cutover source gate passed.");
+          NODE
+
+      - name: Apply Production reservation Cron Trigger only
+        run: npx wrangler triggers deploy --name black-sheep-commerce-api --triggers "*/30 * * * *"
+
+      - name: Verify Production D1 and Cron schedule
+        shell: bash
+        run: |
+          npx wrangler d1 execute black-sheep-commerce-prod --remote --json             --command "SELECT name FROM d1_migrations ORDER BY id DESC LIMIT 1; SELECT COUNT(*) AS products FROM products WHERE publication_status='ACTIVE' AND current_published_version_id IS NOT NULL; SELECT COUNT(*) AS tracked FROM product_variants v JOIN products p ON p.id=v.product_id WHERE p.publication_status='ACTIVE' AND v.is_default=1 AND v.active=1 AND v.track_inventory=1; SELECT COUNT(*) AS orders FROM orders;"             > /tmp/d1-after.json
+          curl --fail --silent --show-error             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/black-sheep-commerce-api/schedules"             > /tmp/schedules.json
+          cat /tmp/d1-after.json
+          cat /tmp/schedules.json
+          node - /tmp/d1-after.json /tmp/schedules.json <<'NODE'
+          const fs = require("fs");
+          const blocks = JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          const schedules = JSON.parse(fs.readFileSync(process.argv[3],"utf8"));
+          const latest = String(blocks?.[0]?.results?.[0]?.name ?? "");
+          const products = Number(blocks?.[1]?.results?.[0]?.products ?? -1);
+          const tracked = Number(blocks?.[2]?.results?.[0]?.tracked ?? -1);
+          const orders = Number(blocks?.[3]?.results?.[0]?.orders ?? -1);
+          const rows = Array.isArray(schedules?.result) ? schedules.result : [];
+          const cronOk = rows.some((row) => row.cron === "*/30 * * * *");
+          if (latest !== "0012_order_returns.sql" || products !== 146 || tracked !== 0 || orders < 4 || !cronOk) {
+            console.error("Production D1/Cron remediation gate failed.", {latest,products,tracked,orders,rows});
+            process.exit(1);
+          }
+          console.log("Production D1/Cron remediation gate passed.", {latest,products,tracked,orders,rows});
+          NODE
+
+      - name: Verify Production runtime authority
+        shell: bash
+        working-directory: .
+        run: |
+          HEALTH="$(curl --fail --silent --show-error --max-time 30 https://api.theblacksheepshop.co.uk/health)"
+          echo "$HEALTH"
+          node - "$HEALTH" <<'NODE'
+          const health = JSON.parse(process.argv[2]);
+          if (
+            health.status !== "ok" ||
+            health.environment !== "production" ||
+            health.database !== "bound" ||
+            health.features?.orderReservations !== true ||
+            health.features?.publicCatalog !== true ||
+            health.features?.publicCatalogContract !== "d1-published-v1" ||
+            health.features?.commerceAuthority !== true
+          ) {
+            console.error("Production authority health gate failed.", health);
+            process.exit(1);
+          }
+          console.log("Production authority health gate passed.");
+          NODE
+
+      - name: Verify Production public catalogue parity
+        env:
+          PHASE6_PUBLIC_CATALOG_ENDPOINT: https://api.theblacksheepshop.co.uk
+        run: npm run phase6:catalog-parity
+
+      - name: Wait for Production storefront source deployment
+        shell: bash
+        working-directory: .
+        run: |
+          READY=0
+          for attempt in $(seq 1 60); do
+            SITE="$(curl --silent --show-error --max-time 20 "https://theblacksheepshop.co.uk/assets/site.js?cutover=$GITHUB_SHA" || true)"
+            if echo "$SITE" | grep -q "const BLACK_SHEEP_PRODUCTION_LIVE_COMMERCE=true;"; then
+              READY=1
+              break
+            fi
+            echo "Storefront cutover source not visible yet (attempt $attempt/60)."
+            sleep 5
+          done
+          if [ "$READY" != "1" ]; then
+            echo "::error::Production storefront source did not deploy in time."
+            exit 1
+          fi
+          echo "Production live-commerce storefront marker is visible."
+
+      - name: Verify Production storefront canonical/static surface
+        shell: bash
+        working-directory: .
+        run: |
+          HTML="$(curl --fail --silent --show-error --max-time 30 https://theblacksheepshop.co.uk/products/hc-003-three-highland-cows-see-hear-speak-no-evil-ornament.html)"
+          echo "$HTML" | grep -Fq '<link rel="canonical" href="https://theblacksheepshop.co.uk/products/hc-003-three-highland-cows-see-hear-speak-no-evil-ornament.html">'
+          echo "$HTML" | grep -Fq '"@type":"Product"'
+          echo "$HTML" | grep -Fq 'data-product-id="HC-003"'
+          echo "Production static Product surface passed."
+
+      - name: Summary
+        run: |
+          echo "Phase 6 automated Production cutover post-gates are now complete."
+          echo "Remaining gate: owner Admin/Stock smoke + one ordinary customer order/notification proof."
