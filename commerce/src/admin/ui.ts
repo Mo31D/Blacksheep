@@ -109,7 +109,7 @@ export function adminHtml(identityEmail: string, environment = "production"): st
         <label class="product-search-wrap"><span>⌕</span><input class="field" id="productSearch" placeholder="Search product, SKU, barcode or code…" autocomplete="off"></label>
         <select class="field product-sort" id="productSort" aria-label="Sort products"><option value="">A–Z</option><option value="updated">Recently updated</option><option value="price">Price low to high</option><option value="price-desc">Price high to low</option></select>
       </div>
-      <div class="product-list" id="productList"><div class="empty">Open Products to load the D1 catalogue.</div></div>
+      <div class="product-list" id="productList"><div class="empty">Open Products to load the catalogue.</div></div>
     </section>
     <section class="panel product-detail-panel" id="productDetail"><div class="empty"><div class="panel-title" style="font-size:28px">Select a product</div><p>Choose a product to inspect its live catalogue data, media and data-quality state.</p></div></section>
   </div>
