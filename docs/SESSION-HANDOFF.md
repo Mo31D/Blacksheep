@@ -56,7 +56,7 @@
 > - Phases 1–3 complete on staging.
 > - Phase 4 Inventory Core is COMPLETE ON STAGING; owner confirmed corrected OTP login + iPad portrait UX re-test passed.
 > - Phase 5 Order Reservations is COMPLETE + REAL-STAGING VERIFIED.
-> - Phase 6 is ACTIVE: milestones 6.1–6.4 are COMPLETE + REAL-STAGING VERIFIED; 6.5 storefront overlay is next.
+> - Phase 6 is ACTIVE: milestones 6.1–6.5 are COMPLETE + REAL-STAGING/BROWSER VERIFIED; 6.6 publication pipeline is next.
 > - Production Product/Inventory migration and Phase 6 authority remain locked.
 >
 > **PRODUCT / INVENTORY — PHASE 4 INVENTORY CORE LIVE ON STAGING**
@@ -112,7 +112,11 @@
 > - temporary Phase 6 QA Worker deleted and synthetic Product/orders/variant/balance cleaned.
 > - Production remains migration `0008_concurrency_guards.sql`, Product/Inventory tables absent, both Phase 6 flags absent, generated static catalogue still Production checkout authority, current orders 4.
 >
-> **NEXT WORK: Phase 6.5 Storefront live overlay with staging-preview mode and static fallback.**
+> - Phase 6.5 storefront overlay browser workflow `36226261021` — SUCCESS on Chromium + WebKit/mobile.
+> - Browser proof covers real 146-product staging overlay, preview persistence, cards/details/basket, canonical isolation, no horizontal overflow, checkout preview lock, mocked repricing/out-of-stock, tracked Available basket cap, API failure fallback and preview exit.
+> - Ordinary storefront traffic remains static by default; staging overlay requires `?commerce-preview=staging` and persists only in that browser tab/session.
+>
+> **NEXT WORK: Phase 6.6 Product publication pipeline. Use D1 Published Product state as authority while preserving specialist legacy content as an explicit extension layer until Product Core models it.**
 > Do not apply Product/Inventory/Reservation migrations to Production and do not switch Production commerce authority before the separate Phase 6 production cutover gate.
 
 > **Do not rerun migrations `0003–0008`. Any future Worker deployment must correspond to an intentional new runtime/catalogue change and pass Commerce CI first.**
