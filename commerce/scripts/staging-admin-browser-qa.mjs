@@ -70,8 +70,8 @@ function d1(sql) {
   return batches.flatMap((part) => part.results || []);
 }
 
-function cleanupSql() {
-  const id = q(ORDER_ID);
+function cleanupSql(orderId = ORDER_ID) {
+  const id = q(orderId);
   return [
     "DELETE FROM order_messages WHERE order_id=" + id,
     "DELETE FROM customer_review_tokens WHERE order_id=" + id,
@@ -87,6 +87,15 @@ function cleanupSql() {
     "DELETE FROM order_items WHERE order_id=" + id,
     "DELETE FROM orders WHERE id=" + id,
   ].join(";");
+}
+
+function cleanupStaleQaOrders() {
+  const rows = d1(
+    "SELECT id FROM orders WHERE data_class='E2E' AND id LIKE 'admin-browser-%'",
+  );
+  for (const row of rows) {
+    if (row?.id) d1(cleanupSql(String(row.id)));
+  }
 }
 
 function cleanupCategorySql() {
@@ -118,40 +127,58 @@ function cleanupStorefrontStructureQa() {
   );
 }
 
-function findOwnerEmail() {
-  let rows = d1(
-    "SELECT email FROM admin_sessions ORDER BY created_at DESC LIMIT 1",
+function ownerEmailCandidates() {
+  const rows = d1(
+    "SELECT email, MAX(created_at) AS recent FROM (" +
+      "SELECT email, created_at FROM admin_login_codes " +
+      "UNION ALL SELECT email, created_at FROM admin_sessions" +
+    ") WHERE email IS NOT NULL AND TRIM(email) <> '' " +
+    "GROUP BY LOWER(email) ORDER BY recent DESC LIMIT 20",
   );
-
-  if (!rows.length) {
-    rows = d1(
-      "SELECT email FROM admin_login_codes ORDER BY created_at DESC LIMIT 1",
-    );
-  }
-
-  assert(
-    rows.length && rows[0].email,
-    "No existing staging owner identity is available for browser QA.",
-  );
-
-  return String(rows[0].email);
+  return rows.map((row) => String(row.email || "").trim()).filter(Boolean);
 }
 
-function seedSession() {
-  const ownerEmail = findOwnerEmail();
-  sessionToken = randomBytes(32).toString("base64url");
-  sessionHash = sha256(sessionToken);
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+async function seedSession() {
+  const candidates = ownerEmailCandidates();
+  assert(
+    candidates.length > 0,
+    "No staging Admin identity candidates are available for browser QA.",
+  );
 
-  d1(
-    "INSERT INTO admin_sessions (token_hash,email,expires_at,created_at) VALUES (" +
-      [
-        q(sessionHash),
-        q(ownerEmail),
-        q(expiresAt),
-        q(NOW),
-      ].join(",") +
-      ")",
+  for (const ownerEmail of candidates) {
+    const candidateToken = randomBytes(32).toString("base64url");
+    const candidateHash = sha256(candidateToken);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    d1(
+      "INSERT INTO admin_sessions (token_hash,email,expires_at,created_at) VALUES (" +
+        [
+          q(candidateHash),
+          q(ownerEmail),
+          q(expiresAt),
+          q(NOW),
+        ].join(",") +
+        ")",
+    );
+
+    const response = await fetch(BASE + "/admin/api/orders?dataClass=BUSINESS", {
+      headers: {
+        cookie: "bs_admin_session=" + candidateToken,
+      },
+    });
+
+    if (response.ok) {
+      sessionToken = candidateToken;
+      sessionHash = candidateHash;
+      console.log("Resolved an allowed staging Admin identity for browser QA.");
+      return;
+    }
+
+    d1("DELETE FROM admin_sessions WHERE token_hash=" + q(candidateHash));
+  }
+
+  throw new Error(
+    "No existing staging Admin identity matched the Worker's configured owner identity.",
   );
 }
 
@@ -960,8 +987,9 @@ async function ownerPolishViewsQa(viewport, label) {
 fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
 
 try {
+  cleanupStaleQaOrders();
   seedOrder();
-  seedSession();
+  await seedSession();
   await verifyInjectedSessionAndOrder();
 
   await desktopQa();
