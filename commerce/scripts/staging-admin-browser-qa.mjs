@@ -1182,7 +1182,7 @@ async function homepageMerchandisingQa() {
     );
     assert(
       moduleOrderBefore.join(",") ===
-        "HERO,COLLECTIONS,PRODUCT_RAIL,LOCAL_FAVOURITES,VISIT_SHOP",
+        "HERO,PRODUCT_RAIL,COLLECTIONS,LOCAL_FAVOURITES,VISIT_SHOP",
       "CARD 07 initial Homepage module order is unexpected: " +
         moduleOrderBefore.join(","),
     );
