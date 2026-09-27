@@ -11,6 +11,7 @@ import {
 export interface CleanCollectionEnv {
   DB?: D1DatabaseLike;
   STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED?: string;
+  STOREFRONT_CLEAN_PRODUCT_ROUTES_ENABLED?: string;
 }
 
 const STOREFRONT_ORIGIN = "https://theblacksheepshop.co.uk";
@@ -33,11 +34,19 @@ function cleanPath(slug: string): string {
   return "/collections/" + encodeURIComponent(slug);
 }
 
-function productUrl(product: PublicCommerceProduct): string {
+function productUrl(
+  product: PublicCommerceProduct,
+  cleanProductRoutes: boolean,
+): string {
   if (product.id !== product.productId) {
     return "/products/" + encodeURIComponent(product.slug) + ".html";
   }
-  return "/products/" + encodeURIComponent(product.slug);
+  return cleanProductRoutes
+    ? "/products/" + encodeURIComponent(product.slug)
+    : "/product.html?type=" +
+        encodeURIComponent(product.type) +
+        "&slug=" +
+        encodeURIComponent(product.slug);
 }
 
 function imageUrl(value: string | null): string | null {
@@ -51,8 +60,11 @@ function money(minor: number | null): string {
   return minor == null ? "Ask in store" : "£" + (minor / 100).toFixed(2);
 }
 
-function productCard(product: PublicCommerceProduct): string {
-  const href = productUrl(product);
+function productCard(
+  product: PublicCommerceProduct,
+  cleanProductRoutes: boolean,
+): string {
+  const href = productUrl(product, cleanProductRoutes);
   const image = imageUrl(product.primaryImageUrl);
   const status =
     product.status === "arriving-soon"
@@ -94,8 +106,10 @@ export function renderCleanCollectionHtml(input: {
   parent: StorefrontNodeSnapshot | null;
   children: StorefrontNodeSnapshot[];
   products: PublicCommerceProduct[];
+  cleanProductRoutes?: boolean;
 }): string {
   const { node, parent, children, products } = input;
+  const cleanProductRoutes = input.cleanProductRoutes === true;
   const path = cleanPath(node.slug);
   const canonical = STOREFRONT_ORIGIN + path;
   const description =
@@ -104,7 +118,7 @@ export function renderCleanCollectionHtml(input: {
   const itemList = products.map((product, index) => ({
     "@type": "ListItem",
     position: index + 1,
-    url: STOREFRONT_ORIGIN + productUrl(product),
+    url: STOREFRONT_ORIGIN + productUrl(product, cleanProductRoutes),
     name: product.name,
   }));
   const graph = {
@@ -179,7 +193,7 @@ export function renderCleanCollectionHtml(input: {
 <header class="header"><div class="wrap nav"><a aria-label="The Black Sheep Shop home" class="brand" href="/"><img alt="" class="brand-mark" src="/assets/sheep-icon.png"><span class="brand-type"><strong>The Black Sheep</strong><small>Shop · Ambleside</small></span></a><nav class="menu"><a href="/">Home</a><a href="/gifts.html">Gifts &amp; Souvenirs</a><a href="/icecream.html">Ice Cream</a><a href="/romneys.html">Romney's</a><a href="/hawkshead-relish.html">Hawkshead Relish</a><a href="/all-products.html">Full range</a><a href="/about.html">About</a><a href="/visit.html">Visit</a></nav><a class="nav-cta" href="/gifts.html">Browse gifts</a><button aria-label="Open menu" class="hamb" onclick="toggleMenu()">☰</button></div><nav class="mobile-menu" id="mobileMenu"><a href="/">Home</a><a href="/gifts.html">Gifts &amp; Souvenirs</a><a href="/icecream.html">Ice Cream</a><a href="/romneys.html">Romney's</a><a href="/hawkshead-relish.html">Hawkshead Relish</a><a href="/all-products.html">Full range</a><a href="/about.html">About</a><a href="/visit.html">Visit</a></nav></header>
 <main class="catalog-page">
 <section class="page-hero"><div class="wrap inner"><div><div class="eyebrow">${esc(parent?.name || "Shop collection")}</div><h1>${esc(node.name)}</h1><p class="lead">${esc(description)}</p>${childLinks ? '<div class="chips">' + childLinks + "</div>" : ""}</div>${heroImage ? '<div class="media"><img src="' + esc(heroImage) + '" alt="' + esc(node.name) + '"></div>' : ""}</div></section>
-<section style="padding-top:20px"><div class="wrap"><div class="catalog-intro"><div class="catalog-title-row"><h2>Products</h2><span class="catalog-count">${products.length} ${products.length === 1 ? "product" : "products"}</span></div></div><div class="catalog shopping-catalog gift-grid">${products.map(productCard).join("")}</div></div></section>
+<section style="padding-top:20px"><div class="wrap"><div class="catalog-intro"><div class="catalog-title-row"><h2>Products</h2><span class="catalog-count">${products.length} ${products.length === 1 ? "product" : "products"}</span></div></div><div class="catalog shopping-catalog gift-grid">${products.map((product) => productCard(product, cleanProductRoutes)).join("")}</div></div></section>
 </main>
 <div aria-hidden="true" class="brand-strip brand-strip-featured"></div>
 <footer><div class="wrap"><div class="footer-grid"><div class="footer-brand"><a aria-label="The Black Sheep Shop home" class="footer-wordmark" href="/"><img alt="" class="footer-mark" src="/assets/sheep-icon.png"><span><strong>The Black Sheep</strong><small>Shop · Ambleside</small></span></a><p>Independent gift &amp; souvenir shop in Ambleside, Lake District.</p></div><div class="footer-col"><h4>Shop</h4><a href="/all-products.html">Full range</a><a href="/gifts.html">Gifts &amp; Souvenirs</a><a href="/romneys.html">Romney's</a></div><div class="footer-col"><h4>Find us</h4><a href="/visit.html">2 Lancaster House<br>Lake Road, Ambleside<br>LA22 0AD</a><a href="tel:+447776185647">07776 185647</a></div></div><div class="copyright">© 2026 The Black Sheep Shop. All rights reserved.</div></div></footer>
@@ -271,7 +285,14 @@ export async function handleCleanCollectionRequest(
     .sort((a, b) => a.name.localeCompare(b.name));
 
   return new Response(
-    renderCleanCollectionHtml({ node, parent, children, products }),
+    renderCleanCollectionHtml({
+      node,
+      parent,
+      children,
+      products,
+      cleanProductRoutes:
+        env.STOREFRONT_CLEAN_PRODUCT_ROUTES_ENABLED === "true",
+    }),
     {
       status: 200,
       headers: {
