@@ -84,6 +84,8 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("Published & live on storefront");
     expect(production).toContain("/v1/catalog/");
     expect(production).toContain("View on website");
+    expect(production).toContain("function openResponsiveProductDetail()");
+    expect(production).toContain("window.matchMedia('(max-width: 900px)').matches");
     expect(production).toContain(
       "if(warning)warning.classList.toggle('hidden',!hasDraftSection)}",
     );
