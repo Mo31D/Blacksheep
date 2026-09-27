@@ -1122,6 +1122,34 @@ async function productPlacementQa() {
       new Set(publicPlacements).size === publicPlacements.length,
       "Public catalogue returned duplicate Product placements.",
     );
+
+    const expectedCleanProductUrl =
+      "/products/" + encodeURIComponent(String(publicProduct?.slug || ""));
+    assert(
+      publicProduct?.cleanUrl === expectedCleanProductUrl,
+      "CARD 12 Admin-created published Product did not receive a clean URL.",
+    );
+    const cleanProductResponse = await fetch(
+      BASE + expectedCleanProductUrl,
+      { redirect: "manual" },
+    );
+    assert(
+      cleanProductResponse.status === 200,
+      "CARD 12 clean Product route returned HTTP " +
+        cleanProductResponse.status,
+    );
+    const cleanProductHtml = await cleanProductResponse.text();
+    const expectedProductCanonical =
+      "https://theblacksheepshop.co.uk" + expectedCleanProductUrl;
+    assert(
+      cleanProductHtml.includes(
+        '<link rel="canonical" href="' + expectedProductCanonical + '">',
+      ) &&
+        cleanProductHtml.includes("<h1>" + PRODUCT_PLACEMENT_QA_TITLE + "</h1>") &&
+        cleanProductHtml.includes('"@type":"Product"'),
+      "CARD 12 clean Product page is missing canonical/title/Product structured data.",
+    );
+
     const productAudit = d1(
       "SELECT actor_id AS actorId, after_json AS afterJson, created_at AS createdAt " +
         "FROM product_audit_events WHERE product_id=" + q(productId) +
@@ -2616,10 +2644,10 @@ async function ownerPolishViewsQa(viewport, label) {
         "CARD 12 clean collection HTML is missing the published section or Product.",
       );
 
-      const dynamicSitemapResponse = await fetch(BASE + "/sitemap-dynamic.xml");
+      const dynamicSitemapResponse = await fetch(BASE + "/sitemap.xml");
       assert(
         dynamicSitemapResponse.status === 200,
-        "CARD 12 dynamic sitemap returned HTTP " +
+        "CARD 12 canonical sitemap returned HTTP " +
           dynamicSitemapResponse.status,
       );
       const dynamicSitemapXml = await dynamicSitemapResponse.text();
@@ -2627,11 +2655,19 @@ async function ownerPolishViewsQa(viewport, label) {
         dynamicSitemapXml.includes(
           "<loc>" + expectedCanonical + "</loc>",
         ),
-        "CARD 12 dynamic sitemap is missing the published Admin-created section.",
+        "CARD 12 canonical sitemap is missing the published Admin-created section.",
       );
       assert(
         !dynamicSitemapXml.includes("/collections/gifts</loc>"),
-        "CARD 12 dynamic sitemap duplicated a legacy static collection.",
+        "CARD 12 canonical sitemap duplicated a legacy static collection URL.",
+      );
+      assert(
+        dynamicSitemapXml.includes(
+          "<loc>https://theblacksheepshop.co.uk" +
+            expectedCleanProductUrl +
+            "</loc>",
+        ),
+        "CARD 12 canonical sitemap is missing the published Admin-created Product.",
       );
 
       const storefrontPage = await context.newPage();
