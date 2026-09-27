@@ -149,7 +149,7 @@ export function adminHtml(identityEmail: string, environment = "production"): st
   <div id="websiteHomepagePanel">
   <div class="homepage-layout">
     <section class="panel homepage-card">
-      <div class="chart-head"><div><h2>Homepage product strip</h2><small class="muted">A simple, controlled product row. CARD 07 will render the published version on the public homepage.</small></div></div>
+      <div class="chart-head"><div><h2>Homepage product strip</h2><small class="muted">A simple, controlled product row. Publishing updates the customer-facing homepage.</small></div></div>
       <div class="homepage-status" id="homepageStatus"></div>
       <label class="catalogue-switch"><input type="checkbox" id="homepageEnabled"> Show product strip on homepage</label>
       <div class="homepage-mode-grid" role="radiogroup" aria-label="Product strip mode">
