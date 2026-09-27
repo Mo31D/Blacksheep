@@ -1420,23 +1420,59 @@ async function websiteAppearanceQa() {
         "CARD 08 Appearance workspace is missing: " + expected,
       );
     }
+    for (const presetName of [
+      "Default",
+      "Winter",
+      "Christmas",
+      "Summer",
+      "Ice Cream",
+    ]) {
+      assert(
+        appearanceText.includes(presetName),
+        "CARD 09 Appearance preset is missing: " + presetName,
+      );
+    }
     assert(
       !appearanceText.includes("Custom CSS"),
       "CARD 08 Appearance workspace exposes arbitrary CSS.",
     );
 
     const publishedBefore = appearanceQaSnapshot.publishedVersionId;
-    await page.locator("#appearanceHeroHeading").fill(APPEARANCE_QA_HEADING);
+
+    await page.locator('[data-appearance-preset="CHRISTMAS"]').click();
+    assert(
+      (await page.locator("#appearancePreset").inputValue()) === "CHRISTMAS",
+      "CARD 09 Christmas preset did not become selected.",
+    );
+    assert(
+      (await page.locator("#appearanceAccent").inputValue()).toLowerCase() ===
+        "#a47a35" &&
+        (await page.locator("#appearanceButton").inputValue()).toLowerCase() ===
+          "#1e5239",
+      "CARD 09 Christmas preset colours were not applied.",
+    );
+
     await page.locator("#appearanceAccent").evaluate((el) => {
-      el.value = "#c05a32";
+      el.value = "#000000";
       el.dispatchEvent(new Event("input", { bubbles: true }));
       el.dispatchEvent(new Event("change", { bubbles: true }));
     });
-    await page.locator("#appearanceButton").evaluate((el) => {
-      el.value = "#30302b";
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-      el.dispatchEvent(new Event("change", { bubbles: true }));
-    });
+    await page.locator("#appearanceResetPreset").click();
+    assert(
+      (await page.locator("#appearanceAccent").inputValue()).toLowerCase() ===
+        "#a47a35",
+      "CARD 09 Reset colours to preset did not restore Christmas defaults.",
+    );
+
+    await page.locator("#appearanceHeroHeading").fill(APPEARANCE_QA_HEADING);
+    const sectionImage = page
+      .locator("[data-appearance-section-image]")
+      .first();
+    const sectionImageKey = await sectionImage.getAttribute(
+      "data-appearance-section-image",
+    );
+    assert(sectionImageKey, "CARD 09 has no editable Section image field.");
+    await sectionImage.fill("/images/1.png");
 
     const savePromise = page.waitForResponse(
       (response) =>
@@ -1453,6 +1489,13 @@ async function websiteAppearanceQa() {
     assert(
       saved?.config?.hero?.heading === APPEARANCE_QA_HEADING,
       "CARD 08 Appearance draft did not persist the Hero heading.",
+    );
+    assert(
+      saved?.config?.presetKey === "CHRISTMAS" &&
+        String(saved?.config?.tokens?.accent || "").toLowerCase() ===
+          "#a47a35" &&
+        saved?.config?.sectionImages?.[sectionImageKey] === "/images/1.png",
+      "CARD 09 Appearance draft did not persist preset/reset/section imagery.",
     );
 
     const stateAfterDraft = d1(
@@ -1513,12 +1556,19 @@ async function websiteAppearanceQa() {
     assert(
       publicAppearance?.contract === "website-appearance-published-v1" &&
         publicAppearance?.config?.hero?.heading === APPEARANCE_QA_HEADING &&
-        publicAppearance?.config?.tokens?.accent === "#c05a32",
-      "CARD 08 public Appearance contract does not match the published draft.",
+        publicAppearance?.config?.presetKey === "CHRISTMAS" &&
+        String(publicAppearance?.config?.tokens?.accent || "").toLowerCase() ===
+          "#a47a35" &&
+        String(publicAppearance?.config?.tokens?.button || "").toLowerCase() ===
+          "#1e5239" &&
+        publicAppearance?.config?.sectionImages?.[sectionImageKey] ===
+          "/images/1.png",
+      "CARD 09 public Appearance contract does not match the seasonal draft.",
     );
 
     const storefront = await context.newPage();
     try {
+      await storefront.setViewportSize({ width: 390, height: 844 });
       await storefront.goto(
         "https://theblacksheepshop.co.uk/index.html?commerce-preview=staging",
         { waitUntil: "domcontentloaded", timeout: 60_000 },
@@ -1530,18 +1580,35 @@ async function websiteAppearanceQa() {
         null,
         { timeout: 30_000 },
       );
-      const applied = await storefront.evaluate(() => ({
-        heading: document.querySelector(".hero h1")?.textContent?.trim() || "",
-        accent: document.documentElement.style.getPropertyValue("--gold").trim(),
-        button: document.documentElement.style.getPropertyValue("--button").trim(),
-        contractHeading: window.BLACK_SHEEP_WEBSITE_APPEARANCE?.hero?.heading || "",
-      }));
+      const applied = await storefront.evaluate(() => {
+        const media = document.querySelector(".hero-media");
+        const rect = media?.getBoundingClientRect();
+        return {
+          heading: document.querySelector(".hero h1")?.textContent?.trim() || "",
+          accent: document.documentElement.style.getPropertyValue("--gold").trim(),
+          button: document.documentElement.style.getPropertyValue("--button").trim(),
+          contractHeading:
+            window.BLACK_SHEEP_WEBSITE_APPEARANCE?.hero?.heading || "",
+          presetKey:
+            window.BLACK_SHEEP_WEBSITE_APPEARANCE?.presetKey || "",
+          mediaHeight: rect?.height || 0,
+          viewportWidth: window.innerWidth,
+          scrollWidth: document.documentElement.scrollWidth,
+        };
+      });
       assert(
         applied.heading === APPEARANCE_QA_HEADING &&
           applied.contractHeading === APPEARANCE_QA_HEADING &&
-          applied.accent.toLowerCase() === "#c05a32" &&
-          applied.button.toLowerCase() === "#30302b",
-        "CARD 08 storefront did not apply the published Appearance tokens/Hero: " +
+          applied.presetKey === "CHRISTMAS" &&
+          applied.accent.toLowerCase() === "#a47a35" &&
+          applied.button.toLowerCase() === "#1e5239",
+        "CARD 09 storefront did not apply the published preset/Hero: " +
+          JSON.stringify(applied),
+      );
+      assert(
+        applied.mediaHeight >= 300 &&
+          applied.scrollWidth <= applied.viewportWidth + 2,
+        "CARD 09 mobile Hero layout overflowed or collapsed: " +
           JSON.stringify(applied),
       );
     } finally {
@@ -2462,6 +2529,11 @@ try {
           "card07-draft-does-not-change-published-modules",
           "card07-private-preview-module-layout",
           "card08-appearance-four-safe-cards",
+          "card09-five-approved-seasonal-presets",
+          "card09-preset-reset-to-approved-defaults",
+          "card09-hero-and-section-image-editing",
+          "card09-seasonal-publish-public-contract",
+          "card09-mobile-hero-no-overflow",
           "card08-appearance-private-draft",
           "card08-appearance-private-preview",
           "card08-appearance-publish-public-contract",
