@@ -51,6 +51,16 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("Homepage sections");
     expect(production).toContain("Appearance");
     expect(production).toContain('data-website-tab="appearance"');
+    expect(production).toContain('data-website-tab="media"');
+    expect(production).toContain('id="websiteMediaPanel"');
+    expect(production).toContain("Media Library");
+    expect(production).toContain("Upload to Media Library");
+    expect(production).toContain('id="appearanceHeroChooseMedia"');
+    expect(production).toContain("Choose from Media Library");
+    expect(production).toContain("/admin/api/media");
+    expect(production).toContain("/media/from-library");
+    expect(production).toContain("function useSharedMediaAsset");
+    expect(production).toContain("function archiveSharedMediaAsset");
     expect(production).toContain("Homepage hero");
     expect(production).toContain("Section images");
     expect(production).toContain('id="appearancePresetGrid"');
