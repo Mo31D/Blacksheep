@@ -59,6 +59,27 @@ async function getRealCatalogue() {
   return { payload, target };
 }
 
+async function getRealHomepageMerchandising() {
+  const response = await fetch(API + "/v1/homepage-merchandising", {
+    headers: { accept: "application/json" },
+  });
+  assert(
+    response.ok,
+    "Staging Homepage merchandising request failed: " + response.status,
+  );
+  const payload = await response.json();
+  assert(
+    payload?.contract === "homepage-merchandising-published-v1",
+    "Staging Homepage merchandising contract is invalid",
+  );
+  assert(payload?.config, "Staging Homepage merchandising config is missing");
+  assert(
+    Array.isArray(payload?.products),
+    "Staging Homepage merchandising products are invalid",
+  );
+  return payload;
+}
+
 async function waitForCommerce(page, expected) {
   await page.waitForFunction(
     (state) => document.documentElement.dataset.commerceLive === state,
@@ -469,6 +490,124 @@ async function verifyMockedLiveChanges(realPayload) {
   }
 }
 
+async function verifyHomepageRailModes(realCatalogPayload) {
+  const browser = await webkit.launch();
+  const context = await browser.newContext({
+    viewport: { width: 820, height: 1180 },
+  });
+  const page = await context.newPage();
+
+  const sample = realCatalogPayload.products.slice(0, 6).map((product, index) => ({
+    productId: product.productId || product.id,
+    title: product.name,
+    slug: product.slug,
+    legacyId: product.id === product.productId ? null : product.id,
+    priceMinor: product.priceMinor,
+    primaryImageUrl: product.primaryImageUrl,
+    position: index * 10,
+  }));
+
+  let homepagePayload = null;
+
+  await page.route(API + "/v1/homepage-merchandising", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(homepagePayload),
+    });
+  });
+
+  try {
+    for (const mode of [
+      "NEW_ARRIVALS",
+      "FEATURED_PRODUCTS",
+      "SELECTED_COLLECTION",
+    ]) {
+      homepagePayload = {
+        contract: "homepage-merchandising-published-v1",
+        config: {
+          id: "home_product_rail",
+          publishedVersionId: "qa-" + mode,
+          draftVersionId: null,
+          enabled: true,
+          mode,
+          productLimit: sample.length,
+          heading:
+            mode === "NEW_ARRIVALS"
+              ? "Just arrived"
+              : mode === "FEATURED_PRODUCTS"
+                ? "Popular picks"
+                : "Highland Cow favourites",
+          selectedStorefrontNodeId:
+            mode === "SELECTED_COLLECTION"
+              ? "sfn_gifts_highland_cows"
+              : null,
+          selectedStorefrontNodeName:
+            mode === "SELECTED_COLLECTION" ? "Highland Cows" : null,
+        },
+        products: sample,
+      };
+
+      await page.goto(SITE + "/index.html?commerce-preview=staging", {
+        waitUntil: "domcontentloaded",
+        timeout: 60_000,
+      });
+      await waitForCommerce(page, "ready");
+
+      const section = page.locator("#homepageProductRail");
+      await section.waitFor({ state: "visible", timeout: 15_000 });
+      assert(
+        (await page.locator("#homepageProductRailTrack .product-card").count()) ===
+          sample.length,
+        mode + " Homepage rail did not render the published Product count",
+      );
+      assert(
+        (await page.locator("#homepageProductRailHeading").textContent())?.trim() ===
+          homepagePayload.config.heading,
+        mode + " Homepage rail heading is wrong",
+      );
+      assert(
+        (await page.locator("#homepageProductRailTrack").evaluate(
+          (el) => getComputedStyle(el).overflowX,
+        )) === "auto",
+        mode + " Homepage rail is not horizontally swipeable",
+      );
+      await assertNoHorizontalOverflow(page, mode + " Homepage rail page");
+    }
+
+    homepagePayload = {
+      contract: "homepage-merchandising-published-v1",
+      config: {
+        id: "home_product_rail",
+        publishedVersionId: "qa-disabled",
+        draftVersionId: null,
+        enabled: false,
+        mode: "NEW_ARRIVALS",
+        productLimit: 6,
+        heading: "Hidden rail",
+        selectedStorefrontNodeId: null,
+        selectedStorefrontNodeName: null,
+      },
+      products: [],
+    };
+
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 60_000 });
+    await waitForCommerce(page, "ready");
+    assert(
+      await page.locator("#homepageProductRail").isHidden(),
+      "Disabled Homepage rail is visible",
+    );
+
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "homepage-product-rail-webkit.png"),
+      fullPage: true,
+    });
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
 async function verifyStaticFallback() {
   const browser = await chromium.launch();
   const context = await browser.newContext({
@@ -536,7 +675,9 @@ async function verifyStaticFallback() {
 fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
 
 const { payload, target } = await getRealCatalogue();
+const homepageMerchandising = await getRealHomepageMerchandising();
 globalThis.__phase6Target = target;
+globalThis.__homepageMerchandising = homepageMerchandising;
 
 try {
   await verifyRealOverlay(
@@ -550,6 +691,7 @@ try {
     { width: 390, height: 844 },
   );
   await verifyMockedLiveChanges(payload);
+  await verifyHomepageRailModes(payload);
   await verifyStaticFallback();
 
   console.log(
@@ -575,6 +717,10 @@ try {
           "mocked-live-out-of-stock-product-detail",
           "api-failure-static-fallback",
           "preview-exit-restores-production-live-mode",
+          "homepage-published-contract",
+          "homepage-rail-three-modes",
+          "homepage-rail-touch-swipe-no-page-overflow",
+          "homepage-rail-disabled-hidden",
         ],
       },
       null,
