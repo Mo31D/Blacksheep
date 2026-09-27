@@ -738,6 +738,52 @@ async function productPlacementQa() {
 
     let editDetails = page.locator("#productEditDetails");
     if (!(await editDetails.isVisible())) {
+      const runtimeSource = await page.evaluate(() => ({
+        innerWidth: window.innerWidth,
+        mediaMatches: window.matchMedia
+          ? window.matchMedia("(max-width: 900px)").matches
+          : null,
+        helperSource:
+          typeof openResponsiveProductDetail === "function"
+            ? openResponsiveProductDetail.toString()
+            : null,
+        createHasResponsiveOpen:
+          typeof createProductFromSheet === "function"
+            ? createProductFromSheet
+                .toString()
+                .includes("openResponsiveProductDetail()")
+            : false,
+      }));
+      console.log(
+        "CARD03 QA: staging runtime responsive source",
+        JSON.stringify(runtimeSource),
+      );
+      const manualOpen = await page.evaluate(() => {
+        if (typeof openResponsiveProductDetail === "function") {
+          openResponsiveProductDetail();
+        }
+        const detail = document.getElementById("productDetail");
+        const rect = detail?.getBoundingClientRect();
+        return {
+          bodyClass: document.body.className,
+          detailDisplay: detail ? getComputedStyle(detail).display : null,
+          detailRect: rect
+            ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+            : null,
+        };
+      });
+      console.log(
+        "CARD03 QA: manual responsive open result",
+        JSON.stringify(manualOpen),
+      );
+      if (manualOpen.bodyClass.includes("product-detail-open")) {
+        await page.waitForSelector("#productEditDetails:visible", {
+          timeout: 10_000,
+        });
+        editDetails = page.locator("#productEditDetails:visible");
+      }
+    }
+    if (!(await editDetails.isVisible())) {
       const detailState = await page.evaluate(() => {
         const detail = document.getElementById("productDetail");
         const edit = document.getElementById("productEditDetails");
