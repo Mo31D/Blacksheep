@@ -197,7 +197,10 @@ function optionalText(
   return result || null;
 }
 
-function preset(value: unknown, fallback: string): WebsiteAppearancePresetKey {
+export function normalizeWebsiteAppearancePresetKey(
+  value: unknown,
+  fallback: string,
+): WebsiteAppearancePresetKey {
   const candidate = String(value === undefined ? fallback : value ?? "")
     .trim()
     .toUpperCase();
@@ -486,7 +489,10 @@ export async function saveAdminWebsiteAppearanceDraft(
     throw new Error("appearance_hero_invalid");
   }
 
-  const nextPresetKey = preset(raw.presetKey, current.presetKey);
+  const nextPresetKey = normalizeWebsiteAppearancePresetKey(
+    raw.presetKey,
+    current.presetKey,
+  );
   const presetChanged =
     raw.presetKey !== undefined && nextPresetKey !== current.presetKey;
   const tokenFallback = presetChanged
