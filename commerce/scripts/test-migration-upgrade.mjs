@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0021_")) {
+  if (!latestMigration?.startsWith("0022_")) {
     throw new Error(
-      `Expected latest migration to be 0021, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0022, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0020_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0020.");
+  if (baselineMigrations.at(-1)?.startsWith("0021_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0021.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -141,6 +141,9 @@ try {
     "SELECT version_id, product_id, position FROM homepage_merchandising_products LIMIT 0",
     "SELECT version_id, module_key, enabled, position FROM homepage_merchandising_modules LIMIT 0",
     "SELECT merchandising_id, event_type, actor_id, before_json, after_json FROM homepage_merchandising_audit_events LIMIT 0",
+    "SELECT id, current_published_version_id, current_draft_version_id, version FROM website_appearance LIMIT 0",
+    "SELECT appearance_id, version_number, preset_key, background_color, surface_color, text_color, muted_text_color, accent_color, button_color, border_color, header_color, hero_image_url, hero_heading, hero_text, hero_button_label, hero_button_href, section_images_json, scheduled_start_at, scheduled_end_at, published_at, superseded_at FROM website_appearance_versions LIMIT 0",
+    "SELECT appearance_id, event_type, actor_id, before_json, after_json FROM website_appearance_audit_events LIMIT 0",
   ];
 
   for (const sql of schemaQueries) {
@@ -335,9 +338,9 @@ try {
   }
 
   console.log(
-    "PASS: migrations 0000–0020 upgraded cleanly to 0021; Homepage module composition, Merchandising and Stocktake schemas are present.",
+    "PASS: migrations 0000–0021 upgraded cleanly to 0022; Website Appearance, Homepage composition, Merchandising and Stocktake schemas are present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
 }
-// CARD 07 migration guard updated for 0021.
+// CARD 08 migration guard updated for 0022.
