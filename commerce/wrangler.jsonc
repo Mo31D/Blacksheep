@@ -19,11 +19,19 @@
       "zone_name": "theblacksheepshop.co.uk"
     },
     {
+      "pattern": "theblacksheepshop.co.uk/sitemap.xml",
+      "zone_name": "theblacksheepshop.co.uk"
+    },
+    {
       "pattern": "theblacksheepshop.co.uk/sitemap-dynamic.xml",
       "zone_name": "theblacksheepshop.co.uk"
     },
     {
       "pattern": "www.theblacksheepshop.co.uk/collections/*",
+      "zone_name": "theblacksheepshop.co.uk"
+    },
+    {
+      "pattern": "www.theblacksheepshop.co.uk/sitemap.xml",
       "zone_name": "theblacksheepshop.co.uk"
     },
     {
