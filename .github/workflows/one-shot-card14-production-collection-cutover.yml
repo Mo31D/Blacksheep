@@ -1,0 +1,102 @@
+name: One-shot CARD 14 Production Collection Cutover
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/one-shot-card14-production-collection-cutover.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: black-sheep-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: commerce
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: commerce/package.json
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Require exact CARD 14 release flags
+        shell: bash
+        run: |
+          grep -F '"STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED": "true"' wrangler.jsonc
+          grep -F '"STOREFRONT_CLEAN_PRODUCT_ROUTES_ENABLED": "false"' wrangler.jsonc
+          echo "Release scope confirmed: Collections/Sitemap ON; clean Products OFF."
+
+      - name: Validate release
+        run: npm run check
+
+      - name: Require Cloudflare credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+
+      - name: Show Production migrations before deploy
+        run: npm run db:migrations:list:production
+
+      - name: Deploy guarded Production cutover
+        run: npm run deploy:production
+
+      - name: Verify Production health and feature flags
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --max-time 20 "https://api.theblacksheepshop.co.uk/health" | tee /tmp/health.json
+          node <<'NODE'
+          const fs = require("fs");
+          const h = JSON.parse(fs.readFileSync("/tmp/health.json","utf8"));
+          if (h.status !== "ok") throw new Error("Production health is not ok");
+          if (h.environment !== "production") throw new Error("Wrong Production environment marker");
+          if (h.database !== "bound") throw new Error("Production D1 is not bound");
+          if (h.features?.cleanCollectionRoutes !== true) throw new Error("Clean collection routes are not enabled");
+          if (h.features?.cleanProductRoutes !== false) throw new Error("Clean Product routes must remain disabled");
+          console.log("Production health and guarded feature flags verified.");
+          NODE
+
+      - name: Verify legacy canonical redirect and sitemap
+        shell: bash
+        run: |
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 20 "https://theblacksheepshop.co.uk/collections/gifts")"
+          location="$(curl --silent --head --max-time 20 "https://theblacksheepshop.co.uk/collections/gifts" | tr -d '\r' | awk 'tolower($1)=="location:" {print $2}' | tail -1)"
+          test "$status" = "301" || { echo "::error::Expected /collections/gifts HTTP 301, got $status"; exit 1; }
+          case "$location" in
+            */gifts.html) ;;
+            *) echo "::error::Unexpected legacy collection redirect: $location"; exit 1 ;;
+          esac
+
+          curl --fail --silent --show-error --max-time 20 "https://theblacksheepshop.co.uk/sitemap.xml" > /tmp/sitemap.xml
+          grep -F "<loc>https://theblacksheepshop.co.uk/gifts.html</loc>" /tmp/sitemap.xml
+          if grep -Fq "/collections/gifts</loc>" /tmp/sitemap.xml; then
+            echo "::error::Legacy collection duplicated in sitemap"
+            exit 1
+          fi
+          if grep -Fq "product.html?" /tmp/sitemap.xml; then
+            echo "::error::Query-string Product URL found in sitemap"
+            exit 1
+          fi
+          echo "Production legacy canonical redirect and sitemap verified."
+
+      - name: Production safety statement
+        if: always()
+        run: |
+          echo "This one-shot release enables only clean collection/sitemap routing."
+          echo "Clean Product routing remains disabled."
