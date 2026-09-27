@@ -148,6 +148,26 @@ jobs:
           echo
           echo "::endgroup::"
 
+      - name: CARD 14 homepage rail state diagnosis
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --max-time 20 "https://api.theblacksheepshop.co.uk/v1/homepage-merchandising" > /tmp/homepage.json
+          node <<'NODE'
+          const fs=require("fs");
+          const p=JSON.parse(fs.readFileSync("/tmp/homepage.json","utf8"));
+          const c=p.config||{};
+          console.log(JSON.stringify({
+            enabled:c.enabled,
+            mode:c.mode,
+            productLimit:c.productLimit,
+            heading:c.heading,
+            publishedVersionId:c.publishedVersionId,
+            effectiveVersionId:c.effectiveVersionId,
+            modules:c.modules,
+            products:(p.products||[]).map(x=>({productId:x.productId,slug:x.slug,title:x.title}))
+          },null,2));
+          NODE
+
       - name: CARD 14 final live routing verification
         if: steps.cloudflare.outputs.available == 'true'
         shell: bash
@@ -193,3 +213,5 @@ jobs:
 # card14-cloudflare-zone-diagnosis-2026-09-27
 
 # card14-final-live-routing-verification-2026-09-27
+
+# card14-homepage-rail-state-diagnosis-2026-09-27
