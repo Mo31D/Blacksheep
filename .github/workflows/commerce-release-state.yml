@@ -101,6 +101,32 @@ jobs:
           echo
           echo "::endgroup::"
 
+      - name: CARD 14 Cloudflare zone read-only diagnosis
+        if: steps.cloudflare.outputs.available == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          echo "::group::CLOUDFLARE_ZONE"
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/zones?name=theblacksheepshop.co.uk" \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);for(const z of j.result||[]) console.log(JSON.stringify({id:z.id,name:z.name,status:z.status,paused:z.paused,type:z.type,name_servers:z.name_servers,original_name_servers:z.original_name_servers},null,2))})'
+          echo "::endgroup::"
+
+          ZONE_ID="$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/zones?name=theblacksheepshop.co.uk" \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);process.stdout.write(j.result?.[0]?.id||"")})')"
+          if [ -n "$ZONE_ID" ]; then
+            echo "::group::CLOUDFLARE_DNS"
+            curl --fail --silent --show-error \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?per_page=100" \
+              | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);for(const r of j.result||[]) if(["theblacksheepshop.co.uk","www.theblacksheepshop.co.uk"].includes(r.name)) console.log(JSON.stringify({id:r.id,type:r.type,name:r.name,content:r.content,proxied:r.proxied,proxiable:r.proxiable,ttl:r.ttl},null,2))})'
+            echo "::endgroup::"
+          fi
+
       - name: CARD 14 Production Storefront Structure read-only diagnosis
         if: steps.cloudflare.outputs.available == 'true'
         continue-on-error: true
@@ -130,3 +156,5 @@ jobs:
 # card14-readonly-release-state-2026-09-27
 
 # card14-live-route-diagnosis-2026-09-27
+
+# card14-cloudflare-zone-diagnosis-2026-09-27
