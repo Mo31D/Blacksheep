@@ -31,6 +31,25 @@ class MediaDb implements D1DatabaseLike {
   }
 }
 
+class SharedMediaDb implements D1DatabaseLike {
+  prepare(query: string): D1PreparedStatementLike {
+    if (query.includes("FROM product_media")) {
+      return new MediaStatement(null);
+    }
+    if (query.includes("FROM shared_media_assets")) {
+      return new MediaStatement({
+        storageKey: "library/2026-09/asset-1.webp",
+        mimeType: "image/webp",
+        checksumSha256: "shared123",
+      });
+    }
+    return new MediaStatement(null);
+  }
+  async batch<T>(): Promise<T[]> {
+    return [];
+  }
+}
+
 describe("Product media public delivery", () => {
   it("serves an immutable R2 object by media id", async () => {
     const response = await handleProductMediaRequest(
@@ -65,6 +84,37 @@ describe("Product media public delivery", () => {
     expect(response.headers.get("etag")).toBe('"abc123"');
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(
       new Uint8Array([1, 2, 3]),
+    );
+  });
+
+  it("serves a shared Media Library R2 object through the same public route", async () => {
+    const response = await handleProductMediaRequest(
+      new Request("https://admin.example.com/media/asset-1"),
+      {
+        DB: new SharedMediaDb(),
+        PRODUCT_MEDIA: {
+          async put() {
+            return {};
+          },
+          async get(key: string) {
+            expect(key).toBe("library/2026-09/asset-1.webp");
+            return {
+              body: new Uint8Array([4, 5, 6]),
+              httpMetadata: { contentType: "image/webp" },
+            };
+          },
+          async delete() {
+            return undefined;
+          },
+        },
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/webp");
+    expect(response.headers.get("etag")).toBe('"shared123"');
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(
+      new Uint8Array([4, 5, 6]),
     );
   });
 
