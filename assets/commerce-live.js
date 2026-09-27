@@ -286,9 +286,9 @@
         appearanceError:websiteAppearanceError,
         loadedAt:new Date().toISOString()
       };
-      document.documentElement.dataset.commerceLive='ready';
       const dynamicCards=syncUi(structureNodes,homepageMerchandising,websiteAppearance);
       window.BLACK_SHEEP_LIVE_COMMERCE_STATE.dynamicCards=dynamicCards;
+      document.documentElement.dataset.commerceLive='ready';
       document.dispatchEvent(new CustomEvent('black-sheep:commerce-live-ready',{
         detail:window.BLACK_SHEEP_LIVE_COMMERCE_STATE
       }));
