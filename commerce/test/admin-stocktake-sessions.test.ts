@@ -95,6 +95,7 @@ describe("CARD 05 persistent Stocktake Admin", () => {
     expect(html).toContain("/admin/api/stocktakes/preview");
     expect(html).toContain("/admin/api/stocktakes/");
     expect(html).toContain("requestAnimationFrame(function(){try{input.focus");
+    expect(html).toContain('enterkeyhint="next"');
     expect(html).toContain("e.preventDefault()");
     expect(html).toContain("Stock changed while you were counting.");
   });
