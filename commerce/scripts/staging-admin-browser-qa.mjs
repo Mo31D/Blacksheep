@@ -1101,9 +1101,10 @@ async function homepageMerchandisingQa() {
         moduleOrderBefore.join(","),
     );
 
-    await moduleRows
-      .filter({ has: page.locator('[data-homepage-module-key="HERO"][data-homepage-module-move="1"]') })
-      .locator('[data-homepage-module-key="HERO"][data-homepage-module-move="1"]')
+    await page
+      .locator(
+        '#homepageModules [data-homepage-module="HERO"] [data-homepage-module-key="HERO"][data-homepage-module-move="1"]',
+      )
       .click();
 
     const localToggle = page.locator(
