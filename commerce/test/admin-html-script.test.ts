@@ -49,6 +49,16 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain('data-nav="website"');
     expect(production).toContain("Homepage product strip");
     expect(production).toContain("Homepage sections");
+    expect(production).toContain("Appearance");
+    expect(production).toContain('data-website-tab="appearance"');
+    expect(production).toContain("Homepage hero");
+    expect(production).toContain("Section images");
+    expect(production).toContain('id="appearanceSaveDraft"');
+    expect(production).toContain('id="appearancePreview"');
+    expect(production).toContain('id="appearancePublish"');
+    expect(production).toContain("/admin/api/appearance");
+    expect(production).toContain("function restoreWebsiteAppearance");
+    expect(production).not.toContain("Custom CSS");
     expect(production).toContain('id="homepageModules"');
     expect(production).toContain("homepageModulesPayload");
     expect(production).toContain("data-homepage-module-move");

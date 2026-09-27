@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "npm run product-core:validate && npm run product-core:production-guards:test && npm run storefront-structure:compat-test && npm run cart:test && npm run legal:test && npm run dynamic-storefront:test && npm run homepage-rail:static-test && npm run typecheck && npm run db:migrate:local && npm run db:migrate:upgrade-test && npm run storefront-structure:migration-test && npm run inventory-core:test && npm run order-reservations:test && npm run test && npm run admin-browser-qa:syntax && npm run dry-run",
+    "check": "npm run product-core:validate && npm run product-core:production-guards:test && npm run storefront-structure:compat-test && npm run cart:test && npm run legal:test && npm run dynamic-storefront:test && npm run homepage-rail:static-test && npm run storefront-appearance:syntax && npm run typecheck && npm run db:migrate:local && npm run db:migrate:upgrade-test && npm run storefront-structure:migration-test && npm run inventory-core:test && npm run order-reservations:test && npm run test && npm run admin-browser-qa:syntax && npm run dry-run",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply DB --local --env staging",
@@ -34,7 +34,8 @@
     "product-core:production-guards:test": "node scripts/test-product-core-production-guards.mjs",
     "admin-browser-qa:syntax": "node --check scripts/staging-admin-browser-qa.mjs",
     "dynamic-storefront:test": "node ../scripts/test-dynamic-storefront.mjs",
-    "homepage-rail:static-test": "node scripts/test-storefront-homepage-rail-static.mjs"
+    "homepage-rail:static-test": "node scripts/test-storefront-homepage-rail-static.mjs",
+    "storefront-appearance:syntax": "node --check ../assets/site.js && node --check ../assets/commerce-live.js"
   },
   "devDependencies": {
     "typescript": "^5.9.0",
