@@ -8,6 +8,7 @@ import { listPublishedStorefrontNodes } from "../data/storefront-structure";
 export interface DynamicSitemapEnv {
   DB?: D1DatabaseLike;
   STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED?: string;
+  STOREFRONT_CLEAN_PRODUCT_ROUTES_ENABLED?: string;
 }
 
 const STOREFRONT_ORIGIN = "https://theblacksheepshop.co.uk";
@@ -50,16 +51,21 @@ async function allPublishedProducts(
   return products;
 }
 
-function productCanonical(product: PublicCommerceProduct): string | null {
+function productCanonical(
+  product: PublicCommerceProduct,
+  cleanProductRoutes: boolean,
+): string | null {
   // Legacy/imported products already have indexed .html pages. Preserve those
   // canonicals during CARD 12 so Google equity is not moved unnecessarily.
   if (product.id !== product.productId) {
     return "/products/" + encodeURIComponent(product.slug) + ".html";
   }
 
-  // Admin-native products use the clean D1 route. This route remains staged
-  // until the production clean-product cutover is independently proven.
-  return "/products/" + encodeURIComponent(product.slug);
+  // Admin-native products are indexable only after the clean-product route is
+  // enabled. Their query-string fallback intentionally remains outside sitemap.
+  return cleanProductRoutes
+    ? "/products/" + encodeURIComponent(product.slug)
+    : null;
 }
 
 export async function handleDynamicSitemapRequest(
@@ -93,8 +99,10 @@ export async function handleDynamicSitemapRequest(
     );
   }
 
+  const cleanProductRoutes =
+    env.STOREFRONT_CLEAN_PRODUCT_ROUTES_ENABLED === "true";
   for (const product of products) {
-    const path = productCanonical(product);
+    const path = productCanonical(product, cleanProductRoutes);
     if (path) paths.add(path);
   }
 
