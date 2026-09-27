@@ -460,3 +460,34 @@ section{padding:78px 0}.section-head{display:flex;justify-content:space-between;
     transform:none!important;
   }
 }
+
+
+/* Homepage product marquee — native touch scroll v4 */
+.home-product-rail-viewport{
+  width:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  touch-action:pan-x pan-y;
+  overscroll-behavior-x:contain;
+}
+.home-product-rail-viewport::-webkit-scrollbar{display:none}
+.home-product-rail-track{
+  display:flex;
+  width:max-content;
+  max-width:none;
+  overflow:visible;
+  transform:none!important;
+  will-change:auto;
+  scroll-snap-type:none;
+}
+.home-product-rail-track .product-card{
+  scroll-snap-align:none;
+}
+@media(max-width:760px){
+  .home-product-rail-viewport{
+    width:calc(100vw - 20px);
+    margin-right:calc((100vw - 100%)/-2);
+  }
+}
