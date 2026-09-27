@@ -738,3 +738,40 @@ Evidence report:
 
 Exact next milestone:
 **CARD 09 — Seasonal theme presets, Hero editor & section imagery**.
+
+---
+
+## CRITICAL LATEST HANDOFF — CARD 09 Seasonal Appearance Staging verified, 27 September 2026
+
+CARD 09 is now **COMPLETE · STAGING VERIFIED**.
+
+### What is implemented
+- Five protected owner presets: Default, Winter, Christmas, Summer and Ice Cream.
+- Preset cards in Website → Appearance; no code editing required.
+- Small owner-facing colour set with less common controls behind progressive disclosure.
+- Reset to selected preset defaults.
+- Server-side preset whitelist and contrast protection.
+- Homepage Hero image, heading, text, button label and destination editing.
+- Website section image overrides.
+- Protected centred `cover` Hero crop on phone/tablet.
+- Existing Draft → Preview → Publish → Restore history retained.
+- No arbitrary CSS.
+- No new D1 migration was required.
+
+### Staging proof
+- Commerce CI `36316749986` — PASS.
+- Search readiness `36316749990` — PASS.
+- Focused CARD 09 Staging deploy/health/safety run `36316859445` — PASS.
+- Full Admin Browser QA `36316902429` — PASS.
+- Browser artifact `staging-admin-browser-qa` / artifact `10931007575`.
+- Browser QA exercised preset selection, reset, Hero/section imagery, Publish/public contract, 390px mobile storefront behaviour and Restore/cleanup.
+
+Evidence:
+`docs/CARD09-SEASONAL-APPEARANCE-STAGING-2026-09-27.md`
+
+**Production was not modified.**
+
+### Exact next milestone
+Start **CARD 11 — Shared Media Library on R2**.
+
+The media layer should give Products, Homepage, Sections and Themes one reusable asset source with upload, reuse, alt text, replace/archive safety and auditable cleanup. CARD 10 is dependency-ready as well, but the programme sequence now advances through CARD 11 first.
