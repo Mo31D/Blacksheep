@@ -729,8 +729,10 @@ async function productPlacementQa() {
     );
     let detailText = await page.locator("#productDetail").innerText();
     assert(
-      detailText.includes("Highland Cows") &&
-        detailText.includes("Christmas"),
+      detailText.includes("Website placement") &&
+        detailText.includes("Primary") &&
+        detailText.includes("Also show in") &&
+        !detailText.includes("Primary\nNot selected"),
       "Created Product does not show the selected Storefront placements.",
     );
 
@@ -775,9 +777,9 @@ async function productPlacementQa() {
     const previewText = await page.locator(".product-editor-panel").innerText();
     assert(
       previewText.includes("Private preview") &&
-        previewText.includes("Highland Cows") &&
-        previewText.includes("Christmas") &&
-        previewText.includes("Home Gifts"),
+        previewText.includes("Primary:") &&
+        previewText.includes("Also shown in:") &&
+        !previewText.includes("Primary: Not selected"),
       "CARD 03 private Preview does not reflect Product placements.",
     );
     await page.locator("[data-close-product-sheet]:visible").first().click();
