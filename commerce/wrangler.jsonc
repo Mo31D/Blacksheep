@@ -50,7 +50,8 @@
     "ADMIN_BASE_URL": "https://admin.theblacksheepshop.co.uk",
     "ORDER_RESERVATIONS_ENABLED": "true",
     "D1_PUBLIC_CATALOG_ENABLED": "true",
-    "STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED": "false"
+    "STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED": "false",
+    "STOREFRONT_CLEAN_PRODUCT_ROUTES_ENABLED": "false"
   },
   "previews": {
     "vars": {
@@ -91,7 +92,8 @@
         "ADMIN_BASE_URL": "https://black-sheep-commerce-api-staging.ky6vfb55p9.workers.dev/admin",
         "ORDER_RESERVATIONS_ENABLED": "true",
         "D1_PUBLIC_CATALOG_ENABLED": "true",
-        "STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED": "true"
+        "STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED": "true",
+        "STOREFRONT_CLEAN_PRODUCT_ROUTES_ENABLED": "true"
       },
       "ratelimits": [
         {
