@@ -121,30 +121,38 @@ jobs:
       - name: Verify Worker collection route and dynamic sitemap
         shell: bash
         run: |
-          code="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 30 "https://theblacksheepshop.co.uk/collections/gifts")"
-          location="$(curl --silent --head --max-time 30 "https://theblacksheepshop.co.uk/collections/gifts" | tr -d '\r' | awk 'tolower($1)=="location:" {print $2}' | tail -1)"
-          test "$code" = "301" || { echo "::error::Expected collection 301, got $code"; exit 1; }
+          curl --silent --show-error --max-time 30 -D /tmp/gifts.headers -o /tmp/gifts.body "https://theblacksheepshop.co.uk/collections/gifts"
+          code="$(awk 'toupper($1) ~ /^HTTP\// {code=$2} END {print code}' /tmp/gifts.headers)"
+          location="$(tr -d '\r' < /tmp/gifts.headers | awk 'tolower($1)=="location:" {print $2}' | tail -1)"
+          test "$code" = "301" || { echo "::error::Expected collection 301, got $code"; cat /tmp/gifts.headers; exit 1; }
           case "$location" in
             https://theblacksheepshop.co.uk/gifts.html) ;;
-            *) echo "::error::Unexpected collection redirect: $location"; exit 1 ;;
+            *) echo "::error::Unexpected collection redirect: $location"; cat /tmp/gifts.headers; exit 1 ;;
           esac
+
+          curl --fail --silent --show-error --max-time 30 "https://theblacksheepshop.co.uk/collections/chutneys-pickles" > /tmp/dynamic.html
+          grep -Fq 'rel="canonical" href="https://theblacksheepshop.co.uk/collections/chutneys-pickles"' /tmp/dynamic.html
 
           curl --fail --silent --show-error --max-time 30 "https://theblacksheepshop.co.uk/sitemap.xml" > /tmp/sitemap.xml
           grep -Fq "<loc>https://theblacksheepshop.co.uk/gifts.html</loc>" /tmp/sitemap.xml
+          grep -Fq "<loc>https://theblacksheepshop.co.uk/collections/chutneys-pickles</loc>" /tmp/sitemap.xml
           if grep -Fq "product.html?" /tmp/sitemap.xml; then
             echo "::error::Query-string Product URL found in sitemap"
             exit 1
           fi
-          echo "Worker collection route and sitemap are live."
+          echo "Worker collection routes and dynamic sitemap are live."
 
       - name: Verify www route
         shell: bash
         run: |
-          code="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 30 "https://www.theblacksheepshop.co.uk/collections/gifts")"
-          location="$(curl --silent --head --max-time 30 "https://www.theblacksheepshop.co.uk/collections/gifts" | tr -d '\r' | awk 'tolower($1)=="location:" {print $2}' | tail -1)"
-          test "$code" = "301" || { echo "::error::Expected www collection 301, got $code"; exit 1; }
+          curl --silent --show-error --max-time 30 -D /tmp/www-gifts.headers -o /tmp/www-gifts.body "https://www.theblacksheepshop.co.uk/collections/gifts"
+          code="$(awk 'toupper($1) ~ /^HTTP\// {code=$2} END {print code}' /tmp/www-gifts.headers)"
+          location="$(tr -d '\r' < /tmp/www-gifts.headers | awk 'tolower($1)=="location:" {print $2}' | tail -1)"
+          test "$code" = "301" || { echo "::error::Expected www collection 301, got $code"; cat /tmp/www-gifts.headers; exit 1; }
           case "$location" in
             https://theblacksheepshop.co.uk/collections/gifts) ;;
-            *) echo "::error::Unexpected www canonical redirect: $location"; exit 1 ;;
+            *) echo "::error::Unexpected www canonical redirect: $location"; cat /tmp/www-gifts.headers; exit 1 ;;
           esac
           echo "www Worker route verified."
+
+# card14-final-proxy-cutover-2026-09-27
