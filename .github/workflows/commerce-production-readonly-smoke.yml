@@ -1,0 +1,42 @@
+name: Commerce Production Read-only Smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-readonly-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: commerce
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: commerce/package.json
+
+      - name: Install commerce dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install ephemeral browser dependency
+        run: npm install --no-save --package-lock=false playwright@1.55.0
+
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Run CARD 14 Production read-only smoke
+        run: node scripts/production-readonly-smoke.mjs
+
+      - name: Safety statement
+        if: always()
+        run: |
+          echo "This workflow is read-only."
+          echo "It performs no Production D1 writes, migrations, Worker deploys, orders or Admin mutations."
