@@ -248,6 +248,7 @@
       window.BLACK_SHEEP_LIVE_COMMERCE_STATE={
         mode:config.mode||'live',
         applied,
+        covered:matchedProducts.size,
         received:products.length,
         added,
         pages,

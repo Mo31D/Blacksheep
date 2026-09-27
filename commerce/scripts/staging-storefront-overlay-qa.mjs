@@ -53,7 +53,7 @@ async function getRealCatalogue() {
   assert(response.ok, "Staging public catalogue request failed: " + response.status);
   const payload = await response.json();
   assert(Array.isArray(payload.products), "Staging catalogue payload is invalid");
-  assert(payload.products.length === 146, "Expected 146 public staging products");
+  assert(payload.products.length > 0, "Staging public catalogue is unexpectedly empty");
   const target = payload.products.find((product) => product.id === PRODUCT_ID);
   assert(target, "HC-003 missing from staging public catalogue");
   return { payload, target };
@@ -119,7 +119,7 @@ async function assertCanonical(page, expectedPath, label) {
   assert(!canonical.includes("commerce-preview"), label + " canonical leaked preview query");
 }
 
-async function verifyRealOverlay(browserType, label, viewport) {
+async function verifyRealOverlay(browserType, label, viewport, expectedProductCount) {
   const browser = await browserType.launch();
   const context = await browser.newContext({ viewport });
   const page = await context.newPage();
@@ -138,8 +138,33 @@ async function verifyRealOverlay(browserType, label, viewport) {
 
     assert(state.config?.preview === true, label + " preview flag is not active");
     assert(state.config?.mode === "staging", label + " preview mode is not staging");
-    assert(state.live?.applied === 146, label + " did not apply all 146 D1 products");
-    assert(state.live?.received === 146, label + " did not receive all 146 D1 products");
+    assert(
+      state.live?.received === expectedProductCount,
+      label +
+        " received " +
+        state.live?.received +
+        " D1 products; expected " +
+        expectedProductCount,
+    );
+    assert(
+      state.live?.covered === expectedProductCount,
+      label +
+        " covered " +
+        state.live?.covered +
+        " unique D1 products out of " +
+        expectedProductCount +
+        " (applied catalogue entries: " +
+        state.live?.applied +
+        ")",
+    );
+    assert(
+      Number(state.live?.applied ?? 0) >= expectedProductCount,
+      label +
+        " applied fewer catalogue entries than unique D1 products: " +
+        state.live?.applied +
+        " < " +
+        expectedProductCount,
+    );
 
     const banner = page.locator("#commercePreviewBanner");
     await banner.waitFor({ state: "visible", timeout: 10_000 });
@@ -750,11 +775,13 @@ try {
     chromium,
     "Desktop Chromium",
     { width: 1440, height: 1000 },
+    payload.products.length,
   );
   await verifyRealOverlay(
     webkit,
     "Mobile WebKit",
     { width: 390, height: 844 },
+    payload.products.length,
   );
   await verifyMockedLiveChanges(payload);
   await verifyHomepageRailModes(payload);
@@ -766,7 +793,7 @@ try {
         ok: true,
         product: PRODUCT_ID,
         checks: [
-          "real-staging-146-product-overlay",
+          "real-staging-complete-unique-product-coverage",
           "preview-session-persistence",
           "card-price-orderability",
           "product-detail-price-availability",
