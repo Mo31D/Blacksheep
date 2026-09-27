@@ -104,8 +104,13 @@ function selectSql(): string {
     "a.created_by AS createdBy, a.created_at AS createdAt,",
     "a.updated_by AS updatedBy, a.updated_at AS updatedAt,",
     "a.archived_at AS archivedAt, a.deleted_at AS deletedAt,",
-    "(SELECT COUNT(*) FROM shared_media_references r",
-    " WHERE r.asset_id = a.id AND r.released_at IS NULL) AS usageCount",
+    "((SELECT COUNT(*) FROM shared_media_references r",
+    "  WHERE r.asset_id = a.id AND r.released_at IS NULL) +",
+    " (SELECT COUNT(*) FROM product_media pm WHERE pm.storage_provider = 'R2' AND pm.storage_key = a.storage_key) +",
+    " (SELECT COUNT(*) FROM storefront_node_versions snv WHERE snv.image_url = a.public_url) +",
+    " (SELECT COUNT(*) FROM website_appearance_versions wav",
+    "  WHERE wav.hero_image_url = a.public_url OR wav.section_images_json LIKE ('%' || a.public_url || '%'))",
+    ") AS usageCount",
     "FROM shared_media_assets a",
   ].join(" ");
 }
