@@ -1,0 +1,101 @@
+name: One-shot CARD09 Production Release
+
+on:
+  push:
+    branches:
+      - release/card09-production-2026-09-27
+    paths:
+      - ".github/workflows/one-shot-card09-production-release.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: commerce
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify exact release source
+        shell: bash
+        working-directory: .
+        run: |
+          test "$(git rev-parse HEAD^)" = "0d6e165e57b6d65eadc3a377fd89b5c622f822da" || {
+            echo "::error::Unexpected release baseline."
+            git log -2 --oneline
+            exit 1
+          }
+          echo "Releasing CARD 09 staging-verified baseline only."
+          echo "CARD 11 and PR #8 are intentionally excluded."
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: commerce/package.json
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Require Cloudflare production credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+
+      - name: Full source validation
+        run: npm run check
+
+      - name: Record Production migrations before release
+        run: npm run db:migrations:list:production
+
+      - name: Apply Production migrations
+        run: npm run db:migrate:production
+
+      - name: Confirm Production migrations after apply
+        run: npm run db:migrations:list:production
+
+      - name: Deploy Production Worker
+        shell: bash
+        run: |
+          set -o pipefail
+          npx wrangler deploy 2>&1 | tee /tmp/production-deploy.log
+          if ! grep -Eq 'api\.theblacksheepshop\.co\.uk|admin\.theblacksheepshop\.co\.uk' /tmp/production-deploy.log; then
+            echo "::warning::Production custom-domain text was not detected in Wrangler output; health verification is authoritative."
+          fi
+
+      - name: Verify Production health
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --max-time 30 https://api.theblacksheepshop.co.uk/health | tee /tmp/production-health.json
+          echo
+          node - <<'NODE'
+          const fs = require("fs");
+          const health = JSON.parse(fs.readFileSync("/tmp/production-health.json","utf8"));
+          if (health.status !== "ok") throw new Error("Production health status is not ok");
+          if (health.environment !== "production") throw new Error("Production environment marker is incorrect");
+          if (health.database !== "bound") throw new Error("Production D1 binding is not active");
+          console.log("Production health verified.");
+          NODE
+
+      - name: Record Production deployment state
+        if: always()
+        run: |
+          npx wrangler deployments status --json || true
+          npx wrangler deployments list --json || true
+
+      - name: Release boundary
+        if: always()
+        working-directory: .
+        run: |
+          echo "Release baseline: 0d6e165e57b6d65eadc3a377fd89b5c622f822da"
+          echo "CARD 11 excluded."
+          echo "PR #8 excluded."
