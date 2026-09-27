@@ -348,7 +348,8 @@ Start/end activation dates supported in data model; scheduling UI deferred.
 ---
 
 ## CARD 10 — Unified Preview → Publish → Verify engine
-**Status:** READY  
+**Status:** COMPLETE · STAGING VERIFIED  
+**Current evidence:** merged PR #8 provides the shared publication verifier; Admin Browser QA run `36325201967` verified Product, Structure, Homepage and Appearance through their real Staging publish/public-feed paths; run `36325383045` additionally passed explicit actor/time/version audit assertions for all four publication domains. Commerce CI run `36324400386` proves stale/mismatched/failed public data cannot be reported as live success.  
 **Depends on:** CARD 03, CARD 04, CARD 06, CARD 08
 
 **Goal:** use one publishing contract across Product, Structure, Homepage and Appearance.
@@ -373,12 +374,12 @@ Start/end activation dates supported in data model; scheduling UI deferred.
 - Verification failed / Retry.
 
 **Acceptance criteria**
-- [ ] Products use the unified model.
-- [ ] Structure uses it.
-- [ ] Homepage uses it.
-- [ ] Appearance uses it.
-- [ ] Failed verification cannot display live success.
-- [ ] Audit records actor/time/version.
+- [x] Products use the unified model.
+- [x] Structure uses it.
+- [x] Homepage uses it.
+- [x] Appearance uses it.
+- [x] Failed verification cannot display live success.
+- [x] Audit records actor/time/version.
 
 ---
 
@@ -415,7 +416,7 @@ Website → Media:
 ---
 
 ## CARD 12 — Clean dynamic URLs & SEO migration
-**Status:** BLOCKED  
+**Status:** READY  
 **Depends on:** CARD 04, CARD 10
 
 **Goal:** progress from static/query-string fallbacks to durable data-driven URLs without sacrificing existing Google equity.
@@ -445,7 +446,7 @@ Website → Media:
 ---
 
 ## CARD 13 — Admin information architecture & owner-simplicity pass
-**Status:** BLOCKED  
+**Status:** READY · FINAL PASS AVAILABLE  
 **Depends on:** may start after CARD 02; final pass after CARD 11
 
 **Goal:** organise Admin around owner tasks rather than implementation terminology.
