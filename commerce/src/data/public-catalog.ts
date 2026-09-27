@@ -345,3 +345,24 @@ export async function getPublicCommerceProduct(
 
   return row ? toPublicCommerceProduct(row) : null;
 }
+
+export async function getPublicCommerceProductBySlug(
+  db: D1DatabaseLike,
+  slugValue: string,
+): Promise<PublicCommerceProduct | null> {
+  const slug = String(slugValue ?? "").trim();
+  if (!slug) return null;
+
+  const row = await db
+    .prepare(
+      PUBLIC_PRODUCT_SELECT +
+        ` WHERE p.publication_status = 'ACTIVE'
+          AND p.current_published_version_id IS NOT NULL
+          AND p.current_slug = ?
+        LIMIT 1`,
+    )
+    .bind(slug)
+    .first<PublicCommerceRow>();
+
+  return row ? toPublicCommerceProduct(row) : null;
+}
