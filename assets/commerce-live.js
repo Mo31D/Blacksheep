@@ -100,9 +100,12 @@
       :'<strong>Staging commerce preview</strong><span>Live D1 price and availability are overlaid on the static storefront.</span><a href="?commerce-preview=off">Exit preview</a>';
   }
 
-  function syncUi(structureNodes){
+  function syncUi(structureNodes,homepageMerchandising){
     if(Array.isArray(structureNodes)&&typeof syncDynamicStorefrontStructure==='function'){
       syncDynamicStorefrontStructure(structureNodes);
+    }
+    if(homepageMerchandising&&typeof syncHomepageProductRail==='function'){
+      syncHomepageProductRail(homepageMerchandising);
     }
     const dynamicCards=typeof syncDynamicCatalogCards==='function'?syncDynamicCatalogCards():0;
     if(typeof syncCatalogCardState==='function')syncCatalogCardState();
@@ -207,6 +210,22 @@
         structureError=error instanceof Error?error.message:String(error);
       }
 
+      let homepageMerchandising=null;
+      let homepageMerchandisingError=null;
+      try{
+        const homepageResponse=await fetch(apiBase+'/v1/homepage-merchandising',{
+          method:'GET',
+          headers:{accept:'application/json'},
+          cache:'no-store'
+        });
+        if(!homepageResponse.ok)throw new Error('homepage_merchandising_http_'+homepageResponse.status);
+        const homepagePayload=await homepageResponse.json();
+        if(!homepagePayload?.config||!Array.isArray(homepagePayload?.products))throw new Error('homepage_merchandising_payload_invalid');
+        homepageMerchandising=homepagePayload;
+      }catch(error){
+        homepageMerchandisingError=error instanceof Error?error.message:String(error);
+      }
+
       window.BLACK_SHEEP_LIVE_COMMERCE_STATE={
         mode:config.mode||'live',
         applied,
@@ -216,10 +235,15 @@
         structureNodes:Array.isArray(structureNodes)?structureNodes.length:0,
         structureFallback:!Array.isArray(structureNodes),
         structureError,
+        homepageMerchandising:homepageMerchandising?.config?.enabled===true,
+        homepageMerchandisingMode:homepageMerchandising?.config?.mode||null,
+        homepageMerchandisingProducts:Array.isArray(homepageMerchandising?.products)?homepageMerchandising.products.length:0,
+        homepageMerchandisingFallback:!homepageMerchandising,
+        homepageMerchandisingError,
         loadedAt:new Date().toISOString()
       };
       document.documentElement.dataset.commerceLive='ready';
-      const dynamicCards=syncUi(structureNodes);
+      const dynamicCards=syncUi(structureNodes,homepageMerchandising);
       window.BLACK_SHEEP_LIVE_COMMERCE_STATE.dynamicCards=dynamicCards;
       document.dispatchEvent(new CustomEvent('black-sheep:commerce-live-ready',{
         detail:window.BLACK_SHEEP_LIVE_COMMERCE_STATE
