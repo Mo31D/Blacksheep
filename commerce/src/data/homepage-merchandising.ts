@@ -74,8 +74,8 @@ const MODES = new Set<HomepageMerchandisingMode>([
 
 const HOMEPAGE_MODULE_KEYS: HomepageModuleKey[] = [
   "HERO",
-  "COLLECTIONS",
   "PRODUCT_RAIL",
+  "COLLECTIONS",
   "LOCAL_FAVOURITES",
   "VISIT_SHOP",
 ];
