@@ -1082,7 +1082,7 @@ async function productPlacementQa() {
       () =>
         document
           .querySelector(".live-verification.good")
-          ?.textContent?.includes("Published & verified in staging"),
+          ?.textContent?.includes("Published and verified in staging"),
       null,
       { timeout: 20_000 },
     );
