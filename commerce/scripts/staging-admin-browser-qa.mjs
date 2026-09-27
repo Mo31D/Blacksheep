@@ -2721,6 +2721,13 @@ async function ownerPolishViewsQa(viewport, label) {
 
     await openView("website");
     await page.waitForSelector("#websiteHomepagePanel:not(.hidden)", { timeout: 20_000 });
+    await page.waitForFunction(
+      () =>
+        document.querySelectorAll("#homepageModules [data-homepage-module]").length ===
+        5,
+      undefined,
+      { timeout: 20_000 },
+    );
     const homepageModuleRows = await page
       .locator("#homepageModules [data-homepage-module]")
       .evaluateAll((nodes) =>
