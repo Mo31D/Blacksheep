@@ -64,6 +64,9 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain('id="newProductCategorySelected"');
     expect(production).toContain("ensureProductEditorCategories");
     expect(production).toContain("Where should this product appear?");
+    expect(production).toContain("<h3>Website placement</h3>");
+    expect(production).toContain("productPlacementDisplay(p)");
+    expect(production).not.toContain("h.textContent==='Storefront placement'");
     expect(production).toContain("Primary section");
     expect(production).toContain("Primary sub-section");
     expect(production).toContain("Also show in");
