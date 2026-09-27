@@ -2564,6 +2564,55 @@ async function ownerPolishViewsQa(viewport, label) {
           ")",
       );
 
+      const cleanStructureResponse = await fetch(BASE + "/v1/storefront-structure");
+      assert(
+        cleanStructureResponse.ok,
+        "CARD 12 public Structure capability endpoint is unavailable.",
+      );
+      const cleanStructurePayload = await cleanStructureResponse.json();
+      assert(
+        cleanStructurePayload?.cleanCollectionRoutes === true,
+        "CARD 12 clean collection route capability is not enabled on staging.",
+      );
+      const cleanChild = (cleanStructurePayload?.nodes || []).find(
+        (row) => row.id === publicChild.id,
+      );
+      assert(
+        cleanChild?.cleanUrl === "/collections/" + publicChild.slug,
+        "CARD 12 published Admin-created section did not receive a clean URL.",
+      );
+
+      const cleanCollectionResponse = await fetch(
+        BASE + "/collections/" + encodeURIComponent(String(publicChild.slug)),
+        { redirect: "manual" },
+      );
+      assert(
+        cleanCollectionResponse.status === 200,
+        "CARD 12 clean collection route returned HTTP " +
+          cleanCollectionResponse.status,
+      );
+      const cleanCollectionHtml = await cleanCollectionResponse.text();
+      const expectedCanonical =
+        "https://theblacksheepshop.co.uk/collections/" +
+        encodeURIComponent(String(publicChild.slug));
+      assert(
+        cleanCollectionHtml.includes(
+          '<link rel="canonical" href="' + expectedCanonical + '">',
+        ),
+        "CARD 12 clean collection canonical is missing or incorrect.",
+      );
+      assert(
+        cleanCollectionHtml.includes(
+          '<meta name="robots" content="index,follow,max-image-preview:large">',
+        ),
+        "CARD 12 clean collection route is not indexable.",
+      );
+      assert(
+        cleanCollectionHtml.includes(String(publicChild.name)) &&
+          cleanCollectionHtml.includes(String(placementSeed.title)),
+        "CARD 12 clean collection HTML is missing the published section or Product.",
+      );
+
       const storefrontPage = await context.newPage();
       try {
         await storefrontPage.goto(
