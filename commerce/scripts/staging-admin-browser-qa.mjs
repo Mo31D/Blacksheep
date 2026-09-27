@@ -1375,6 +1375,48 @@ async function homepageMerchandisingQa() {
         !previewText.includes("Local favourites"),
       "CARD 07 Private Preview did not reflect module order/visibility.",
     );
+    await page.locator("[data-close-product-sheet]:visible").first().click();
+
+    page.once("dialog", async (dialog) => {
+      await dialog.accept();
+    });
+    const publishPromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/admin/api/homepage-merchandising/publish") &&
+        response.request().method() === "POST",
+      { timeout: 20_000 },
+    );
+    await page.locator("#homepagePublish").click();
+    const published = await assertMutationResponse(
+      publishPromise,
+      "CARD 10 Homepage publish",
+      200,
+    );
+    const homepagePublishedVersion = String(
+      published?.config?.publishedVersionId || "",
+    );
+    assert(
+      homepagePublishedVersion,
+      "CARD 10 Homepage publish returned no published version.",
+    );
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector("#view-website [data-publication-status]")
+          ?.textContent?.includes("Published and verified in staging."),
+      null,
+      { timeout: 20_000 },
+    );
+    const publicHomepageResponse = await fetch(BASE + "/v1/homepage-merchandising");
+    assert(
+      publicHomepageResponse.ok,
+      "CARD 10 public Homepage endpoint failed after publish.",
+    );
+    const publicHomepage = await publicHomepageResponse.json();
+    assert(
+      publicHomepage?.config?.publishedVersionId === homepagePublishedVersion,
+      "CARD 10 Homepage public version does not match the published version.",
+    );
 
     await assertNoHorizontalOverflow(page, "CARD 06 Homepage iPad portrait");
     await page.screenshot({
@@ -1553,6 +1595,14 @@ async function websiteAppearanceQa() {
     );
     const qaPublishedId = String(published?.config?.publishedVersionId || "");
     assert(qaPublishedId, "CARD 08 Appearance publish returned no published version.");
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector("#view-website [data-publication-status]")
+          ?.textContent?.includes("Published and verified in staging."),
+      null,
+      { timeout: 20_000 },
+    );
 
     const publicAppearanceResponse = await fetch(BASE + "/v1/appearance");
     assert(publicAppearanceResponse.ok, "CARD 08 public Appearance endpoint failed.");
@@ -2368,6 +2418,14 @@ async function ownerPolishViewsQa(viewport, label) {
         publishRootResponse,
         "CARD 04 root section publish",
         200,
+      );
+      await page.waitForFunction(
+        () =>
+          document
+            .querySelector("#view-catalogue [data-publication-status]")
+            ?.textContent?.includes("Published and verified in staging."),
+        null,
+        { timeout: 20_000 },
       );
 
       qaRoot = page
