@@ -528,8 +528,9 @@ export async function sharedMediaStorageOwnedByLibrary(
       .first<{ id: string }>();
     return Boolean(row?.id);
   } catch {
-    // Backward-compatible with environments where CARD 11 migration is not applied yet.
-    return false;
+    // A quota/connection/schema failure is not proof of exclusive ownership.
+    // Retain the object; cleanup can be retried after the database recovers.
+    return true;
   }
 }
 

@@ -120,7 +120,7 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("/duplicate");
     expect(production).toContain("/archive");
     expect(production).toContain("Duplicate created as a private draft.");
-    expect(production).toContain("Published & live on storefront");
+    expect(production).toContain("Published and verified on the public feed.");
     expect(production).toContain("/v1/catalog/");
     expect(production).toContain("View on website");
     expect(production).toContain("function openResponsiveProductDetail()");

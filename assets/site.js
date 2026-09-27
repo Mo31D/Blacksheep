@@ -32,6 +32,29 @@ function card(item,type){const url=itemUrl(item,type);const brand=item.brand?`<s
 function productFromCard(card){if(!window.CATALOG)return null;const type=card?.dataset?.productType,slug=card?.dataset?.productSlug;if(type&&slug){const direct=findItem(type,slug);if(direct)return direct}const href=card?.dataset?.url||card?.querySelector('.product-title,.product-img')?.getAttribute('href')||'';try{const parsed=new URL(href,location.origin),querySlug=parsed.searchParams.get('slug'),queryType=parsed.searchParams.get('type');if(querySlug&&queryType){const dynamic=findItem(queryType,querySlug);if(dynamic)return dynamic}const m=parsed.pathname.match(/\/products\/([^/?#]+)\.html$/);if(m){const target=decodeURIComponent(m[1]);for(const list of Object.values(window.CATALOG)){const found=(list||[]).find(item=>item.slug===target);if(found)return found}}}catch{}return null}
 function syncCatalogCardState(root=document){if(!window.CATALOG)return;root.querySelectorAll('.product-card').forEach(card=>{const item=productFromCard(card);if(!item)return;const buy=card.querySelector('.product-buyline');const meta=card.querySelector('.product-meta');let priceEl=card.querySelector('.product-price');if(typeof item.price==='number'){const val=formatPrice(item.price);if(priceEl){priceEl.className='product-price';priceEl.textContent=val}else if(buy)buy.insertAdjacentHTML('afterbegin','<span class="product-price">'+val+'</span>');else if(meta)meta.insertAdjacentHTML('afterbegin','<span class="product-price">'+val+'</span>')}else if(priceEl){priceEl.className='product-price product-price--ask';priceEl.textContent='Ask in store'}card.querySelectorAll('.stock-card-label,.availability-card-label').forEach(el=>el.remove());const arrivingSoon=item.availabilityStatus==='arriving-soon';const out=item.stockStatus==='out-of-stock'&&!arrivingSoon;const staticBlocked=(item.sellStatus==='NOT_FOR_SALE'||item.onlineOrderingEnabled===false)&&!arrivingSoon&&!out;const liveBlocked=item.commercePurchasable===false&&!arrivingSoon&&!out&&item.commerceUnavailableReason!=='price_unavailable';card.classList.toggle('is-out-of-stock',out);if(buy&&arrivingSoon)buy.insertAdjacentHTML('beforeend','<span class="stock-card-label arriving-soon">Arriving soon</span>');else if(buy&&out)buy.insertAdjacentHTML('beforeend','<span class="stock-card-label">Out of stock</span>');else if(buy&&(staticBlocked||liveBlocked))buy.insertAdjacentHTML('beforeend','<span class="stock-card-label">Not available online</span>')})}
 
+// All catalogue surfaces use the same published snapshot, including cards
+// prerendered in the original design. Do not reconcile during API fallback.
+function reconcilePublishedCatalogDom(){
+  if(window.BLACK_SHEEP_LIVE_COMMERCE_STATE?.authoritative!==true)return;
+  let removed=0;
+  document.querySelectorAll('.product-card').forEach(card=>{
+    if(!productFromCard(card)){card.remove();removed++;}
+  });
+  if(removed&&typeof initFilters==='function')initFilters();
+  const detail=document.querySelector('.product-static');
+  const match=location.pathname.match(/\/products\/([^/]+)\.html$/);
+  if(!detail||!match)return;
+  let slug;
+  try{slug=decodeURIComponent(match[1]);}catch{return;}
+  const published=Object.values(window.CATALOG).some(list=>(list||[]).some(item=>item.slug===slug));
+  if(published)return;
+  detail.innerHTML='<div class="wrap"><div class="notice" role="status"><h1>Product no longer available</h1><p>This product is not currently in our published catalogue.</p><a class="btn secondary" href="/all-products.html">Browse current products</a></div></div>';
+  document.title='Product no longer available | The Black Sheep Shop';
+  document.querySelectorAll('script[type="application/ld+json"]').forEach(node=>node.remove());
+  let robots=document.querySelector('meta[name="robots"]');
+  if(!robots){robots=document.createElement('meta');robots.name='robots';document.head.appendChild(robots);}
+  robots.content='noindex, follow';
+}
 function productAvailabilityRank(item){if(!item)return 0;if(item.availabilityStatus==='arriving-soon')return 1;if(item.stockStatus==='out-of-stock')return 2;return 0}
 function sortProductCardsByAvailability(root=document){if(!window.CATALOG)return;const parents=new Set();root.querySelectorAll('.product-card').forEach(card=>{if(card.parentElement)parents.add(card.parentElement)});parents.forEach(parent=>{const cards=[...parent.children].filter(el=>el.classList?.contains('product-card'));if(cards.length<2)return;const ranked=cards.map((card,index)=>{const item=productFromCard(card);return{card,index,rank:productAvailabilityRank(item)}});ranked.sort((a,b)=>a.rank-b.rank||a.index-b.index);if(ranked.every((x,i)=>x.card===cards[i]))return;const marker=document.createComment('availability-order');parent.insertBefore(marker,cards[0]);const frag=document.createDocumentFragment();ranked.forEach(x=>frag.appendChild(x.card));marker.after(frag);marker.remove()})}
 function wireProductCards(root=document){root.querySelectorAll('.product-card').forEach(card=>{const href=card.dataset.url||card.querySelector('.product-title,.product-img')?.getAttribute('href');if(!href)return;card.dataset.url=href;card.setAttribute('role','link');if(!card.hasAttribute('tabindex'))card.tabIndex=0;if(card.dataset.cardWired==='1')return;card.dataset.cardWired='1';card.addEventListener('click',e=>{if(e.target.closest('a,button,input,select,textarea,label'))return;location.href=href});card.addEventListener('keydown',e=>{if(e.target!==card)return;if(e.key==='Enter'||e.key===' '){e.preventDefault();location.href=href}})})}
