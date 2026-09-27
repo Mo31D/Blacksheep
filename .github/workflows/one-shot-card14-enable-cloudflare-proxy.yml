@@ -1,0 +1,150 @@
+name: One-shot CARD 14 Enable Cloudflare Proxy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/one-shot-card14-enable-cloudflare-proxy.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: black-sheep-production-dns
+  cancel-in-progress: false
+
+jobs:
+  proxy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      ZONE_ID: "98fcd6d2e71c4fdfb0e80cf66161ce4b"
+    steps:
+      - name: Require Cloudflare token
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN"; exit 1; }
+
+      - name: Verify current web DNS records before mutation
+        shell: bash
+        run: |
+          curl --fail --silent --show-error             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?per_page=100" > /tmp/dns.json
+          node <<'NODE'
+          const fs = require("fs");
+          const data = JSON.parse(fs.readFileSync("/tmp/dns.json","utf8"));
+          if (!data.success) throw new Error("Cloudflare DNS read failed");
+          const wanted = (data.result || []).filter(r =>
+            ["theblacksheepshop.co.uk","www.theblacksheepshop.co.uk"].includes(r.name) &&
+            ["A","CNAME"].includes(r.type)
+          );
+          const apex = wanted.filter(r => r.name === "theblacksheepshop.co.uk" && r.type === "A");
+          const www = wanted.filter(r => r.name === "www.theblacksheepshop.co.uk" && r.type === "CNAME");
+          if (apex.length !== 4) throw new Error("Expected exactly four apex GitHub Pages A records");
+          if (www.length !== 1) throw new Error("Expected exactly one www CNAME");
+          const expectedA = new Set(["185.199.108.153","185.199.109.153","185.199.110.153","185.199.111.153"]);
+          if (apex.some(r => !expectedA.has(r.content))) throw new Error("Unexpected apex origin; refusing mutation");
+          if (www[0].content !== "mo31d.github.io") throw new Error("Unexpected www origin; refusing mutation");
+          console.log(JSON.stringify(wanted.map(r => ({id:r.id,type:r.type,name:r.name,content:r.content,proxied:r.proxied})), null, 2));
+          NODE
+
+      - name: Enable Cloudflare proxy for storefront web records only
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+          const { execFileSync } = require("child_process");
+          const data = JSON.parse(fs.readFileSync("/tmp/dns.json","utf8"));
+          const wanted = (data.result || []).filter(r =>
+            ["theblacksheepshop.co.uk","www.theblacksheepshop.co.uk"].includes(r.name) &&
+            ["A","CNAME"].includes(r.type)
+          );
+          for (const r of wanted) {
+            if (r.proxied === true) {
+              console.log("Already proxied:", r.name, r.content);
+              continue;
+            }
+            const payload = JSON.stringify({
+              type: r.type,
+              name: r.name,
+              content: r.content,
+              ttl: 1,
+              proxied: true
+            });
+            const out = execFileSync("curl", [
+              "--fail","--silent","--show-error",
+              "-X","PATCH",
+              "-H",`Authorization: Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+              "-H","Content-Type: application/json",
+              "--data",payload,
+              `https://api.cloudflare.com/client/v4/zones/${process.env.ZONE_ID}/dns_records/${r.id}`
+            ], {encoding:"utf8"});
+            const result = JSON.parse(out);
+            if (!result.success || result.result?.proxied !== true) {
+              throw new Error("Failed to proxy DNS record " + r.id);
+            }
+            console.log("Proxied:", r.name, r.content);
+          }
+          NODE
+
+      - name: Verify DNS records are proxied
+        shell: bash
+        run: |
+          curl --fail --silent --show-error             -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"             "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?per_page=100" > /tmp/dns-after.json
+          node <<'NODE'
+          const fs = require("fs");
+          const data = JSON.parse(fs.readFileSync("/tmp/dns-after.json","utf8"));
+          const wanted = (data.result || []).filter(r =>
+            ["theblacksheepshop.co.uk","www.theblacksheepshop.co.uk"].includes(r.name) &&
+            ["A","CNAME"].includes(r.type)
+          );
+          if (wanted.length !== 5 || wanted.some(r => r.proxied !== true)) {
+            throw new Error("Storefront web DNS proxy verification failed");
+          }
+          const mail = (data.result || []).filter(r => ["MX","TXT"].includes(r.type));
+          if (mail.some(r => r.proxiable && r.proxied)) {
+            throw new Error("Unexpected proxied mail DNS record");
+          }
+          console.log("All five storefront web records are proxied; mail records unchanged.");
+          NODE
+
+      - name: Verify GitHub Pages fallback still works through Cloudflare
+        shell: bash
+        run: |
+          for url in             "https://theblacksheepshop.co.uk/"             "https://theblacksheepshop.co.uk/gifts.html"             "https://theblacksheepshop.co.uk/products/pr-047-peter-rabbit-medium.html"
+          do
+            code="$(curl --silent --output /tmp/body --write-out '%{http_code}' --max-time 30 "$url")"
+            test "$code" = "200" || { echo "::error::$url returned $code"; cat /tmp/body; exit 1; }
+          done
+          echo "Static GitHub Pages fallback remains healthy."
+
+      - name: Verify Worker collection route and dynamic sitemap
+        shell: bash
+        run: |
+          code="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 30 "https://theblacksheepshop.co.uk/collections/gifts")"
+          location="$(curl --silent --head --max-time 30 "https://theblacksheepshop.co.uk/collections/gifts" | tr -d '\r' | awk 'tolower($1)=="location:" {print $2}' | tail -1)"
+          test "$code" = "301" || { echo "::error::Expected collection 301, got $code"; exit 1; }
+          case "$location" in
+            https://theblacksheepshop.co.uk/gifts.html) ;;
+            *) echo "::error::Unexpected collection redirect: $location"; exit 1 ;;
+          esac
+
+          curl --fail --silent --show-error --max-time 30 "https://theblacksheepshop.co.uk/sitemap.xml" > /tmp/sitemap.xml
+          grep -Fq "<loc>https://theblacksheepshop.co.uk/gifts.html</loc>" /tmp/sitemap.xml
+          if grep -Fq "product.html?" /tmp/sitemap.xml; then
+            echo "::error::Query-string Product URL found in sitemap"
+            exit 1
+          fi
+          echo "Worker collection route and sitemap are live."
+
+      - name: Verify www route
+        shell: bash
+        run: |
+          code="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 30 "https://www.theblacksheepshop.co.uk/collections/gifts")"
+          location="$(curl --silent --head --max-time 30 "https://www.theblacksheepshop.co.uk/collections/gifts" | tr -d '\r' | awk 'tolower($1)=="location:" {print $2}' | tail -1)"
+          test "$code" = "301" || { echo "::error::Expected www collection 301, got $code"; exit 1; }
+          case "$location" in
+            https://theblacksheepshop.co.uk/collections/gifts) ;;
+            *) echo "::error::Unexpected www canonical redirect: $location"; exit 1 ;;
+          esac
+          echo "www Worker route verified."
