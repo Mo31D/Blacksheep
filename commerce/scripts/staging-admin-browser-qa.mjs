@@ -736,7 +736,38 @@ async function productPlacementQa() {
       "Created Product does not show the selected Storefront placements.",
     );
 
-    await page.locator("#productEditDetails").click();
+    let editDetails = page.locator("#productEditDetails");
+    if (!(await editDetails.isVisible())) {
+      const detailState = await page.evaluate(() => {
+        const detail = document.getElementById("productDetail");
+        const edit = document.getElementById("productEditDetails");
+        const rect = detail?.getBoundingClientRect();
+        return {
+          innerWidth: window.innerWidth,
+          bodyClass: document.body.className,
+          detailDisplay: detail ? getComputedStyle(detail).display : null,
+          detailRect: rect
+            ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+            : null,
+          editDisplay: edit ? getComputedStyle(edit).display : null,
+        };
+      });
+      console.log(
+        "CARD03 QA: created Product detail was not visible; reopening from Product list",
+        JSON.stringify(detailState),
+      );
+      const createdRow = page
+        .locator("#productList .product-row")
+        .filter({ hasText: PRODUCT_PLACEMENT_QA_TITLE })
+        .first();
+      await createdRow.waitFor({ state: "visible", timeout: 10_000 });
+      await createdRow.click();
+      await page.waitForSelector("#productEditDetails:visible", {
+        timeout: 10_000,
+      });
+      editDetails = page.locator("#productEditDetails:visible");
+    }
+    await editDetails.click();
     await page.waitForSelector("#pePrimarySection", { timeout: 10_000 });
     assert(
       (await page.locator("#pePrimarySection").inputValue()) === "sfn_gifts" &&
