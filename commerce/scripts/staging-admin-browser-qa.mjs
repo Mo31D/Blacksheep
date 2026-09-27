@@ -2608,6 +2608,50 @@ async function ownerPolishViewsQa(viewport, label) {
       cleanupStorefrontStructureQa();
     }
 
+    await openView("website");
+    await page.waitForSelector("#websiteHomepagePanel:not(.hidden)", { timeout: 20_000 });
+    const homepageModuleRows = await page
+      .locator("#homepageModules [data-homepage-module]")
+      .evaluateAll((nodes) =>
+        nodes.slice(0, 5).map((node) => ({
+          key: node.getAttribute("data-homepage-module"),
+          text: node.textContent || "",
+          moveButtons: node.querySelectorAll("[data-homepage-module-move]").length,
+        })),
+      );
+    assert(
+      homepageModuleRows.slice(0, 3).map((row) => row.key).join(",") ===
+        "HERO,PRODUCT_RAIL,COLLECTIONS",
+      label +
+        " Website Homepage order is not fixed as Hero → Product strip → Shop by collection: " +
+        JSON.stringify(homepageModuleRows),
+    );
+    assert(
+      homepageModuleRows.slice(0, 3).every((row) => row.moveButtons === 0),
+      label + " fixed Homepage rows still expose reorder controls.",
+    );
+    assert(
+      homepageModuleRows.slice(0, 3).every((row) => row.text.includes("Fixed position")),
+      label + " fixed Homepage rows do not explain their protected position.",
+    );
+    for (const tab of ["homepage", "appearance", "media"]) {
+      assert(
+        (await page.locator('[data-website-tab="' + tab + '"]').count()) === 1,
+        label + " Website has a missing or duplicate " + tab + " tab.",
+      );
+    }
+    await assertNoHorizontalOverflow(page, label + " Website Homepage");
+    await page.locator('[data-website-tab="appearance"]').click();
+    await page.waitForSelector("#websiteAppearancePanel:not(.hidden)", {
+      timeout: 10_000,
+    });
+    await assertNoHorizontalOverflow(page, label + " Website Appearance");
+    await page.locator('[data-website-tab="media"]').click();
+    await page.waitForSelector("#websiteMediaPanel:not(.hidden)", {
+      timeout: 10_000,
+    });
+    await assertNoHorizontalOverflow(page, label + " Website Media");
+
     await openView("stock");
     await page.waitForFunction(
       () => document.querySelectorAll("#stockList .product-row").length > 0,
