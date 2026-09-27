@@ -1189,7 +1189,7 @@ async function homepageMerchandisingQa() {
 
     await page
       .locator(
-        '#homepageModules [data-homepage-module="HERO"] [data-homepage-module-key="HERO"][data-homepage-module-move="1"]',
+        '#homepageModules [data-homepage-module="LOCAL_FAVOURITES"] [data-homepage-module-key="LOCAL_FAVOURITES"][data-homepage-module-move="1"]',
       )
       .click();
 
