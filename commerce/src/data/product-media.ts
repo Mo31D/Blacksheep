@@ -1,5 +1,9 @@
 
 import type { D1DatabaseLike, D1PreparedStatementLike } from "./d1";
+import {
+  getSharedMediaStorage,
+  sharedMediaStorageOwnedByLibrary,
+} from "./shared-media";
 
 const q = (...parts: string[]) => parts.join(" ");
 
@@ -622,7 +626,9 @@ export async function removeAdminProductMedia(
       )
       .bind(current.storageKey)
       .first<{ count: number }>();
-    shouldDeleteObject = Number(remaining?.count ?? 0) === 0;
+    shouldDeleteObject =
+      Number(remaining?.count ?? 0) === 0 &&
+      !(await sharedMediaStorageOwnedByLibrary(db, current.storageKey));
   }
 
   return {
@@ -830,7 +836,9 @@ export async function replaceAdminProductMedia(
       )
       .bind(current.storageKey)
       .first<{ count: number }>();
-    shouldDeleteOldObject = Number(remaining?.count ?? 0) === 0;
+    shouldDeleteOldObject =
+      Number(remaining?.count ?? 0) === 0 &&
+      !(await sharedMediaStorageOwnedByLibrary(db, current.storageKey));
   }
 
   return {
@@ -849,7 +857,7 @@ export async function getR2MediaStorage(
   mimeType: string | null;
   checksumSha256: string | null;
 } | null> {
-  return db
+  const productMedia = await db
     .prepare(
       q(
         "SELECT storage_key AS storageKey, mime_type AS mimeType,",
@@ -864,4 +872,13 @@ export async function getR2MediaStorage(
       mimeType: string | null;
       checksumSha256: string | null;
     }>();
+  if (productMedia) return productMedia;
+
+  try {
+    return await getSharedMediaStorage(db, mediaId);
+  } catch {
+    // CARD 11 is additive: Product Media must keep working in environments
+    // where the shared-media migration has not been applied yet.
+    return null;
+  }
 }
