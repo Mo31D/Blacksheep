@@ -257,37 +257,19 @@ describe("Phase 4 Inventory Core Admin", () => {
     });
   });
 
-  it("returns explicit bulk stocktake results", async () => {
+  it("does not expose the retired bulk-count mutation outside Stocktake 2.0", async () => {
     const response = await handleAdminRequest(
       post("/admin/api/inventory/bulk-count", {
         locationId: "loc_ambleside",
-        reason: "Bulk physical stock count",
-        idempotencyKey: "inventory:test:bulk:1",
-        items: [
-          {
-            variantId: "var-1",
-            countedOnHand: 7,
-            expectedBalanceVersion: 4,
-          },
-        ],
+        items: [{ variantId: "var-1", countedOnHand: 7 }],
       }),
       { DB: new Db() },
-      {
-        verifyAccessFn: identity,
-        bulkInventoryCountFn: (async () => ({
-          batchId: "ibatch-1",
-          success: [{ variantId: "var-1", snapshot }],
-          conflicts: [],
-          unchanged: [],
-        })) as never,
-      },
+      { verifyAccessFn: identity },
     );
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(404);
     await expect(response.json()).resolves.toMatchObject({
-      batchId: "ibatch-1",
-      success: [{ variantId: "var-1" }],
-      conflicts: [],
+      error: { code: "not_found" },
     });
   });
 
