@@ -97,6 +97,15 @@ import {
   type SaveHomepageMerchandisingDraftInput,
 } from "../data/homepage-merchandising";
 import {
+  getAdminWebsiteAppearance,
+  getPublishedWebsiteAppearance,
+  listWebsiteAppearanceHistory,
+  publishAdminWebsiteAppearance,
+  restoreAdminWebsiteAppearance,
+  saveAdminWebsiteAppearanceDraft,
+  type SaveWebsiteAppearanceDraftInput,
+} from "../data/website-appearance";
+import {
   cancelStocktakeSession,
   createStocktakeSession,
   finalizeStocktakeSession,
@@ -153,6 +162,12 @@ interface AdminDependencies {
   previewAdminHomepageMerchandisingFn: typeof previewAdminHomepageMerchandising;
   saveAdminHomepageMerchandisingDraftFn: typeof saveAdminHomepageMerchandisingDraft;
   publishAdminHomepageMerchandisingFn: typeof publishAdminHomepageMerchandising;
+  getAdminWebsiteAppearanceFn: typeof getAdminWebsiteAppearance;
+  getPublishedWebsiteAppearanceFn: typeof getPublishedWebsiteAppearance;
+  listWebsiteAppearanceHistoryFn: typeof listWebsiteAppearanceHistory;
+  saveAdminWebsiteAppearanceDraftFn: typeof saveAdminWebsiteAppearanceDraft;
+  publishAdminWebsiteAppearanceFn: typeof publishAdminWebsiteAppearance;
+  restoreAdminWebsiteAppearanceFn: typeof restoreAdminWebsiteAppearance;
   listAdminStorefrontNodesFn: typeof listAdminStorefrontNodes;
   getAdminStorefrontNodeFn: typeof getAdminStorefrontNode;
   createAdminStorefrontNodeFn: typeof createAdminStorefrontNode;
@@ -223,6 +238,12 @@ const defaults: AdminDependencies = {
   previewAdminHomepageMerchandisingFn: previewAdminHomepageMerchandising,
   saveAdminHomepageMerchandisingDraftFn: saveAdminHomepageMerchandisingDraft,
   publishAdminHomepageMerchandisingFn: publishAdminHomepageMerchandising,
+  getAdminWebsiteAppearanceFn: getAdminWebsiteAppearance,
+  getPublishedWebsiteAppearanceFn: getPublishedWebsiteAppearance,
+  listWebsiteAppearanceHistoryFn: listWebsiteAppearanceHistory,
+  saveAdminWebsiteAppearanceDraftFn: saveAdminWebsiteAppearanceDraft,
+  publishAdminWebsiteAppearanceFn: publishAdminWebsiteAppearance,
+  restoreAdminWebsiteAppearanceFn: restoreAdminWebsiteAppearance,
   listAdminStorefrontNodesFn: listAdminStorefrontNodes,
   getAdminStorefrontNodeFn: getAdminStorefrontNode,
   createAdminStorefrontNodeFn: createAdminStorefrontNode,
@@ -339,6 +360,47 @@ function homepageMutationError(cause: unknown): Response {
   };
   const status = notFound.has(code) ? 404 : conflicts.has(code) ? 409 : 400;
   return error(code, status, messages[code] ?? "Unable to update homepage settings.");
+}
+
+function appearanceMutationError(cause: unknown): Response {
+  const code =
+    cause instanceof Error ? cause.message : "appearance_update_failed";
+  const conflicts = new Set([
+    "appearance_version_conflict",
+    "appearance_no_draft",
+  ]);
+  const notFound = new Set([
+    "appearance_not_found",
+    "appearance_restore_target_not_found",
+  ]);
+  const messages: Record<string, string> = {
+    appearance_expected_version_invalid: "Appearance version is invalid.",
+    appearance_version_conflict:
+      "Website appearance changed while you were editing. Refresh and try again.",
+    appearance_colour_invalid:
+      "Choose a valid six-digit colour, for example #f8f4ea.",
+    appearance_tokens_invalid: "Appearance colours are invalid.",
+    appearance_preset_invalid: "Theme preset is invalid.",
+    appearance_hero_invalid: "Homepage hero settings are invalid.",
+    appearance_hero_image_invalid: "Hero image address is invalid.",
+    appearance_hero_heading_invalid: "Hero heading is too long.",
+    appearance_hero_text_invalid: "Hero text is too long.",
+    appearance_hero_button_invalid: "Hero button label is too long.",
+    appearance_hero_href_invalid:
+      "Hero button must link to this website or an approved internal path.",
+    appearance_section_images_invalid: "Section image settings are invalid.",
+    appearance_no_draft: "There are no Appearance draft changes to publish.",
+    appearance_restore_target_required: "Choose a previous Appearance version to restore.",
+    appearance_restore_target_not_found:
+      "That previous Appearance version is no longer available.",
+    appearance_not_found: "Website Appearance configuration is unavailable.",
+  };
+  const status = notFound.has(code) ? 404 : conflicts.has(code) ? 409 : 400;
+  return error(
+    code,
+    status,
+    messages[code] ?? "Unable to update website appearance.",
+  );
 }
 
 function storefrontMutationError(cause: unknown): Response {
@@ -1099,6 +1161,94 @@ export async function handleAdminRequest(
       limit: Number(url.searchParams.get("limit") ?? "60"),
     });
     return json(result);
+  }
+
+  if (
+    url.pathname === "/admin/api/appearance" &&
+    request.method === "GET"
+  ) {
+    try {
+      const [config, history] = await Promise.all([
+        deps.getAdminWebsiteAppearanceFn(env.DB),
+        deps.listWebsiteAppearanceHistoryFn(env.DB, 8),
+      ]);
+      return json({ config, history });
+    } catch (cause) {
+      return appearanceMutationError(cause);
+    }
+  }
+
+  if (
+    url.pathname === "/admin/api/appearance/preview" &&
+    request.method === "GET"
+  ) {
+    try {
+      const config = await deps.getAdminWebsiteAppearanceFn(env.DB);
+      return json({ config });
+    } catch (cause) {
+      return appearanceMutationError(cause);
+    }
+  }
+
+  if (
+    url.pathname === "/admin/api/appearance/draft" &&
+    request.method === "PATCH"
+  ) {
+    try {
+      const raw = await readProductJson(request);
+      await deps.saveAdminWebsiteAppearanceDraftFn(
+        env.DB,
+        raw as unknown as SaveWebsiteAppearanceDraftInput,
+        identity.email,
+      );
+      const config = await deps.getAdminWebsiteAppearanceFn(env.DB);
+      return json({ config });
+    } catch (cause) {
+      return appearanceMutationError(cause);
+    }
+  }
+
+  if (
+    url.pathname === "/admin/api/appearance/publish" &&
+    request.method === "POST"
+  ) {
+    try {
+      const raw = await readProductJson(request);
+      await deps.publishAdminWebsiteAppearanceFn(
+        env.DB,
+        raw.expectedVersion,
+        identity.email,
+      );
+      const [config, history] = await Promise.all([
+        deps.getAdminWebsiteAppearanceFn(env.DB),
+        deps.listWebsiteAppearanceHistoryFn(env.DB, 8),
+      ]);
+      return json({ config, history });
+    } catch (cause) {
+      return appearanceMutationError(cause);
+    }
+  }
+
+  if (
+    url.pathname === "/admin/api/appearance/restore" &&
+    request.method === "POST"
+  ) {
+    try {
+      const raw = await readProductJson(request);
+      await deps.restoreAdminWebsiteAppearanceFn(
+        env.DB,
+        raw.versionId,
+        raw.expectedVersion,
+        identity.email,
+      );
+      const [config, history] = await Promise.all([
+        deps.getAdminWebsiteAppearanceFn(env.DB),
+        deps.listWebsiteAppearanceHistoryFn(env.DB, 8),
+      ]);
+      return json({ config, history });
+    } catch (cause) {
+      return appearanceMutationError(cause);
+    }
   }
 
   if (
