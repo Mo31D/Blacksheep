@@ -577,6 +577,29 @@ export async function restoreAdminWebsiteAppearance(
           "WHERE id = ? AND version = ?",
       )
       .bind(restoredId, createdAt, APPEARANCE_ID, expected),
+  ];
+
+  // Close the current live version before inserting the restored live clone.
+  // The partial unique index permits only one row with published_at set and
+  // superseded_at NULL for this appearance.
+  if (current.publishedVersionId) {
+    statements.push(
+      db
+        .prepare(
+          "UPDATE website_appearance_versions SET superseded_at = ? WHERE id = ? " +
+            "AND EXISTS (SELECT 1 FROM website_appearance WHERE id = ? AND version = ? AND updated_at = ?)",
+        )
+        .bind(
+          createdAt,
+          current.publishedVersionId,
+          APPEARANCE_ID,
+          resultVersion,
+          createdAt,
+        ),
+    );
+  }
+
+  statements.push(
     db
       .prepare(
         "INSERT INTO website_appearance_versions (" +
@@ -604,26 +627,6 @@ export async function restoreAdminWebsiteAppearance(
         resultVersion,
         createdAt,
       ),
-  ];
-
-  if (current.publishedVersionId) {
-    statements.push(
-      db
-        .prepare(
-          "UPDATE website_appearance_versions SET superseded_at = ? WHERE id = ? " +
-            "AND EXISTS (SELECT 1 FROM website_appearance WHERE id = ? AND version = ? AND updated_at = ?)",
-        )
-        .bind(
-          createdAt,
-          current.publishedVersionId,
-          APPEARANCE_ID,
-          resultVersion,
-          createdAt,
-        ),
-    );
-  }
-
-  statements.push(
     auditStatement(db, {
       eventType: "RESTORED",
       actorEmail,
