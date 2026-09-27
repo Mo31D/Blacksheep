@@ -1201,6 +1201,165 @@ async function ownerPolishViewsQa(viewport, label) {
         { timeout: 10_000 },
       );
 
+      // CARD 04: publish a synthetic hierarchy, prove the public Structure
+      // contract, and exercise the real storefront runtime against Staging.
+      qaRoot = page
+        .locator("#storefrontStructureTree .structure-card")
+        .filter({ hasText: STRUCTURE_ROOT_NAME });
+
+      const rootMenuToggle = qaRoot.locator(
+        ":scope > .structure-body > .structure-actions [data-structure-toggle-menu]",
+      );
+      if ((await rootMenuToggle.innerText()).includes("Show")) {
+        const showResponse = page.waitForResponse(
+          (response) =>
+            response.url().includes("/admin/api/storefront-structure/") &&
+            response.request().method() === "PATCH" &&
+            response.status() === 200,
+          { timeout: 20_000 },
+        );
+        await rootMenuToggle.click();
+        await showResponse;
+      }
+
+      qaRoot = page
+        .locator("#storefrontStructureTree .structure-card")
+        .filter({ hasText: STRUCTURE_ROOT_NAME });
+      page.once("dialog", async (dialog) => {
+        await dialog.accept();
+      });
+      const publishRootResponse = page.waitForResponse(
+        (response) =>
+          response.url().includes("/admin/api/storefront-structure/") &&
+          response.url().endsWith("/publish") &&
+          response.request().method() === "POST",
+        { timeout: 20_000 },
+      );
+      await qaRoot
+        .locator(":scope > .structure-body > .structure-actions [data-structure-publish]")
+        .click();
+      await assertMutationResponse(
+        publishRootResponse,
+        "CARD 04 root section publish",
+        200,
+      );
+
+      qaRoot = page
+        .locator("#storefrontStructureTree .structure-card")
+        .filter({ hasText: STRUCTURE_ROOT_NAME });
+      const childB = qaRoot
+        .locator(".structure-subrow")
+        .filter({ hasText: STRUCTURE_CHILD_B });
+      const childBId = await childB
+        .locator("[data-structure-edit]")
+        .getAttribute("data-structure-edit");
+      assert(childBId, "CARD 04 child section id was unavailable.");
+      page.once("dialog", async (dialog) => {
+        await dialog.accept();
+      });
+      const publishChildResponse = page.waitForResponse(
+        (response) =>
+          response.url().endsWith(
+            "/admin/api/storefront-structure/" + childBId + "/publish",
+          ) &&
+          response.request().method() === "POST",
+        { timeout: 20_000 },
+      );
+      await childB.locator("[data-structure-publish]").click();
+      await assertMutationResponse(
+        publishChildResponse,
+        "CARD 04 child section publish",
+        200,
+      );
+
+      const structureResponse = await fetch(BASE + "/v1/storefront-structure");
+      assert(
+        structureResponse.ok,
+        "CARD 04 public Storefront Structure endpoint is unavailable.",
+      );
+      const structurePayload = await structureResponse.json();
+      const publicNodes = Array.isArray(structurePayload?.nodes)
+        ? structurePayload.nodes
+        : [];
+      const publicRoot = publicNodes.find(
+        (node) => node.name === STRUCTURE_ROOT_NAME,
+      );
+      const publicChild = publicNodes.find(
+        (node) => node.name === STRUCTURE_CHILD_B,
+      );
+      assert(
+        publicRoot?.showInNavigation === true,
+        "CARD 04 published root is not visible in public navigation data.",
+      );
+      assert(
+        publicChild?.parentNodeId === publicRoot?.id,
+        "CARD 04 published child hierarchy is incorrect.",
+      );
+
+      const placementSeed = d1(
+        "SELECT p.current_published_version_id AS versionId, pv.title AS title " +
+          "FROM products p JOIN product_versions pv ON pv.id=p.current_published_version_id " +
+          "WHERE p.publication_status='ACTIVE' AND p.current_published_version_id IS NOT NULL " +
+          "ORDER BY pv.title COLLATE NOCASE LIMIT 1",
+      )[0];
+      assert(
+        placementSeed?.versionId,
+        "CARD 04 could not find a published Product for placement proof.",
+      );
+      d1(
+        "INSERT OR IGNORE INTO product_version_storefront_placements " +
+          "(product_version_id,storefront_node_id,is_primary,position,source,created_at) VALUES (" +
+          [
+            q(String(placementSeed.versionId)),
+            q(String(publicChild.id)),
+            "0",
+            "990",
+            "'OWNER'",
+            q(NOW),
+          ].join(",") +
+          ")",
+      );
+
+      const storefrontPage = await context.newPage();
+      try {
+        await storefrontPage.goto(
+          "https://theblacksheepshop.co.uk/collection.html?commerce-preview=staging&section=" +
+            encodeURIComponent(String(publicChild.slug)),
+          { waitUntil: "domcontentloaded", timeout: 60_000 },
+        );
+        await storefrontPage.waitForFunction(
+          ({ childName, rootName, productTitle }) => {
+            const title = document.getElementById("dynamicCollectionTitle");
+            const nav = document.querySelector(".menu");
+            const cards = Array.from(document.querySelectorAll("#catalog .product-card"));
+            return Boolean(
+              title?.textContent?.includes(childName) &&
+                nav?.textContent?.includes(rootName) &&
+                cards.some((card) => card.textContent?.includes(productTitle)),
+            );
+          },
+          {
+            childName: STRUCTURE_CHILD_B,
+            rootName: STRUCTURE_ROOT_NAME,
+            productTitle: String(placementSeed.title),
+          },
+          { timeout: 30_000 },
+        );
+        await assertNoHorizontalOverflow(
+          storefrontPage,
+          "CARD 04 dynamic collection storefront preview",
+        );
+        await storefrontPage.screenshot({
+          path: path.join(
+            ARTIFACT_DIR,
+            "card04-dynamic-collection-staging-preview.png",
+          ),
+          fullPage: true,
+        });
+      } finally {
+        await storefrontPage.close();
+      }
+
       await assertNoHorizontalOverflow(page, label + " Catalogue nested editing");
       await page.screenshot({
         path: path.join(ARTIFACT_DIR, "iphone-catalogue-structure.png"),
@@ -1494,6 +1653,10 @@ try {
           "iphone-catalogue-subsection-reorder",
           "iphone-catalogue-subsection-archive-restore",
           "iphone-catalogue-parent-archive-guard",
+          "card04-published-structure-public-contract",
+          "card04-admin-menu-visibility-publication",
+          "card04-dynamic-collection-placement-membership",
+          "card04-storefront-preview-navigation",
           "iphone-catalogue-no-technical-enums",
           "ipad-portrait-catalogue-no-horizontal-overflow",
           "iphone-stock-value-report",
