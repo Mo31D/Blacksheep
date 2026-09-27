@@ -12,7 +12,10 @@ const style = readFileSync(resolve(repoRoot, "assets/style.css"), "utf8");
 const homepage = readFileSync(resolve(repoRoot, "index.html"), "utf8");
 const indexSource = readFileSync(resolve(process.cwd(), "src/index.ts"), "utf8");
 
-assert(homepage.includes('id="homepageProductRail" hidden'), "Homepage rail must stay hidden until published merchandising loads.");
+assert(
+  /<section[^>]*id="homepageProductRail"[^>]*\shidden(?:\s|>)/.test(homepage),
+  "Homepage rail must stay hidden until published merchandising loads.",
+);
 assert(homepage.includes('id="homepageProductRailTrack"'), "Homepage rail track is missing.");
 assert(homepage.includes('id="homepageProductRailPrev"'), "Homepage rail previous control is missing.");
 assert(homepage.includes('id="homepageProductRailNext"'), "Homepage rail next control is missing.");
