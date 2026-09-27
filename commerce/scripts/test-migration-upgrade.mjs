@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0023_")) {
+  if (!latestMigration?.startsWith("0024_")) {
     throw new Error(
-      `Expected latest migration to be 0023, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0024, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0022_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0022.");
+  if (baselineMigrations.at(-1)?.startsWith("0023_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0023.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -147,6 +147,7 @@ try {
     "SELECT id, storage_provider, storage_key, public_url, mime_type, file_size, checksum_sha256, title, alt_text, context, status, archived_at, deleted_at FROM shared_media_assets LIMIT 0",
     "SELECT asset_id, surface, owner_id, owner_version_id, slot_key, released_at FROM shared_media_references LIMIT 0",
     "SELECT asset_id, event_type, actor_id, before_json, after_json FROM shared_media_audit_events LIMIT 0",
+    "SELECT asset_id, storage_key, state, attempt_count, claim_token, last_error, claimed_by, claimed_at, updated_at FROM shared_media_delete_jobs LIMIT 0",
   ];
 
   for (const sql of schemaQueries) {
@@ -174,7 +175,7 @@ try {
     "--persist-to",
     persistDir,
     "--command",
-    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort','idx_suppliers_active_name','idx_product_variants_supplier','idx_inventory_valuation_snapshots_location_date','idx_storefront_nodes_status_updated','idx_storefront_live_slug','idx_storefront_one_live_version','idx_storefront_node_versions_parent_sort','idx_product_storefront_one_primary','idx_product_storefront_node_version','idx_storefront_audit_node_created','idx_storefront_audit_event_created','idx_stocktake_sessions_status_updated','idx_stocktake_sessions_location_status','idx_stocktake_items_session_position','idx_stocktake_items_session_status','idx_homepage_merchandising_one_live_version','idx_homepage_merchandising_products_position','idx_homepage_merchandising_audit_created','idx_homepage_merchandising_modules_position','idx_shared_media_assets_status_context','idx_shared_media_assets_checksum','idx_shared_media_references_asset','idx_shared_media_references_owner','idx_shared_media_audit_asset_created') ORDER BY name",
+    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort','idx_suppliers_active_name','idx_product_variants_supplier','idx_inventory_valuation_snapshots_location_date','idx_storefront_nodes_status_updated','idx_storefront_live_slug','idx_storefront_one_live_version','idx_storefront_node_versions_parent_sort','idx_product_storefront_one_primary','idx_product_storefront_node_version','idx_storefront_audit_node_created','idx_storefront_audit_event_created','idx_stocktake_sessions_status_updated','idx_stocktake_sessions_location_status','idx_stocktake_items_session_position','idx_stocktake_items_session_status','idx_homepage_merchandising_one_live_version','idx_homepage_merchandising_products_position','idx_homepage_merchandising_audit_created','idx_homepage_merchandising_modules_position','idx_shared_media_assets_status_context','idx_shared_media_assets_checksum','idx_shared_media_references_asset','idx_shared_media_references_owner','idx_shared_media_audit_asset_created','idx_shared_media_delete_jobs_state_updated') ORDER BY name",
   ]);
 
   for (const required of [
@@ -215,6 +216,7 @@ try {
     "idx_shared_media_references_asset",
     "idx_shared_media_references_owner",
     "idx_shared_media_audit_asset_created",
+    "idx_shared_media_delete_jobs_state_updated",
   ]) {
     if (!indexOutput.includes(required)) {
       throw new Error(`Required index missing after upgrade: ${required}`);
@@ -346,7 +348,7 @@ try {
   }
 
   console.log(
-    "PASS: migrations 0000–0021 upgraded cleanly to 0022; Website Appearance, Homepage composition, Merchandising and Stocktake schemas are present.",
+    "PASS: migrations 0000–0023 upgraded cleanly to 0024; shared-media deletion claims and all prior platform schemas are present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
