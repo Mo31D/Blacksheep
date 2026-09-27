@@ -203,14 +203,16 @@ export function adminHtml(identityEmail: string, environment = "production"): st
         <div class="chart-head"><div><h2>Colours</h2><small class="muted">Approved site colours. Layout and typography remain protected.</small></div></div>
         <div class="appearance-colours" id="appearanceColours">
           <label class="appearance-colour"><input type="color" id="appearanceBackground"><span><strong>Background</strong><small>Page background</small></span></label>
+          <label class="appearance-colour"><input type="color" id="appearanceAccent"><span><strong>Accent</strong><small>Highlights</small></span></label>
+          <label class="appearance-colour"><input type="color" id="appearanceButton"><span><strong>Buttons</strong><small>Primary buttons</small></span></label>
+          <label class="appearance-colour"><input type="color" id="appearanceHeader"><span><strong>Header</strong><small>Sticky header</small></span></label>
+        </div>
+        <details class="advanced-details" style="margin-top:10px"><summary>More colour controls</summary><div class="advanced-body"><div class="appearance-colours">
           <label class="appearance-colour"><input type="color" id="appearanceSurface"><span><strong>Surface</strong><small>Cards and panels</small></span></label>
           <label class="appearance-colour"><input type="color" id="appearanceText"><span><strong>Text</strong><small>Main text</small></span></label>
           <label class="appearance-colour"><input type="color" id="appearanceMutedText"><span><strong>Muted text</strong><small>Secondary copy</small></span></label>
-          <label class="appearance-colour"><input type="color" id="appearanceAccent"><span><strong>Accent</strong><small>Highlights</small></span></label>
-          <label class="appearance-colour"><input type="color" id="appearanceButton"><span><strong>Buttons</strong><small>Primary buttons</small></span></label>
           <label class="appearance-colour"><input type="color" id="appearanceBorder"><span><strong>Borders</strong><small>Lines and outlines</small></span></label>
-          <label class="appearance-colour"><input type="color" id="appearanceHeader"><span><strong>Header</strong><small>Sticky header</small></span></label>
-        </div>
+        </div></div></details>
       </section>
       <section class="panel appearance-card">
         <div class="chart-head"><div><h2>Section images</h2><small class="muted">Optional image overrides for published website sections.</small></div></div>
