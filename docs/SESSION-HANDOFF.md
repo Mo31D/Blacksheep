@@ -705,3 +705,36 @@ Product Add/Edit should gain:
 7. **View on website** after successful verification.
 
 Continue on Staging first. Do not promote these architecture changes to Production until the appropriate release gate passes.
+
+
+---
+
+## CRITICAL LATEST HANDOFF — Cards 03–08 Staging verified, 27 September 2026
+
+Full remote D1/browser verification is no longer deferred.
+
+**Browser QA run `36315773161` — PASS.**
+
+Verified in one Staging run:
+- CARD 03 Product primary/multi-location placement, private preview and publish/public verification.
+- CARD 04 published Storefront Structure, menu visibility and dynamic collection membership.
+- CARD 05 Stocktake 2.0: Romney's and Highland Cows scopes, persistent resume, same-input/focus after Save & next, Cancel, conflict-review architecture and responsive layout.
+- CARD 06 Homepage merchandising three modes, Featured reorder, draft isolation and preview.
+- CARD 07 protected Homepage modules, reorder/hide/show and preview.
+- CARD 08 Website Appearance draft/preview/publish/public contract/restore and iPad layout.
+
+Remote Staging D1 migration ledger is current through:
+- `0019_stocktake_sessions.sql`
+- `0020_homepage_merchandising.sql`
+- `0021_homepage_modules.sql`
+- `0022_website_appearance.sql`
+
+All synthetic QA data was cleaned after the run.
+
+Evidence report:
+`docs/PLATFORM-CARDS-03-08-STAGING-2026-09-27.md`
+
+**Production was not modified.**
+
+Exact next milestone:
+**CARD 09 — Seasonal theme presets, Hero editor & section imagery**.

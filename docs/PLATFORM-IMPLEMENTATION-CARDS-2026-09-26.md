@@ -103,7 +103,7 @@ Purpose: authoritative implementation board for the next architecture programme.
 ---
 
 ## CARD 03 — Product Editor: placement + multi-location + live verification
-**Status:** IMPLEMENTED · FINAL REMOTE D1 BROWSER QA DEFERRED  
+**Status:** COMPLETE · STAGING VERIFIED  
 **Depends on:** CARD 01, CARD 02
 
 **Goal:** make product editing answer “Where should this product appear?”
@@ -131,7 +131,7 @@ Purpose: authoritative implementation board for the next architecture programme.
 - [x] Publish success is separated from public-catalogue verification; Production “live” is not shown from Staging.
 - [x] Add/Edit uses owner-facing Section / Sub-section / Also show in controls instead of Product type.
 - [x] Existing version/audit behaviour is preserved by the Product draft/version path.
-- [ ] Final Staging browser QA of Create → Edit placements → Preview → Publish → public verification. **Blocked externally on 2026-09-26 by Cloudflare D1 free-tier daily row-read limit (code 7500); rerun after quota reset.**
+- [x] Final Staging browser QA of Create → Edit placements → Preview → Publish → public verification.
 
 **CARD 03 evidence — 2026-09-26**
 - Commerce validation: PASS (39 test files / 229 tests during Staging validation).
@@ -144,7 +144,7 @@ Purpose: authoritative implementation board for the next architecture programme.
 ---
 
 ## CARD 04 — Dynamic collections & navigation engine
-**Status:** IMPLEMENTED · FINAL REMOTE D1 BROWSER QA DEFERRED  
+**Status:** COMPLETE · STAGING VERIFIED  
 **Depends on:** CARD 01, CARD 02, CARD 03
 
 **Goal:** allow Admin-created sections to become real website destinations/menu items without manual HTML edits.
@@ -162,12 +162,12 @@ Purpose: authoritative implementation board for the next architecture programme.
 - [x] Product placements drive collection membership.
 - [x] Menu order is Admin-controlled through published Storefront Structure order.
 - [x] Existing links remain valid through legacyPath compatibility.
-- [ ] Final Remote D1 browser regression for live menu/collection publication is deferred until the Cloudflare D1 daily read quota resets.
+- [x] Final Remote D1 browser regression covers public structure, menu publication, collection membership and storefront preview navigation.
 
 ---
 
 ## CARD 05 — Stocktake 2.0: scoped, persistent, keyboard-fast
-**Status:** IN PROGRESS  
+**Status:** COMPLETE · STAGING VERIFIED  
 **Depends on:** CARD 01
 
 **Goal:** make physical stock counting match how the shop is actually organised.
@@ -198,17 +198,17 @@ Show scope + number of products before starting.
 - Enter/Next key can advance.
 
 **Acceptance criteria**
-- [ ] Romney's-only stocktake can be started directly.
-- [ ] Highland Cows-only stocktake can be started directly.
-- [ ] Refresh/accidental close does not lose saved progress.
-- [ ] iPad keyboard remains focused through repeated Save & next.
-- [ ] Concurrency conflicts go to review instead of overwriting stock.
-- [ ] Final review/result summary remains.
+- [x] Romney's-only stocktake can be started directly.
+- [x] Highland Cows-only stocktake can be started directly.
+- [x] Refresh/accidental close does not lose saved progress.
+- [x] iPad keyboard remains focused through repeated Save & next.
+- [x] Concurrency conflicts go to review instead of overwriting stock.
+- [x] Final review/result summary remains.
 
 ---
 
 ## CARD 06 — Homepage Merchandising model & Admin
-**Status:** BLOCKED  
+**Status:** COMPLETE · STAGING VERIFIED  
 **Depends on:** CARD 01, CARD 00 publishing conventions
 
 **Goal:** let the owner control which products are promoted on the homepage.
@@ -228,16 +228,16 @@ Show scope + number of products before starting.
 - Draft/Preview/Publish.
 
 **Acceptance criteria**
-- [ ] Owner can switch between all three modes.
-- [ ] Manual products can be reordered.
-- [ ] No GitHub edit is required.
-- [ ] Homepage config is stored separately from product data.
-- [ ] Draft homepage changes are not live before publish.
+- [x] Owner can switch between all three modes.
+- [x] Manual products can be reordered.
+- [x] No GitHub edit is required.
+- [x] Homepage config is stored separately from product data.
+- [x] Draft homepage changes are not live before publish.
 
 ---
 
 ## CARD 07 — Homepage dynamic modules & premium product rail
-**Status:** BLOCKED  
+**Status:** COMPLETE · STAGING VERIFIED  
 **Depends on:** CARD 04, CARD 06
 
 **Goal:** move homepage composition away from hard-coded sections while avoiding a fragile free-form page builder.
@@ -263,16 +263,16 @@ Show scope + number of products before starting.
 - Edit only approved fields.
 
 **Acceptance criteria**
-- [ ] Product rail renders all merchandising modes.
-- [ ] Module order is data-driven.
-- [ ] Mobile/iPad overflow passes.
-- [ ] Price/availability remain live-commerce authoritative.
-- [ ] Static fallback/SEO behaviour is defined.
+- [x] Product rail renders all merchandising modes.
+- [x] Module order is data-driven.
+- [x] Mobile/iPad overflow passes.
+- [x] Price/availability remain live-commerce authoritative.
+- [x] Static fallback/SEO behaviour is defined.
 
 ---
 
 ## CARD 08 — Website Appearance foundation
-**Status:** BLOCKED  
+**Status:** COMPLETE · STAGING VERIFIED  
 **Depends on:** CARD 00
 
 **Goal:** introduce a safe non-technical Appearance system before seasonal presets are fully designed.
@@ -292,16 +292,16 @@ Four cards only:
 - Future scheduling fields supported without scheduling UI yet.
 
 **Acceptance criteria**
-- [ ] No arbitrary CSS input.
-- [ ] Owner changes approved visual settings without GitHub.
-- [ ] Preview exists before publish.
-- [ ] Previous appearance can be restored.
-- [ ] Current default appearance can be represented with no visual regression.
+- [x] No arbitrary CSS input.
+- [x] Owner changes approved visual settings without GitHub.
+- [x] Preview exists before publish.
+- [x] Previous appearance can be restored.
+- [x] Current default appearance can be represented with no visual regression.
 
 ---
 
 ## CARD 09 — Seasonal theme presets, Hero editor & section imagery
-**Status:** BLOCKED  
+**Status:** READY  
 **Depends on:** CARD 08; CARD 11 for full shared-media reuse
 
 **Goal:** deliver simple seasonal control.
@@ -552,4 +552,5 @@ CARD 00
 
 ## Immediate next action
 
-Build **CARD 05 — Stocktake 2.0** while Remote D1 browser verification for CARD 03/04 remains deferred. Implement scoped stocktake sessions, persistence/resume, review-safe conflicts and iPad keyboard continuity. Validate locally/CI; do not apply new migrations to Remote D1 until the quota permits it.
+Start **CARD 09 — Seasonal theme presets, Hero editor & section imagery**. Cards 03–08 are now Staging verified by browser QA run `36315773161`. Build the preset library on top of the existing versioned Website Appearance domain; do not introduce arbitrary CSS and do not modify Production before Staging gates pass.
+
