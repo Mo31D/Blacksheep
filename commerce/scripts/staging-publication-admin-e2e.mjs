@@ -350,9 +350,22 @@ async function runQa() {
     });
     await page.locator("#newProductTitle").fill(TITLE);
     await page.locator("#newProductPrice").fill(PRICE);
-    await page.locator("#newProductType").fill("gifts");
     await page.locator("#newProductSku").fill(SKU);
     await page.locator("#newProductDesc").fill(DESCRIPTION);
+
+    const primarySection = page.locator("#newProductPrimarySection");
+    await primarySection.waitFor({ state: "visible", timeout: 10_000 });
+    const primarySectionValue = await primarySection.locator("option").evaluateAll(
+      (options) =>
+        options
+          .map((option) => option.value)
+          .find((value) => String(value || "").trim().length > 0) || "",
+    );
+    assert.ok(
+      primarySectionValue,
+      "Admin Add Product primary website sections were not loaded.",
+    );
+    await primarySection.selectOption(primarySectionValue);
 
     const categories = page.locator(
       "#newProductCategories input[type=checkbox]",
