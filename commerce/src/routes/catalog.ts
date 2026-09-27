@@ -5,6 +5,7 @@ import {
 } from "../data/public-catalog";
 import { listPublishedStorefrontNodes } from "../data/storefront-structure";
 import { getPublishedHomepageMerchandisingPreview } from "../data/homepage-merchandising";
+import { getPublishedWebsiteAppearance } from "../data/website-appearance";
 
 export interface PublicCatalogEnv {
   DB?: D1DatabaseLike;
@@ -57,6 +58,14 @@ export async function handlePublicCatalogRequest(
   }
 
   const url = new URL(request.url);
+  if (url.pathname === "/v1/appearance") {
+    const config = await getPublishedWebsiteAppearance(env.DB);
+    return json({
+      config,
+      contract: "website-appearance-published-v1",
+    });
+  }
+
   if (url.pathname === "/v1/homepage-merchandising") {
     const result = await getPublishedHomepageMerchandisingPreview(env.DB);
     return json({
