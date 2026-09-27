@@ -385,6 +385,13 @@ export async function restoreAdminSharedMediaAsset(
   if (!current) throw new Error("shared_media_not_found");
   if (current.status === "ACTIVE") return current;
   if (current.status !== "ARCHIVED") throw new Error("shared_media_not_restorable");
+  const deleteJob = await db
+    .prepare(
+      "SELECT state FROM shared_media_delete_jobs WHERE asset_id = ? AND state <> 'DONE' LIMIT 1",
+    )
+    .bind(assetId)
+    .first<{ state: string }>();
+  if (deleteJob) throw new Error("shared_media_delete_pending");
   const timestamp = now();
   await db.batch([
     db
@@ -773,17 +780,13 @@ export async function finalizeSharedMediaObjectDeletion(
       ),
     db
       .prepare(
-        "UPDATE shared_media_delete_jobs SET state = 'DONE', last_error = NULL, updated_at = ? " +
-          "WHERE asset_id = ? AND state = 'CLAIMED' AND claim_token = ?",
-      )
-      .bind(timestamp, claim.assetId, claim.claimToken),
-    db
-      .prepare(
         "INSERT INTO shared_media_audit_events (" +
           "id, asset_id, event_type, actor_id, before_json, after_json, created_at" +
           ") SELECT ?, ?, 'OBJECT_DELETED', ?, ?, ?, ? WHERE EXISTS (" +
           "SELECT 1 FROM shared_media_delete_jobs j " +
-          "WHERE j.asset_id = ? AND j.state = 'CLAIMED' AND j.claim_token = ?)",
+          "WHERE j.asset_id = ? AND j.state = 'CLAIMED' AND j.claim_token = ?) " +
+          "AND EXISTS (SELECT 1 FROM shared_media_assets a " +
+          "WHERE a.id = ? AND a.status = 'DELETED')",
       )
       .bind(
         uid("smae"),
@@ -794,7 +797,16 @@ export async function finalizeSharedMediaObjectDeletion(
         timestamp,
         claim.assetId,
         claim.claimToken,
+        claim.assetId,
       ),
+    db
+      .prepare(
+        "UPDATE shared_media_delete_jobs SET state = 'DONE', last_error = NULL, updated_at = ? " +
+          "WHERE asset_id = ? AND state = 'CLAIMED' AND claim_token = ? " +
+          "AND EXISTS (SELECT 1 FROM shared_media_assets a " +
+          "WHERE a.id = ? AND a.status = 'DELETED')",
+      )
+      .bind(timestamp, claim.assetId, claim.claimToken, claim.assetId),
   ]);
 
   const completed = await db
