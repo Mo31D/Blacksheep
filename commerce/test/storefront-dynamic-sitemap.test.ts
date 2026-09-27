@@ -6,32 +6,53 @@ import type {
 import { handleDynamicSitemapRequest } from "../src/routes/storefront-sitemap";
 
 class Statement implements D1PreparedStatementLike {
+  private values: unknown[] = [];
+
   constructor(private readonly rows: unknown[]) {}
-  bind(): D1PreparedStatementLike {
+
+  bind(...values: unknown[]): D1PreparedStatementLike {
+    this.values = values;
     return this;
   }
+
   async first<T>(): Promise<T | null> {
     return null;
   }
+
   async all<T>(): Promise<{ results: T[] }> {
+    const limit = Number(this.values.at(-2));
+    const offset = Number(this.values.at(-1));
+    if (Number.isFinite(limit) && Number.isFinite(offset)) {
+      return {
+        results: this.rows.slice(offset, offset + limit) as T[],
+      };
+    }
     return { results: this.rows as T[] };
   }
+
   async run(): Promise<unknown> {
     return {};
   }
 }
 
 class Db implements D1DatabaseLike {
-  constructor(private readonly rows: unknown[]) {}
-  prepare(): D1PreparedStatementLike {
-    return new Statement(this.rows);
+  constructor(
+    private readonly nodeRows: unknown[],
+    private readonly productRows: unknown[],
+  ) {}
+
+  prepare(sql: string): D1PreparedStatementLike {
+    return new Statement(
+      sql.includes("FROM products p") ? this.productRows : this.nodeRows,
+    );
   }
+
   async batch<T>(): Promise<T[]> {
     return [] as T[];
   }
 }
 
-const publishedRows = [
+const publishedNodes = [
   {
     id: "legacy",
     stableKey: "gifts",
@@ -73,20 +94,70 @@ const publishedRows = [
   },
 ];
 
-describe("CARD 12 dynamic collection sitemap", () => {
+const productBase = {
+  publicationStatus: "ACTIVE",
+  sellStatus: "AVAILABLE",
+  onlineOrderingEnabled: 1,
+  productUpdatedAt: "2026-09-27T00:00:00.000Z",
+  publishedVersionId: "pv-1",
+  publishedVersionNumber: 1,
+  title: "Product",
+  shortDescription: "Published product.",
+  brand: null,
+  productType: "gifts",
+  primaryCategory: "gifts",
+  categorySlugs: "gifts",
+  primaryStorefrontNodeId: "legacy",
+  storefrontNodeIds: "legacy",
+  variantId: "variant-1",
+  sku: "SKU",
+  priceMinor: 995,
+  currency: "GBP",
+  trackInventory: 0,
+  onHand: null,
+  reserved: null,
+  safetyStock: null,
+  balanceVersion: null,
+  primaryImageUrl: null,
+};
+
+const publishedProducts = [
+  {
+    ...productBase,
+    productId: "product-legacy",
+    legacyId: "HC-001",
+    slug: "highland-cow-classic",
+    title: "Legacy Highland Cow",
+  },
+  {
+    ...productBase,
+    productId: "product-native",
+    legacyId: null,
+    slug: "admin-created-gift",
+    title: "Admin Created Gift",
+    primaryStorefrontNodeId: "dynamic-a",
+    storefrontNodeIds: "dynamic-a",
+  },
+];
+
+function db(): Db {
+  return new Db(publishedNodes, publishedProducts);
+}
+
+describe("CARD 12 published-state sitemap", () => {
   it("is unavailable while clean routes are disabled", async () => {
     const response = await handleDynamicSitemapRequest(
-      new Request("https://example.test/sitemap-dynamic.xml"),
-      { DB: new Db(publishedRows) },
+      new Request("https://example.test/sitemap.xml"),
+      { DB: db() },
     );
     expect(response.status).toBe(404);
   });
 
-  it("contains published non-legacy collection canonicals only", async () => {
+  it("preserves legacy canonicals and adds clean D1 canonicals without duplicates", async () => {
     const response = await handleDynamicSitemapRequest(
-      new Request("https://example.test/sitemap-dynamic.xml"),
+      new Request("https://example.test/sitemap.xml"),
       {
-        DB: new Db(publishedRows),
+        DB: db(),
         STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED: "true",
       },
     );
@@ -96,25 +167,49 @@ describe("CARD 12 dynamic collection sitemap", () => {
     const xml = await response.text();
 
     expect(xml).toContain(
+      "<loc>https://theblacksheepshop.co.uk/gifts.html</loc>",
+    );
+    expect(xml).toContain(
       "<loc>https://theblacksheepshop.co.uk/collections/christmas</loc>",
     );
     expect(xml).toContain(
       "<loc>https://theblacksheepshop.co.uk/collections/new-and-special</loc>",
     );
-    expect(xml).not.toContain("/collections/gifts");
-    expect(xml).not.toContain("gifts.html");
-    expect(xml.indexOf("/collections/christmas")).toBeLessThan(
-      xml.indexOf("/collections/new-and-special"),
+    expect(xml).not.toContain("/collections/gifts</loc>");
+
+    expect(xml).toContain(
+      "<loc>https://theblacksheepshop.co.uk/products/highland-cow-classic.html</loc>",
+    );
+    expect(xml).toContain(
+      "<loc>https://theblacksheepshop.co.uk/products/admin-created-gift</loc>",
+    );
+    expect(xml).not.toContain("product.html?");
+
+    expect((xml.match(/<loc>/g) || []).length).toBe(
+      new Set([
+        "/",
+        "/all-products.html",
+        "/about.html",
+        "/visit.html",
+        "/privacy.html",
+        "/delivery-returns.html",
+        "/terms.html",
+        "/gifts.html",
+        "/collections/christmas",
+        "/collections/new-and-special",
+        "/products/highland-cow-classic.html",
+        "/products/admin-created-gift",
+      ]).size,
     );
   });
 
   it("rejects writes", async () => {
     const response = await handleDynamicSitemapRequest(
-      new Request("https://example.test/sitemap-dynamic.xml", {
+      new Request("https://example.test/sitemap.xml", {
         method: "POST",
       }),
       {
-        DB: new Db(publishedRows),
+        DB: db(),
         STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED: "true",
       },
     );
