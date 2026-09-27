@@ -1989,6 +1989,29 @@ async function ownerPolishViewsQa(viewport, label) {
         );
         await rootMenuToggle.click();
         await showResponse;
+        await page.waitForFunction(
+          (rootName) => {
+            const cards = Array.from(
+              document.querySelectorAll(
+                "#storefrontStructureTree .structure-card",
+              ),
+            );
+            const root = cards.find((card) =>
+              card.textContent?.includes(rootName),
+            );
+            const toggle = root?.querySelector(
+              ":scope > .structure-body > .structure-actions [data-structure-toggle-menu]",
+            );
+            const publish = root?.querySelector(
+              ":scope > .structure-body > .structure-actions [data-structure-publish]",
+            );
+            return Boolean(
+              toggle?.textContent?.includes("Hide from menu") && publish,
+            );
+          },
+          STRUCTURE_ROOT_NAME,
+          { timeout: 20_000 },
+        );
       }
 
       qaRoot = page
