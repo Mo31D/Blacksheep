@@ -25,6 +25,9 @@ class Statement implements D1PreparedStatementLike {
     if (this.sql.includes("FROM homepage_merchandising_products hp")) {
       return { results: this.db.featured as T[] };
     }
+    if (this.sql.includes("FROM homepage_merchandising_modules")) {
+      return { results: this.db.modules as T[] };
+    }
     if (
       this.sql.includes("ORDER BY pv.published_at DESC")
     ) {
@@ -48,6 +51,13 @@ class HomepagePublicDb implements D1DatabaseLike {
   featured: Record<string, unknown>[] = [];
   newArrivals: Record<string, unknown>[] = [];
   collection: Record<string, unknown>[] = [];
+  modules: Record<string, unknown>[] = [
+    { moduleKey: "HERO", enabled: 1, position: 10 },
+    { moduleKey: "COLLECTIONS", enabled: 1, position: 20 },
+    { moduleKey: "PRODUCT_RAIL", enabled: 1, position: 30 },
+    { moduleKey: "LOCAL_FAVOURITES", enabled: 1, position: 40 },
+    { moduleKey: "VISIT_SHOP", enabled: 1, position: 50 },
+  ];
 
   constructor(mode: string) {
     this.snapshot = {
@@ -106,6 +116,13 @@ describe("CARD 07 published Homepage product rail", () => {
     expect(result.products.map((row) => row.productId)).toEqual([
       "new-1",
       "new-2",
+    ]);
+    expect(result.config.modules.map((row) => row.key)).toEqual([
+      "HERO",
+      "COLLECTIONS",
+      "PRODUCT_RAIL",
+      "LOCAL_FAVOURITES",
+      "VISIT_SHOP",
     ]);
     expect(
       db.prepared.some((statement) =>

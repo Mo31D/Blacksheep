@@ -36,6 +36,13 @@ const config = {
   heading: "Popular picks",
   selectedStorefrontNodeId: null,
   selectedStorefrontNodeName: null,
+  modules: [
+    { key: "HERO" as const, enabled: true, position: 10 },
+    { key: "COLLECTIONS" as const, enabled: true, position: 20 },
+    { key: "PRODUCT_RAIL" as const, enabled: true, position: 30 },
+    { key: "LOCAL_FAVOURITES" as const, enabled: true, position: 40 },
+    { key: "VISIT_SHOP" as const, enabled: true, position: 50 },
+  ],
   featuredProducts: [
     {
       productId: "prd-1",
@@ -89,6 +96,13 @@ describe("CARD 06 Homepage Merchandising Admin API", () => {
         mode: "NEW_ARRIVALS",
         productLimit: 6,
         heading: "New in",
+        modules: [
+          { key: "HERO", enabled: true },
+          { key: "PRODUCT_RAIL", enabled: true },
+          { key: "COLLECTIONS", enabled: true },
+          { key: "LOCAL_FAVOURITES", enabled: false },
+          { key: "VISIT_SHOP", enabled: true },
+        ],
       }),
       { DB: new Db() },
       {
@@ -108,6 +122,9 @@ describe("CARD 06 Homepage Merchandising Admin API", () => {
       expectedVersion: 4,
       mode: "NEW_ARRIVALS",
       productLimit: 6,
+      modules: expect.arrayContaining([
+        { key: "LOCAL_FAVOURITES", enabled: false },
+      ]),
       actorEmail: "owner@example.com",
     });
   });

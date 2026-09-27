@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0020_")) {
+  if (!latestMigration?.startsWith("0021_")) {
     throw new Error(
-      `Expected latest migration to be 0020, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0021, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0019_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0019.");
+  if (baselineMigrations.at(-1)?.startsWith("0020_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0020.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -139,6 +139,7 @@ try {
     "SELECT id, current_published_version_id, current_draft_version_id, version FROM homepage_merchandising LIMIT 0",
     "SELECT merchandising_id, version_number, enabled, mode, product_limit, heading, selected_storefront_node_id, published_at, superseded_at FROM homepage_merchandising_versions LIMIT 0",
     "SELECT version_id, product_id, position FROM homepage_merchandising_products LIMIT 0",
+    "SELECT version_id, module_key, enabled, position FROM homepage_merchandising_modules LIMIT 0",
     "SELECT merchandising_id, event_type, actor_id, before_json, after_json FROM homepage_merchandising_audit_events LIMIT 0",
   ];
 
@@ -167,7 +168,7 @@ try {
     "--persist-to",
     persistDir,
     "--command",
-    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort','idx_suppliers_active_name','idx_product_variants_supplier','idx_inventory_valuation_snapshots_location_date','idx_storefront_nodes_status_updated','idx_storefront_live_slug','idx_storefront_one_live_version','idx_storefront_node_versions_parent_sort','idx_product_storefront_one_primary','idx_product_storefront_node_version','idx_storefront_audit_node_created','idx_storefront_audit_event_created','idx_stocktake_sessions_status_updated','idx_stocktake_sessions_location_status','idx_stocktake_items_session_position','idx_stocktake_items_session_status','idx_homepage_merchandising_one_live_version','idx_homepage_merchandising_products_position','idx_homepage_merchandising_audit_created') ORDER BY name",
+    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort','idx_suppliers_active_name','idx_product_variants_supplier','idx_inventory_valuation_snapshots_location_date','idx_storefront_nodes_status_updated','idx_storefront_live_slug','idx_storefront_one_live_version','idx_storefront_node_versions_parent_sort','idx_product_storefront_one_primary','idx_product_storefront_node_version','idx_storefront_audit_node_created','idx_storefront_audit_event_created','idx_stocktake_sessions_status_updated','idx_stocktake_sessions_location_status','idx_stocktake_items_session_position','idx_stocktake_items_session_status','idx_homepage_merchandising_one_live_version','idx_homepage_merchandising_products_position','idx_homepage_merchandising_audit_created','idx_homepage_merchandising_modules_position') ORDER BY name",
   ]);
 
   for (const required of [
@@ -202,6 +203,7 @@ try {
     "idx_homepage_merchandising_one_live_version",
     "idx_homepage_merchandising_products_position",
     "idx_homepage_merchandising_audit_created",
+    "idx_homepage_merchandising_modules_position",
   ]) {
     if (!indexOutput.includes(required)) {
       throw new Error(`Required index missing after upgrade: ${required}`);
@@ -246,6 +248,30 @@ try {
   ]) {
     if (!homepageSeed.includes(expected)) {
       throw new Error("Homepage Merchandising seed invariant missing: " + expected + "\n" + homepageSeed);
+    }
+  }
+
+  const homepageModulesSeed = runWrangler([
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    configPath,
+    "--persist-to",
+    persistDir,
+    "--command",
+    "SELECT module_key, enabled, position FROM homepage_merchandising_modules WHERE version_id='hmv_default_1' ORDER BY position",
+  ]);
+  for (const expected of [
+    '"module_key": "HERO"',
+    '"module_key": "COLLECTIONS"',
+    '"module_key": "PRODUCT_RAIL"',
+    '"module_key": "LOCAL_FAVOURITES"',
+    '"module_key": "VISIT_SHOP"',
+  ]) {
+    if (!homepageModulesSeed.includes(expected)) {
+      throw new Error("Homepage module seed invariant missing: " + expected + "\n" + homepageModulesSeed);
     }
   }
 
@@ -309,9 +335,9 @@ try {
   }
 
   console.log(
-    "PASS: migrations 0000–0019 upgraded cleanly to 0020; Homepage Merchandising and persistent Stocktake schemas are present.",
+    "PASS: migrations 0000–0020 upgraded cleanly to 0021; Homepage module composition, Merchandising and Stocktake schemas are present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
 }
-// CARD 06 migration guard updated for 0020.
+// CARD 07 migration guard updated for 0021.

@@ -48,6 +48,12 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain('id="view-website"');
     expect(production).toContain('data-nav="website"');
     expect(production).toContain("Homepage product strip");
+    expect(production).toContain("Homepage sections");
+    expect(production).toContain('id="homepageModules"');
+    expect(production).toContain("homepageModulesPayload");
+    expect(production).toContain("data-homepage-module-move");
+    expect(production).toContain("Hero & quick links");
+    expect(production).toContain("Visit / shop story");
     expect(production).toContain("Newest products");
     expect(production).toContain("Featured products");
     expect(production).toContain("Selected collection");
