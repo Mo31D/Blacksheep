@@ -61,7 +61,7 @@ jobs:
           const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
           const latest = String(blocks?.[0]?.results?.[0]?.name ?? "");
           const active = Number(blocks?.[1]?.results?.[0]?.active ?? -1);
-          if (latest !== "0012_order_returns.sql" || active !== 146) {
+          if (latest !== "0024_shared_media_delete_jobs.sql" || active !== 146) {
             console.error("Unexpected staging publication QA baseline.", { latest, active });
             process.exit(1);
           }
@@ -76,7 +76,7 @@ jobs:
           const active = Number(blocks?.[1]?.results?.[0]?.active ?? -1);
           const missingPublished = Number(blocks?.[2]?.results?.[0]?.missing_published ?? -1);
           if (
-            latest !== "0012_order_returns.sql" ||
+            !["0022_website_appearance.sql", "0024_shared_media_delete_jobs.sql"].includes(latest) ||
             active < 1 ||
             missingPublished !== 0
           ) {
@@ -124,3 +124,5 @@ jobs:
         run: |
           echo "This QA mutates staging only and deletes its synthetic Product/session afterwards."
           echo "No Production Worker deploy, D1 migration, Product mutation or storefront file write is performed."
+
+# card14-current-schema-publication-e2e-2026-09-27
