@@ -137,10 +137,11 @@ describe("generated Admin HTML scripts", () => {
 
   it("promotes iPad-width master/detail views into immediate overlays", () => {
     const html = adminHtml("owner@example.com");
+    expect(html).toContain("function openResponsiveProductDetail()");
     expect(html).toContain(
-      "window.matchMedia('(max-width:900px)').matches",
+      "window.matchMedia('(max-width: 900px)').matches",
     );
-    expect(html).toContain("if(innerWidth<=900)");
+    expect(html).toContain("openResponsiveProductDetail()");
     expect(html).toContain(
       ".detail-open .order-panel{display:block;position:fixed;inset:72px 0 0 78px",
     );
