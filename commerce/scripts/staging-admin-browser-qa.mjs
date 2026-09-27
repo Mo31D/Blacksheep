@@ -701,6 +701,25 @@ async function productPlacementQa() {
     );
     const productId = String(created?.product?.id || "");
     assert(productId, "CARD 03 Product creation did not return a Product id.");
+    const createdPlacements = Array.isArray(created?.product?.storefrontPlacements)
+      ? created.product.storefrontPlacements
+      : [];
+    assert(
+      createdPlacements.some(
+        (placement) =>
+          placement.storefrontNodeId === "sfn_gifts_highland_cows" &&
+          placement.isPrimary === true,
+      ),
+      "CARD 03 create response is missing the primary Storefront placement.",
+    );
+    assert(
+      createdPlacements.some(
+        (placement) =>
+          placement.storefrontNodeId === "sfn_gifts_seasonal" &&
+          placement.isPrimary === false,
+      ),
+      "CARD 03 create response is missing the additional Storefront placement.",
+    );
 
     await page.waitForFunction(
       (title) =>
@@ -711,7 +730,7 @@ async function productPlacementQa() {
     let detailText = await page.locator("#productDetail").innerText();
     assert(
       detailText.includes("Highland Cows") &&
-        detailText.includes("Seasonal"),
+        detailText.includes("Christmas"),
       "Created Product does not show the selected Storefront placements.",
     );
 
@@ -757,7 +776,7 @@ async function productPlacementQa() {
     assert(
       previewText.includes("Private preview") &&
         previewText.includes("Highland Cows") &&
-        previewText.includes("Seasonal") &&
+        previewText.includes("Christmas") &&
         previewText.includes("Home Gifts"),
       "CARD 03 private Preview does not reflect Product placements.",
     );
