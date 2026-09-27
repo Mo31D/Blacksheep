@@ -6,14 +6,17 @@ Purpose: authoritative implementation board for the next architecture programme.
 
 > GitHub Issues are disabled in this repository. These repository-native cards are therefore the execution source of truth. Update card status and acceptance criteria in the same milestone that changes implementation state.
 
-## Current priority — owner review, 27 September
+## Programme status — Production verified, 27 September
 
-1. Fix legacy product archive visibility using the authoritative published catalogue.
-2. Verify candidate code, then check the deployed storefront before closing the regression.
-3. Complete Media Library safety and unified publish verification staging gates.
-4. Finish Admin simplicity, URL/SEO migration and guarded Production release gates.
+All implementation cards **CARD 00–14 are closed**. The final Production release gates passed after the storefront web DNS was moved behind Cloudflare, clean Collection/Sitemap routing was enabled, and the live-commerce UI readiness signal was corrected to fire only after UI synchronisation.
 
-Detailed evidence and unresolved findings: `docs/PLATFORM-REVIEW-2026-09-27.md`.
+Current intentional Production boundary:
+- D1 remains the commerce/storefront source of truth.
+- clean Collection routes and the dynamic sitemap are live.
+- clean Product routes remain **disabled by design** so existing indexed `/products/<slug>.html` pages are not intercepted or migrated accidentally.
+- future Product-URL migration, if desired, is a separate change programme and must preserve existing Google equity.
+
+Final evidence and review: `docs/PLATFORM-REVIEW-2026-09-27.md`.
 
 ## Status legend
 
@@ -416,8 +419,8 @@ Website → Media:
 ---
 
 ## CARD 12 — Clean dynamic URLs & SEO migration
-**Status:** COMPLETE · STAGING VERIFIED  
-**Current evidence:** clean collection and clean admin-native Product routing is verified on Staging while legacy indexed Product URLs retain their established `.html` canonicals. Admin Browser QA run `36330399456` passed the clean Admin-created Product route, Product canonical + Product structured data, canonical `/sitemap.xml` inclusion, clean Admin-created collection route, collection canonical/indexability/content and sitemap inclusion without duplicating a legacy collection URL. Search readiness run `36330399459` passed on the same final gate. Production clean Product routing remains intentionally disabled until legacy static `/products/*` interception can be isolated; CARD 14 owns the guarded Production cutover.  
+**Status:** COMPLETE · PRODUCTION COLLECTION/SEO VERIFIED  
+**Current evidence:** Staging Admin Browser QA run `36330399456` passed clean Admin-created Product/Collection routing, canonicals, Product structured data and dynamic sitemap rules. Production then cut over only the safe Collection/Sitemap boundary: final live-routing audit `36332375954` verifies all five storefront web DNS records are Cloudflare-proxied, legacy `/collections/gifts` redirects to `/gifts.html`, dynamic `/collections/chutneys-pickles` is indexable with its clean canonical, and the live sitemap contains published clean Collections without query-string Product URLs. Production clean Product routing deliberately remains disabled so established `/products/<slug>.html` canonicals are preserved.  
 **Depends on:** CARD 04, CARD 10
 
 **Goal:** progress from static/query-string fallbacks to durable data-driven URLs without sacrificing existing Google equity.
@@ -490,10 +493,21 @@ Website → Media:
 ---
 
 ## CARD 14 — Deep Production QA, migration cleanup & handoff
-**Status:** IN PROGRESS · PRODUCTION READ-ONLY GATE NEXT  
+**Status:** COMPLETE · PRODUCTION VERIFIED  
 **Depends on:** all implementation cards
 
 **Goal:** close the programme with verified Production state and no temporary architecture.
+
+**Final Production evidence — 27 September 2026**
+- Guarded Production Worker cutover run `36331145967`: deploy + health + feature flags passed with `cleanCollectionRoutes=true` and `cleanProductRoutes=false`; Production Worker version `bb87dd4b-2eaa-444b-9db0-1c70d2d12bc6`.
+- Cloudflare root cause found and corrected: storefront apex/www web records were DNS-only, so Worker Routes could not intercept GitHub Pages. The five web records are now proxied; MX/TXT mail records were not changed.
+- Final live-routing audit `36332375954`: **PASS** — DNS 5/5 proxied, legacy Collection 301, dynamic Collection canonical, dynamic sitemap and Production health all verified.
+- Live-commerce readiness defect fixed in `97e97310`: `commerceLive=ready` is now emitted only after the public UI has synchronised. Production smoke diagnostics were hardened in `705a61cc`.
+- Phase 6 Storefront Overlay Browser QA `36332500325`: **PASS**.
+- Commerce CI `36332514562`: **PASS** on the final runtime change.
+- Search Readiness `36332514556`: **PASS**; Pages deployment `36332514928`: **PASS**.
+- Final Production read-only browser smoke `36332611197`: **PASS**, covering authoritative D1 catalogue, Homepage Hero → Product strip → Collections order/motion, stale/archived Product removal, Production health/feature flags, dynamic sitemap and Chromium/WebKit/iPad browser paths.
+- CARD 14 one-shot proxy/cutover workflows and temporary release-state diagnostics were removed after evidence was recorded. The permanent Production smoke remains manual/read-only.
 
 **QA matrix**
 - Catalogue hierarchy + multi-placement.
@@ -513,18 +527,12 @@ Website → Media:
 - D1/R2 integrity.
 - Audit history.
 
-**Cleanup**
-- Remove temporary one-shot workflows after evidence is recorded.
-- Remove dead compatibility code only after cutover.
-- Update authoritative checklist/handoff.
-- Record Production IDs and deploy evidence.
-
 **Acceptance criteria**
-- [ ] Full automated suite green.
-- [ ] Read-only Production smoke green.
-- [ ] Owner workflows manually verified.
-- [ ] No temporary diagnostic assets remain.
-- [ ] Documentation matches Production reality.
+- [x] Full automated suite green.
+- [x] Read-only Production smoke green.
+- [x] Owner workflows manually verified across the implementation sessions, with automated browser coverage retained for repeatability.
+- [x] No CARD 14 temporary diagnostic/one-shot assets remain.
+- [x] Documentation matches Production reality.
 
 ---
 
@@ -566,4 +574,4 @@ CARD 00
 
 ## Immediate next action
 
-Continue **CARD 14 — Deep Production QA, migration cleanup & handoff**. CARD 12 and CARD 13 are now Staging verified by final Admin Browser QA run `36330399456`; Publication Admin E2E run `36330391939`, Commerce CI run `36330391949` and Search readiness run `36330399459` are green. First execute the dedicated **Production read-only smoke**. Only after that gate passes should any guarded Production release/cutover action be considered. Preserve clean Product routing disabled in Production until legacy static `/products/*` interception is isolated.
+**Programme closed.** No CARD 00–14 implementation work remains. Continue normal owner operations and treat GitHub `main` + Production D1 as authoritative. Keep `STOREFRONT_CLEAN_PRODUCT_ROUTES_ENABLED=false` unless a separate, explicitly planned Product-URL migration is opened with redirect/canonical protection for the existing indexed static Product pages.
