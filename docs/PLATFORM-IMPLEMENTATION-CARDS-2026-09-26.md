@@ -416,7 +416,8 @@ Website → Media:
 ---
 
 ## CARD 12 — Clean dynamic URLs & SEO migration
-**Status:** READY  
+**Status:** IN PROGRESS · STAGING CUTOVER  
+**Current evidence:** clean collection rendering is implemented behind `STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED`; production remains disabled while Staging is proven. Published Structure exposes `cleanUrl` only for non-legacy nodes, legacy nodes preserve their indexed static routes, and clean legacy collection requests 301 back to the established page. Staging deploy run `36327616798` succeeded. The storefront now prefers `cleanUrl` when supplied, dynamic collection canonicals/JSON-LD are generated from published D1 data, and `sitemap-dynamic.xml` is generated from published non-legacy nodes only. Scoped production Worker routes are prepared but not yet cut over.  
 **Depends on:** CARD 04, CARD 10
 
 **Goal:** progress from static/query-string fallbacks to durable data-driven URLs without sacrificing existing Google equity.
