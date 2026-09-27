@@ -109,7 +109,7 @@ function selectSql(): string {
     " (SELECT COUNT(*) FROM product_media pm WHERE pm.storage_provider = 'R2' AND pm.storage_key = a.storage_key) +",
     " (SELECT COUNT(*) FROM storefront_node_versions snv WHERE snv.image_url = a.public_url) +",
     " (SELECT COUNT(*) FROM website_appearance_versions wav",
-    "  WHERE wav.hero_image_url = a.public_url OR wav.section_images_json LIKE ('%' || a.public_url || '%'))",
+    "  WHERE wav.hero_image_url = a.public_url OR instr(COALESCE(wav.section_images_json, ''), a.public_url) > 0)",
     ") AS usageCount",
     "FROM shared_media_assets a",
   ].join(" ");
@@ -566,9 +566,9 @@ export async function sharedMediaDeleteEligibility(
   const appearance = await db
     .prepare(
       "SELECT COUNT(*) AS count FROM website_appearance_versions " +
-        "WHERE hero_image_url = ? OR section_images_json LIKE ?",
+        "WHERE hero_image_url = ? OR instr(COALESCE(section_images_json, ''), ?) > 0",
     )
-    .bind(asset.publicUrl, "%" + asset.publicUrl + "%")
+    .bind(asset.publicUrl, asset.publicUrl)
     .first<{ count: number }>();
   if (Number(appearance?.count ?? 0) > 0) blockers.push("appearance_history");
 
