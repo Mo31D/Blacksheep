@@ -22,6 +22,8 @@ const PRODUCT_PLACEMENT_QA_TITLE = "QA Placement Product " + RUN_ID;
 const PRODUCT_PLACEMENT_QA_SKU = "QA-PLACE-" + RUN_ID;
 const HOMEPAGE_QA_HEADING = "QA Homepage Rail " + RUN_ID;
 const APPEARANCE_QA_HEADING = "QA Appearance " + RUN_ID;
+const MEDIA_QA_HEADING = "QA Shared Media " + RUN_ID;
+const MEDIA_QA_TITLE = "QA Shared Asset " + RUN_ID;
 let homepageQaSnapshot = null;
 let appearanceQaSnapshot = null;
 
@@ -1672,6 +1674,260 @@ async function websiteAppearanceQa() {
   }
 }
 
+async function sharedMediaLibraryQa() {
+  snapshotAppearanceQaState();
+  const browser = await webkit.launch({ headless: true });
+  const context = await browser.newContext({
+    viewport: { width: 820, height: 1180 },
+  });
+  const page = await context.newPage();
+  let assetId = "";
+  let assetUrl = "";
+
+  async function adminRequest(pathname, options = {}) {
+    const response = await context.request.fetch(BASE + pathname, options);
+    const body = await response.json().catch(() => ({}));
+    return { response, body };
+  }
+
+  try {
+    await addAdminCookie(context);
+    await page.goto(BASE + "/admin#website", {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    await page.waitForSelector('[data-website-tab="media"]', {
+      timeout: 20_000,
+    });
+    await page.locator('[data-website-tab="media"]').click();
+    await page.waitForSelector("#websiteMediaPanel:not(.hidden)", {
+      timeout: 20_000,
+    });
+
+    const mediaText = await page.locator("#websiteMediaPanel").innerText();
+    for (const expected of [
+      "Add image",
+      "Media Library",
+      "Upload once",
+      "Show archived",
+    ]) {
+      assert(
+        mediaText.includes(expected),
+        "CARD 11 Media Library workspace is missing: " + expected,
+      );
+    }
+
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z9ZkAAAAASUVORK5CYII=",
+      "base64",
+    );
+    await page.locator("#sharedMediaFile").setInputFiles({
+      name: "card11-shared-media-" + RUN_ID + ".png",
+      mimeType: "image/png",
+      buffer: png,
+    });
+    await page.locator("#sharedMediaTitle").fill(MEDIA_QA_TITLE);
+    await page.locator("#sharedMediaAlt").fill("CARD 11 shared media QA image");
+    await page.locator("#sharedMediaContext").selectOption("HOMEPAGE");
+
+    const uploadPromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/admin/api/media") &&
+        response.request().method() === "POST",
+      { timeout: 20_000 },
+    );
+    await page.locator("#sharedMediaUpload").click();
+    const uploaded = await assertMutationResponse(
+      uploadPromise,
+      "CARD 11 shared media upload",
+      201,
+    );
+    assetId = String(uploaded?.asset?.id || "");
+    assetUrl = String(uploaded?.asset?.publicUrl || "");
+    assert(
+      assetId && assetUrl.startsWith("/media/"),
+      "CARD 11 upload did not return a reusable asset id/public URL.",
+    );
+
+    await page.waitForFunction(
+      (title) => document.getElementById("sharedMediaGrid")?.textContent?.includes(title),
+      MEDIA_QA_TITLE,
+      { timeout: 20_000 },
+    );
+
+    const updatedAlt = "CARD 11 updated reusable alt " + RUN_ID;
+    const patch = await adminRequest(
+      "/admin/api/media/" + encodeURIComponent(assetId),
+      {
+        method: "PATCH",
+        data: {
+          title: MEDIA_QA_TITLE,
+          altText: updatedAlt,
+          context: "HOMEPAGE",
+        },
+      },
+    );
+    assert(
+      patch.response.status() === 200 &&
+        patch.body?.asset?.altText === updatedAlt,
+      "CARD 11 alt text update failed.",
+    );
+
+    await page.locator('[data-website-tab="appearance"]').click();
+    await page.waitForSelector("#websiteAppearancePanel:not(.hidden)", {
+      timeout: 20_000,
+    });
+    await page.waitForFunction(
+      () => Boolean(document.getElementById("appearanceStatus")?.textContent),
+      null,
+      { timeout: 20_000 },
+    );
+
+    await page.locator("#appearanceHeroChooseMedia").click();
+    await page.waitForSelector("#websiteMediaPanel:not(.hidden)", {
+      timeout: 20_000,
+    });
+    const heroUse = page.locator(
+      '[data-shared-media-use="' + assetId + '"]',
+    );
+    await heroUse.waitFor({ state: "visible", timeout: 20_000 });
+    await heroUse.click();
+    await page.waitForSelector("#websiteAppearancePanel:not(.hidden)", {
+      timeout: 20_000,
+    });
+    assert(
+      (await page.locator("#appearanceHeroImage").inputValue()) === assetUrl,
+      "CARD 11 shared asset was not selected for the Hero.",
+    );
+
+    const sectionChoose = page
+      .locator("[data-appearance-section-choose]")
+      .first();
+    const sectionKey = await sectionChoose.getAttribute(
+      "data-appearance-section-choose",
+    );
+    assert(sectionKey, "CARD 11 has no Section media picker target.");
+    await sectionChoose.click();
+    await page.waitForSelector("#websiteMediaPanel:not(.hidden)", {
+      timeout: 20_000,
+    });
+    const sectionUse = page.locator(
+      '[data-shared-media-use="' + assetId + '"]',
+    );
+    await sectionUse.waitFor({ state: "visible", timeout: 20_000 });
+    await sectionUse.click();
+    await page.waitForSelector("#websiteAppearancePanel:not(.hidden)", {
+      timeout: 20_000,
+    });
+    assert(
+      (await page
+        .locator(
+          '[data-appearance-section-image="' + sectionKey + '"]',
+        )
+        .inputValue()) === assetUrl,
+      "CARD 11 shared asset was not reused for a Section.",
+    );
+
+    await page.locator("#appearanceHeroHeading").fill(MEDIA_QA_HEADING);
+    const savePromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/admin/api/appearance/draft") &&
+        response.request().method() === "PATCH",
+      { timeout: 20_000 },
+    );
+    await page.locator("#appearanceSaveDraft").click();
+    const saved = await assertMutationResponse(
+      savePromise,
+      "CARD 11 shared media Appearance draft",
+      200,
+    );
+    assert(
+      saved?.config?.hero?.imageUrl === assetUrl &&
+        saved?.config?.sectionImages?.[sectionKey] === assetUrl,
+      "CARD 11 one asset was not reused by both Hero and Section draft surfaces.",
+    );
+
+    await page.locator('[data-website-tab="media"]').click();
+    await page.waitForSelector("#websiteMediaPanel:not(.hidden)", {
+      timeout: 20_000,
+    });
+    await page.locator("#sharedMediaShowArchived").check();
+    const card = page
+      .locator(".media-library-card")
+      .filter({ hasText: MEDIA_QA_TITLE });
+    await card.waitFor({ state: "visible", timeout: 20_000 });
+
+    page.once("dialog", async (dialog) => {
+      await dialog.accept();
+    });
+    const archivePromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith(
+          "/admin/api/media/" + encodeURIComponent(assetId) + "/archive",
+        ) &&
+        response.request().method() === "POST",
+      { timeout: 20_000 },
+    );
+    await card.locator('[data-shared-media-archive="' + assetId + '"]').click();
+    await assertMutationResponse(
+      archivePromise,
+      "CARD 11 shared media archive",
+      200,
+    );
+
+    const archivedDelivery = await context.request.get(BASE + assetUrl);
+    assert(
+      archivedDelivery.status() === 200,
+      "CARD 11 archive broke the existing public media URL.",
+    );
+
+    const blockedDelete = await adminRequest(
+      "/admin/api/media/" + encodeURIComponent(assetId),
+      { method: "DELETE" },
+    );
+    assert(
+      blockedDelete.response.status() === 409 &&
+        blockedDelete.body?.error?.code === "shared_media_delete_blocked" &&
+        Array.isArray(blockedDelete.body?.error?.blockers) &&
+        blockedDelete.body.error.blockers.includes("appearance_history"),
+      "CARD 11 permanent deletion was not blocked by versioned Appearance history.",
+    );
+
+    await assertNoHorizontalOverflow(page, "CARD 11 Media Library iPad portrait");
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "ipad-card11-shared-media-library.png"),
+      fullPage: true,
+    });
+  } finally {
+    try {
+      cleanupAppearanceQa();
+      if (assetId) {
+        const current = await adminRequest(
+          "/admin/api/media?includeArchived=1&q=" + encodeURIComponent(MEDIA_QA_TITLE),
+        );
+        const asset = (current.body?.assets || []).find((item) => item.id === assetId);
+        if (asset?.status === "ACTIVE") {
+          await adminRequest(
+            "/admin/api/media/" + encodeURIComponent(assetId) + "/archive",
+            { method: "POST" },
+          );
+        }
+        const removed = await adminRequest(
+          "/admin/api/media/" + encodeURIComponent(assetId),
+          { method: "DELETE" },
+        );
+        assert(
+          removed.response.status() === 200,
+          "CARD 11 QA asset cleanup could not remove the now-unreferenced R2 object.",
+        );
+      }
+    } finally {
+      await context.close();
+      await browser.close();
+    }
+  }
+}
+
 async function ownerPolishViewsQa(viewport, label) {
   const browser = await webkit.launch({ headless: true });
   const context = await browser.newContext({ viewport });
@@ -2491,8 +2747,10 @@ try {
   await productPlacementQa();
   console.log("QA stage: CARD06/07 Homepage merchandising");
   await homepageMerchandisingQa();
-  console.log("QA stage: CARD08 Website Appearance");
+  console.log("QA stage: CARD08/09 Website Appearance");
   await websiteAppearanceQa();
+  console.log("QA stage: CARD11 Shared Media Library");
+  await sharedMediaLibraryQa();
   console.log("QA stage: iPhone owner views");
   await ownerPolishViewsQa({ width: 390, height: 844 }, "iPhone WebKit");
   console.log("QA stage: iPad owner views");
@@ -2545,6 +2803,12 @@ try {
           "card09-hero-and-section-image-editing",
           "card09-seasonal-publish-public-contract",
           "card09-mobile-hero-no-overflow",
+          "card11-media-library-upload-once",
+          "card11-alt-text-editable",
+          "card11-one-asset-reused-by-hero-and-section",
+          "card11-archive-preserves-public-media-url",
+          "card11-hard-delete-blocked-by-version-history",
+          "card11-unused-r2-object-cleaned-after-qa",
           "card08-appearance-private-draft",
           "card08-appearance-private-preview",
           "card08-appearance-publish-public-contract",
