@@ -68,8 +68,6 @@
       } else if (x < cycleWidth * 0.25 && force) {
         x += cycleWidth;
         setScrollPosition(x);
-      } else {
-        motionPosition = x;
       }
     }
 
