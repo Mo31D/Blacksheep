@@ -5,6 +5,7 @@ import { handleCustomerReviewRequest } from "./routes/customer-review";
 import { handleResendWebhook } from "./routes/resend-webhook";
 import { handleProductMediaRequest } from "./routes/product-media";
 import { handlePublicCatalogRequest } from "./routes/catalog";
+import { handleCleanCollectionRequest } from "./routes/storefront-clean";
 import type { R2BucketLike } from "./data/product-media";
 import { expireDueReservations } from "./data/order-reservations";
 import { captureAdminStockValuationSnapshot } from "./data/inventory-valuation";
@@ -26,6 +27,7 @@ interface Env {
   D1_PUBLIC_CATALOG_ENABLED?: string;
   ADMIN_ACCESS_MODE?: string;
   ADMIN_BASE_URL?: string;
+  STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED?: string;
 }
 
 const SERVICE = "black-sheep-commerce-api";
@@ -131,6 +133,8 @@ async function route(request: Request, env: Env): Promise<Response> {
             : null,
         commerceAuthority: true,
         commerceAuthorityContract: "d1-published-v1",
+        cleanCollectionRoutes:
+          env.STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED === "true",
       },
       notifications: {
         provider: env.RESEND_API_KEY ? "resend" : "unconfigured",
@@ -145,6 +149,10 @@ async function route(request: Request, env: Env): Promise<Response> {
           : false,
       },
     });
+  }
+
+  if (url.pathname.startsWith("/collections/")) {
+    return handleCleanCollectionRequest(request, env);
   }
 
   if (
