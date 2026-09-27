@@ -20,6 +20,8 @@ const STRUCTURE_CHILD_A = "QA Sub-section A " + RUN_ID;
 const STRUCTURE_CHILD_B = "QA Sub-section B " + RUN_ID;
 const PRODUCT_PLACEMENT_QA_TITLE = "QA Placement Product " + RUN_ID;
 const PRODUCT_PLACEMENT_QA_SKU = "QA-PLACE-" + RUN_ID;
+const HOMEPAGE_QA_HEADING = "QA Homepage Rail " + RUN_ID;
+let homepageQaSnapshot = null;
 
 let sessionToken = "";
 let sessionHash = "";
@@ -128,6 +130,60 @@ function cleanupStorefrontStructureQa() {
       "DELETE FROM storefront_nodes WHERE id IN (" + idList + ")",
     ].join(";"),
   );
+}
+
+function snapshotHomepageQaState() {
+  const rows = d1(
+    "SELECT id, current_published_version_id AS publishedVersionId, " +
+      "current_draft_version_id AS draftVersionId, version, updated_at AS updatedAt " +
+      "FROM homepage_merchandising WHERE id='home_product_rail' LIMIT 1",
+  );
+  const row = rows[0];
+  assert(row, "Homepage merchandising state is unavailable on staging.");
+  homepageQaSnapshot = {
+    publishedVersionId: row.publishedVersionId == null ? null : String(row.publishedVersionId),
+    draftVersionId: row.draftVersionId == null ? null : String(row.draftVersionId),
+    version: Number(row.version),
+    updatedAt: String(row.updatedAt || ""),
+  };
+  return homepageQaSnapshot;
+}
+
+function cleanupHomepageQa() {
+  if (!homepageQaSnapshot) return;
+  const versions = d1(
+    "SELECT id FROM homepage_merchandising_versions WHERE heading=" + q(HOMEPAGE_QA_HEADING),
+  ).map((row) => String(row.id || "")).filter(Boolean);
+  if (versions.length) {
+    const inList = versions.map(q).join(",");
+    d1(
+      "DELETE FROM homepage_merchandising_products WHERE version_id IN (" +
+        inList +
+        "); DELETE FROM homepage_merchandising_versions WHERE id IN (" +
+        inList +
+        ")",
+    );
+  }
+  d1(
+    "DELETE FROM homepage_merchandising_audit_events WHERE after_json LIKE " +
+      q("%" + HOMEPAGE_QA_HEADING + "%"),
+  );
+  d1(
+    "UPDATE homepage_merchandising SET current_published_version_id=" +
+      (homepageQaSnapshot.publishedVersionId == null
+        ? "NULL"
+        : q(homepageQaSnapshot.publishedVersionId)) +
+      ", current_draft_version_id=" +
+      (homepageQaSnapshot.draftVersionId == null
+        ? "NULL"
+        : q(homepageQaSnapshot.draftVersionId)) +
+      ", version=" +
+      Number(homepageQaSnapshot.version) +
+      ", updated_at=" +
+      q(homepageQaSnapshot.updatedAt) +
+      " WHERE id='home_product_rail'",
+  );
+  homepageQaSnapshot = null;
 }
 
 function cleanupProductPlacementQa() {
@@ -1004,6 +1060,175 @@ async function productPlacementQa() {
   }
 }
 
+async function homepageMerchandisingQa() {
+  snapshotHomepageQaState();
+  const browser = await webkit.launch({ headless: true });
+  const context = await browser.newContext({
+    viewport: { width: 820, height: 1180 },
+  });
+  const page = await context.newPage();
+
+  try {
+    await addAdminCookie(context);
+    await page.goto(BASE + "/admin#website", {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    await page.waitForSelector("#homepageEnabled", { timeout: 20_000 });
+    await page.waitForFunction(
+      () => Boolean(window.homepageConfig || document.getElementById("homepageStatus")?.textContent),
+      null,
+      { timeout: 20_000 },
+    );
+
+    const publishedBefore = homepageQaSnapshot.publishedVersionId;
+
+    const newArrivals = page.locator(
+      'input[name="homepageMode"][value="NEW_ARRIVALS"]',
+    );
+    await newArrivals.check();
+    assert(
+      await page.locator("#homepageCollectionWrap").evaluate((el) =>
+        el.classList.contains("homepage-hidden"),
+      ),
+      "CARD 06 New arrivals should not require a collection.",
+    );
+
+    const selectedCollection = page.locator(
+      'input[name="homepageMode"][value="SELECTED_COLLECTION"]',
+    );
+    await selectedCollection.check();
+    assert(
+      !(await page.locator("#homepageCollectionWrap").evaluate((el) =>
+        el.classList.contains("homepage-hidden"),
+      )),
+      "CARD 06 Selected collection controls did not open.",
+    );
+    assert(
+      (await page.locator("#homepageCollection option").count()) > 1,
+      "CARD 06 Selected collection has no Storefront choices.",
+    );
+
+    const featured = page.locator(
+      'input[name="homepageMode"][value="FEATURED_PRODUCTS"]',
+    );
+    await featured.check();
+    assert(
+      !(await page.locator("#homepageFeaturedWrap").evaluate((el) =>
+        el.classList.contains("homepage-hidden"),
+      )),
+      "CARD 06 Featured products controls did not open.",
+    );
+
+    await page.locator("#homepageHeading").fill(HOMEPAGE_QA_HEADING);
+    await page.locator("#homepageEnabled").check();
+    await page.locator("#homepageLimit").selectOption("6");
+    await page.locator("#homepageProductSearch").fill("Highland");
+    await page.waitForFunction(
+      () => document.querySelectorAll("#homepageProductResults [data-homepage-add]").length >= 2,
+      null,
+      { timeout: 20_000 },
+    );
+
+    const addButtons = page.locator(
+      "#homepageProductResults [data-homepage-add]",
+    );
+    await addButtons.nth(0).click();
+    await page.locator("#homepageProductSearch").fill("Highland");
+    await page.waitForFunction(
+      () => document.querySelectorAll("#homepageProductResults [data-homepage-add]").length >= 1,
+      null,
+      { timeout: 20_000 },
+    );
+    await page
+      .locator("#homepageProductResults [data-homepage-add]")
+      .first()
+      .click();
+
+    const selectedRows = page.locator(
+      "#homepageFeaturedProducts [data-homepage-featured]",
+    );
+    assert(
+      (await selectedRows.count()) >= 2,
+      "CARD 06 could not select two Featured products.",
+    );
+    const orderBefore = await selectedRows.evaluateAll((rows) =>
+      rows.map((row) => row.getAttribute("data-homepage-featured")),
+    );
+    await selectedRows
+      .nth(0)
+      .locator('[data-homepage-move="1"]')
+      .click();
+    const orderAfter = await page
+      .locator("#homepageFeaturedProducts [data-homepage-featured]")
+      .evaluateAll((rows) =>
+        rows.map((row) => row.getAttribute("data-homepage-featured")),
+      );
+    assert(
+      orderBefore[0] === orderAfter[1] && orderBefore[1] === orderAfter[0],
+      "CARD 06 Featured product reorder did not persist in the owner UI.",
+    );
+
+    const savePromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/admin/api/homepage-merchandising/draft") &&
+        response.request().method() === "PATCH",
+      { timeout: 20_000 },
+    );
+    await page.locator("#homepageSaveDraft").click();
+    await assertMutationResponse(
+      savePromise,
+      "CARD 06 Homepage draft save",
+      200,
+    );
+
+    const stateAfterDraft = d1(
+      "SELECT current_published_version_id AS publishedVersionId, " +
+        "current_draft_version_id AS draftVersionId " +
+        "FROM homepage_merchandising WHERE id='home_product_rail' LIMIT 1",
+    )[0];
+    assert(
+      String(stateAfterDraft?.publishedVersionId || "") ===
+        String(publishedBefore || ""),
+      "CARD 06 saving a draft changed the published homepage version.",
+    );
+    assert(
+      stateAfterDraft?.draftVersionId,
+      "CARD 06 saving a draft did not create a private draft pointer.",
+    );
+
+    const previewPromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/admin/api/homepage-merchandising/preview") &&
+        response.request().method() === "GET",
+      { timeout: 20_000 },
+    );
+    await page.locator("#homepagePreview").click();
+    await assertMutationResponse(
+      previewPromise,
+      "CARD 06 Homepage private preview",
+      200,
+    );
+    await page.waitForSelector(".homepage-preview-grid", { timeout: 10_000 });
+    const previewText = await page.locator(".product-editor-panel").innerText();
+    assert(
+      previewText.includes("Private preview") &&
+        previewText.includes(HOMEPAGE_QA_HEADING),
+      "CARD 06 Private Preview did not render the draft heading.",
+    );
+
+    await assertNoHorizontalOverflow(page, "CARD 06 Homepage iPad portrait");
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "ipad-card06-homepage-merchandising.png"),
+      fullPage: true,
+    });
+  } finally {
+    await context.close();
+    await browser.close();
+    cleanupHomepageQa();
+  }
+}
+
 async function ownerPolishViewsQa(viewport, label) {
   const browser = await webkit.launch({ headless: true });
   const context = await browser.newContext({ viewport });
@@ -1772,6 +1997,8 @@ try {
   await mobileWebkitQa();
   console.log("QA stage: CARD03 Product placement");
   await productPlacementQa();
+  console.log("QA stage: CARD06 Homepage merchandising");
+  await homepageMerchandisingQa();
   console.log("QA stage: iPhone owner views");
   await ownerPolishViewsQa({ width: 390, height: 844 }, "iPhone WebKit");
   console.log("QA stage: iPad owner views");
@@ -1808,6 +2035,11 @@ try {
           "card03-publish-public-version-placement-verification",
           "card03-staging-never-claims-production-live-link",
           "card03-ipad-portrait-product-placement-no-overflow",
+          "card06-homepage-three-modes",
+          "card06-featured-product-selection-and-reorder",
+          "card06-draft-does-not-change-published-version",
+          "card06-private-preview",
+          "card06-ipad-portrait-no-overflow",
           "iphone-catalogue-hierarchy-create-main-and-subsections",
           "iphone-catalogue-menu-visibility-toggle",
           "iphone-catalogue-subsection-reorder",
@@ -1844,6 +2076,8 @@ try {
 } finally {
   try {
     try {
+      cleanupHomepageQa();
+      console.log("Synthetic Homepage merchandising QA data cleaned up.");
       cleanupStocktakeQaSessions();
       console.log("Synthetic Stocktake QA sessions cleaned up.");
       cleanupProductPlacementQa();
