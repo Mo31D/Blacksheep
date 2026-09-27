@@ -236,6 +236,30 @@ describe("Phase 2 Product Admin", () => {
     });
   });
 
+  it("does not expose the retired duplicate Product operations mutation", async () => {
+    const response = await handleAdminRequest(
+      new Request("https://admin.example.com/admin/api/products/prd-1/operations", {
+        method: "PATCH",
+        headers: {
+          origin: "https://admin.example.com",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          expectedVersion: 4,
+          sellStatus: "OUT_OF_STOCK",
+          onlineOrderingEnabled: false,
+        }),
+      }),
+      { DB: new Db() },
+      { verifyAccessFn: identity },
+    );
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "not_found" },
+    });
+  });
+
   it("saves a private content draft and publishes it explicitly", async () => {
     const draftResponse = await handleAdminRequest(
       new Request("https://admin.example.com/admin/api/products/prd-1/draft", {
