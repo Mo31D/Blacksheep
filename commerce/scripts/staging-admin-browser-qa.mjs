@@ -21,10 +21,13 @@ const STRUCTURE_CHILD_B = "QA Sub-section B " + RUN_ID;
 const PRODUCT_PLACEMENT_QA_TITLE = "QA Placement Product " + RUN_ID;
 const PRODUCT_PLACEMENT_QA_SKU = "QA-PLACE-" + RUN_ID;
 const HOMEPAGE_QA_HEADING = "QA Homepage Rail " + RUN_ID;
+const APPEARANCE_QA_HEADING = "QA Appearance " + RUN_ID;
 let homepageQaSnapshot = null;
+let appearanceQaSnapshot = null;
 
 let sessionToken = "";
 let sessionHash = "";
+let sessionOwnerEmail = "";
 let completed = false;
 const stocktakeQaSessionIds = [];
 
@@ -188,6 +191,75 @@ function cleanupHomepageQa() {
   homepageQaSnapshot = null;
 }
 
+function snapshotAppearanceQaState() {
+  const rows = d1(
+    "SELECT wa.current_published_version_id AS publishedVersionId, " +
+      "wa.current_draft_version_id AS draftVersionId, wa.version, wa.updated_at AS updatedAt, " +
+      "COALESCE((SELECT MAX(version_number) FROM website_appearance_versions WHERE appearance_id=wa.id),0) AS maxVersionNumber, " +
+      "COALESCE((SELECT MAX(rowid) FROM website_appearance_audit_events WHERE appearance_id=wa.id),0) AS maxAuditRowid " +
+      "FROM website_appearance wa WHERE wa.id='site_appearance' LIMIT 1",
+  );
+  const row = rows[0];
+  assert(row, "Website Appearance state is unavailable on staging.");
+  const published = row.publishedVersionId
+    ? d1(
+        "SELECT hero_heading AS heroHeading, accent_color AS accentColor, superseded_at AS supersededAt " +
+          "FROM website_appearance_versions WHERE id=" + q(String(row.publishedVersionId)) + " LIMIT 1",
+      )[0]
+    : null;
+  appearanceQaSnapshot = {
+    publishedVersionId: row.publishedVersionId == null ? null : String(row.publishedVersionId),
+    draftVersionId: row.draftVersionId == null ? null : String(row.draftVersionId),
+    version: Number(row.version),
+    updatedAt: String(row.updatedAt || ""),
+    maxVersionNumber: Number(row.maxVersionNumber || 0),
+    maxAuditRowid: Number(row.maxAuditRowid || 0),
+    publishedHeroHeading: String(published?.heroHeading || ""),
+    publishedAccentColor: String(published?.accentColor || ""),
+    publishedSupersededAt:
+      published?.supersededAt == null ? null : String(published.supersededAt),
+  };
+  return appearanceQaSnapshot;
+}
+
+function cleanupAppearanceQa() {
+  if (!appearanceQaSnapshot) return;
+  const owner = sessionOwnerEmail ? q(sessionOwnerEmail) : "NULL";
+  d1(
+    "DELETE FROM website_appearance_audit_events WHERE appearance_id='site_appearance' " +
+      "AND rowid>" + Number(appearanceQaSnapshot.maxAuditRowid) +
+      (sessionOwnerEmail ? " AND actor_id=" + owner : ""),
+  );
+  d1(
+    "DELETE FROM website_appearance_versions WHERE appearance_id='site_appearance' " +
+      "AND version_number>" + Number(appearanceQaSnapshot.maxVersionNumber) +
+      (sessionOwnerEmail ? " AND created_by=" + owner : ""),
+  );
+  if (appearanceQaSnapshot.publishedVersionId) {
+    d1(
+      "UPDATE website_appearance_versions SET superseded_at=" +
+        (appearanceQaSnapshot.publishedSupersededAt == null
+          ? "NULL"
+          : q(appearanceQaSnapshot.publishedSupersededAt)) +
+        " WHERE id=" + q(appearanceQaSnapshot.publishedVersionId),
+    );
+  }
+  d1(
+    "UPDATE website_appearance SET current_published_version_id=" +
+      (appearanceQaSnapshot.publishedVersionId == null
+        ? "NULL"
+        : q(appearanceQaSnapshot.publishedVersionId)) +
+      ", current_draft_version_id=" +
+      (appearanceQaSnapshot.draftVersionId == null
+        ? "NULL"
+        : q(appearanceQaSnapshot.draftVersionId)) +
+      ", version=" + Number(appearanceQaSnapshot.version) +
+      ", updated_at=" + q(appearanceQaSnapshot.updatedAt) +
+      " WHERE id='site_appearance'",
+  );
+  appearanceQaSnapshot = null;
+}
+
 function cleanupProductPlacementQa() {
   const ids = d1(
     "SELECT DISTINCT p.id AS id FROM products p " +
@@ -270,6 +342,7 @@ async function seedSession() {
     if (response.ok) {
       sessionToken = candidateToken;
       sessionHash = candidateHash;
+      sessionOwnerEmail = ownerEmail;
       console.log("Resolved an allowed staging Admin identity for browser QA.");
       return;
     }
@@ -1313,6 +1386,214 @@ async function homepageMerchandisingQa() {
   }
 }
 
+async function websiteAppearanceQa() {
+  snapshotAppearanceQaState();
+  const browser = await webkit.launch({ headless: true });
+  const context = await browser.newContext({
+    viewport: { width: 820, height: 1180 },
+  });
+  const page = await context.newPage();
+
+  try {
+    await addAdminCookie(context);
+    await page.goto(BASE + "/admin#website", {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    await page.waitForSelector('[data-website-tab="appearance"]', {
+      timeout: 20_000,
+    });
+    await page.locator('[data-website-tab="appearance"]').click();
+    await page.waitForSelector("#websiteAppearancePanel:not(.hidden)", {
+      timeout: 20_000,
+    });
+    await page.waitForFunction(
+      () => Boolean(window.appearanceConfig || document.getElementById("appearanceStatus")?.textContent),
+      null,
+      { timeout: 20_000 },
+    );
+
+    const appearanceText = await page.locator("#websiteAppearancePanel").innerText();
+    for (const expected of ["Theme", "Homepage hero", "Colours", "Section images"]) {
+      assert(
+        appearanceText.includes(expected),
+        "CARD 08 Appearance workspace is missing: " + expected,
+      );
+    }
+    assert(
+      !appearanceText.includes("Custom CSS"),
+      "CARD 08 Appearance workspace exposes arbitrary CSS.",
+    );
+
+    const publishedBefore = appearanceQaSnapshot.publishedVersionId;
+    await page.locator("#appearanceHeroHeading").fill(APPEARANCE_QA_HEADING);
+    await page.locator("#appearanceAccent").evaluate((el) => {
+      el.value = "#c05a32";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await page.locator("#appearanceButton").evaluate((el) => {
+      el.value = "#30302b";
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    const savePromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/admin/api/appearance/draft") &&
+        response.request().method() === "PATCH",
+      { timeout: 20_000 },
+    );
+    await page.locator("#appearanceSaveDraft").click();
+    const saved = await assertMutationResponse(
+      savePromise,
+      "CARD 08 Appearance draft save",
+      200,
+    );
+    assert(
+      saved?.config?.hero?.heading === APPEARANCE_QA_HEADING,
+      "CARD 08 Appearance draft did not persist the Hero heading.",
+    );
+
+    const stateAfterDraft = d1(
+      "SELECT current_published_version_id AS publishedVersionId, current_draft_version_id AS draftVersionId " +
+        "FROM website_appearance WHERE id='site_appearance' LIMIT 1",
+    )[0];
+    assert(
+      String(stateAfterDraft?.publishedVersionId || "") === String(publishedBefore || ""),
+      "CARD 08 Appearance draft changed the published pointer.",
+    );
+    assert(
+      stateAfterDraft?.draftVersionId,
+      "CARD 08 Appearance draft did not create a private draft pointer.",
+    );
+
+    const previewPromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/admin/api/appearance/preview") &&
+        response.request().method() === "GET",
+      { timeout: 20_000 },
+    );
+    await page.locator("#appearancePreview").click();
+    await assertMutationResponse(
+      previewPromise,
+      "CARD 08 Appearance private preview",
+      200,
+    );
+    await page.waitForSelector(".appearance-preview-box", { timeout: 10_000 });
+    const previewText = await page.locator(".appearance-preview").innerText();
+    assert(
+      previewText.includes("Private preview") &&
+        previewText.includes(APPEARANCE_QA_HEADING),
+      "CARD 08 Appearance Preview does not reflect the draft.",
+    );
+    await page.locator("[data-close-product-sheet]:visible").first().click();
+
+    page.once("dialog", async (dialog) => {
+      await dialog.accept();
+    });
+    const publishPromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/admin/api/appearance/publish") &&
+        response.request().method() === "POST",
+      { timeout: 20_000 },
+    );
+    await page.locator("#appearancePublish").click();
+    const published = await assertMutationResponse(
+      publishPromise,
+      "CARD 08 Appearance publish",
+      200,
+    );
+    const qaPublishedId = String(published?.config?.publishedVersionId || "");
+    assert(qaPublishedId, "CARD 08 Appearance publish returned no published version.");
+
+    const publicAppearanceResponse = await fetch(BASE + "/v1/appearance");
+    assert(publicAppearanceResponse.ok, "CARD 08 public Appearance endpoint failed.");
+    const publicAppearance = await publicAppearanceResponse.json();
+    assert(
+      publicAppearance?.contract === "website-appearance-published-v1" &&
+        publicAppearance?.config?.hero?.heading === APPEARANCE_QA_HEADING &&
+        publicAppearance?.config?.tokens?.accent === "#c05a32",
+      "CARD 08 public Appearance contract does not match the published draft.",
+    );
+
+    const storefront = await context.newPage();
+    try {
+      await storefront.goto(
+        "https://theblacksheepshop.co.uk/index.html?commerce-preview=staging",
+        { waitUntil: "domcontentloaded", timeout: 60_000 },
+      );
+      await storefront.waitForFunction(
+        () =>
+          document.documentElement.dataset.commerceLive === "ready" &&
+          window.BLACK_SHEEP_WEBSITE_APPEARANCE?.hero?.heading,
+        null,
+        { timeout: 30_000 },
+      );
+      const applied = await storefront.evaluate(() => ({
+        heading: document.querySelector(".hero h1")?.textContent?.trim() || "",
+        accent: document.documentElement.style.getPropertyValue("--gold").trim(),
+        button: document.documentElement.style.getPropertyValue("--button").trim(),
+        contractHeading: window.BLACK_SHEEP_WEBSITE_APPEARANCE?.hero?.heading || "",
+      }));
+      assert(
+        applied.heading === APPEARANCE_QA_HEADING &&
+          applied.contractHeading === APPEARANCE_QA_HEADING &&
+          applied.accent.toLowerCase() === "#c05a32" &&
+          applied.button.toLowerCase() === "#30302b",
+        "CARD 08 storefront did not apply the published Appearance tokens/Hero: " +
+          JSON.stringify(applied),
+      );
+    } finally {
+      await storefront.close();
+    }
+
+    assert(
+      publishedBefore,
+      "CARD 08 restore proof requires an existing published Appearance version.",
+    );
+    const restoreButton = page.locator(
+      '[data-appearance-restore="' + publishedBefore + '"]',
+    );
+    await restoreButton.waitFor({ state: "visible", timeout: 20_000 });
+    page.once("dialog", async (dialog) => {
+      await dialog.accept();
+    });
+    const restorePromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/admin/api/appearance/restore") &&
+        response.request().method() === "POST",
+      { timeout: 20_000 },
+    );
+    await restoreButton.click();
+    await assertMutationResponse(
+      restorePromise,
+      "CARD 08 Appearance restore",
+      200,
+    );
+
+    const restoredPublicResponse = await fetch(BASE + "/v1/appearance");
+    assert(restoredPublicResponse.ok, "CARD 08 restored Appearance endpoint failed.");
+    const restoredPublic = await restoredPublicResponse.json();
+    assert(
+      restoredPublic?.config?.hero?.heading === appearanceQaSnapshot.publishedHeroHeading &&
+        String(restoredPublic?.config?.tokens?.accent || "").toLowerCase() ===
+          String(appearanceQaSnapshot.publishedAccentColor || "").toLowerCase(),
+      "CARD 08 restore did not reproduce the prior published Appearance.",
+    );
+
+    await assertNoHorizontalOverflow(page, "CARD 08 Appearance iPad portrait");
+    await page.screenshot({
+      path: path.join(ARTIFACT_DIR, "ipad-card08-website-appearance.png"),
+      fullPage: true,
+    });
+  } finally {
+    await context.close();
+    await browser.close();
+    cleanupAppearanceQa();
+  }
+}
+
 async function ownerPolishViewsQa(viewport, label) {
   const browser = await webkit.launch({ headless: true });
   const context = await browser.newContext({ viewport });
@@ -2081,8 +2362,10 @@ try {
   await mobileWebkitQa();
   console.log("QA stage: CARD03 Product placement");
   await productPlacementQa();
-  console.log("QA stage: CARD06 Homepage merchandising");
+  console.log("QA stage: CARD06/07 Homepage merchandising");
   await homepageMerchandisingQa();
+  console.log("QA stage: CARD08 Website Appearance");
+  await websiteAppearanceQa();
   console.log("QA stage: iPhone owner views");
   await ownerPolishViewsQa({ width: 390, height: 844 }, "iPhone WebKit");
   console.log("QA stage: iPad owner views");
@@ -2129,6 +2412,13 @@ try {
           "card07-module-hide-private-draft",
           "card07-draft-does-not-change-published-modules",
           "card07-private-preview-module-layout",
+          "card08-appearance-four-safe-cards",
+          "card08-appearance-private-draft",
+          "card08-appearance-private-preview",
+          "card08-appearance-publish-public-contract",
+          "card08-storefront-applies-published-tokens-and-hero",
+          "card08-appearance-restore",
+          "card08-ipad-portrait-no-overflow",
           "iphone-catalogue-hierarchy-create-main-and-subsections",
           "iphone-catalogue-menu-visibility-toggle",
           "iphone-catalogue-subsection-reorder",
@@ -2165,6 +2455,8 @@ try {
 } finally {
   try {
     try {
+      cleanupAppearanceQa();
+      console.log("Synthetic Website Appearance QA data cleaned up.");
       cleanupHomepageQa();
       console.log("Synthetic Homepage merchandising QA data cleaned up.");
       cleanupStocktakeQaSessions();
