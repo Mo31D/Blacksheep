@@ -1122,6 +1122,17 @@ async function productPlacementQa() {
       new Set(publicPlacements).size === publicPlacements.length,
       "Public catalogue returned duplicate Product placements.",
     );
+    const productAudit = d1(
+      "SELECT actor_id AS actorId, after_json AS afterJson, created_at AS createdAt " +
+        "FROM product_audit_events WHERE product_id=" + q(productId) +
+        " AND event_type='PRODUCT_PUBLISHED' ORDER BY created_at DESC LIMIT 1",
+    )[0];
+    assert(
+      productAudit?.actorId === sessionOwnerEmail &&
+        String(productAudit?.afterJson || "").includes(publishedVersionId) &&
+        Boolean(productAudit?.createdAt),
+      "CARD 10 Product publish audit is missing actor/time/version evidence.",
+    );
 
     await assertNoHorizontalOverflow(
       page,
@@ -1417,6 +1428,18 @@ async function homepageMerchandisingQa() {
       publicHomepage?.config?.publishedVersionId === homepagePublishedVersion,
       "CARD 10 Homepage public version does not match the published version.",
     );
+    const homepageAudit = d1(
+      "SELECT actor_id AS actorId, after_json AS afterJson, created_at AS createdAt " +
+        "FROM homepage_merchandising_audit_events " +
+        "WHERE merchandising_id='home_product_rail' AND event_type='PUBLISHED' " +
+        "ORDER BY created_at DESC LIMIT 1",
+    )[0];
+    assert(
+      homepageAudit?.actorId === sessionOwnerEmail &&
+        String(homepageAudit?.afterJson || "").includes(homepagePublishedVersion) &&
+        Boolean(homepageAudit?.createdAt),
+      "CARD 10 Homepage publish audit is missing actor/time/version evidence.",
+    );
 
     await assertNoHorizontalOverflow(page, "CARD 06 Homepage iPad portrait");
     await page.screenshot({
@@ -1619,6 +1642,18 @@ async function websiteAppearanceQa() {
         publicAppearance?.config?.sectionImages?.[sectionImageKey] ===
           "/images/1.png",
       "CARD 09 public Appearance contract does not match the seasonal draft.",
+    );
+    const appearanceAudit = d1(
+      "SELECT actor_id AS actorId, after_json AS afterJson, created_at AS createdAt " +
+        "FROM website_appearance_audit_events " +
+        "WHERE appearance_id='site_appearance' AND event_type='PUBLISHED' " +
+        "ORDER BY created_at DESC LIMIT 1",
+    )[0];
+    assert(
+      appearanceAudit?.actorId === sessionOwnerEmail &&
+        String(appearanceAudit?.afterJson || "").includes(qaPublishedId) &&
+        Boolean(appearanceAudit?.createdAt),
+      "CARD 10 Appearance publish audit is missing actor/time/version evidence.",
     );
 
     const storefront = await context.newPage();
@@ -2426,6 +2461,26 @@ async function ownerPolishViewsQa(viewport, label) {
             ?.textContent?.includes("Published and verified in staging."),
         null,
         { timeout: 20_000 },
+      );
+      const structureState = d1(
+        "SELECT current_published_version_id AS publishedVersionId " +
+          "FROM storefront_nodes WHERE id=" + q(rootId) + " LIMIT 1",
+      )[0];
+      const structurePublishedVersion = String(
+        structureState?.publishedVersionId || "",
+      );
+      const structureAudit = d1(
+        "SELECT actor_id AS actorId, after_json AS afterJson, created_at AS createdAt " +
+          "FROM storefront_audit_events WHERE node_id=" + q(rootId) +
+          " AND event_type='NODE_UPDATED' AND reason='Owner published Storefront section' " +
+          "ORDER BY created_at DESC LIMIT 1",
+      )[0];
+      assert(
+        structurePublishedVersion &&
+          structureAudit?.actorId === sessionOwnerEmail &&
+          String(structureAudit?.afterJson || "").includes(structurePublishedVersion) &&
+          Boolean(structureAudit?.createdAt),
+        "CARD 10 Structure publish audit is missing actor/time/version evidence.",
       );
 
       qaRoot = page
