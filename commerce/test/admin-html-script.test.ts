@@ -56,6 +56,18 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("Media Library");
     expect(production).toContain("Upload to Media Library");
     expect(production).toContain('id="appearanceHeroChooseMedia"');
+    expect(production).toContain('id="appearanceHeroUploadButton"');
+    expect(production).toContain('id="appearanceHeroUpload"');
+    expect(production).toContain('id="appearanceHeroClear"');
+    expect(production).toContain('id="structureImageUploadButton"');
+    expect(production).toContain('data-appearance-section-upload-button');
+    expect(production).toContain("function uploadSharedImageFile");
+    expect(production).toContain("function uploadAppearanceHeroImage");
+    expect(production).toContain("function uploadAppearanceSectionImage");
+    expect(production).toContain("function uploadStructureImage");
+    expect(production).not.toContain('placeholder="/images/1.png"');
+    expect(production).not.toContain('placeholder="Image address"');
+    expect(production).not.toContain('placeholder="Optional image address"');
     expect(production).toContain("Choose from Media Library");
     expect(production).toContain("/admin/api/media");
     expect(production).toContain("/media/from-library");
