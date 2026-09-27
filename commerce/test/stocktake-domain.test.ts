@@ -176,6 +176,31 @@ describe("CARD 05 Stocktake domain", () => {
     ]);
   });
 
+  it("previews a Highland Cows-only Website-section scope directly", async () => {
+    const db = new StocktakeDb();
+
+    const preview = await previewStocktakeScope(db, {
+      locationId: "loc_ambleside",
+      scopeType: "STOREFRONT_NODE",
+      scopeRefId: "sfn_gifts_highland_cows",
+    });
+
+    expect(preview).toMatchObject({
+      scopeType: "STOREFRONT_NODE",
+      scopeRefId: "sfn_gifts_highland_cows",
+    });
+
+    const count = db.prepared.find((statement) =>
+      statement.sql.startsWith("SELECT COUNT(*) AS count"),
+    );
+    expect(count?.sql).toContain("product_version_storefront_placements");
+    expect(count?.values).toEqual([
+      "loc_ambleside",
+      "sfn_gifts_highland_cows",
+      "sfn_gifts_highland_cows",
+    ]);
+  });
+
   it("makes a main Website-section scope include products placed in its sub-sections", async () => {
     const db = new StocktakeDb();
 
