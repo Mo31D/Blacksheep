@@ -138,32 +138,30 @@ async function verifyRealOverlay(browserType, label, viewport, expectedProductCo
 
     assert(state.config?.preview === true, label + " preview flag is not active");
     assert(state.config?.mode === "staging", label + " preview mode is not staging");
+    const received = Number(state.live?.received ?? -1);
+    const covered = Number(state.live?.covered ?? -1);
     assert(
-      state.live?.received === expectedProductCount,
-      label +
-        " received " +
-        state.live?.received +
-        " D1 products; expected " +
-        expectedProductCount,
+      state.live?.authoritative === true && received > 0,
+      label + " did not finish an authoritative complete D1 catalogue load",
     );
     assert(
-      state.live?.covered === expectedProductCount,
+      covered === received,
       label +
         " covered " +
-        state.live?.covered +
+        covered +
         " unique D1 products out of " +
+        received +
+        " received (initial staging snapshot was " +
         expectedProductCount +
-        " (applied catalogue entries: " +
-        state.live?.applied +
         ")",
     );
     assert(
-      Number(state.live?.applied ?? 0) >= expectedProductCount,
+      Number(state.live?.applied ?? 0) >= covered,
       label +
         " applied fewer catalogue entries than unique D1 products: " +
         state.live?.applied +
         " < " +
-        expectedProductCount,
+        covered,
     );
 
     const banner = page.locator("#commercePreviewBanner");
