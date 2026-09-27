@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0022_")) {
+  if (!latestMigration?.startsWith("0023_")) {
     throw new Error(
-      `Expected latest migration to be 0022, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0023, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0021_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0021.");
+  if (baselineMigrations.at(-1)?.startsWith("0022_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0022.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -144,6 +144,9 @@ try {
     "SELECT id, current_published_version_id, current_draft_version_id, version FROM website_appearance LIMIT 0",
     "SELECT appearance_id, version_number, preset_key, background_color, surface_color, text_color, muted_text_color, accent_color, button_color, border_color, header_color, hero_image_url, hero_heading, hero_text, hero_button_label, hero_button_href, section_images_json, scheduled_start_at, scheduled_end_at, published_at, superseded_at FROM website_appearance_versions LIMIT 0",
     "SELECT appearance_id, event_type, actor_id, before_json, after_json FROM website_appearance_audit_events LIMIT 0",
+    "SELECT id, storage_provider, storage_key, public_url, mime_type, file_size, checksum_sha256, title, alt_text, context, status, archived_at, deleted_at FROM shared_media_assets LIMIT 0",
+    "SELECT asset_id, surface, owner_id, owner_version_id, slot_key, released_at FROM shared_media_references LIMIT 0",
+    "SELECT asset_id, event_type, actor_id, before_json, after_json FROM shared_media_audit_events LIMIT 0",
   ];
 
   for (const sql of schemaQueries) {
@@ -171,7 +174,7 @@ try {
     "--persist-to",
     persistDir,
     "--command",
-    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort','idx_suppliers_active_name','idx_product_variants_supplier','idx_inventory_valuation_snapshots_location_date','idx_storefront_nodes_status_updated','idx_storefront_live_slug','idx_storefront_one_live_version','idx_storefront_node_versions_parent_sort','idx_product_storefront_one_primary','idx_product_storefront_node_version','idx_storefront_audit_node_created','idx_storefront_audit_event_created','idx_stocktake_sessions_status_updated','idx_stocktake_sessions_location_status','idx_stocktake_items_session_position','idx_stocktake_items_session_status','idx_homepage_merchandising_one_live_version','idx_homepage_merchandising_products_position','idx_homepage_merchandising_audit_created','idx_homepage_merchandising_modules_position') ORDER BY name",
+    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort','idx_suppliers_active_name','idx_product_variants_supplier','idx_inventory_valuation_snapshots_location_date','idx_storefront_nodes_status_updated','idx_storefront_live_slug','idx_storefront_one_live_version','idx_storefront_node_versions_parent_sort','idx_product_storefront_one_primary','idx_product_storefront_node_version','idx_storefront_audit_node_created','idx_storefront_audit_event_created','idx_stocktake_sessions_status_updated','idx_stocktake_sessions_location_status','idx_stocktake_items_session_position','idx_stocktake_items_session_status','idx_homepage_merchandising_one_live_version','idx_homepage_merchandising_products_position','idx_homepage_merchandising_audit_created','idx_homepage_merchandising_modules_position','idx_shared_media_assets_status_context','idx_shared_media_assets_checksum','idx_shared_media_references_asset','idx_shared_media_references_owner','idx_shared_media_audit_asset_created') ORDER BY name",
   ]);
 
   for (const required of [
@@ -207,6 +210,11 @@ try {
     "idx_homepage_merchandising_products_position",
     "idx_homepage_merchandising_audit_created",
     "idx_homepage_merchandising_modules_position",
+    "idx_shared_media_assets_status_context",
+    "idx_shared_media_assets_checksum",
+    "idx_shared_media_references_asset",
+    "idx_shared_media_references_owner",
+    "idx_shared_media_audit_asset_created",
   ]) {
     if (!indexOutput.includes(required)) {
       throw new Error(`Required index missing after upgrade: ${required}`);
