@@ -90,6 +90,12 @@ import {
   listAdminSuppliers,
 } from "../data/inventory-valuation";
 import {
+  getAdminHomepageMerchandising,
+  previewAdminHomepageMerchandising,
+  publishAdminHomepageMerchandising,
+  saveAdminHomepageMerchandisingDraft,
+} from "../data/homepage-merchandising";
+import {
   cancelStocktakeSession,
   createStocktakeSession,
   finalizeStocktakeSession,
@@ -142,6 +148,10 @@ interface AdminDependencies {
   listAdminProductsFn: typeof listAdminProducts;
   getAdminProductDetailFn: typeof getAdminProductDetail;
   listAdminCategoriesFn: typeof listAdminCategories;
+  getAdminHomepageMerchandisingFn: typeof getAdminHomepageMerchandising;
+  previewAdminHomepageMerchandisingFn: typeof previewAdminHomepageMerchandising;
+  saveAdminHomepageMerchandisingDraftFn: typeof saveAdminHomepageMerchandisingDraft;
+  publishAdminHomepageMerchandisingFn: typeof publishAdminHomepageMerchandising;
   listAdminStorefrontNodesFn: typeof listAdminStorefrontNodes;
   getAdminStorefrontNodeFn: typeof getAdminStorefrontNode;
   createAdminStorefrontNodeFn: typeof createAdminStorefrontNode;
@@ -208,6 +218,10 @@ const defaults: AdminDependencies = {
   listAdminProductsFn: listAdminProducts,
   getAdminProductDetailFn: getAdminProductDetail,
   listAdminCategoriesFn: listAdminCategories,
+  getAdminHomepageMerchandisingFn: getAdminHomepageMerchandising,
+  previewAdminHomepageMerchandisingFn: previewAdminHomepageMerchandising,
+  saveAdminHomepageMerchandisingDraftFn: saveAdminHomepageMerchandisingDraft,
+  publishAdminHomepageMerchandisingFn: publishAdminHomepageMerchandising,
   listAdminStorefrontNodesFn: listAdminStorefrontNodes,
   getAdminStorefrontNodeFn: getAdminStorefrontNode,
   createAdminStorefrontNodeFn: createAdminStorefrontNode,
@@ -285,6 +299,45 @@ function categoryMutationError(cause: unknown): Response {
     code === "category_name_conflict" ? 409 :
     400;
   return error(code, status, messages[code] ?? "Unable to update category.");
+}
+
+function homepageMutationError(cause: unknown): Response {
+  const code =
+    cause instanceof Error ? cause.message : "homepage_merchandising_update_failed";
+  const conflicts = new Set([
+    "homepage_version_conflict",
+    "homepage_no_draft",
+    "homepage_collection_not_live",
+    "homepage_featured_product_not_live",
+  ]);
+  const notFound = new Set([
+    "homepage_merchandising_not_found",
+    "homepage_collection_not_found",
+    "homepage_featured_product_not_found",
+  ]);
+  const messages: Record<string, string> = {
+    homepage_expected_version_invalid: "Homepage version is invalid.",
+    homepage_version_conflict: "Homepage settings changed while you were editing. Refresh and try again.",
+    homepage_enabled_invalid: "Homepage visibility setting is invalid.",
+    homepage_mode_invalid: "Choose a valid product strip mode.",
+    homepage_product_limit_invalid: "Choose between 1 and 20 products.",
+    homepage_heading_too_long: "Homepage heading must be 120 characters or fewer.",
+    homepage_reference_invalid: "The selected homepage reference is invalid.",
+    homepage_featured_products_invalid: "Featured products selection is invalid.",
+    homepage_featured_products_required: "Choose at least one Featured product before publishing.",
+    homepage_featured_product_not_found: "One of the selected products no longer exists.",
+    homepage_featured_product_archived: "An archived product cannot be featured.",
+    homepage_featured_product_not_live: "Publish every Featured product before publishing this homepage draft.",
+    homepage_collection_required: "Choose a collection before publishing this mode.",
+    homepage_collection_not_found: "The selected collection no longer exists.",
+    homepage_collection_archived: "The selected collection is archived.",
+    homepage_collection_not_ready: "The selected collection is not ready yet.",
+    homepage_collection_not_live: "Publish the selected collection before publishing this homepage draft.",
+    homepage_no_draft: "There are no homepage draft changes to publish.",
+    homepage_merchandising_not_found: "Homepage merchandising configuration is unavailable.",
+  };
+  const status = notFound.has(code) ? 404 : conflicts.has(code) ? 409 : 400;
+  return error(code, status, messages[code] ?? "Unable to update homepage settings.");
 }
 
 function storefrontMutationError(cause: unknown): Response {
@@ -1045,6 +1098,66 @@ export async function handleAdminRequest(
       limit: Number(url.searchParams.get("limit") ?? "60"),
     });
     return json(result);
+  }
+
+  if (
+    url.pathname === "/admin/api/homepage-merchandising" &&
+    request.method === "GET"
+  ) {
+    try {
+      const config = await deps.getAdminHomepageMerchandisingFn(env.DB);
+      return json({ config });
+    } catch (cause) {
+      return homepageMutationError(cause);
+    }
+  }
+
+  if (
+    url.pathname === "/admin/api/homepage-merchandising/preview" &&
+    request.method === "GET"
+  ) {
+    try {
+      const preview = await deps.previewAdminHomepageMerchandisingFn(env.DB);
+      return json(preview);
+    } catch (cause) {
+      return homepageMutationError(cause);
+    }
+  }
+
+  if (
+    url.pathname === "/admin/api/homepage-merchandising/draft" &&
+    request.method === "PATCH"
+  ) {
+    try {
+      const raw = await readProductJson(request);
+      await deps.saveAdminHomepageMerchandisingDraftFn(
+        env.DB,
+        raw,
+        identity.email,
+      );
+      const config = await deps.getAdminHomepageMerchandisingFn(env.DB);
+      return json({ config });
+    } catch (cause) {
+      return homepageMutationError(cause);
+    }
+  }
+
+  if (
+    url.pathname === "/admin/api/homepage-merchandising/publish" &&
+    request.method === "POST"
+  ) {
+    try {
+      const raw = await readProductJson(request);
+      await deps.publishAdminHomepageMerchandisingFn(
+        env.DB,
+        raw.expectedVersion,
+        identity.email,
+      );
+      const config = await deps.getAdminHomepageMerchandisingFn(env.DB);
+      return json({ config });
+    } catch (cause) {
+      return homepageMutationError(cause);
+    }
   }
 
   if (
