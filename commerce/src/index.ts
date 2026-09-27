@@ -6,6 +6,7 @@ import { handleResendWebhook } from "./routes/resend-webhook";
 import { handleProductMediaRequest } from "./routes/product-media";
 import { handlePublicCatalogRequest } from "./routes/catalog";
 import { handleCleanCollectionRequest } from "./routes/storefront-clean";
+import { handleDynamicSitemapRequest } from "./routes/storefront-sitemap";
 import type { R2BucketLike } from "./data/product-media";
 import { expireDueReservations } from "./data/order-reservations";
 import { captureAdminStockValuationSnapshot } from "./data/inventory-valuation";
@@ -153,6 +154,10 @@ async function route(request: Request, env: Env): Promise<Response> {
 
   if (url.pathname.startsWith("/collections/")) {
     return handleCleanCollectionRequest(request, env);
+  }
+
+  if (url.pathname === "/sitemap-dynamic.xml") {
+    return handleDynamicSitemapRequest(request, env);
   }
 
   if (
