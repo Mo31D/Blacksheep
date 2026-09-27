@@ -7,6 +7,7 @@ on:
       - "assets/site.js"
       - "assets/commerce-live.js"
       - "product.html"
+      - "index.html"
       - "assets/style.css"
       - "scripts/test-cart-core.mjs"
       - "commerce/scripts/staging-storefront-overlay-qa.mjs"
