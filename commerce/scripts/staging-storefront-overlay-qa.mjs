@@ -594,8 +594,9 @@ async function verifyHomepageRailModes(realCatalogPayload) {
       const section = page.locator("#homepageProductRail");
       await section.waitFor({ state: "visible", timeout: 15_000 });
       assert(
-        (await page.locator("#homepageProductRailTrack .product-card").count()) ===
-          sample.length,
+        (await page
+          .locator('#homepageProductRailTrack .product-card:not([data-home-carousel-clone="1"])')
+          .count()) === sample.length,
         mode + " Homepage rail did not render the published Product count",
       );
       assert(
@@ -603,11 +604,32 @@ async function verifyHomepageRailModes(realCatalogPayload) {
           homepagePayload.config.heading,
         mode + " Homepage rail heading is wrong",
       );
+      const railViewport = page.locator(".home-product-rail-viewport");
+      await railViewport.waitFor({ state: "visible", timeout: 10_000 });
       assert(
-        (await page.locator("#homepageProductRailTrack").evaluate(
-          (el) => getComputedStyle(el).overflowX,
-        )) === "auto",
+        (await railViewport.evaluate((el) => getComputedStyle(el).overflowX)) ===
+          "auto",
         mode + " Homepage rail is not horizontally swipeable",
+      );
+      assert(
+        (await page.locator("#homepageProductRailTrack").getAttribute("data-native-marquee-ready")) ===
+          "1",
+        mode + " Homepage rail continuous marquee was not initialised",
+      );
+      const swipeProbe = await railViewport.evaluate(async (el) => {
+        const before = el.scrollLeft;
+        el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+        el.scrollLeft = before + 45;
+        const dragged = el.scrollLeft;
+        await new Promise((resolve) => setTimeout(resolve, 180));
+        const held = el.scrollLeft;
+        el.dispatchEvent(new PointerEvent("pointerup", { bubbles: true }));
+        return { before, dragged, held };
+      });
+      assert(
+        swipeProbe.dragged > swipeProbe.before &&
+          Math.abs(swipeProbe.held - swipeProbe.dragged) < 4,
+        mode + " Homepage rail did not preserve native drag position",
       );
       await assertNoHorizontalOverflow(page, mode + " Homepage rail page");
     }
