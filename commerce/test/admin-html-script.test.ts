@@ -139,7 +139,7 @@ describe("generated Admin HTML scripts", () => {
     const html = adminHtml("owner@example.com");
     expect(html).toContain("function openResponsiveProductDetail()");
     expect(html).toContain(
-      "window.matchMedia('(max-width: 900px)').matches",
+      "window.innerWidth<=900||(window.matchMedia&&window.matchMedia('(max-width: 900px)').matches)",
     );
     expect(html).toContain("openResponsiveProductDetail()");
     expect(html).toContain(
