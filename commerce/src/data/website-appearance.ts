@@ -14,6 +14,105 @@ export interface AppearanceTokens {
   header: string;
 }
 
+export type WebsiteAppearancePresetKey =
+  | "DEFAULT"
+  | "WINTER"
+  | "CHRISTMAS"
+  | "SUMMER"
+  | "ICE_CREAM";
+
+export interface WebsiteAppearancePreset {
+  key: WebsiteAppearancePresetKey;
+  label: string;
+  description: string;
+  tokens: AppearanceTokens;
+}
+
+export const WEBSITE_APPEARANCE_PRESETS: readonly WebsiteAppearancePreset[] = [
+  {
+    key: "DEFAULT",
+    label: "Default",
+    description: "The Black Sheep Shop's warm neutral look for everyday use.",
+    tokens: {
+      background: "#f8f4ea",
+      surface: "#fffefa",
+      text: "#151512",
+      mutedText: "#706b61",
+      accent: "#b7904c",
+      button: "#151512",
+      border: "#ddd5c6",
+      header: "#f8f4ea",
+    },
+  },
+  {
+    key: "WINTER",
+    label: "Winter",
+    description: "Cool, calm blue-grey tones with strong readable contrast.",
+    tokens: {
+      background: "#f1f5f6",
+      surface: "#ffffff",
+      text: "#17252b",
+      mutedText: "#5c6970",
+      accent: "#547985",
+      button: "#244a59",
+      border: "#ccd8dc",
+      header: "#e7eff1",
+    },
+  },
+  {
+    key: "CHRISTMAS",
+    label: "Christmas",
+    description: "Cream, deep evergreen and restrained gold for the festive season.",
+    tokens: {
+      background: "#f7f3e8",
+      surface: "#fffdf7",
+      text: "#1b2b22",
+      mutedText: "#5f675f",
+      accent: "#a47a35",
+      button: "#1e5239",
+      border: "#ddd2be",
+      header: "#edf1e7",
+    },
+  },
+  {
+    key: "SUMMER",
+    label: "Summer",
+    description: "Warm sunshine neutrals with a fresh deep teal accent.",
+    tokens: {
+      background: "#fff8e8",
+      surface: "#fffdf7",
+      text: "#18332f",
+      mutedText: "#65706b",
+      accent: "#b27a2c",
+      button: "#17685d",
+      border: "#e5d8bb",
+      header: "#f7efd8",
+    },
+  },
+  {
+    key: "ICE_CREAM",
+    label: "Ice Cream",
+    description: "Soft berry and cream tones designed for ice-cream season.",
+    tokens: {
+      background: "#fff3f2",
+      surface: "#fffdfc",
+      text: "#3b252c",
+      mutedText: "#725f65",
+      accent: "#a55d72",
+      button: "#7d4054",
+      border: "#ead4d7",
+      header: "#fce8e8",
+    },
+  },
+];
+
+export function listWebsiteAppearancePresets(): WebsiteAppearancePreset[] {
+  return WEBSITE_APPEARANCE_PRESETS.map((item) => ({
+    ...item,
+    tokens: { ...item.tokens },
+  }));
+}
+
 export interface AppearanceHero {
   imageUrl: string | null;
   heading: string | null;
@@ -98,13 +197,63 @@ function optionalText(
   return result || null;
 }
 
-function preset(value: unknown, fallback: string): string {
-  if (value === undefined) return fallback;
-  const result = String(value ?? "").trim().toUpperCase();
-  if (!/^[A-Z0-9_]{2,40}$/.test(result)) {
+function preset(value: unknown, fallback: string): WebsiteAppearancePresetKey {
+  const candidate = String(value === undefined ? fallback : value ?? "")
+    .trim()
+    .toUpperCase();
+  if (
+    !WEBSITE_APPEARANCE_PRESETS.some((item) => item.key === candidate)
+  ) {
     throw new Error("appearance_preset_invalid");
   }
-  return result;
+  return candidate as WebsiteAppearancePresetKey;
+}
+
+function presetTokens(key: WebsiteAppearancePresetKey): AppearanceTokens {
+  const found = WEBSITE_APPEARANCE_PRESETS.find((item) => item.key === key);
+  if (!found) throw new Error("appearance_preset_invalid");
+  return { ...found.tokens };
+}
+
+function relativeLuminance(hex: string): number {
+  const channel = (offset: number): number => {
+    const raw = Number.parseInt(hex.slice(offset, offset + 2), 16) / 255;
+    return raw <= 0.03928
+      ? raw / 12.92
+      : Math.pow((raw + 0.055) / 1.055, 2.4);
+  };
+  return (
+    0.2126 * channel(1) +
+    0.7152 * channel(3) +
+    0.0722 * channel(5)
+  );
+}
+
+export function appearanceContrastRatio(a: string, b: string): number {
+  if (!HEX.test(a) || !HEX.test(b)) {
+    throw new Error("appearance_colour_invalid");
+  }
+  const first = relativeLuminance(a);
+  const second = relativeLuminance(b);
+  return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+}
+
+export function validateAppearanceContrast(tokens: AppearanceTokens): void {
+  const pairs: Array<[string, string, number]> = [
+    [tokens.text, tokens.background, 4.5],
+    [tokens.text, tokens.surface, 4.5],
+    [tokens.mutedText, tokens.background, 4.5],
+    [tokens.text, tokens.header, 4.5],
+    ["#ffffff", tokens.button, 4.5],
+  ];
+  if (
+    pairs.some(
+      ([foreground, background, minimum]) =>
+        appearanceContrastRatio(foreground, background) < minimum,
+    )
+  ) {
+    throw new Error("appearance_contrast_invalid");
+  }
 }
 
 function safeHref(value: unknown, fallback: string | null): string | null {
@@ -337,17 +486,24 @@ export async function saveAdminWebsiteAppearanceDraft(
     throw new Error("appearance_hero_invalid");
   }
 
+  const nextPresetKey = preset(raw.presetKey, current.presetKey);
+  const presetChanged =
+    raw.presetKey !== undefined && nextPresetKey !== current.presetKey;
+  const tokenFallback = presetChanged
+    ? presetTokens(nextPresetKey)
+    : current.tokens;
+
   const next = {
-    presetKey: preset(raw.presetKey, current.presetKey),
+    presetKey: nextPresetKey,
     tokens: {
-      background: colour(tokenRaw.background, current.tokens.background),
-      surface: colour(tokenRaw.surface, current.tokens.surface),
-      text: colour(tokenRaw.text, current.tokens.text),
-      mutedText: colour(tokenRaw.mutedText, current.tokens.mutedText),
-      accent: colour(tokenRaw.accent, current.tokens.accent),
-      button: colour(tokenRaw.button, current.tokens.button),
-      border: colour(tokenRaw.border, current.tokens.border),
-      header: colour(tokenRaw.header, current.tokens.header),
+      background: colour(tokenRaw.background, tokenFallback.background),
+      surface: colour(tokenRaw.surface, tokenFallback.surface),
+      text: colour(tokenRaw.text, tokenFallback.text),
+      mutedText: colour(tokenRaw.mutedText, tokenFallback.mutedText),
+      accent: colour(tokenRaw.accent, tokenFallback.accent),
+      button: colour(tokenRaw.button, tokenFallback.button),
+      border: colour(tokenRaw.border, tokenFallback.border),
+      header: colour(tokenRaw.header, tokenFallback.header),
     },
     hero: {
       imageUrl: optionalText(
@@ -378,6 +534,8 @@ export async function saveAdminWebsiteAppearanceDraft(
     },
     sectionImages: sectionImages(raw.sectionImages, current.sectionImages),
   };
+
+  validateAppearanceContrast(next.tokens);
 
   const createdAt = now();
   const resultVersion = expected + 1;
