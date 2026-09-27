@@ -629,6 +629,13 @@ async function verifyHomepageRailModes(realCatalogPayload) {
           Math.abs(swipeProbe.held - swipeProbe.dragged) < 4,
         mode + " Homepage rail did not preserve native drag position",
       );
+      const autoBefore = await railViewport.evaluate((el) => el.scrollLeft);
+      await page.waitForTimeout(1300);
+      const autoAfter = await railViewport.evaluate((el) => el.scrollLeft);
+      assert(
+        autoAfter > autoBefore + 2,
+        mode + " Homepage rail did not resume continuous movement after touch",
+      );
       await assertNoHorizontalOverflow(page, mode + " Homepage rail page");
     }
 
@@ -665,8 +672,8 @@ async function verifyHomepageRailModes(realCatalogPayload) {
     );
     assert(
       publishedModules.map((row) => row.key).join(",") ===
-        "COLLECTIONS,HERO,PRODUCT_RAIL,VISIT_SHOP,LOCAL_FAVOURITES",
-      "Published Homepage module order did not reach the DOM: " +
+        "HERO,PRODUCT_RAIL,COLLECTIONS,VISIT_SHOP,LOCAL_FAVOURITES",
+      "Homepage pinned Hero → Product rail → Collections order did not reach the DOM: " +
         JSON.stringify(publishedModules),
     );
     assert(
