@@ -11,6 +11,21 @@ export interface PublicCatalogEnv {
   DB?: D1DatabaseLike;
   D1_PUBLIC_CATALOG_ENABLED?: string;
   STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED?: string;
+  STOREFRONT_CLEAN_PRODUCT_ROUTES_ENABLED?: string;
+}
+
+
+function withCleanProductUrl<T extends { id: string; productId: string; slug: string }>(
+  product: T,
+  enabled: boolean,
+): T & { cleanUrl: string | null } {
+  return {
+    ...product,
+    cleanUrl:
+      enabled && product.id === product.productId
+        ? "/products/" + encodeURIComponent(product.slug)
+        : null,
+  };
 }
 
 function json(body: unknown, status = 200): Response {
@@ -97,8 +112,10 @@ export async function handlePublicCatalogRequest(
   if (detail) {
     const publicId = decodeURIComponent(detail[1]);
     const product = await getPublicCommerceProduct(env.DB, publicId);
+    const cleanProducts =
+      env.STOREFRONT_CLEAN_PRODUCT_ROUTES_ENABLED === "true";
     return product
-      ? json({ product })
+      ? json({ product: withCleanProductUrl(product, cleanProducts) })
       : json(
           {
             error: {
@@ -126,6 +143,14 @@ export async function handlePublicCatalogRequest(
     limit,
     cursor,
   });
+  const cleanProducts =
+    env.STOREFRONT_CLEAN_PRODUCT_ROUTES_ENABLED === "true";
 
-  return json(result);
+  return json({
+    ...result,
+    products: result.products.map((product) =>
+      withCleanProductUrl(product, cleanProducts),
+    ),
+    cleanProductRoutes: cleanProducts,
+  });
 }
