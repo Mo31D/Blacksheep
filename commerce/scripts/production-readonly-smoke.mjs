@@ -52,15 +52,30 @@ async function browserSmoke(browserType, label, staleStaticUrls) {
       timeout: 30_000,
     });
     await page.waitForFunction(
-      () => document.documentElement.dataset.commerceLive === "ready",
+      () => {
+        const state = document.documentElement.dataset.commerceLive;
+        return state === "ready" || state === "fallback";
+      },
       undefined,
       { timeout: 30_000 },
     );
 
     const state = await page.evaluate(
-      () => window.BLACK_SHEEP_LIVE_COMMERCE_STATE || null,
+      () => ({
+        commerceLive: document.documentElement.dataset.commerceLive || null,
+        liveState: window.BLACK_SHEEP_LIVE_COMMERCE_STATE || null,
+      }),
     );
-    assert(state?.authoritative === true, label + " storefront is not authoritative");
+    assert(
+      state.commerceLive === "ready",
+      label + " storefront live UI did not become ready: " +
+        JSON.stringify(state.liveState),
+    );
+    assert(
+      state.liveState?.authoritative === true,
+      label + " storefront is not authoritative: " +
+        JSON.stringify(state.liveState),
+    );
 
     const order = await page.evaluate(() => {
       const hero = document.querySelector('[data-home-module="HERO"]');
@@ -93,9 +108,23 @@ async function browserSmoke(browserType, label, staleStaticUrls) {
       timeout: 30_000,
     });
     await page.waitForFunction(
-      () => document.documentElement.dataset.commerceLive === "ready",
+      () => {
+        const state = document.documentElement.dataset.commerceLive;
+        return state === "ready" || state === "fallback";
+      },
       undefined,
       { timeout: 30_000 },
+    );
+    const fullRangeState = await page.evaluate(
+      () => ({
+        commerceLive: document.documentElement.dataset.commerceLive || null,
+        liveState: window.BLACK_SHEEP_LIVE_COMMERCE_STATE || null,
+      }),
+    );
+    assert(
+      fullRangeState.commerceLive === "ready",
+      label + " Full range live UI did not become ready: " +
+        JSON.stringify(fullRangeState.liveState),
     );
 
     for (const url of staleStaticUrls.slice(0, 25)) {
@@ -110,9 +139,7 @@ async function browserSmoke(browserType, label, staleStaticUrls) {
       );
     }
 
-    const liveState = await page.evaluate(
-      () => window.BLACK_SHEEP_LIVE_COMMERCE_STATE || null,
-    );
+    const liveState = fullRangeState.liveState;
     assert(
       liveState?.authoritative === true && liveState?.fallback !== true,
       label + " Full range fell back from D1 authority",
