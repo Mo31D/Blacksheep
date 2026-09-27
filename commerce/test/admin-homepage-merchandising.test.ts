@@ -94,7 +94,7 @@ describe("CARD 06 Homepage Merchandising Admin API", () => {
       {
         verifyAccessFn: identity,
         saveAdminHomepageMerchandisingDraftFn: async (_db, raw, actorEmail) => {
-          saved = { ...(raw as Record<string, unknown>), actorEmail };
+          saved = { ...(raw as unknown as Record<string, unknown>), actorEmail };
         },
         getAdminHomepageMerchandisingFn: async () => ({
           ...config,

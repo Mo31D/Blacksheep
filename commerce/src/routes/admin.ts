@@ -94,6 +94,7 @@ import {
   previewAdminHomepageMerchandising,
   publishAdminHomepageMerchandising,
   saveAdminHomepageMerchandisingDraft,
+  type SaveHomepageMerchandisingDraftInput,
 } from "../data/homepage-merchandising";
 import {
   cancelStocktakeSession,
@@ -1132,7 +1133,7 @@ export async function handleAdminRequest(
       const raw = await readProductJson(request);
       await deps.saveAdminHomepageMerchandisingDraftFn(
         env.DB,
-        raw,
+        raw as unknown as SaveHomepageMerchandisingDraftInput,
         identity.email,
       );
       const config = await deps.getAdminHomepageMerchandisingFn(env.DB);
