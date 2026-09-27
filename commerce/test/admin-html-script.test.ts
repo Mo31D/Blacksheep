@@ -75,6 +75,8 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("Where should this product appear?");
     expect(production).toContain("<h3>Website placement</h3>");
     expect(production).toContain("productPlacementDisplay(p)");
+    expect(production).toContain("function productPlacementLabel(placement)");
+    expect(production).toContain("if(placement.name)return placement.name");
     expect(production).not.toContain("h.textContent==='Storefront placement'");
     expect(production).toContain("Primary section");
     expect(production).toContain("Primary sub-section");
