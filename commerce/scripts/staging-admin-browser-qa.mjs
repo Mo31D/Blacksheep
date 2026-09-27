@@ -1386,10 +1386,13 @@ async function homepageMerchandisingQa() {
       "CARD 06 Private Preview did not render the draft heading.",
     );
     assert(
-      previewText.indexOf("Shop by collection") <
-        previewText.indexOf("Hero & quick links") &&
+      previewText.indexOf("Hero & quick links") >= 0 &&
+        previewText.indexOf("Product strip") >
+          previewText.indexOf("Hero & quick links") &&
+        previewText.indexOf("Shop by collection") >
+          previewText.indexOf("Product strip") &&
         !previewText.includes("Local favourites"),
-      "CARD 07 Private Preview did not reflect module order/visibility.",
+      "CARD 13 Private Preview did not reflect protected module order/visibility.",
     );
     await page.locator("[data-close-product-sheet]:visible").first().click();
 
