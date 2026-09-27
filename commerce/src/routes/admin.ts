@@ -78,13 +78,16 @@ import {
 import {
   addSharedMediaReference,
   archiveAdminSharedMediaAsset,
+  claimSharedMediaObjectDeletion,
   createAdminSharedMediaAsset,
+  finalizeSharedMediaObjectDeletion,
   getAdminSharedMediaAsset,
   listAdminSharedMedia,
-  markSharedMediaObjectDeleted,
+  recordSharedMediaDeleteFailure,
   releaseSharedMediaReferences,
   restoreAdminSharedMediaAsset,
   sharedMediaDeleteEligibility,
+  sharedMediaStorageOwnedByLibrary,
   updateAdminSharedMediaAsset,
 } from "../data/shared-media";
 import {
@@ -1320,9 +1323,12 @@ export async function handleAdminRequest(
     } catch (cause) {
       if (storageKey) {
         try {
-          await env.PRODUCT_MEDIA.delete(storageKey);
+          const isOwned = await sharedMediaStorageOwnedByLibrary(env.DB, storageKey);
+          if (!isOwned) await env.PRODUCT_MEDIA.delete(storageKey);
+          // If D1 committed the asset, or ownership cannot be determined,
+          // retain the object. A later owner action can clean it safely.
         } catch {
-          // Preserve the original validation/database error.
+          // Uncertainty is not permission to destroy a possibly committed object.
         }
       }
       return sharedMediaMutationError(cause);
@@ -1387,24 +1393,73 @@ export async function handleAdminRequest(
     }
     const assetId = decodeURIComponent(sharedMediaMatch[1]);
     try {
-      const eligibility = await sharedMediaDeleteEligibility(env.DB, assetId);
-      if (!eligibility.canDeleteObject) {
-        return json(
-          {
-            error: {
-              code: "shared_media_delete_blocked",
-              message:
-                "Archive is safe, but permanent deletion is blocked while this image is referenced.",
-              blockers: eligibility.blockers,
-            },
-          },
-          409,
+      const claim = await claimSharedMediaObjectDeletion(
+        env.DB,
+        assetId,
+        identity.email,
+      );
+      if (claim.alreadyDeleted) {
+        return json({ ok: true, alreadyDeleted: true });
+      }
+
+      try {
+        await env.PRODUCT_MEDIA.delete(claim.storageKey);
+      } catch (storageCause) {
+        if (claim.claimToken) {
+          try {
+            await recordSharedMediaDeleteFailure(
+              env.DB,
+              assetId,
+              claim.claimToken,
+              storageCause,
+            );
+          } catch {
+            // The claim itself remains durable; retrying DELETE is safe.
+          }
+        }
+        return error(
+          "shared_media_delete_retry",
+          503,
+          "Storage deletion did not complete. Nothing was marked deleted; retry permanent delete.",
         );
       }
-      await env.PRODUCT_MEDIA.delete(eligibility.asset.storageKey);
-      await markSharedMediaObjectDeleted(env.DB, assetId, identity.email);
-      return json({ ok: true });
+
+      try {
+        await finalizeSharedMediaObjectDeletion(env.DB, claim, identity.email);
+      } catch {
+        return error(
+          "shared_media_delete_finalize_pending",
+          503,
+          "The file was removed from storage, but metadata finalization is pending. Retry permanent delete to finish safely.",
+        );
+      }
+      return json({ ok: true, retryable: false });
     } catch (cause) {
+      if (cause instanceof Error && cause.message === "shared_media_delete_blocked") {
+        try {
+          const eligibility = await sharedMediaDeleteEligibility(env.DB, assetId);
+          return json(
+            {
+              error: {
+                code: "shared_media_delete_blocked",
+                message:
+                  "Archive is safe, but permanent deletion is blocked while this image is referenced.",
+                blockers: eligibility.blockers,
+              },
+            },
+            409,
+          );
+        } catch {
+          return sharedMediaMutationError(cause);
+        }
+      }
+      if (cause instanceof Error && cause.message === "shared_media_delete_claim_failed") {
+        return error(
+          "shared_media_delete_retry",
+          503,
+          "Could not obtain a safe deletion claim. Retry permanent delete.",
+        );
+      }
       return sharedMediaMutationError(cause);
     }
   }
