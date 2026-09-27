@@ -1204,9 +1204,11 @@ async function homepageMerchandisingQa() {
         rows.map((row) => row.getAttribute("data-homepage-module")),
       );
     assert(
-      moduleOrderAfter[0] === "COLLECTIONS" &&
-        moduleOrderAfter[1] === "HERO",
-      "CARD 07 Homepage module reorder did not update the owner UI.",
+      moduleOrderAfter.slice(0, 3).join(",") ===
+        "HERO,PRODUCT_RAIL,COLLECTIONS" &&
+        moduleOrderAfter[3] === "VISIT_SHOP" &&
+        moduleOrderAfter[4] === "LOCAL_FAVOURITES",
+      "CARD 13 Homepage protected order/tail reorder did not update the owner UI.",
     );
 
     const newArrivals = page.locator(
@@ -1331,9 +1333,12 @@ async function homepageMerchandisingQa() {
     );
     assert(
       draftModules.length === 5 &&
-        draftModules[0]?.moduleKey === "COLLECTIONS" &&
-        draftModules[1]?.moduleKey === "HERO",
-      "CARD 07 Homepage module order was not persisted in the private draft.",
+        draftModules[0]?.moduleKey === "HERO" &&
+        draftModules[1]?.moduleKey === "PRODUCT_RAIL" &&
+        draftModules[2]?.moduleKey === "COLLECTIONS" &&
+        draftModules[3]?.moduleKey === "VISIT_SHOP" &&
+        draftModules[4]?.moduleKey === "LOCAL_FAVOURITES",
+      "CARD 13 Homepage protected order/tail reorder was not persisted in the private draft.",
     );
     const localDraft = draftModules.find(
       (row) => row.moduleKey === "LOCAL_FAVOURITES",
