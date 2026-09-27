@@ -1691,21 +1691,40 @@ async function ownerPolishViewsQa(viewport, label) {
       });
       await page.waitForTimeout(150);
       const clearance = await page.evaluate(() => {
-        const actions = document.querySelector(".editor-actions");
+        const panel = document.querySelector(
+          ".catalog-sheet:not(.hidden) .product-editor-panel",
+        );
+        const actions = panel?.querySelector(":scope > .editor-actions");
         const choices = Array.from(
-          document.querySelectorAll("#newProductCategories .category-choice"),
+          panel?.querySelectorAll(
+            "#newProductCategories .category-choice:not(.hidden)",
+          ) ?? [],
         );
         const last = choices.at(-1);
-        if (!actions || !last) return null;
+        if (!panel || !actions || !last) return null;
         const actionRect = actions.getBoundingClientRect();
         const lastRect = last.getBoundingClientRect();
         return {
           actionTop: actionRect.top,
+          actionBottom: actionRect.bottom,
+          actionHeight: actionRect.height,
           lastBottom: lastRect.bottom,
+          panelTop: panel.getBoundingClientRect().top,
+          panelBottom: panel.getBoundingClientRect().bottom,
           viewportHeight: window.innerHeight,
         };
       });
       assert(clearance, label + " Add Product footer clearance could not be measured.");
+      assert(
+        clearance.actionHeight > 0 &&
+          clearance.actionBottom > clearance.actionTop &&
+          clearance.actionTop >= clearance.panelTop &&
+          clearance.actionBottom <= clearance.panelBottom + 2,
+        label +
+          " Add Product footer measurement targeted a hidden/wrong action row (" +
+          JSON.stringify(clearance) +
+          ").",
+      );
       assert(
         clearance.lastBottom <= clearance.actionTop + 2,
         label +
