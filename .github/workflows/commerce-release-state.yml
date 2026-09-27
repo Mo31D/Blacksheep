@@ -101,9 +101,32 @@ jobs:
           echo
           echo "::endgroup::"
 
+      - name: CARD 14 Production Storefront Structure read-only diagnosis
+        if: steps.cloudflare.outputs.available == 'true'
+        continue-on-error: true
+        shell: bash
+        run: |
+          echo "::group::PRODUCTION_STOREFRONT_NODES"
+          npx wrangler d1 execute black-sheep-commerce-prod --remote --command "SELECT n.id,n.stable_key,n.publication_status,n.current_published_version_id,v.slug,v.legacy_path FROM storefront_nodes n LEFT JOIN storefront_node_versions v ON v.id=n.current_published_version_id ORDER BY n.id" --json
+          echo "::endgroup::"
+          echo "::group::PRODUCTION_PUBLIC_STRUCTURE"
+          curl --silent --show-error --max-time 20 https://api.theblacksheepshop.co.uk/v1/storefront-structure
+          echo
+          echo "::endgroup::"
+          echo "::group::PRODUCTION_COLLECTION_GIFTS"
+          curl --silent --show-error --max-time 20 -D - https://theblacksheepshop.co.uk/collections/gifts
+          echo
+          echo "::endgroup::"
+          echo "::group::PRODUCTION_SITEMAP_HEAD"
+          curl --silent --show-error --max-time 20 https://theblacksheepshop.co.uk/sitemap.xml | head -80
+          echo
+          echo "::endgroup::"
+
       - name: Audit note
         run: |
           echo "This workflow is intentionally read-only."
           echo "It does not run wrangler deploy or wrangler d1 migrations apply."
 
 # card14-readonly-release-state-2026-09-27
+
+# card14-live-route-diagnosis-2026-09-27
