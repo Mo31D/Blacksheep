@@ -2223,7 +2223,14 @@ async function ownerPolishViewsQa(viewport, label) {
     );
 
     await page.locator("#stocktakeScopeType").selectOption("STOREFRONT_NODE");
-    await page.waitForSelector("#stocktakeScopeRef option", { timeout: 10_000 });
+    await page.waitForFunction(
+      () => {
+        const select = document.getElementById("stocktakeScopeRef");
+        return Boolean(select && select.options && select.options.length > 1);
+      },
+      null,
+      { timeout: 10_000 },
+    );
     const highlandValue = await page.locator("#stocktakeScopeRef option").evaluateAll(
       (options) =>
         options.find((option) =>
