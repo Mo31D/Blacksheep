@@ -335,8 +335,20 @@ function openBlackSheepList(){window.__bsListReturnFocus=document.activeElement;
 function closeBlackSheepList(){const backdrop=document.getElementById('bsListBackdrop');backdrop?.classList.remove('open');backdrop?.setAttribute('aria-hidden','true');document.body.classList.remove('bs-list-open');window.__bsListReturnFocus?.focus?.()}
 function updateBlackSheepListUI(){const n=blackSheepListCount();document.querySelectorAll('.header-list-count').forEach(el=>el.textContent=String(n));document.querySelectorAll('.header-list-button').forEach(el=>el.setAttribute('aria-label','Basket, '+n+' '+(n===1?'item':'items')))}
 function listImageMarkup(item){
-  if(item?.img&&!item.imagePending&&!item.placeholder)return'<img src="'+productImageSrc(item)+'" alt="">';
+  if(item?.img&&!item.imagePending&&!item.placeholder)return'<img src="'+storefrontEscape(productImageSrc(item))+'" alt="">';
   return'<div class="bs-list-image-placeholder" aria-hidden="true"><span>Image coming soon</span></div>';
+}
+function wireBasketActionButtons(root=document){
+  root.querySelectorAll('[data-basket-action][data-basket-type][data-basket-slug]').forEach(btn=>{
+    if(btn.dataset.basketActionWired==='1')return;
+    btn.dataset.basketActionWired='1';
+    btn.addEventListener('click',event=>{
+      event.preventDefault();
+      const type=btn.dataset.basketType||'',slug=btn.dataset.basketSlug||'',action=btn.dataset.basketAction;
+      if(action==='change')changeBlackSheepList(type,slug,Number(btn.dataset.basketDelta||0));
+      else if(action==='remove')removeFromBlackSheepList(type,slug);
+    });
+  });
 }
 function renderBlackSheepList(){
   const root=document.getElementById('bsListItems');
@@ -362,8 +374,10 @@ function renderBlackSheepList(){
     const price=typeof item.price==='number'?formatPrice(item.price):'Price not confirmed';
     const state=purchasable?'':'<span class="bs-list-unavailable">'+blackSheepUnavailableMessage(unavailableReason)+'</span>';
     const line=purchasable&&lineTotal!==null?'<strong class="bs-list-line-total">'+formatPrice(lineTotal)+'</strong>':'';
-    return'<article class="bs-list-row">'+listImageMarkup(item)+'<div class="bs-list-copy"><a href="'+itemUrl(item,type)+'">'+item.name+'</a><span>'+price+' each</span>'+state+line+'<div class="bs-list-qty"><button type="button" onclick="changeBlackSheepList(\''+type+'\',\''+slug+'\',-1)" aria-label="Decrease quantity">−</button><strong>'+quantity+'</strong><button type="button" onclick="changeBlackSheepList(\''+type+'\',\''+slug+'\',1)" aria-label="Increase quantity">+</button><button class="bs-list-remove" type="button" onclick="removeFromBlackSheepList(\''+type+'\',\''+slug+'\')">Remove</button></div></div></article>';
+    const safeType=storefrontEscape(type),safeSlug=storefrontEscape(slug),safeName=storefrontEscape(item.name||''),safeHref=storefrontEscape(itemUrl(item,type));
+    return'<article class="bs-list-row">'+listImageMarkup(item)+'<div class="bs-list-copy"><a href="'+safeHref+'">'+safeName+'</a><span>'+price+' each</span>'+state+line+'<div class="bs-list-qty"><button type="button" data-basket-action="change" data-basket-type="'+safeType+'" data-basket-slug="'+safeSlug+'" data-basket-delta="-1" aria-label="Decrease quantity">−</button><strong>'+quantity+'</strong><button type="button" data-basket-action="change" data-basket-type="'+safeType+'" data-basket-slug="'+safeSlug+'" data-basket-delta="1" aria-label="Increase quantity">+</button><button class="bs-list-remove" type="button" data-basket-action="remove" data-basket-type="'+safeType+'" data-basket-slug="'+safeSlug+'">Remove</button></div></div></article>';
   }).join('');
+  wireBasketActionButtons(root);
 }
 function showBlackSheepListToast(message){let toast=document.getElementById('bsListToast');if(!toast){toast=document.createElement('div');toast.id='bsListToast';toast.className='bs-list-toast';document.body.appendChild(toast)}toast.textContent=message;toast.classList.add('show');clearTimeout(window.__bsListToast);window.__bsListToast=setTimeout(()=>toast.classList.remove('show'),1800)}
 function trapBlackSheepListFocus(event){
@@ -404,12 +418,13 @@ function basketPageRow(row){
   const state=purchasable?'':'<div class="basket-row-state">'+blackSheepUnavailableMessage(unavailableReason)+'</div>';
   const unit=typeof item.price==='number'?formatPrice(item.price):'Price not confirmed';
   const total=purchasable&&lineTotal!==null?formatPrice(lineTotal):'—';
+  const safeType=storefrontEscape(type),safeSlug=storefrontEscape(slug),safeName=storefrontEscape(item.name||''),safeHref=storefrontEscape(itemUrl(item,type));
   return '<article class="basket-page-row">'+
     '<div class="basket-page-media">'+listImageMarkup(item)+'</div>'+
-    '<div class="basket-page-product"><a href="'+itemUrl(item,type)+'">'+item.name+'</a><span>'+unit+' each</span>'+state+'</div>'+
-    '<div class="basket-page-qty"><button type="button" onclick="changeBlackSheepList(\''+type+'\',\''+slug+'\',-1)" aria-label="Decrease '+item.name+' quantity">−</button><strong>'+quantity+'</strong><button type="button" onclick="changeBlackSheepList(\''+type+'\',\''+slug+'\',1)" aria-label="Increase '+item.name+' quantity">+</button></div>'+
+    '<div class="basket-page-product"><a href="'+safeHref+'">'+safeName+'</a><span>'+unit+' each</span>'+state+'</div>'+
+    '<div class="basket-page-qty"><button type="button" data-basket-action="change" data-basket-type="'+safeType+'" data-basket-slug="'+safeSlug+'" data-basket-delta="-1" aria-label="Decrease '+safeName+' quantity">−</button><strong>'+quantity+'</strong><button type="button" data-basket-action="change" data-basket-type="'+safeType+'" data-basket-slug="'+safeSlug+'" data-basket-delta="1" aria-label="Increase '+safeName+' quantity">+</button></div>'+
     '<strong class="basket-page-line-total"><span>Line total</span>'+total+'</strong>'+
-    '<button class="basket-page-remove" type="button" onclick="removeFromBlackSheepList(\''+type+'\',\''+slug+'\')">Remove</button>'+
+    '<button class="basket-page-remove" type="button" data-basket-action="remove" data-basket-type="'+safeType+'" data-basket-slug="'+safeSlug+'">Remove</button>'+
   '</article>';
 }
 function renderBasketPage(){
@@ -441,6 +456,7 @@ function renderBasketPage(){
     return;
   }
   root.innerHTML=rows.map(basketPageRow).join('');
+  wireBasketActionButtons(root);
 }
 document.addEventListener('DOMContentLoaded',renderBasketPage);
 
