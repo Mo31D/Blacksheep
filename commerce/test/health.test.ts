@@ -31,6 +31,7 @@ describe("commerce worker", () => {
       features: {
         orderReservations: false,
         cleanCollectionRoutes: false,
+        cleanProductRoutes: false,
         publicCatalog: false,
         publicCatalogContract: null,
         commerceAuthority: true,
