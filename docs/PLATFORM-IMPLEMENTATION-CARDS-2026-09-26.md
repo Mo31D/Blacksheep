@@ -1,10 +1,19 @@
 # Black Sheep Platform — Implementation Cards
 
-Updated: 26 September 2026  
+Updated: 27 September 2026
 Repository: `Mo31D/Blacksheep` · branch `main`  
 Purpose: authoritative implementation board for the next architecture programme.
 
 > GitHub Issues are disabled in this repository. These repository-native cards are therefore the execution source of truth. Update card status and acceptance criteria in the same milestone that changes implementation state.
+
+## Current priority — owner review, 27 September
+
+1. Fix legacy product archive visibility using the authoritative published catalogue.
+2. Verify candidate code, then check the deployed storefront before closing the regression.
+3. Complete Media Library safety and unified publish verification staging gates.
+4. Finish Admin simplicity, URL/SEO migration and guarded Production release gates.
+
+Detailed evidence and unresolved findings: `docs/PLATFORM-REVIEW-2026-09-27.md`.
 
 ## Status legend
 

@@ -101,6 +101,7 @@
   }
 
   function syncUi(structureNodes,homepageMerchandising,websiteAppearance){
+    if(typeof reconcilePublishedCatalogDom==='function')reconcilePublishedCatalogDom();
     if(Array.isArray(structureNodes)&&typeof syncDynamicStorefrontStructure==='function'){
       syncDynamicStorefrontStructure(structureNodes);
     }
@@ -128,6 +129,7 @@
       const products=[];
       let cursor=null;
       let pages=0;
+      const seenCursors=new Set();
       do{
         const suffix=cursor===null?'?limit=200':'?limit=200&cursor='+encodeURIComponent(cursor);
         const response=await fetch(apiBase+'/v1/catalog'+suffix,{
@@ -139,8 +141,16 @@
         const payload=await response.json();
         const pageProducts=Array.isArray(payload?.products)?payload.products:null;
         if(!pageProducts)throw new Error('catalog_payload_invalid');
+        for(const product of pageProducts){
+          if(!product||typeof product.id!=='string'||!product.id.trim()||typeof product.slug!=='string'||!product.slug.trim())throw new Error('catalog_product_invalid');
+        }
         products.push(...pageProducts);
-        cursor=payload?.nextCursor===null||payload?.nextCursor===undefined?null:Number(payload.nextCursor);
+        const next=payload.nextCursor;
+        if(next!==null&&next!==undefined){
+          if(!Number.isSafeInteger(Number(next))||Number(next)<=Number(cursor||0)||seenCursors.has(Number(next)))throw new Error('catalog_cursor_invalid');
+          seenCursors.add(Number(next));
+        }
+        cursor=next===null||next===undefined?null:Number(next);
         pages+=1;
         if(pages>25)throw new Error('catalog_pagination_guard');
       }while(cursor!==null&&Number.isFinite(cursor));
@@ -148,17 +158,25 @@
       const byId=new Map();
       const bySlug=new Map();
       for(const product of products){
+        if(byId.has(product.id)||bySlug.has(product.slug))throw new Error('catalog_duplicate_product');
         if(product?.id)byId.set(String(product.id),product);
         if(product?.productId)byId.set(String(product.productId),product);
         if(product?.slug)bySlug.set(String(product.slug),product);
       }
 
       let applied=0;
+      let removed=0;
+      // Reconcile only after the complete feed is validated. A failed page must
+      // never remove products. An empty successful feed is authoritative too.
+      const nextCatalog={};
+      for(const type of Object.keys(window.CATALOG))nextCatalog[type]=[];
       const matchedProducts=new Set();
-      for(const {item} of catalogItems()){
+      for(const {type,item:staticItem} of catalogItems()){
+        const item={...staticItem};
         const product=byId.get(String(item.id||''))||bySlug.get(String(item.slug||''));
-        if(!product)continue;
+        if(!product){removed+=1;continue;}
         applyLiveProduct(item,product);
+        nextCatalog[type].push(item);
         matchedProducts.add(String(product.productId||product.id||product.slug||''));
         applied+=1;
       }
@@ -168,8 +186,7 @@
         const key=String(product?.productId||product?.id||product?.slug||'');
         if(!key||matchedProducts.has(key))continue;
         const type=normalizeType(product.type);
-        if(!Array.isArray(window.CATALOG[type]))window.CATALOG[type]=[];
-        if(window.CATALOG[type].some(item=>String(item.id||'')===String(product.id||'')||String(item.slug||'')===String(product.slug||'')))continue;
+        if(!Array.isArray(nextCatalog[type]))nextCatalog[type]=[];
         const item={
           section:type,
           id:product.id||product.productId,
@@ -189,13 +206,13 @@
         };
         if(!item.slug)continue;
         applyLiveProduct(item,product);
-        window.CATALOG[type].push(item);
+        nextCatalog[type].push(item);
         matchedProducts.add(key);
         applied+=1;
         added+=1;
       }
 
-      if(!applied)throw new Error('catalog_overlay_no_matches');
+      window.CATALOG=nextCatalog;
 
       let structureNodes=null;
       let structureError=null;
@@ -251,6 +268,8 @@
         covered:matchedProducts.size,
         received:products.length,
         added,
+        removed,
+        authoritative:true,
         pages,
         structureNodes:Array.isArray(structureNodes)?structureNodes.length:0,
         structureFallback:!Array.isArray(structureNodes),
