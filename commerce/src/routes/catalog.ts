@@ -10,6 +10,7 @@ import { getPublishedWebsiteAppearance } from "../data/website-appearance";
 export interface PublicCatalogEnv {
   DB?: D1DatabaseLike;
   D1_PUBLIC_CATALOG_ENABLED?: string;
+  STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED?: string;
 }
 
 function json(body: unknown, status = 200): Response {
@@ -75,9 +76,18 @@ export async function handlePublicCatalogRequest(
   }
 
   if (url.pathname === "/v1/storefront-structure") {
-    const nodes = await listPublishedStorefrontNodes(env.DB);
+    const cleanRoutes =
+      env.STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED === "true";
+    const nodes = (await listPublishedStorefrontNodes(env.DB)).map((node) => ({
+      ...node,
+      cleanUrl:
+        cleanRoutes && !node.legacyPath
+          ? "/collections/" + encodeURIComponent(node.slug)
+          : null,
+    }));
     return json({
       nodes,
+      cleanCollectionRoutes: cleanRoutes,
       contract: "storefront-structure-published-v1",
     });
   }
