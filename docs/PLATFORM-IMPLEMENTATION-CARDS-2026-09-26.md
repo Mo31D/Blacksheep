@@ -385,7 +385,7 @@ Start/end activation dates supported in data model; scheduling UI deferred.
 
 ## CARD 11 — Shared Media Library on R2
 **Status:** COMPLETE · STAGING VERIFIED  
-**Current evidence:** migration `0023_shared_media_library.sql` is applied on Staging; the unified build deployed successfully in run `36324424639`; full Admin Browser QA run `36324828038` passed the CARD 11 upload, alt-text, cross-surface reuse, archive delivery, history delete-guard, R2 cleanup and iPad gates. The D1 dynamic-LIKE failure found by run `36324028653` was fixed with `instr(...)` usage checks before final verification.  
+**Current evidence:** migrations `0023_shared_media_library.sql` and `0024_shared_media_delete_jobs.sql` are applied on Staging. Admin Browser QA run `36324828038` passed upload, alt-text, cross-surface reuse, archive delivery, history delete-guard, R2 cleanup and iPad gates. Commerce CI run `36325439944` covers retryable crash-safe deletion claims; Staging deploy run `36325553069` verifies the hardened claim → R2 delete → finalize path. Ambiguous upload cleanup now retains an object whenever D1 ownership cannot be proved absent.  
 **Depends on:** CARD 00
 
 **Goal:** one reusable image/media system for Products, Homepage, Sections and Themes.
@@ -446,7 +446,7 @@ Website → Media:
 ---
 
 ## CARD 13 — Admin information architecture & owner-simplicity pass
-**Status:** READY · FINAL PASS AVAILABLE  
+**Status:** IN PROGRESS · FINAL SIMPLICITY PASS  
 **Depends on:** may start after CARD 02; final pass after CARD 11
 
 **Goal:** organise Admin around owner tasks rather than implementation terminology.
@@ -564,4 +564,4 @@ CARD 00
 
 ## Immediate next action
 
-Start **CARD 10 — Unified Preview → Publish → Verify engine** from the merged PR #8 baseline. CARD 11 is Staging verified by Admin Browser QA run `36324828038`; Commerce CI run `36324400386` also passes the archived-legacy-product candidate storefront regression in Chromium and WebKit. Keep the authoritative published catalogue as the runtime source of truth, then verify Product, Structure, Homepage and Appearance all use the same visible publish/verify contract before unblocking CARD 12.
+Continue **CARD 13 — Admin information architecture & owner-simplicity pass**. CARD 10 and CARD 11 are Staging verified. The homepage Product rail is now a fixed second module (Hero → Product strip → Shop by collection) so Admin publishing cannot move it back below the collection grid; storefront browser QA run `36325993044` verifies native touch drag plus resumed continuous movement. After CARD 13, execute CARD 12 clean URL/SEO migration, then CARD 14 Production QA and cleanup.
