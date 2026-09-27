@@ -105,3 +105,5 @@ jobs:
         run: |
           echo "This workflow is intentionally read-only."
           echo "It does not run wrangler deploy or wrangler d1 migrations apply."
+
+# card14-readonly-release-state-2026-09-27
