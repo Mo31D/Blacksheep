@@ -149,6 +149,7 @@ async function route(request: Request, env: Env): Promise<Response> {
 
   if (
     url.pathname === "/v1/storefront-structure" ||
+    url.pathname === "/v1/homepage-merchandising" ||
     url.pathname === "/v1/catalog" ||
     url.pathname.startsWith("/v1/catalog/")
   ) {
