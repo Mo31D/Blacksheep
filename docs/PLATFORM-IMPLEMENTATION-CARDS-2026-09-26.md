@@ -374,7 +374,8 @@ Start/end activation dates supported in data model; scheduling UI deferred.
 ---
 
 ## CARD 11 — Shared Media Library on R2
-**Status:** READY  
+**Status:** IN PROGRESS · IMPLEMENTED ON MAIN · STAGING GATES PENDING  
+**Current evidence:** migration `0023_shared_media_library.sql`, shared-media domain/API, Website → Media workspace, Product/Appearance reuse pickers, safe archive/delete guards and CARD 11 browser lifecycle QA are implemented on `main`. Commerce CI and Staging deployment/browser gates remain required before this card can be closed.  
 **Depends on:** CARD 00
 
 **Goal:** one reusable image/media system for Products, Homepage, Sections and Themes.
