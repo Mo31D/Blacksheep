@@ -45,6 +45,15 @@ describe("generated Admin HTML scripts", () => {
     expect(production).not.toContain('data-order-class="TEST"');
     expect(production).toContain('id="view-catalogue"');
     expect(production).toContain('data-nav="catalogue"');
+    expect(production).toContain('id="view-website"');
+    expect(production).toContain('data-nav="website"');
+    expect(production).toContain("Homepage product strip");
+    expect(production).toContain("Newest products");
+    expect(production).toContain("Featured products");
+    expect(production).toContain("Selected collection");
+    expect(production).toContain("/admin/api/homepage-merchandising");
+    expect(production).toContain("Save draft");
+    expect(production).toContain("Private preview");
     expect(production).toContain('id="openCatalogue"');
     expect(production).toContain("Website structure");
     expect(production).toContain("Brands &amp; ranges");
@@ -141,6 +150,9 @@ describe("generated Admin HTML scripts", () => {
     );
     expect(html).toContain(
       ".mobile-bottom{position:fixed;display:grid;grid-template-columns:repeat(6,1fr)",
+    );
+    expect(html).toContain(
+      "@media(max-width:720px){.mobile-bottom{grid-template-columns:repeat(7,1fr)}",
     );
     expect(html).toContain(
       "@media(max-width:720px){.placement-grid,.placement-options{grid-template-columns:1fr}",
