@@ -159,6 +159,7 @@ describe("CARD 12 published-state sitemap", () => {
       {
         DB: db(),
         STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED: "true",
+        STOREFRONT_CLEAN_PRODUCT_ROUTES_ENABLED: "true",
       },
     );
 
@@ -201,6 +202,22 @@ describe("CARD 12 published-state sitemap", () => {
         "/products/admin-created-gift",
       ]).size,
     );
+  });
+
+  it("omits admin-native products until clean product routing is enabled", async () => {
+    const response = await handleDynamicSitemapRequest(
+      new Request("https://example.test/sitemap.xml"),
+      {
+        DB: db(),
+        STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED: "true",
+        STOREFRONT_CLEAN_PRODUCT_ROUTES_ENABLED: "false",
+      },
+    );
+    const xml = await response.text();
+    expect(xml).toContain(
+      "<loc>https://theblacksheepshop.co.uk/products/highland-cow-classic.html</loc>",
+    );
+    expect(xml).not.toContain("/products/admin-created-gift</loc>");
   });
 
   it("rejects writes", async () => {
