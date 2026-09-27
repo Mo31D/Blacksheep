@@ -37,12 +37,7 @@ function productUrl(product: PublicCommerceProduct): string {
   if (product.id !== product.productId) {
     return "/products/" + encodeURIComponent(product.slug) + ".html";
   }
-  return (
-    "/product.html?type=" +
-    encodeURIComponent(product.type) +
-    "&slug=" +
-    encodeURIComponent(product.slug)
-  );
+  return "/products/" + encodeURIComponent(product.slug);
 }
 
 function imageUrl(value: string | null): string | null {
@@ -230,6 +225,22 @@ export async function handleCleanCollectionRequest(
   if (!match) return new Response("Not found", { status: 404 });
 
   const slug = decodeURIComponent(match[1]);
+  const canonicalPath = cleanPath(slug);
+
+  if (
+    url.hostname.toLowerCase() === "www.theblacksheepshop.co.uk" ||
+    url.pathname.endsWith("/")
+  ) {
+    const target = new URL(request.url);
+    target.hostname =
+      target.hostname.toLowerCase() === "www.theblacksheepshop.co.uk"
+        ? "theblacksheepshop.co.uk"
+        : target.hostname;
+    target.pathname = canonicalPath;
+    target.search = "";
+    return Response.redirect(target.toString(), 301);
+  }
+
   const nodes = await listPublishedStorefrontNodes(env.DB);
   const node = nodes.find((row) => row.slug === slug);
   if (!node) {
