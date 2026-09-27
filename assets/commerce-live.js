@@ -43,6 +43,7 @@
     item.commercePublishedVersionId=product.publishedVersionId||null;
     item.commerceUpdatedAt=product.updatedAt||null;
     item.commercePrimaryStorefrontNodeId=product.primaryStorefrontNodeId||null;
+    item.cleanUrl=product.cleanUrl||null;
     item.commerceStorefrontNodeIds=Array.isArray(product.storefrontNodeIds)
       ?product.storefrontNodeIds.map(String)
       :[];
