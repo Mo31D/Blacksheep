@@ -416,8 +416,8 @@ Website → Media:
 ---
 
 ## CARD 12 — Clean dynamic URLs & SEO migration
-**Status:** IN PROGRESS · STAGING CUTOVER  
-**Current evidence:** clean collection and clean admin-native Product renderers are implemented behind independent feature flags; both are enabled on Staging and remain disabled in Production during verification. Legacy collections 301 to their established static pages and imported legacy Products keep their indexed `.html` canonicals. Admin-native Products have a staged clean `/products/<slug>` route, but Production Product cutover remains intentionally deferred because a broad `/products/*` Worker route would also intercept the richer legacy static Product pages. The canonical `/sitemap.xml` Worker renderer is generated from published D1 state: published legacy canonicals are preserved, dynamic collections are clean, archived Products are excluded by the public-catalogue query, and admin-native Product URLs are included only when clean Product routing is enabled. Scoped Production routes for `/collections/*` and `/sitemap.xml` are prepared; the final Production collection/sitemap cutover waits for CARD 14. Latest full Staging candidate deploy is in progress under run `36328746698`.  
+**Status:** COMPLETE · STAGING VERIFIED  
+**Current evidence:** clean collection and clean admin-native Product routing is verified on Staging while legacy indexed Product URLs retain their established `.html` canonicals. Admin Browser QA run `36330399456` passed the clean Admin-created Product route, Product canonical + Product structured data, canonical `/sitemap.xml` inclusion, clean Admin-created collection route, collection canonical/indexability/content and sitemap inclusion without duplicating a legacy collection URL. Search readiness run `36330399459` passed on the same final gate. Production clean Product routing remains intentionally disabled until legacy static `/products/*` interception can be isolated; CARD 14 owns the guarded Production cutover.  
 **Depends on:** CARD 04, CARD 10
 
 **Goal:** progress from static/query-string fallbacks to durable data-driven URLs without sacrificing existing Google equity.
@@ -438,17 +438,17 @@ Website → Media:
 - Search Readiness regression coverage.
 
 **Acceptance criteria**
-- [ ] Existing indexed URLs remain valid or correctly redirect.
-- [ ] Admin-created section receives a clean URL automatically.
-- [ ] Canonicals are correct.
-- [ ] Sitemap contains published data only.
-- [ ] No duplicate-content regression.
+- [x] Existing indexed URLs remain valid or correctly redirect.
+- [x] Admin-created section receives a clean URL automatically.
+- [x] Canonicals are correct.
+- [x] Sitemap contains published data only.
+- [x] No duplicate-content regression.
 
 ---
 
 ## CARD 13 — Admin information architecture & owner-simplicity pass
-**Status:** IN PROGRESS · FINAL STAGING QA  
-**Current evidence:** final Admin layout is on `main`; Website Homepage fixes Hero → Product strip → Shop by collection and leaves only the tail modules reorderable. Staging runtime is current through the CARD 12/13 candidate. Earlier QA failures were assertion races/retired ordering assumptions, not runtime regressions; commits `e408758c`, `4412fba9` and `c689bdf2` now assert the preview modules directly and wait for the five Homepage module rows before WebKit/iPad checks. A fresh post-deploy Admin Browser QA is the remaining CARD 13 closure gate.  
+**Status:** COMPLETE · STAGING VERIFIED  
+**Current evidence:** final owner-task Admin architecture is on `main`. Website Homepage fixes Hero → Product strip → Shop by collection and leaves only the tail modules reorderable. The final iPhone Website Media overflow fix is commit `51dd1850` and Staging deploy run `36329656969` passed. Final Admin Browser QA run `36330399456` passed the full responsive Admin workflow, including Website Media on narrow/mobile layouts. Search readiness run `36330399459` also passed.  
 **Depends on:** may start after CARD 02; final pass after CARD 11
 
 **Goal:** organise Admin around owner tasks rather than implementation terminology.
@@ -481,16 +481,16 @@ Website → Media:
 - Clear error, status and recovery actions.
 
 **Acceptance criteria**
-- [ ] Every existing feature has one obvious home.
-- [ ] No duplicate navigation concepts.
-- [ ] Portrait iPad workflows are usable.
-- [ ] Product, Stocktake and Website flows minimise unnecessary scrolling.
-- [ ] Focus/touch/accessibility regression passes.
+- [x] Every existing feature has one obvious home.
+- [x] No duplicate navigation concepts.
+- [x] Portrait iPad workflows are usable.
+- [x] Product, Stocktake and Website flows minimise unnecessary scrolling.
+- [x] Focus/touch/accessibility regression passes.
 
 ---
 
 ## CARD 14 — Deep Production QA, migration cleanup & handoff
-**Status:** WAITING ON CARD 12/13 FINAL STAGING GATES  
+**Status:** IN PROGRESS · PRODUCTION READ-ONLY GATE NEXT  
 **Depends on:** all implementation cards
 
 **Goal:** close the programme with verified Production state and no temporary architecture.
@@ -566,4 +566,4 @@ CARD 00
 
 ## Immediate next action
 
-Continue **CARD 13 — Admin information architecture & owner-simplicity pass**. CARD 10 and CARD 11 are Staging verified. The homepage Product rail is now a fixed second module (Hero → Product strip → Shop by collection) so Admin publishing cannot move it back below the collection grid; storefront browser QA run `36325993044` verifies native touch drag plus resumed continuous movement. After CARD 13, execute CARD 12 clean URL/SEO migration, then CARD 14 Production QA and cleanup.
+Continue **CARD 14 — Deep Production QA, migration cleanup & handoff**. CARD 12 and CARD 13 are now Staging verified by final Admin Browser QA run `36330399456`; Publication Admin E2E run `36330391939`, Commerce CI run `36330391949` and Search readiness run `36330399459` are green. First execute the dedicated **Production read-only smoke**. Only after that gate passes should any guarded Production release/cutover action be considered. Preserve clean Product routing disabled in Production until legacy static `/products/*` interception is isolated.
