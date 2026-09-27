@@ -159,6 +159,8 @@ function cleanupHomepageQa() {
     d1(
       "DELETE FROM homepage_merchandising_products WHERE version_id IN (" +
         inList +
+        "); DELETE FROM homepage_merchandising_modules WHERE version_id IN (" +
+        inList +
         "); DELETE FROM homepage_merchandising_versions WHERE id IN (" +
         inList +
         ")",
@@ -1084,6 +1086,42 @@ async function homepageMerchandisingQa() {
 
     const publishedBefore = homepageQaSnapshot.publishedVersionId;
 
+    const moduleRows = page.locator("#homepageModules [data-homepage-module]");
+    assert(
+      (await moduleRows.count()) === 5,
+      "CARD 07 Homepage section composer did not render five protected modules.",
+    );
+    const moduleOrderBefore = await moduleRows.evaluateAll((rows) =>
+      rows.map((row) => row.getAttribute("data-homepage-module")),
+    );
+    assert(
+      moduleOrderBefore.join(",") ===
+        "HERO,COLLECTIONS,PRODUCT_RAIL,LOCAL_FAVOURITES,VISIT_SHOP",
+      "CARD 07 initial Homepage module order is unexpected: " +
+        moduleOrderBefore.join(","),
+    );
+
+    await moduleRows
+      .filter({ has: page.locator('[data-homepage-module-key="HERO"][data-homepage-module-move="1"]') })
+      .locator('[data-homepage-module-key="HERO"][data-homepage-module-move="1"]')
+      .click();
+
+    const localToggle = page.locator(
+      '[data-homepage-module-enabled="LOCAL_FAVOURITES"]',
+    );
+    await localToggle.uncheck();
+
+    const moduleOrderAfter = await page
+      .locator("#homepageModules [data-homepage-module]")
+      .evaluateAll((rows) =>
+        rows.map((row) => row.getAttribute("data-homepage-module")),
+      );
+    assert(
+      moduleOrderAfter[0] === "COLLECTIONS" &&
+        moduleOrderAfter[1] === "HERO",
+      "CARD 07 Homepage module reorder did not update the owner UI.",
+    );
+
     const newArrivals = page.locator(
       'input[name="homepageMode"][value="NEW_ARRIVALS"]',
     );
@@ -1198,6 +1236,44 @@ async function homepageMerchandisingQa() {
       "CARD 06 saving a draft did not create a private draft pointer.",
     );
 
+    const draftModules = d1(
+      "SELECT module_key AS moduleKey, enabled, position " +
+        "FROM homepage_merchandising_modules WHERE version_id=" +
+        q(String(stateAfterDraft.draftVersionId)) +
+        " ORDER BY position",
+    );
+    assert(
+      draftModules.length === 5 &&
+        draftModules[0]?.moduleKey === "COLLECTIONS" &&
+        draftModules[1]?.moduleKey === "HERO",
+      "CARD 07 Homepage module order was not persisted in the private draft.",
+    );
+    const localDraft = draftModules.find(
+      (row) => row.moduleKey === "LOCAL_FAVOURITES",
+    );
+    assert(
+      Number(localDraft?.enabled) === 0,
+      "CARD 07 Homepage module visibility was not persisted in the private draft.",
+    );
+
+    if (publishedBefore) {
+      const publishedModules = d1(
+        "SELECT module_key AS moduleKey, enabled, position " +
+          "FROM homepage_merchandising_modules WHERE version_id=" +
+          q(String(publishedBefore)) +
+          " ORDER BY position",
+      );
+      assert(
+        publishedModules[0]?.moduleKey === "HERO" &&
+          Number(
+            publishedModules.find(
+              (row) => row.moduleKey === "LOCAL_FAVOURITES",
+            )?.enabled,
+          ) === 1,
+        "CARD 07 draft module edits leaked into the published Homepage version.",
+      );
+    }
+
     const previewPromise = page.waitForResponse(
       (response) =>
         response.url().endsWith("/admin/api/homepage-merchandising/preview") &&
@@ -1216,6 +1292,12 @@ async function homepageMerchandisingQa() {
       previewText.includes("Private preview") &&
         previewText.includes(HOMEPAGE_QA_HEADING),
       "CARD 06 Private Preview did not render the draft heading.",
+    );
+    assert(
+      previewText.indexOf("Shop by collection") <
+        previewText.indexOf("Hero & quick links") &&
+        !previewText.includes("Local favourites"),
+      "CARD 07 Private Preview did not reflect module order/visibility.",
     );
 
     await assertNoHorizontalOverflow(page, "CARD 06 Homepage iPad portrait");
@@ -2041,6 +2123,11 @@ try {
           "card06-draft-does-not-change-published-version",
           "card06-private-preview",
           "card06-ipad-portrait-no-overflow",
+          "card07-five-protected-homepage-modules",
+          "card07-module-reorder-private-draft",
+          "card07-module-hide-private-draft",
+          "card07-draft-does-not-change-published-modules",
+          "card07-private-preview-module-layout",
           "iphone-catalogue-hierarchy-create-main-and-subsections",
           "iphone-catalogue-menu-visibility-toggle",
           "iphone-catalogue-subsection-reorder",
