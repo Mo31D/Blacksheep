@@ -76,6 +76,18 @@ import {
   type R2BucketLike,
 } from "../data/product-media";
 import {
+  addSharedMediaReference,
+  archiveAdminSharedMediaAsset,
+  createAdminSharedMediaAsset,
+  getAdminSharedMediaAsset,
+  listAdminSharedMedia,
+  markSharedMediaObjectDeleted,
+  releaseSharedMediaReferences,
+  restoreAdminSharedMediaAsset,
+  sharedMediaDeleteEligibility,
+  updateAdminSharedMediaAsset,
+} from "../data/shared-media";
+import {
   adjustInventory,
   bulkInventoryCount,
   initialInventoryCount,
@@ -590,6 +602,86 @@ async function readProductImageUpload(request: Request): Promise<{
     bytes,
     checksumSha256,
   };
+}
+
+async function readSharedMediaImageUpload(request: Request): Promise<{
+  title: string | null;
+  altText: string | null;
+  context: string;
+  mimeType: string;
+  extension: string;
+  bytes: Uint8Array;
+  checksumSha256: string;
+}> {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().startsWith("multipart/form-data")) {
+    throw new Error("shared_media_multipart_required");
+  }
+
+  const form = await request.formData();
+  const file = form.get("file");
+  if (!(file instanceof File)) throw new Error("shared_media_file_required");
+  if (file.size <= 0) throw new Error("shared_media_file_empty");
+  if (file.size > PRODUCT_IMAGE_MAX_BYTES) throw new Error("shared_media_file_too_large");
+
+  const config = PRODUCT_IMAGE_TYPES[file.type.toLowerCase()];
+  if (!config) throw new Error("shared_media_type_invalid");
+
+  const title = String(form.get("title") ?? "").trim();
+  const altText = String(form.get("altText") ?? "").trim();
+  const context = String(form.get("context") ?? "GENERAL").trim().toUpperCase();
+  if (title.length > 160) throw new Error("shared_media_title_too_long");
+  if (altText.length > 240) throw new Error("shared_media_alt_text_too_long");
+
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  if (!config.signature(bytes)) throw new Error("shared_media_signature_invalid");
+
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", buffer));
+  const checksumSha256 = Array.from(digest)
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("");
+
+  return {
+    title: title || null,
+    altText: altText || null,
+    context,
+    mimeType: file.type.toLowerCase(),
+    extension: config.extension,
+    bytes,
+    checksumSha256,
+  };
+}
+
+function sharedMediaMutationError(cause: unknown): Response {
+  const code = cause instanceof Error ? cause.message : "shared_media_failed";
+  const notFound = new Set(["shared_media_not_found"]);
+  const conflicts = new Set([
+    "shared_media_not_available",
+    "shared_media_not_restorable",
+    "shared_media_delete_blocked",
+  ]);
+  const messages: Record<string, string> = {
+    shared_media_multipart_required: "Image upload must use multipart form data.",
+    shared_media_file_required: "Choose an image to upload.",
+    shared_media_file_empty: "The selected image is empty.",
+    shared_media_file_too_large: "Image must be 8 MB or smaller.",
+    shared_media_type_invalid: "Use a JPEG, PNG or WebP image.",
+    shared_media_signature_invalid: "The file content does not match its image type.",
+    shared_media_title_too_long: "Image title must be 160 characters or fewer.",
+    shared_media_alt_text_too_long: "Alt text must be 240 characters or fewer.",
+    shared_media_context_invalid: "Choose a valid image use.",
+    shared_media_storage_invalid: "Image storage details are invalid.",
+    shared_media_file_size_invalid: "Image size is invalid.",
+    shared_media_not_found: "Image not found.",
+    shared_media_not_available: "That image is archived. Restore it before reusing it.",
+    shared_media_not_restorable: "That image cannot be restored.",
+    shared_media_delete_blocked: "This image is still referenced and cannot be permanently removed.",
+    shared_media_reference_invalid: "Image reference is invalid.",
+    shared_media_surface_invalid: "Image destination is invalid.",
+  };
+  const status = notFound.has(code) ? 404 : conflicts.has(code) ? 409 : 400;
+  return error(code, status, messages[code] ?? "Unable to update Media Library.");
 }
 
 async function ensureMediaDraft(
@@ -1166,6 +1258,157 @@ export async function handleAdminRequest(
     return json(result);
   }
 
+  if (url.pathname === "/admin/api/media" && request.method === "GET") {
+    try {
+      const assets = await listAdminSharedMedia(env.DB, {
+        includeArchived: url.searchParams.get("includeArchived") === "1",
+        context: url.searchParams.get("context") ?? undefined,
+        search: url.searchParams.get("q") ?? "",
+      });
+      return json({ assets });
+    } catch (cause) {
+      return sharedMediaMutationError(cause);
+    }
+  }
+
+  if (url.pathname === "/admin/api/media" && request.method === "POST") {
+    if (!env.PRODUCT_MEDIA) {
+      return error(
+        "shared_media_storage_unavailable",
+        503,
+        "Media storage is not configured.",
+      );
+    }
+    let storageKey: string | null = null;
+    try {
+      const upload = await readSharedMediaImageUpload(request);
+      const assetId = "asset_" + crypto.randomUUID();
+      const month = new Date().toISOString().slice(0, 7);
+      storageKey =
+        "library/" + month + "/" + assetId + "." + upload.extension;
+
+      await env.PRODUCT_MEDIA.put(storageKey, upload.bytes, {
+        httpMetadata: {
+          contentType: upload.mimeType,
+          cacheControl: "public, max-age=31536000, immutable",
+        },
+        customMetadata: {
+          assetId,
+          checksumSha256: upload.checksumSha256,
+          mediaLibrary: "shared",
+        },
+      });
+
+      const asset = await createAdminSharedMediaAsset(
+        env.DB,
+        {
+          assetId,
+          storageKey,
+          publicUrl: "/media/" + encodeURIComponent(assetId),
+          mimeType: upload.mimeType,
+          width: null,
+          height: null,
+          fileSize: upload.bytes.byteLength,
+          checksumSha256: upload.checksumSha256,
+          title: upload.title,
+          altText: upload.altText,
+          context: upload.context,
+        },
+        identity.email,
+      );
+      return json({ asset }, 201);
+    } catch (cause) {
+      if (storageKey) {
+        try {
+          await env.PRODUCT_MEDIA.delete(storageKey);
+        } catch {
+          // Preserve the original validation/database error.
+        }
+      }
+      return sharedMediaMutationError(cause);
+    }
+  }
+
+  const sharedMediaMatch = url.pathname.match(/^\/admin\/api\/media\/([^/]+)$/);
+  if (sharedMediaMatch && request.method === "PATCH") {
+    try {
+      const raw = await readProductJson(request);
+      const asset = await updateAdminSharedMediaAsset(
+        env.DB,
+        decodeURIComponent(sharedMediaMatch[1]),
+        raw,
+        identity.email,
+      );
+      return json({ asset });
+    } catch (cause) {
+      return sharedMediaMutationError(cause);
+    }
+  }
+
+  const sharedMediaArchiveMatch = url.pathname.match(
+    /^\/admin\/api\/media\/([^/]+)\/archive$/,
+  );
+  if (sharedMediaArchiveMatch && request.method === "POST") {
+    try {
+      const asset = await archiveAdminSharedMediaAsset(
+        env.DB,
+        decodeURIComponent(sharedMediaArchiveMatch[1]),
+        identity.email,
+      );
+      return json({ asset });
+    } catch (cause) {
+      return sharedMediaMutationError(cause);
+    }
+  }
+
+  const sharedMediaRestoreMatch = url.pathname.match(
+    /^\/admin\/api\/media\/([^/]+)\/restore$/,
+  );
+  if (sharedMediaRestoreMatch && request.method === "POST") {
+    try {
+      const asset = await restoreAdminSharedMediaAsset(
+        env.DB,
+        decodeURIComponent(sharedMediaRestoreMatch[1]),
+        identity.email,
+      );
+      return json({ asset });
+    } catch (cause) {
+      return sharedMediaMutationError(cause);
+    }
+  }
+
+  if (sharedMediaMatch && request.method === "DELETE") {
+    if (!env.PRODUCT_MEDIA) {
+      return error(
+        "shared_media_storage_unavailable",
+        503,
+        "Media storage is not configured.",
+      );
+    }
+    const assetId = decodeURIComponent(sharedMediaMatch[1]);
+    try {
+      const eligibility = await sharedMediaDeleteEligibility(env.DB, assetId);
+      if (!eligibility.canDeleteObject) {
+        return json(
+          {
+            error: {
+              code: "shared_media_delete_blocked",
+              message:
+                "Archive is safe, but permanent deletion is blocked while this image is referenced.",
+              blockers: eligibility.blockers,
+            },
+          },
+          409,
+        );
+      }
+      await env.PRODUCT_MEDIA.delete(eligibility.asset.storageKey);
+      await markSharedMediaObjectDeleted(env.DB, assetId, identity.email);
+      return json({ ok: true });
+    } catch (cause) {
+      return sharedMediaMutationError(cause);
+    }
+  }
+
   if (
     url.pathname === "/admin/api/appearance" &&
     request.method === "GET"
@@ -1594,6 +1837,87 @@ export async function handleAdminRequest(
     }
   }
 
+  const productMediaFromLibraryMatch = url.pathname.match(
+    /^\/admin\/api\/products\/([^/]+)\/media\/from-library$/,
+  );
+  if (productMediaFromLibraryMatch && request.method === "POST") {
+    const productId = decodeURIComponent(productMediaFromLibraryMatch[1]);
+    try {
+      const raw = await readProductJson(request);
+      const expected = Number(raw.expectedVersion);
+      const assetId = String(raw.assetId ?? "");
+      const asset = await getAdminSharedMediaAsset(env.DB, assetId);
+      if (!asset || asset.status !== "ACTIVE") {
+        throw new Error("shared_media_not_available");
+      }
+      const duplicate = await env.DB
+        .prepare(
+          "SELECT id FROM product_media WHERE product_id = ? AND storage_provider = 'R2' " +
+            "AND storage_key = ? AND deleted_at IS NULL LIMIT 1",
+        )
+        .bind(productId, asset.storageKey)
+        .first<{ id: string }>();
+      if (duplicate) throw new Error("shared_media_product_duplicate");
+
+      const product = await ensureMediaDraft(
+        deps,
+        env.DB,
+        productId,
+        expected,
+        identity.email,
+      );
+      const mediaId = "med_" + crypto.randomUUID();
+      await deps.addAdminProductMediaFn(
+        env.DB,
+        productId,
+        {
+          expectedVersion: Number(product.version),
+          mediaId,
+          storageKey: asset.storageKey,
+          publicUrl: asset.publicUrl,
+          mimeType: asset.mimeType,
+          width: asset.width,
+          height: asset.height,
+          fileSize: asset.fileSize,
+          checksumSha256: asset.checksumSha256,
+          altText:
+            raw.altText === undefined ? asset.altText : String(raw.altText ?? ""),
+        },
+        identity.email,
+      );
+      try {
+        await addSharedMediaReference(
+          env.DB,
+          {
+            assetId,
+            surface: "PRODUCT",
+            ownerId: productId,
+            ownerVersionId: mediaId,
+            slotKey: "GALLERY",
+          },
+          identity.email,
+        );
+      } catch {
+        // The Product attachment remains valid; the storage key itself still
+        // protects the shared object from Product cleanup.
+      }
+      const updated = await deps.getAdminProductDetailFn(env.DB, productId);
+      return json({ product: updated, assetId }, 201);
+    } catch (cause) {
+      if (cause instanceof Error && cause.message === "shared_media_product_duplicate") {
+        return error(
+          "shared_media_product_duplicate",
+          409,
+          "This image is already in the Product gallery.",
+        );
+      }
+      if (cause instanceof Error && cause.message.startsWith("shared_media_")) {
+        return sharedMediaMutationError(cause);
+      }
+      return productMediaInputError(cause);
+    }
+  }
+
   const productMediaOrderMatch = url.pathname.match(
     /^\/admin\/api\/products\/([^/]+)\/media-order$/,
   );
@@ -1693,6 +2017,21 @@ export async function handleAdminRequest(
         identity.email,
       );
 
+      try {
+        await releaseSharedMediaReferences(
+          env.DB,
+          {
+            surface: "PRODUCT",
+            ownerId: productId,
+            ownerVersionId: oldMediaId,
+            slotKey: "GALLERY",
+          },
+          identity.email,
+        );
+      } catch {
+        // Backward-compatible if CARD 11 is not present in another environment.
+      }
+
       let storageCleanupPending = false;
       if (
         replaced.shouldDeleteOldObject &&
@@ -1774,6 +2113,21 @@ export async function handleAdminRequest(
         },
         identity.email,
       );
+      try {
+        await releaseSharedMediaReferences(
+          env.DB,
+          {
+            surface: "PRODUCT",
+            ownerId: productId,
+            ownerVersionId: mediaId,
+            slotKey: "GALLERY",
+          },
+          identity.email,
+        );
+      } catch {
+        // Backward-compatible if CARD 11 is not present in another environment.
+      }
+
       let storageCleanupPending = false;
       if (
         removed.shouldDeleteObject &&
