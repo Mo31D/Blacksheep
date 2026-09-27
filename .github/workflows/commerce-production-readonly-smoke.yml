@@ -2,6 +2,10 @@ name: Commerce Production Read-only Smoke
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/commerce-production-readonly-smoke.yml"
 
 permissions:
   contents: read
@@ -40,3 +44,5 @@ jobs:
         run: |
           echo "This workflow is read-only."
           echo "It performs no Production D1 writes, migrations, Worker deploys, orders or Admin mutations."
+
+# card14-production-readonly-smoke-2026-09-27
