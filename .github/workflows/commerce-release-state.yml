@@ -148,6 +148,39 @@ jobs:
           echo
           echo "::endgroup::"
 
+      - name: CARD 14 final live routing verification
+        if: steps.cloudflare.outputs.available == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZONE_ID="$(curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/zones?name=theblacksheepshop.co.uk" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);process.stdout.write(j.result?.[0]?.id||"")})')"
+          test -n "$ZONE_ID"
+
+          curl --fail --silent --show-error -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?per_page=100" > /tmp/dns-final.json
+          node <<'NODE'
+          const fs=require("fs");
+          const j=JSON.parse(fs.readFileSync("/tmp/dns-final.json","utf8"));
+          const web=(j.result||[]).filter(r=>["theblacksheepshop.co.uk","www.theblacksheepshop.co.uk"].includes(r.name)&&["A","CNAME"].includes(r.type));
+          if(web.length!==5 || web.some(r=>r.proxied!==true)) throw new Error("Storefront web DNS is not fully proxied");
+          console.log("DNS PASS: 5/5 storefront web records proxied.");
+          NODE
+
+          curl --silent --show-error --max-time 30 -D /tmp/card14-gifts.headers -o /tmp/card14-gifts.body "https://theblacksheepshop.co.uk/collections/gifts"
+          code="$(awk 'toupper($1) ~ /^HTTP\// {code=$2} END {print code}' /tmp/card14-gifts.headers)"
+          location="$(tr -d '\r' < /tmp/card14-gifts.headers | awk 'tolower($1)=="location:" {print $2}' | tail -1)"
+          test "$code" = "301"
+          test "$location" = "https://theblacksheepshop.co.uk/gifts.html"
+
+          curl --fail --silent --show-error --max-time 30 "https://theblacksheepshop.co.uk/collections/chutneys-pickles" > /tmp/card14-dynamic.html
+          grep -Fq 'rel="canonical" href="https://theblacksheepshop.co.uk/collections/chutneys-pickles"' /tmp/card14-dynamic.html
+
+          curl --fail --silent --show-error --max-time 30 "https://theblacksheepshop.co.uk/sitemap.xml" > /tmp/card14-sitemap.xml
+          grep -Fq '<loc>https://theblacksheepshop.co.uk/collections/chutneys-pickles</loc>' /tmp/card14-sitemap.xml
+          grep -Fq '<loc>https://theblacksheepshop.co.uk/gifts.html</loc>' /tmp/card14-sitemap.xml
+          ! grep -Fq 'product.html?' /tmp/card14-sitemap.xml
+
+          echo "CARD 14 live routing PASS."
+
       - name: Audit note
         run: |
           echo "This workflow is intentionally read-only."
@@ -158,3 +191,5 @@ jobs:
 # card14-live-route-diagnosis-2026-09-27
 
 # card14-cloudflare-zone-diagnosis-2026-09-27
+
+# card14-final-live-routing-verification-2026-09-27
