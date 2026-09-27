@@ -2613,6 +2613,24 @@ async function ownerPolishViewsQa(viewport, label) {
         "CARD 12 clean collection HTML is missing the published section or Product.",
       );
 
+      const dynamicSitemapResponse = await fetch(BASE + "/sitemap-dynamic.xml");
+      assert(
+        dynamicSitemapResponse.status === 200,
+        "CARD 12 dynamic sitemap returned HTTP " +
+          dynamicSitemapResponse.status,
+      );
+      const dynamicSitemapXml = await dynamicSitemapResponse.text();
+      assert(
+        dynamicSitemapXml.includes(
+          "<loc>" + expectedCanonical + "</loc>",
+        ),
+        "CARD 12 dynamic sitemap is missing the published Admin-created section.",
+      );
+      assert(
+        !dynamicSitemapXml.includes("/collections/gifts</loc>"),
+        "CARD 12 dynamic sitemap duplicated a legacy static collection.",
+      );
+
       const storefrontPage = await context.newPage();
       try {
         await storefrontPage.goto(
