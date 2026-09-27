@@ -1465,6 +1465,7 @@ async function websiteAppearanceQa() {
     );
 
     await page.locator("#appearanceHeroHeading").fill(APPEARANCE_QA_HEADING);
+    await page.locator("#appearanceHeroImage").fill("/images/1.png");
     const sectionImage = page
       .locator("[data-appearance-section-image]")
       .first();
@@ -1492,6 +1493,7 @@ async function websiteAppearanceQa() {
     );
     assert(
       saved?.config?.presetKey === "CHRISTMAS" &&
+        saved?.config?.hero?.imageUrl === "/images/1.png" &&
         String(saved?.config?.tokens?.accent || "").toLowerCase() ===
           "#a47a35" &&
         saved?.config?.sectionImages?.[sectionImageKey] === "/images/1.png",
@@ -1556,6 +1558,7 @@ async function websiteAppearanceQa() {
     assert(
       publicAppearance?.contract === "website-appearance-published-v1" &&
         publicAppearance?.config?.hero?.heading === APPEARANCE_QA_HEADING &&
+        publicAppearance?.config?.hero?.imageUrl === "/images/1.png" &&
         publicAppearance?.config?.presetKey === "CHRISTMAS" &&
         String(publicAppearance?.config?.tokens?.accent || "").toLowerCase() ===
           "#a47a35" &&
@@ -1582,9 +1585,14 @@ async function websiteAppearanceQa() {
       );
       const applied = await storefront.evaluate(() => {
         const media = document.querySelector(".hero-media");
+        const image = media?.querySelector("img");
+        const imageStyle = image ? getComputedStyle(image) : null;
         const rect = media?.getBoundingClientRect();
         return {
           heading: document.querySelector(".hero h1")?.textContent?.trim() || "",
+          heroImage: image?.getAttribute("src") || "",
+          imageObjectFit: imageStyle?.objectFit || "",
+          imageObjectPosition: imageStyle?.objectPosition || "",
           accent: document.documentElement.style.getPropertyValue("--gold").trim(),
           button: document.documentElement.style.getPropertyValue("--button").trim(),
           contractHeading:
@@ -1600,6 +1608,9 @@ async function websiteAppearanceQa() {
         applied.heading === APPEARANCE_QA_HEADING &&
           applied.contractHeading === APPEARANCE_QA_HEADING &&
           applied.presetKey === "CHRISTMAS" &&
+          applied.heroImage.endsWith("/images/1.png") &&
+          applied.imageObjectFit === "cover" &&
+          ["50% 50%", "center", "center center"].includes(applied.imageObjectPosition) &&
           applied.accent.toLowerCase() === "#a47a35" &&
           applied.button.toLowerCase() === "#1e5239",
         "CARD 09 storefront did not apply the published preset/Hero: " +
