@@ -74,6 +74,11 @@ async function getRealHomepageMerchandising() {
   );
   assert(payload?.config, "Staging Homepage merchandising config is missing");
   assert(
+    Array.isArray(payload?.config?.modules) &&
+      payload.config.modules.length === 5,
+    "Staging Homepage merchandising module contract is invalid",
+  );
+  assert(
     Array.isArray(payload?.products),
     "Staging Homepage merchandising products are invalid",
   );
@@ -544,6 +549,13 @@ async function verifyHomepageRailModes(realCatalogPayload) {
               : null,
           selectedStorefrontNodeName:
             mode === "SELECTED_COLLECTION" ? "Highland Cows" : null,
+          modules: [
+            { key: "HERO", enabled: true, position: 10 },
+            { key: "COLLECTIONS", enabled: true, position: 20 },
+            { key: "PRODUCT_RAIL", enabled: true, position: 30 },
+            { key: "LOCAL_FAVOURITES", enabled: true, position: 40 },
+            { key: "VISIT_SHOP", enabled: true, position: 50 },
+          ],
         },
         products: sample,
       };
@@ -579,6 +591,53 @@ async function verifyHomepageRailModes(realCatalogPayload) {
       contract: "homepage-merchandising-published-v1",
       config: {
         id: "home_product_rail",
+        publishedVersionId: "qa-module-order",
+        draftVersionId: null,
+        enabled: true,
+        mode: "FEATURED_PRODUCTS",
+        productLimit: sample.length,
+        heading: "Module layout QA",
+        selectedStorefrontNodeId: null,
+        selectedStorefrontNodeName: null,
+        modules: [
+          { key: "COLLECTIONS", enabled: true, position: 10 },
+          { key: "HERO", enabled: true, position: 20 },
+          { key: "PRODUCT_RAIL", enabled: true, position: 30 },
+          { key: "VISIT_SHOP", enabled: true, position: 40 },
+          { key: "LOCAL_FAVOURITES", enabled: false, position: 50 },
+        ],
+      },
+      products: sample,
+    };
+
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 60_000 });
+    await waitForCommerce(page, "ready");
+    const publishedModules = await page.evaluate(() =>
+      [...document.querySelectorAll("main > [data-home-module]")].map((node) => ({
+        key: node.dataset.homeModule,
+        hidden: node.hidden,
+      })),
+    );
+    assert(
+      publishedModules.map((row) => row.key).join(",") ===
+        "COLLECTIONS,HERO,PRODUCT_RAIL,VISIT_SHOP,LOCAL_FAVOURITES",
+      "Published Homepage module order did not reach the DOM: " +
+        JSON.stringify(publishedModules),
+    );
+    assert(
+      publishedModules.find((row) => row.key === "LOCAL_FAVOURITES")?.hidden === true,
+      "Published disabled Homepage module is still visible.",
+    );
+    assert(
+      await page.locator("#homepageProductRail").isVisible(),
+      "Published Product rail module should remain visible in module-layout QA.",
+    );
+    await assertNoHorizontalOverflow(page, "Homepage module composition");
+
+    homepagePayload = {
+      contract: "homepage-merchandising-published-v1",
+      config: {
+        id: "home_product_rail",
         publishedVersionId: "qa-disabled",
         draftVersionId: null,
         enabled: false,
@@ -587,6 +646,13 @@ async function verifyHomepageRailModes(realCatalogPayload) {
         heading: "Hidden rail",
         selectedStorefrontNodeId: null,
         selectedStorefrontNodeName: null,
+        modules: [
+          { key: "HERO", enabled: true, position: 10 },
+          { key: "COLLECTIONS", enabled: true, position: 20 },
+          { key: "PRODUCT_RAIL", enabled: true, position: 30 },
+          { key: "LOCAL_FAVOURITES", enabled: true, position: 40 },
+          { key: "VISIT_SHOP", enabled: true, position: 50 },
+        ],
       },
       products: [],
     };
@@ -721,6 +787,9 @@ try {
           "homepage-rail-three-modes",
           "homepage-rail-touch-swipe-no-page-overflow",
           "homepage-rail-disabled-hidden",
+          "homepage-published-five-module-contract",
+          "homepage-module-published-order",
+          "homepage-module-published-visibility",
         ],
       },
       null,
