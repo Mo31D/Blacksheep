@@ -813,7 +813,69 @@ async function productPlacementQa() {
       });
       editDetails = page.locator("#productEditDetails:visible");
     }
+    const editorResponses = [];
+    const editorResponseListener = async (response) => {
+      if (
+        response.url().includes("/admin/api/categories") ||
+        response.url().includes("/admin/api/storefront-structure")
+      ) {
+        editorResponses.push({
+          url: response.url(),
+          status: response.status(),
+        });
+      }
+    };
+    page.on("response", editorResponseListener);
     await editDetails.click();
+    await page.waitForTimeout(750);
+    const editorState = await page.evaluate(() => {
+      const sheet = document.getElementById("catalogSheet");
+      const primary = document.getElementById("pePrimarySection");
+      const toast = document.getElementById("toast");
+      const rect = sheet?.getBoundingClientRect();
+      return {
+        hasPrimary: Boolean(primary),
+        sheetClass: sheet?.className || null,
+        sheetAriaHidden: sheet?.getAttribute("aria-hidden") || null,
+        sheetDisplay: sheet ? getComputedStyle(sheet).display : null,
+        sheetRect: rect
+          ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+          : null,
+        toastText: toast?.textContent || "",
+        toastClass: toast?.className || "",
+        editorSource:
+          typeof openProductEditor === "function"
+            ? openProductEditor.toString().slice(0, 1600)
+            : null,
+      };
+    });
+    console.log(
+      "CARD03 QA: Edit details click result",
+      JSON.stringify({ editorState, editorResponses }),
+    );
+    if (!editorState.hasPrimary) {
+      const manualEditorState = await page.evaluate(async () => {
+        try {
+          await openProductEditor();
+        } catch (error) {
+          return {
+            thrown: String(error?.stack || error?.message || error),
+          };
+        }
+        const sheet = document.getElementById("catalogSheet");
+        return {
+          thrown: null,
+          hasPrimary: Boolean(document.getElementById("pePrimarySection")),
+          sheetClass: sheet?.className || null,
+          toastText: document.getElementById("toast")?.textContent || "",
+        };
+      });
+      console.log(
+        "CARD03 QA: manual Product editor result",
+        JSON.stringify(manualEditorState),
+      );
+    }
+    page.off("response", editorResponseListener);
     await page.waitForSelector("#pePrimarySection", { timeout: 10_000 });
     assert(
       (await page.locator("#pePrimarySection").inputValue()) === "sfn_gifts" &&
