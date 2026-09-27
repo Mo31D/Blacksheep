@@ -53,6 +53,12 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain('data-website-tab="appearance"');
     expect(production).toContain("Homepage hero");
     expect(production).toContain("Section images");
+    expect(production).toContain('id="appearancePresetGrid"');
+    expect(production).toContain('id="appearanceResetPreset"');
+    expect(production).toContain("Reset colours to preset");
+    expect(production).toContain("function applyAppearancePreset");
+    expect(production).toContain("function resetAppearanceToPreset");
+    expect(production).toContain("Presets and manual colour changes are checked for readable contrast");
     expect(production).toContain('id="appearanceSaveDraft"');
     expect(production).toContain('id="appearancePreview"');
     expect(production).toContain('id="appearancePublish"');

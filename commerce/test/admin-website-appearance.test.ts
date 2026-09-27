@@ -92,6 +92,13 @@ describe("CARD 08 Website Appearance Admin API", () => {
     await expect(response.json()).resolves.toMatchObject({
       config: { presetKey: "DEFAULT", hasDraft: true },
       history: [{ versionId: "wav-live", isCurrent: true }],
+      presets: [
+        { key: "DEFAULT", label: "Default" },
+        { key: "WINTER", label: "Winter" },
+        { key: "CHRISTMAS", label: "Christmas" },
+        { key: "SUMMER", label: "Summer" },
+        { key: "ICE_CREAM", label: "Ice Cream" },
+      ],
     });
   });
 
