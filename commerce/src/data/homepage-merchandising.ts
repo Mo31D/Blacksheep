@@ -8,6 +8,19 @@ export type HomepageMerchandisingMode =
   | "FEATURED_PRODUCTS"
   | "SELECTED_COLLECTION";
 
+export type HomepageModuleKey =
+  | "HERO"
+  | "COLLECTIONS"
+  | "PRODUCT_RAIL"
+  | "LOCAL_FAVOURITES"
+  | "VISIT_SHOP";
+
+export interface HomepageModuleSetting {
+  key: HomepageModuleKey;
+  enabled: boolean;
+  position: number;
+}
+
 export interface HomepageMerchandisingProduct {
   productId: string;
   title: string;
@@ -33,6 +46,7 @@ export interface HomepageMerchandisingSnapshot {
   selectedStorefrontNodeId: string | null;
   selectedStorefrontNodeName: string | null;
   featuredProducts: HomepageMerchandisingProduct[];
+  modules: HomepageModuleSetting[];
 }
 
 export interface HomepageMerchandisingPreview {
@@ -48,6 +62,7 @@ export interface SaveHomepageMerchandisingDraftInput {
   heading?: unknown;
   selectedStorefrontNodeId?: unknown;
   featuredProductIds?: unknown;
+  modules?: unknown;
 }
 
 const MERCHANDISING_ID = "home_product_rail";
@@ -56,6 +71,14 @@ const MODES = new Set<HomepageMerchandisingMode>([
   "FEATURED_PRODUCTS",
   "SELECTED_COLLECTION",
 ]);
+
+const HOMEPAGE_MODULE_KEYS: HomepageModuleKey[] = [
+  "HERO",
+  "COLLECTIONS",
+  "PRODUCT_RAIL",
+  "LOCAL_FAVOURITES",
+  "VISIT_SHOP",
+];
 
 async function allRows<T>(
   statement: D1PreparedStatementLike,
@@ -148,6 +171,76 @@ function featuredIds(
   return unique;
 }
 
+function moduleSettings(
+  value: unknown,
+  fallback: HomepageModuleSetting[],
+): HomepageModuleSetting[] {
+  if (value === undefined) return fallback;
+  if (!Array.isArray(value)) throw new Error("homepage_modules_invalid");
+  if (value.length !== HOMEPAGE_MODULE_KEYS.length) {
+    throw new Error("homepage_modules_invalid");
+  }
+
+  const seen = new Set<string>();
+  const result = value.map((raw, index) => {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      throw new Error("homepage_modules_invalid");
+    }
+    const row = raw as Record<string, unknown>;
+    const key = String(row.key ?? "") as HomepageModuleKey;
+    if (!HOMEPAGE_MODULE_KEYS.includes(key) || seen.has(key)) {
+      throw new Error("homepage_modules_invalid");
+    }
+    seen.add(key);
+    if (typeof row.enabled !== "boolean") {
+      throw new Error("homepage_modules_invalid");
+    }
+    return {
+      key,
+      enabled: row.enabled,
+      position: (index + 1) * 10,
+    };
+  });
+
+  if (HOMEPAGE_MODULE_KEYS.some((key) => !seen.has(key))) {
+    throw new Error("homepage_modules_invalid");
+  }
+  return result;
+}
+
+async function selectedModules(
+  db: D1DatabaseLike,
+  versionId: string,
+): Promise<HomepageModuleSetting[]> {
+  const rows = await allRows<{
+    moduleKey: string;
+    enabled: number;
+    position: number;
+  }>(
+    db
+      .prepare(
+        "SELECT module_key AS moduleKey, enabled, position " +
+          "FROM homepage_merchandising_modules WHERE version_id = ? " +
+          "ORDER BY position, module_key",
+      )
+      .bind(versionId),
+  );
+
+  if (!rows.length) {
+    return HOMEPAGE_MODULE_KEYS.map((key, index) => ({
+      key,
+      enabled: true,
+      position: (index + 1) * 10,
+    }));
+  }
+
+  return rows.map((row) => ({
+    key: String(row.moduleKey) as HomepageModuleKey,
+    enabled: Number(row.enabled) === 1,
+    position: Number(row.position),
+  }));
+}
+
 async function selectedProducts(
   db: D1DatabaseLike,
   versionId: string,
@@ -207,11 +300,14 @@ async function loadSnapshot(
 
   if (!row) throw new Error("homepage_merchandising_not_found");
   const effectiveVersionId = String(row.effectiveVersionId);
-  const featuredProducts = await selectedProducts(
-    db,
-    effectiveVersionId,
-    publishedOnly,
-  );
+  const [featuredProducts, modules] = await Promise.all([
+    selectedProducts(
+      db,
+      effectiveVersionId,
+      publishedOnly,
+    ),
+    selectedModules(db, effectiveVersionId),
+  ]);
 
   return {
     id: String(row.id),
@@ -236,6 +332,7 @@ async function loadSnapshot(
         ? null
         : String(row.selectedStorefrontNodeName),
     featuredProducts,
+    modules,
   };
 }
 
@@ -377,6 +474,7 @@ export async function saveAdminHomepageMerchandisingDraft(
     raw.featuredProductIds,
     current.featuredProducts.map((product) => product.productId),
   );
+  const modules = moduleSettings(raw.modules, current.modules);
 
   if (mode === "SELECTED_COLLECTION" && !selectedStorefrontNodeId) {
     throw new Error("homepage_collection_required");
@@ -399,6 +497,7 @@ export async function saveAdminHomepageMerchandisingDraft(
     heading,
     selectedStorefrontNodeId,
     featuredProductIds,
+    modules,
   };
 
   const statements: D1PreparedStatementLike[] = [
@@ -453,6 +552,27 @@ export async function saveAdminHomepageMerchandisingDraft(
     );
   });
 
+  modules.forEach((module) => {
+    statements.push(
+      db
+        .prepare(
+          "INSERT INTO homepage_merchandising_modules (" +
+            "version_id, module_key, enabled, position" +
+            ") SELECT ?, ?, ?, ? FROM homepage_merchandising " +
+            "WHERE id = ? AND version = ? AND updated_at = ?",
+        )
+        .bind(
+          draftId,
+          module.key,
+          module.enabled ? 1 : 0,
+          module.position,
+          MERCHANDISING_ID,
+          resultVersion,
+          createdAt,
+        ),
+    );
+  });
+
   statements.push(
     auditStatement(db, {
       eventType: "DRAFT_SAVED",
@@ -466,6 +586,7 @@ export async function saveAdminHomepageMerchandisingDraft(
         featuredProductIds: current.featuredProducts.map(
           (product) => product.productId,
         ),
+        modules: current.modules,
       },
       after: next,
       createdAt,
