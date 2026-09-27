@@ -783,13 +783,14 @@ async function productPlacementQa() {
       PRODUCT_PLACEMENT_QA_TITLE,
       { timeout: 20_000 },
     );
-    let detailText = await page.locator("#productDetail").innerText();
+    let detailText =
+      (await page.locator("#productDetail").textContent()) || "";
     assert(
       detailText.includes("Website placement") &&
         detailText.includes("Primary") &&
         detailText.includes("Also show in") &&
-        !detailText.includes("Primary\nNot selected"),
-      "Created Product does not show the selected Storefront placements.",
+        !detailText.includes("Not selected"),
+      "Created Product detail DOM does not contain the selected Storefront placements.",
     );
 
     let editDetails = page.locator("#productEditDetails");
