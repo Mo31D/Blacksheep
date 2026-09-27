@@ -64,7 +64,6 @@ import {
   quickEditAdminProduct,
   saveAdminProductDraft,
   updateAdminCategory,
-  updateAdminProductOperations,
   updateAdminVariant,
 } from "../data/product-editor";
 import {
@@ -203,7 +202,6 @@ interface AdminDependencies {
   saveAdminProductDraftFn: typeof saveAdminProductDraft;
   publishAdminProductFn: typeof publishAdminProduct;
   quickEditAdminProductFn: typeof quickEditAdminProduct;
-  updateAdminProductOperationsFn: typeof updateAdminProductOperations;
   updateAdminVariantFn: typeof updateAdminVariant;
   addAdminProductMediaFn: typeof addAdminProductMedia;
   updateAdminProductMediaFn: typeof updateAdminProductMedia;
@@ -279,7 +277,6 @@ const defaults: AdminDependencies = {
   saveAdminProductDraftFn: saveAdminProductDraft,
   publishAdminProductFn: publishAdminProduct,
   quickEditAdminProductFn: quickEditAdminProduct,
-  updateAdminProductOperationsFn: updateAdminProductOperations,
   updateAdminVariantFn: updateAdminVariant,
   addAdminProductMediaFn: addAdminProductMedia,
   updateAdminProductMediaFn: updateAdminProductMedia,
@@ -2292,26 +2289,6 @@ export async function handleAdminRequest(
         env.DB,
         productId,
         raw as unknown as Parameters<typeof quickEditAdminProduct>[2],
-        identity.email,
-      );
-      const product = await deps.getAdminProductDetailFn(env.DB, productId);
-      return json({ product });
-    } catch (cause) {
-      return productMutationError(cause);
-    }
-  }
-
-  const productOperationsMatch = url.pathname.match(
-    /^\/admin\/api\/products\/([^/]+)\/operations$/,
-  );
-  if (productOperationsMatch && request.method === "PATCH") {
-    const productId = decodeURIComponent(productOperationsMatch[1]);
-    try {
-      const raw = await readProductJson(request);
-      await deps.updateAdminProductOperationsFn(
-        env.DB,
-        productId,
-        raw as unknown as Parameters<typeof updateAdminProductOperations>[2],
         identity.email,
       );
       const product = await deps.getAdminProductDetailFn(env.DB, productId);
