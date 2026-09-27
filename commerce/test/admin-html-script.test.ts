@@ -218,7 +218,7 @@ describe("generated Admin HTML scripts", () => {
     expect(html).toContain(
       ".mobile-bottom{position:fixed;display:grid;grid-template-columns:repeat(7,1fr)",
     );
-    expect(html).toContain(
+    expect(html).not.toContain(
       "@media(max-width:720px){.mobile-bottom{grid-template-columns:repeat(7,1fr)}",
     );
     expect(html).toContain(
