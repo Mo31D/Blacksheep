@@ -47,6 +47,10 @@ expect(site.includes("storefrontEscape(images[0].alt||item.name||'')"),'Dynamic 
 expect(site.includes("item.note?'<div class=\"info-row\"><strong>Range note</strong><span>'+esc(item.note)"),'Dynamic Product detail notes are not escaped.');
 expect(site.includes("if(data&&btn.dataset.basketType&&btn.dataset.basketSlug"),'Dynamic Product basket buttons are not wired without inline Admin-shaped JavaScript.');
 
+expect(site.includes("function wireBasketActionButtons(root=document)"),'Dynamic basket action wiring is missing.');
+expect(site.includes("safeName=storefrontEscape(item.name||'')")&&site.includes("safeHref=storefrontEscape(itemUrl(item,type))"),'Dynamic basket Product output is not escaped.');
+expect(site.includes('data-basket-action="remove"')&&site.includes('data-basket-action="change"'),'Dynamic basket quantity/remove controls still depend on inline Product-shaped JavaScript.');
+
 expect(/id=["']dynamicCollectionPage["']/.test(collection),'Dynamic collection page shell missing.');
 expect(/name=["']robots["'][^>]*noindex,follow/i.test(collection),'Dynamic collection compatibility route must remain noindex until CARD 12.');
 expect(collection.includes('id="dynamicCollectionTitle"'),'Dynamic collection title mount missing.');
