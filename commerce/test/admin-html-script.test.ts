@@ -125,6 +125,21 @@ describe("generated Admin HTML scripts", () => {
     expect(staging).toContain("<svg viewBox=");
   });
 
+  it("resolves every direct Admin onclick function reference", () => {
+    const html = adminHtml("owner@example.com", "production");
+    const refs = [
+      ...html.matchAll(/\.onclick=([A-Za-z_$][\w$]*)/g),
+    ]
+      .map((match) => match[1])
+      .filter((name) => name !== "function" && name !== "async");
+    const missing = [...new Set(refs)].filter(
+      (name) =>
+        !html.includes("function " + name + "(") &&
+        !html.includes("async function " + name + "("),
+    );
+    expect(missing).toEqual([]);
+  });
+
   it("emits syntactically valid Admin login JavaScript", () => {
     const html = adminLoginHtml();
     compileInlineScripts(html);
