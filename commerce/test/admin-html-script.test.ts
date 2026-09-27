@@ -87,6 +87,11 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("Save draft");
     expect(production).toContain("Private preview");
     expect(production).toContain('id="openCatalogue"');
+    expect(production).not.toContain('id="globalSearch"');
+    expect(production).not.toContain('id="peBrand"');
+    expect(production).toContain("Manage brands &amp; ranges");
+    expect(production).toContain("function brandNameForCategoryIds(ids)");
+    expect(production).not.toContain("Website settings…");
     expect(production).toContain("Website structure");
     expect(production).toContain("Brands &amp; ranges");
     expect(production).toContain('id="addStorefrontSection"');
@@ -206,7 +211,7 @@ describe("generated Admin HTML scripts", () => {
       ".structure-subrow,.brand-range-row{grid-template-columns:1fr}",
     );
     expect(html).toContain(
-      ".mobile-bottom{position:fixed;display:grid;grid-template-columns:repeat(6,1fr)",
+      ".mobile-bottom{position:fixed;display:grid;grid-template-columns:repeat(7,1fr)",
     );
     expect(html).toContain(
       "@media(max-width:720px){.mobile-bottom{grid-template-columns:repeat(7,1fr)}",
