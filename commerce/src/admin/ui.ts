@@ -190,7 +190,7 @@ export function adminHtml(identityEmail: string, environment = "production"): st
         <div style="margin-top:14px"><strong>Previous published versions</strong><div class="appearance-history" id="appearanceHistory"><div class="muted">No previous versions loaded.</div></div></div>
       </section>
       <section class="panel appearance-card">
-        <div class="chart-head"><div><h2>Homepage hero</h2><small class="muted">Change the main homepage image and message.</small></div></div>
+        <div class="chart-head"><div><h2>Homepage hero</h2><small class="muted">Change the main homepage image and message. On phones and tablets the image stays centred and uses a safe cover crop.</small></div></div>
         <div class="appearance-fields">
           <div class="editor-field wide"><label>Hero image</label><input class="field" id="appearanceHeroImage" maxlength="700" placeholder="/images/1.png"></div>
           <div class="editor-field wide"><label>Heading</label><input class="field" id="appearanceHeroHeading" maxlength="140"></div>
