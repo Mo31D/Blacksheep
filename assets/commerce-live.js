@@ -100,12 +100,15 @@
       :'<strong>Staging commerce preview</strong><span>Live D1 price and availability are overlaid on the static storefront.</span><a href="?commerce-preview=off">Exit preview</a>';
   }
 
-  function syncUi(structureNodes,homepageMerchandising){
+  function syncUi(structureNodes,homepageMerchandising,websiteAppearance){
     if(Array.isArray(structureNodes)&&typeof syncDynamicStorefrontStructure==='function'){
       syncDynamicStorefrontStructure(structureNodes);
     }
     if(homepageMerchandising&&typeof syncHomepageProductRail==='function'){
       syncHomepageProductRail(homepageMerchandising);
+    }
+    if(websiteAppearance&&typeof syncWebsiteAppearance==='function'){
+      syncWebsiteAppearance(websiteAppearance);
     }
     const dynamicCards=typeof syncDynamicCatalogCards==='function'?syncDynamicCatalogCards():0;
     if(typeof syncCatalogCardState==='function')syncCatalogCardState();
@@ -226,6 +229,22 @@
         homepageMerchandisingError=error instanceof Error?error.message:String(error);
       }
 
+      let websiteAppearance=null;
+      let websiteAppearanceError=null;
+      try{
+        const appearanceResponse=await fetch(apiBase+'/v1/appearance',{
+          method:'GET',
+          headers:{accept:'application/json'},
+          cache:'no-store'
+        });
+        if(!appearanceResponse.ok)throw new Error('appearance_http_'+appearanceResponse.status);
+        const appearancePayload=await appearanceResponse.json();
+        if(!appearancePayload?.config||appearancePayload?.contract!=='website-appearance-published-v1')throw new Error('appearance_payload_invalid');
+        websiteAppearance=appearancePayload.config;
+      }catch(error){
+        websiteAppearanceError=error instanceof Error?error.message:String(error);
+      }
+
       window.BLACK_SHEEP_LIVE_COMMERCE_STATE={
         mode:config.mode||'live',
         applied,
@@ -240,10 +259,14 @@
         homepageMerchandisingProducts:Array.isArray(homepageMerchandising?.products)?homepageMerchandising.products.length:0,
         homepageMerchandisingFallback:!homepageMerchandising,
         homepageMerchandisingError,
+        appearance:!!websiteAppearance,
+        appearancePreset:websiteAppearance?.presetKey||null,
+        appearanceFallback:!websiteAppearance,
+        appearanceError:websiteAppearanceError,
         loadedAt:new Date().toISOString()
       };
       document.documentElement.dataset.commerceLive='ready';
-      const dynamicCards=syncUi(structureNodes,homepageMerchandising);
+      const dynamicCards=syncUi(structureNodes,homepageMerchandising,websiteAppearance);
       window.BLACK_SHEEP_LIVE_COMMERCE_STATE.dynamicCards=dynamicCards;
       document.dispatchEvent(new CustomEvent('black-sheep:commerce-live-ready',{
         detail:window.BLACK_SHEEP_LIVE_COMMERCE_STATE
