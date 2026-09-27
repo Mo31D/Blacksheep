@@ -40,6 +40,13 @@ expect(site.includes("Number(a.sortOrder||0)-Number(b.sortOrder||0)"),'Navigatio
 expect(site.includes('item.commerceStorefrontNodeIds'),'Dynamic collection membership is not placement-driven.');
 expect(site.includes("location.replace(node.legacyPath)"),'Dynamic collection route does not hand legacy nodes back to existing indexed URLs.');
 
+expect(site.includes("safeName=storefrontEscape(item.name||'')"),'Dynamic Product cards do not escape Admin-authored names.');
+expect(site.includes("safeDesc=storefrontEscape(item.desc||'')"),'Dynamic Product cards do not escape Admin-authored descriptions.');
+expect(site.includes('data-basket-type="${safeType}"')&&site.includes('data-basket-slug="${safeSlug}"'),'Dynamic Product basket buttons are not data-driven/escaped.');
+expect(site.includes("storefrontEscape(images[0].alt||item.name||'')"),'Dynamic Product detail media alt text is not escaped.');
+expect(site.includes("item.note?'<div class=\"info-row\"><strong>Range note</strong><span>'+esc(item.note)"),'Dynamic Product detail notes are not escaped.');
+expect(site.includes("if(data&&btn.dataset.basketType&&btn.dataset.basketSlug"),'Dynamic Product basket buttons are not wired without inline Admin-shaped JavaScript.');
+
 expect(/id=["']dynamicCollectionPage["']/.test(collection),'Dynamic collection page shell missing.');
 expect(/name=["']robots["'][^>]*noindex,follow/i.test(collection),'Dynamic collection compatibility route must remain noindex until CARD 12.');
 expect(collection.includes('id="dynamicCollectionTitle"'),'Dynamic collection title mount missing.');
