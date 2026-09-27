@@ -30,6 +30,7 @@ describe("commerce worker", () => {
       database: "bound",
       features: {
         orderReservations: false,
+        cleanCollectionRoutes: false,
         publicCatalog: false,
         publicCatalogContract: null,
         commerceAuthority: true,
