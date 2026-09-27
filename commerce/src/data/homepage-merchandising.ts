@@ -205,7 +205,19 @@ function moduleSettings(
   if (HOMEPAGE_MODULE_KEYS.some((key) => !seen.has(key))) {
     throw new Error("homepage_modules_invalid");
   }
-  return result;
+
+  const pinned: HomepageModuleKey[] = ["HERO", "PRODUCT_RAIL", "COLLECTIONS"];
+  const byKey = new Map(result.map((row) => [row.key, row]));
+  const tail = result.filter((row) => !pinned.includes(row.key));
+  const ordered = pinned
+    .map((key) => byKey.get(key))
+    .filter((row): row is HomepageModuleSetting => Boolean(row))
+    .concat(tail);
+
+  return ordered.map((row, index) => ({
+    ...row,
+    position: (index + 1) * 10,
+  }));
 }
 
 async function selectedModules(
