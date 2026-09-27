@@ -23,17 +23,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Verify exact release source
         shell: bash
         working-directory: .
         run: |
-          test "$(git rev-parse HEAD^)" = "0d6e165e57b6d65eadc3a377fd89b5c622f822da" || {
-            echo "::error::Unexpected release baseline."
-            git log -2 --oneline
+          BASELINE="0d6e165e57b6d65eadc3a377fd89b5c622f822da"
+          git cat-file -e "$BASELINE^{commit}"
+          if ! git diff --quiet "$BASELINE"..HEAD -- . ':(exclude).github/workflows/one-shot-card09-production-release.yml'; then
+            echo "::error::Release branch contains runtime/source changes after the staging-verified baseline."
+            git diff --name-only "$BASELINE"..HEAD
             exit 1
-          }
-          echo "Releasing CARD 09 staging-verified baseline only."
+          fi
+          echo "Runtime/source matches CARD 09 staging-verified baseline."
           echo "CARD 11 and PR #8 are intentionally excluded."
 
       - uses: actions/setup-node@v4
