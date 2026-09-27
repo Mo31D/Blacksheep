@@ -4,6 +4,7 @@ import {
   listPublicCommerceProducts,
 } from "../data/public-catalog";
 import { listPublishedStorefrontNodes } from "../data/storefront-structure";
+import { getPublishedHomepageMerchandisingPreview } from "../data/homepage-merchandising";
 
 export interface PublicCatalogEnv {
   DB?: D1DatabaseLike;
@@ -56,6 +57,14 @@ export async function handlePublicCatalogRequest(
   }
 
   const url = new URL(request.url);
+  if (url.pathname === "/v1/homepage-merchandising") {
+    const result = await getPublishedHomepageMerchandisingPreview(env.DB);
+    return json({
+      ...result,
+      contract: "homepage-merchandising-published-v1",
+    });
+  }
+
   if (url.pathname === "/v1/storefront-structure") {
     const nodes = await listPublishedStorefrontNodes(env.DB);
     return json({
