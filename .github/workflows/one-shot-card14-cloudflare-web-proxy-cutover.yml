@@ -114,6 +114,9 @@ jobs:
             coll_location="$(printf '%s' "$coll_headers" | tr -d '\r' | awk 'tolower($1)=="location:" {print $2}' | tail -1)"
             dynamic_status="$(curl --silent --output /tmp/dynamic.html --write-out '%{http_code}' --max-time 20 https://theblacksheepshop.co.uk/collections/chutneys-pickles || true)"
             sitemap_status="$(curl --silent --output /tmp/sitemap.xml --write-out '%{http_code}' --max-time 20 https://theblacksheepshop.co.uk/sitemap.xml || true)"
+            echo "attempt=$attempt home=$home_status gifts=$coll_status gifts_location=$coll_location dynamic=$dynamic_status sitemap=$sitemap_status"
+            echo "home_server=$(curl --silent --head --max-time 20 https://theblacksheepshop.co.uk/ | tr -d '\\r' | awk 'tolower($1)=="server:" {print $2}' | tail -1 || true)"
+            echo "gifts_server=$(printf '%s' "$coll_headers" | tr -d '\\r' | awk 'tolower($1)=="server:" {print $2}' | tail -1 || true)"
 
             if [ "$home_status" = "200" ] &&
                grep -qi "The Black Sheep" /tmp/home.html &&
