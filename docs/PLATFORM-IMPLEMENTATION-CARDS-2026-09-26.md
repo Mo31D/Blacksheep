@@ -417,7 +417,7 @@ Website → Media:
 
 ## CARD 12 — Clean dynamic URLs & SEO migration
 **Status:** IN PROGRESS · STAGING CUTOVER  
-**Current evidence:** clean collection rendering is implemented behind `STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED`; production remains disabled while Staging is proven. Published Structure exposes `cleanUrl` only for non-legacy nodes, legacy nodes preserve their indexed static routes, and clean legacy collection requests 301 back to the established page. Staging deploy run `36327616798` succeeded. The storefront now prefers `cleanUrl` when supplied, dynamic collection canonicals/JSON-LD are generated from published D1 data, and `sitemap-dynamic.xml` is generated from published non-legacy nodes only. Scoped production Worker routes are prepared but not yet cut over.  
+**Current evidence:** clean collection and clean admin-native Product renderers are implemented behind independent feature flags; both are enabled on Staging and remain disabled in Production during verification. Legacy collections 301 to their established static pages and imported legacy Products keep their indexed `.html` canonicals. Admin-native Products have a staged clean `/products/<slug>` route, but Production Product cutover remains intentionally deferred because a broad `/products/*` Worker route would also intercept the richer legacy static Product pages. The canonical `/sitemap.xml` Worker renderer is generated from published D1 state: published legacy canonicals are preserved, dynamic collections are clean, archived Products are excluded by the public-catalogue query, and admin-native Product URLs are included only when clean Product routing is enabled. Scoped Production routes for `/collections/*` and `/sitemap.xml` are prepared; the final Production collection/sitemap cutover waits for CARD 14. Latest full Staging candidate deploy is in progress under run `36328746698`.  
 **Depends on:** CARD 04, CARD 10
 
 **Goal:** progress from static/query-string fallbacks to durable data-driven URLs without sacrificing existing Google equity.
@@ -448,7 +448,7 @@ Website → Media:
 
 ## CARD 13 — Admin information architecture & owner-simplicity pass
 **Status:** IN PROGRESS · FINAL STAGING QA  
-**Current evidence:** final Admin layout is on `main`; Website Homepage now fixes Hero → Product strip → Shop by collection and leaves only the tail modules reorderable. Staging deploy run `36326790129` succeeded. Admin Browser QA run `36327055036` reached the Homepage gate and failed only because the test still expected the retired Hero → Collections → Product strip order; commit `a5890c1` updates the gate to verify the new protected order, fixed-position controls and reorderable tail.  
+**Current evidence:** final Admin layout is on `main`; Website Homepage fixes Hero → Product strip → Shop by collection and leaves only the tail modules reorderable. Staging runtime is current through the CARD 12/13 candidate. Earlier QA failures were assertion races/retired ordering assumptions, not runtime regressions; commits `e408758c`, `4412fba9` and `c689bdf2` now assert the preview modules directly and wait for the five Homepage module rows before WebKit/iPad checks. A fresh post-deploy Admin Browser QA is the remaining CARD 13 closure gate.  
 **Depends on:** may start after CARD 02; final pass after CARD 11
 
 **Goal:** organise Admin around owner tasks rather than implementation terminology.
@@ -490,7 +490,7 @@ Website → Media:
 ---
 
 ## CARD 14 — Deep Production QA, migration cleanup & handoff
-**Status:** BLOCKED  
+**Status:** WAITING ON CARD 12/13 FINAL STAGING GATES  
 **Depends on:** all implementation cards
 
 **Goal:** close the programme with verified Production state and no temporary architecture.
