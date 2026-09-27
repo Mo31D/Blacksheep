@@ -446,7 +446,8 @@ Website → Media:
 ---
 
 ## CARD 13 — Admin information architecture & owner-simplicity pass
-**Status:** IN PROGRESS · FINAL SIMPLICITY PASS  
+**Status:** IN PROGRESS · FINAL STAGING QA  
+**Current evidence:** final Admin layout is on `main`; Website Homepage now fixes Hero → Product strip → Shop by collection and leaves only the tail modules reorderable. Staging deploy run `36326790129` succeeded. Admin Browser QA run `36327055036` reached the Homepage gate and failed only because the test still expected the retired Hero → Collections → Product strip order; commit `a5890c1` updates the gate to verify the new protected order, fixed-position controls and reorderable tail.  
 **Depends on:** may start after CARD 02; final pass after CARD 11
 
 **Goal:** organise Admin around owner tasks rather than implementation terminology.
