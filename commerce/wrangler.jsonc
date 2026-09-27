@@ -13,6 +13,22 @@
     {
       "pattern": "admin.theblacksheepshop.co.uk",
       "custom_domain": true
+    },
+    {
+      "pattern": "theblacksheepshop.co.uk/collections/*",
+      "zone_name": "theblacksheepshop.co.uk"
+    },
+    {
+      "pattern": "theblacksheepshop.co.uk/sitemap-dynamic.xml",
+      "zone_name": "theblacksheepshop.co.uk"
+    },
+    {
+      "pattern": "www.theblacksheepshop.co.uk/collections/*",
+      "zone_name": "theblacksheepshop.co.uk"
+    },
+    {
+      "pattern": "www.theblacksheepshop.co.uk/sitemap-dynamic.xml",
+      "zone_name": "theblacksheepshop.co.uk"
     }
   ],
   "keep_vars": true,
