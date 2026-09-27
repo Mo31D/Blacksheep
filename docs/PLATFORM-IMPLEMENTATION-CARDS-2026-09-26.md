@@ -383,8 +383,8 @@ Start/end activation dates supported in data model; scheduling UI deferred.
 ---
 
 ## CARD 11 — Shared Media Library on R2
-**Status:** IN PROGRESS · IMPLEMENTED ON MAIN · STAGING GATES PENDING  
-**Current evidence:** migration `0023_shared_media_library.sql`, shared-media domain/API, Website → Media workspace, Product/Appearance reuse pickers, safe archive/delete guards and CARD 11 browser lifecycle QA are implemented on `main`. Commerce CI and Staging deployment/browser gates remain required before this card can be closed.  
+**Status:** COMPLETE · STAGING VERIFIED  
+**Current evidence:** migration `0023_shared_media_library.sql` is applied on Staging; the unified build deployed successfully in run `36324424639`; full Admin Browser QA run `36324828038` passed the CARD 11 upload, alt-text, cross-surface reuse, archive delivery, history delete-guard, R2 cleanup and iPad gates. The D1 dynamic-LIKE failure found by run `36324028653` was fixed with `instr(...)` usage checks before final verification.  
 **Depends on:** CARD 00
 
 **Goal:** one reusable image/media system for Products, Homepage, Sections and Themes.
@@ -406,11 +406,11 @@ Website → Media:
 - Themes.
 
 **Acceptance criteria**
-- [ ] One asset can be reused by several surfaces.
-- [ ] Replacing a reference does not corrupt published history.
-- [ ] Alt text is editable.
-- [ ] Archive/delete cannot silently break a live page.
-- [ ] R2 cleanup is auditable.
+- [x] One asset can be reused by several surfaces.
+- [x] Replacing a reference does not corrupt published history.
+- [x] Alt text is editable.
+- [x] Archive/delete cannot silently break a live page.
+- [x] R2 cleanup is auditable.
 
 ---
 
@@ -563,5 +563,4 @@ CARD 00
 
 ## Immediate next action
 
-Start **CARD 11 — Shared Media Library on R2**. CARD 09 is now Staging verified by Admin Browser QA run `36316902429`; its preset, Hero, section-image, contrast, mobile-crop, Preview/Publish and Restore gates all passed. Build the shared media picker/upload layer next so Products, Homepage, Sections and Themes can reuse one asset safely. Keep Production unchanged until the CARD 11 Staging gates pass. CARD 10 is also dependency-ready, but remains sequenced after the media layer for this programme.
-
+Start **CARD 10 — Unified Preview → Publish → Verify engine** from the merged PR #8 baseline. CARD 11 is Staging verified by Admin Browser QA run `36324828038`; Commerce CI run `36324400386` also passes the archived-legacy-product candidate storefront regression in Chromium and WebKit. Keep the authoritative published catalogue as the runtime source of truth, then verify Product, Structure, Homepage and Appearance all use the same visible publish/verify contract before unblocking CARD 12.
