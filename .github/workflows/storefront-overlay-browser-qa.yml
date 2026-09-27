@@ -108,3 +108,5 @@ jobs:
           echo "This workflow performs browser reads against the public storefront and staging public catalogue."
           echo "Mocked browser responses are local to Playwright and do not change D1."
           echo "No order submission, production Worker deployment, production D1 migration or database write is performed."
+
+# post-0022-storefront-overlay-qa-2026-09-27
