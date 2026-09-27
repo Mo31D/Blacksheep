@@ -24,6 +24,7 @@ const PRODUCT_PLACEMENT_QA_SKU = "QA-PLACE-" + RUN_ID;
 let sessionToken = "";
 let sessionHash = "";
 let completed = false;
+const stocktakeQaSessionIds = [];
 
 function assert(value, message) {
   if (!value) throw new Error(message);
@@ -159,6 +160,13 @@ function cleanupProductPlacementQa() {
       "DELETE FROM products WHERE id=" + pid,
     ].join(";"));
   }
+}
+
+function cleanupStocktakeQaSessions() {
+  const ids = [...new Set(stocktakeQaSessionIds)].filter(Boolean);
+  if (!ids.length) return;
+  const inList = ids.map(q).join(",");
+  d1("DELETE FROM stocktake_sessions WHERE id IN (" + inList + ")");
 }
 
 function ownerEmailCandidates() {
@@ -1236,14 +1244,134 @@ async function ownerPolishViewsQa(viewport, label) {
     await page.locator("#stockValueBack").click();
     await page.waitForSelector("#view-stock.active", { timeout: 10_000 });
     await page.locator("#startBulkCount").click();
-    await page.waitForSelector("#stocktakeQty", { timeout: 10_000 });
-    await assertNoHorizontalOverflow(page, label + " Stocktake");
+    await page.waitForSelector("#stocktakeScopeType", { timeout: 10_000 });
+    await assertNoHorizontalOverflow(page, label + " Stocktake launcher");
     const stocktakeActions = await page.locator(".editor-actions:visible").first().boundingBox();
     assert(
       stocktakeActions && stocktakeActions.width <= viewport.width + 2,
-      label + " Stocktake actions are clipped.",
+      label + " Stocktake launcher actions are clipped.",
     );
-    await page.locator("[data-close-product-sheet]:visible").first().click();
+
+    await page.locator("#stocktakeScopeType").selectOption("BRAND_RANGE");
+    await page.waitForSelector("#stocktakeScopeRefWrap:not(.hidden)", {
+      timeout: 10_000,
+    });
+    await page.locator("#stocktakeScopeRef").selectOption({ label: "Romney's" });
+    await page.waitForFunction(
+      () => {
+        const preview = document.getElementById("stocktakePreview");
+        const start = document.getElementById("stocktakeStart");
+        return Boolean(
+          preview?.textContent?.includes("Romney") &&
+            start &&
+            !start.disabled,
+        );
+      },
+      null,
+      { timeout: 20_000 },
+    );
+
+    if (label === "iPhone WebKit") {
+      const createPromise = page.waitForResponse(
+        (response) =>
+          response.url().endsWith("/admin/api/stocktakes") &&
+          response.request().method() === "POST",
+        { timeout: 20_000 },
+      );
+      await page.locator("#stocktakeStart").click();
+      const createPayload = await assertMutationResponse(
+        createPromise,
+        "CARD 05 Stocktake create",
+        201,
+      );
+      const stocktakeId = String(createPayload?.session?.id || "");
+      assert(stocktakeId, "CARD 05 Stocktake create returned no session id.");
+      stocktakeQaSessionIds.push(stocktakeId);
+
+      await page.waitForSelector("#stocktakeQty", { timeout: 10_000 });
+      await assertNoHorizontalOverflow(page, label + " Stocktake count");
+      const qty = page.locator("#stocktakeQty");
+      assert(
+        (await qty.getAttribute("enterkeyhint")) === "next",
+        "CARD 05 Stocktake input is missing enterkeyhint=next.",
+      );
+      await qty.fill("0");
+      await page.evaluate(() => {
+        window.__stocktakeQaInput = document.getElementById("stocktakeQty");
+      });
+
+      const savePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes("/admin/api/stocktakes/" + stocktakeId + "/items/") &&
+          response.request().method() === "PATCH",
+        { timeout: 20_000 },
+      );
+      await page.locator("#stocktakeNext").click();
+      await assertMutationResponse(
+        savePromise,
+        "CARD 05 Stocktake Save & next",
+        200,
+      );
+      await page.waitForTimeout(100);
+
+      const keyboardContinuity = await page.evaluate(() => ({
+        sameInput:
+          window.__stocktakeQaInput ===
+          document.getElementById("stocktakeQty"),
+        focused: document.activeElement?.id === "stocktakeQty",
+      }));
+      assert(
+        keyboardContinuity.sameInput,
+        "CARD 05 rebuilt the quantity input after Save & next.",
+      );
+      assert(
+        keyboardContinuity.focused,
+        "CARD 05 quantity input lost focus after Save & next.",
+      );
+
+      await page.locator("[data-close-product-sheet]:visible").first().click();
+      await page.locator("#startBulkCount").click();
+      await page.waitForSelector("#stocktakeResumeList", { timeout: 10_000 });
+      assert(
+        (await page.locator("#stocktakeResumeList").innerText()).includes("Romney"),
+        "CARD 05 unfinished Stocktake did not reappear after closing.",
+      );
+
+      const resumeButton = page.locator(
+        '[data-stocktake-resume="' + stocktakeId + '"]',
+      );
+      await resumeButton.click();
+      await page.waitForSelector("#stocktakeQty", { timeout: 10_000 });
+      await page.locator("[data-close-product-sheet]:visible").first().click();
+
+      await page.locator("#startBulkCount").click();
+      await page.waitForSelector("#stocktakeResumeList", { timeout: 10_000 });
+      page.once("dialog", async (dialog) => {
+        await dialog.accept();
+      });
+      const cancelPromise = page.waitForResponse(
+        (response) =>
+          response.url().endsWith("/admin/api/stocktakes/" + stocktakeId + "/cancel") &&
+          response.request().method() === "POST",
+        { timeout: 20_000 },
+      );
+      await page.locator(
+        '[data-stocktake-cancel="' + stocktakeId + '"]',
+      ).click();
+      await assertMutationResponse(
+        cancelPromise,
+        "CARD 05 Stocktake cancel",
+        200,
+      );
+      await page.waitForFunction(
+        (id) => !document.querySelector('[data-stocktake-resume="' + id + '"]'),
+        stocktakeId,
+        { timeout: 20_000 },
+      );
+      await page.locator("[data-close-product-sheet]:visible").first().click();
+    } else {
+      await page.locator("[data-close-product-sheet]:visible").first().click();
+    }
 
     await openView("reports");
     await page.waitForSelector("#reportMetrics .metric", { timeout: 20_000 });
@@ -1326,6 +1454,10 @@ try {
           "iphone-catalogue-no-technical-enums",
           "ipad-portrait-catalogue-no-horizontal-overflow",
           "iphone-stock-value-report",
+          "iphone-stocktake-scope-preview",
+          "iphone-stocktake-save-next-same-input-focused",
+          "iphone-stocktake-persistent-resume",
+          "iphone-stocktake-cancel",
           "iphone-stocktake-no-horizontal-overflow",
           "iphone-reports-owner-copy",
           "ipad-portrait-products-stock-reports",
@@ -1345,6 +1477,8 @@ try {
 } finally {
   try {
     try {
+      cleanupStocktakeQaSessions();
+      console.log("Synthetic Stocktake QA sessions cleaned up.");
       cleanupProductPlacementQa();
       console.log("Synthetic Product placement QA data cleaned up.");
       cleanupStorefrontStructureQa();
