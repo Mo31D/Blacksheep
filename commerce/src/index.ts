@@ -164,7 +164,7 @@ async function route(request: Request, env: Env): Promise<Response> {
     return handleCleanProductRequest(request, env);
   }
 
-  if (url.pathname === "/sitemap-dynamic.xml") {
+  if (url.pathname === "/sitemap.xml" || url.pathname === "/sitemap-dynamic.xml") {
     return handleDynamicSitemapRequest(request, env);
   }
 
