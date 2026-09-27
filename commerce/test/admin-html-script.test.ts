@@ -81,6 +81,9 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("Also show in");
     expect(production).toContain("Product labels &amp; classification");
     expect(production).toContain("Preview draft");
+    expect(production).toContain("async function duplicateProduct()");
+    expect(production).toContain("/duplicate");
+    expect(production).toContain("Duplicate created as a private draft.");
     expect(production).toContain("Published & live on storefront");
     expect(production).toContain("/v1/catalog/");
     expect(production).toContain("View on website");
