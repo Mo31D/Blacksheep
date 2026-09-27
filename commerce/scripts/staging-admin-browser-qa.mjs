@@ -1271,7 +1271,50 @@ async function ownerPolishViewsQa(viewport, label) {
       { timeout: 20_000 },
     );
 
-    if (label === "iPhone WebKit") {
+    await page.locator("#stocktakeScopeType").selectOption("STOREFRONT_NODE");
+    await page.waitForSelector("#stocktakeScopeRef option", { timeout: 10_000 });
+    const highlandValue = await page.locator("#stocktakeScopeRef option").evaluateAll(
+      (options) =>
+        options.find((option) =>
+          option.textContent?.includes("Highland Cows"),
+        )?.value || "",
+    );
+    assert(
+      highlandValue,
+      "CARD 05 could not find the Highland Cows website section.",
+    );
+    await page.locator("#stocktakeScopeRef").selectOption(highlandValue);
+    await page.waitForFunction(
+      () => {
+        const preview = document.getElementById("stocktakePreview");
+        const start = document.getElementById("stocktakeStart");
+        return Boolean(
+          preview?.textContent?.includes("Highland Cows") &&
+            start &&
+            !start.disabled,
+        );
+      },
+      null,
+      { timeout: 20_000 },
+    );
+
+    await page.locator("#stocktakeScopeType").selectOption("BRAND_RANGE");
+    await page.locator("#stocktakeScopeRef").selectOption({ label: "Romney's" });
+    await page.waitForFunction(
+      () => {
+        const preview = document.getElementById("stocktakePreview");
+        const start = document.getElementById("stocktakeStart");
+        return Boolean(
+          preview?.textContent?.includes("Romney") &&
+            start &&
+            !start.disabled,
+        );
+      },
+      null,
+      { timeout: 20_000 },
+    );
+
+    if (label === "iPad portrait WebKit") {
       const createPromise = page.waitForResponse(
         (response) =>
           response.url().endsWith("/admin/api/stocktakes") &&
@@ -1454,11 +1497,12 @@ try {
           "iphone-catalogue-no-technical-enums",
           "ipad-portrait-catalogue-no-horizontal-overflow",
           "iphone-stock-value-report",
-          "iphone-stocktake-scope-preview",
-          "iphone-stocktake-save-next-same-input-focused",
-          "iphone-stocktake-persistent-resume",
-          "iphone-stocktake-cancel",
-          "iphone-stocktake-no-horizontal-overflow",
+          "stocktake-romneys-scope-preview",
+          "stocktake-highland-cows-scope-preview",
+          "ipad-stocktake-save-next-same-input-focused",
+          "ipad-stocktake-persistent-resume",
+          "ipad-stocktake-cancel",
+          "iphone-ipad-stocktake-no-horizontal-overflow",
           "iphone-reports-owner-copy",
           "ipad-portrait-products-stock-reports",
           "owner-facing-dev-copy-removed",
