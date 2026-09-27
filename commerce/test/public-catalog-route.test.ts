@@ -74,15 +74,48 @@ const storefrontRow = {
   publishedVersionId: "sfv_gifts_1",
 };
 
+const homepageRow = {
+  id: "home_product_rail",
+  version: 4,
+  publishedVersionId: "hmv-live",
+  draftVersionId: null,
+  effectiveVersionId: "hmv-live",
+  effectiveVersionNumber: 2,
+  enabled: 1,
+  mode: "FEATURED_PRODUCTS",
+  productLimit: 4,
+  heading: "Shop favourites",
+  selectedStorefrontNodeId: null,
+  selectedStorefrontNodeName: null,
+};
+
+const homepageProductRow = {
+  productId: "prd-1",
+  title: "Highland Cow",
+  slug: "highland-cow",
+  legacyId: "HC-001",
+  priceMinor: 950,
+  primaryImageUrl: "/images/highland-cow.webp",
+  position: 0,
+};
+
 class Db implements D1DatabaseLike {
   readonly prepared: Statement[] = [];
 
   prepare(query: string): Statement {
     const isStorefront = query.includes("FROM storefront_nodes n");
+    const isHomepage = query.includes("FROM homepage_merchandising hm");
+    const isHomepageProducts = query.includes(
+      "FROM homepage_merchandising_products hp",
+    );
     const statement = new Statement(
       query,
-      isStorefront ? null : publicRow,
-      isStorefront ? [storefrontRow] : [publicRow],
+      isHomepage ? homepageRow : isStorefront ? null : publicRow,
+      isHomepageProducts
+        ? [homepageProductRow]
+        : isStorefront
+          ? [storefrontRow]
+          : [publicRow],
     );
     this.prepared.push(statement);
     return statement;
@@ -175,6 +208,40 @@ describe("Phase 6 public catalogue route", () => {
       "HC-001",
       "HC-001",
     ]);
+  });
+
+  it("returns the published Homepage merchandising contract", async () => {
+    const db = new Db();
+    const response = await handlePublicCatalogRequest(
+      new Request("https://api.example.test/v1/homepage-merchandising"),
+      {
+        DB: db,
+        D1_PUBLIC_CATALOG_ENABLED: "true",
+      },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      contract: "homepage-merchandising-published-v1",
+      config: {
+        enabled: true,
+        mode: "FEATURED_PRODUCTS",
+        heading: "Shop favourites",
+        publishedVersionId: "hmv-live",
+      },
+      products: [
+        {
+          productId: "prd-1",
+          title: "Highland Cow",
+          slug: "highland-cow",
+        },
+      ],
+    });
+    expect(
+      db.prepared.some((statement) =>
+        statement.sql.includes("FROM homepage_merchandising hm"),
+      ),
+    ).toBe(true);
   });
 
   it("returns the published Storefront Structure contract", async () => {
