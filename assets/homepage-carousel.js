@@ -1,111 +1,93 @@
 (() => {
   const TRACK_ID = 'homepageProductRailTrack';
   const RAIL_ID = 'homepageProductRail';
-  const SPEED_PX_PER_SECOND = 18;
+  const SPEED = 18; // px per second
+  const RESUME_DELAY = 900;
 
-  function initHomepageCarousel() {
+  function initHomepageMarquee() {
     const track = document.getElementById(TRACK_ID);
     const rail = document.getElementById(RAIL_ID);
-    const main = document.querySelector('main');
-    if (!track || !rail || track.dataset.marqueeReady === '1') return;
+    if (!track || !rail || track.dataset.nativeMarqueeReady === '1') return;
 
-    track.dataset.marqueeReady = '1';
+    track.dataset.nativeMarqueeReady = '1';
 
-    const reducedMotion = window.matchMedia &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+    let viewport = track.parentElement?.classList.contains('home-product-rail-viewport')
+      ? track.parentElement
+      : null;
 
-    let animation = null;
-    let rebuilding = false;
-    let rebuildFrame = 0;
-
-    function positionRailBeforeCollections() {
-      const collections = main?.querySelector('[data-home-module="COLLECTIONS"]');
-      if (collections && collections.previousElementSibling !== rail) {
-        main.insertBefore(rail, collections);
-      }
-    }
-
-    function ensureViewport() {
-      if (track.parentElement?.classList.contains('home-product-rail-viewport')) {
-        return track.parentElement;
-      }
-      const viewport = document.createElement('div');
+    if (!viewport) {
+      viewport = document.createElement('div');
       viewport.className = 'home-product-rail-viewport';
       track.parentNode.insertBefore(viewport, track);
       viewport.appendChild(track);
-      return viewport;
     }
 
+    let cycleWidth = 0;
+    let raf = 0;
+    let last = 0;
+    let interacting = false;
+    let resumeTimer = 0;
+    let rebuilding = false;
+    let logicalOffset = 0;
+
+    const isClone = node => node?.nodeType === 1 && node.matches?.('[data-home-carousel-clone="1"]');
+
     function originals() {
-      return Array.from(
-        track.querySelectorAll('.product-card:not([data-home-carousel-clone="1"])')
-      );
+      return [...track.querySelectorAll('.product-card:not([data-home-carousel-clone="1"])')];
     }
 
     function removeClones() {
       track.querySelectorAll('[data-home-carousel-clone="1"]').forEach(node => node.remove());
     }
 
-    function makeClone(card) {
+    function cloneCard(card) {
       const clone = card.cloneNode(true);
       clone.dataset.homeCarouselClone = '1';
       clone.setAttribute('aria-hidden', 'true');
       clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
-      clone.querySelectorAll('a,button,input,select,textarea,[tabindex]').forEach(el => {
-        el.setAttribute('tabindex', '-1');
-      });
+      clone.querySelectorAll('[tabindex]').forEach(el => el.setAttribute('tabindex', '-1'));
       return clone;
     }
 
-    function stopAnimation() {
-      if (animation) {
-        animation.cancel();
-        animation = null;
-      }
-      track.style.transform = '';
-    }
-
-    function startAnimation(cycleWidth) {
-      stopAnimation();
-      if (reducedMotion || cycleWidth <= 0) return;
-
-      const duration = Math.max(14000, Math.round((cycleWidth / SPEED_PX_PER_SECOND) * 1000));
-
-      animation = track.animate(
-        [
-          { transform: 'translate3d(0,0,0)' },
-          { transform: `translate3d(-${cycleWidth}px,0,0)` }
-        ],
-        {
-          duration,
-          iterations: Infinity,
-          easing: 'linear'
-        }
-      );
+    function normalise(force = false) {
+      if (!cycleWidth || interacting) return;
+      const x = viewport.scrollLeft;
+      if (x >= cycleWidth * 2) viewport.scrollLeft = x - cycleWidth;
+      else if (x < cycleWidth * 0.25 && force) viewport.scrollLeft = x + cycleWidth;
     }
 
     function rebuild() {
       if (rebuilding) return;
       rebuilding = true;
       observer.disconnect();
-      stopAnimation();
-      removeClones();
-      positionRailBeforeCollections();
-      ensureViewport();
 
+      if (cycleWidth > 0) {
+        logicalOffset = ((viewport.scrollLeft - cycleWidth) % cycleWidth + cycleWidth) % cycleWidth;
+      } else {
+        logicalOffset = 0;
+      }
+
+      removeClones();
       const cards = originals();
+      cycleWidth = 0;
 
       if (cards.length > 1) {
-        cards.forEach(card => track.appendChild(makeClone(card)));
+        const before = document.createDocumentFragment();
+        const after = document.createDocumentFragment();
+        cards.forEach(card => before.appendChild(cloneCard(card)));
+        cards.forEach(card => after.appendChild(cloneCard(card)));
+        track.prepend(before);
+        track.append(after);
 
         requestAnimationFrame(() => {
-          const first = cards[0];
-          const firstClone = track.querySelector('[data-home-carousel-clone="1"]');
-          const cycleWidth = first && firstClone
-            ? firstClone.offsetLeft - first.offsetLeft
-            : 0;
-
-          startAnimation(cycleWidth);
+          const all = [...track.querySelectorAll('.product-card')];
+          const firstMiddle = all[cards.length];
+          const firstAfter = all[cards.length * 2];
+          if (firstMiddle && firstAfter) {
+            cycleWidth = firstAfter.offsetLeft - firstMiddle.offsetLeft;
+            viewport.scrollLeft = cycleWidth + Math.min(logicalOffset, Math.max(0, cycleWidth - 1));
+          }
           observer.observe(track, { childList: true });
           rebuilding = false;
         });
@@ -116,45 +98,70 @@
       rebuilding = false;
     }
 
-    function scheduleRebuild() {
-      cancelAnimationFrame(rebuildFrame);
-      rebuildFrame = requestAnimationFrame(rebuild);
-    }
-
     const observer = new MutationObserver(mutations => {
       if (rebuilding) return;
-      const externalChange = mutations.some(mutation => {
-        const changed = [...mutation.addedNodes, ...mutation.removedNodes];
-        return changed.some(node =>
-          node.nodeType === 1 &&
-          !node.matches?.('[data-home-carousel-clone="1"]')
-        );
-      });
-      if (externalChange) scheduleRebuild();
+      const external = mutations.some(m =>
+        [...m.addedNodes, ...m.removedNodes].some(node => node.nodeType === 1 && !isClone(node))
+      );
+      if (external) rebuild();
     });
 
-    const mainObserver = new MutationObserver(positionRailBeforeCollections);
+    function pause() {
+      interacting = true;
+      clearTimeout(resumeTimer);
+    }
+
+    function resume() {
+      clearTimeout(resumeTimer);
+      resumeTimer = window.setTimeout(() => {
+        interacting = false;
+        normalise(true);
+        last = performance.now();
+      }, RESUME_DELAY);
+    }
+
+    viewport.addEventListener('pointerdown', pause, { passive: true });
+    viewport.addEventListener('pointerup', resume, { passive: true });
+    viewport.addEventListener('pointercancel', resume, { passive: true });
+    viewport.addEventListener('touchstart', pause, { passive: true });
+    viewport.addEventListener('touchend', resume, { passive: true });
+    viewport.addEventListener('touchcancel', resume, { passive: true });
+    viewport.addEventListener('wheel', () => { pause(); resume(); }, { passive: true });
+
+    function tick(now) {
+      if (!last) last = now;
+      const dt = Math.min(now - last, 50);
+      last = now;
+
+      if (!reducedMotion && !interacting && !document.hidden && cycleWidth > 0) {
+        viewport.scrollLeft += SPEED * (dt / 1000);
+        normalise(false);
+      }
+      raf = requestAnimationFrame(tick);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      last = performance.now();
+    });
+
+    window.addEventListener('orientationchange', () => {
+      setTimeout(rebuild, 250);
+    }, { passive: true });
 
     observer.observe(track, { childList: true });
-    if (main) mainObserver.observe(main, { childList: true });
-
-    positionRailBeforeCollections();
-    ensureViewport();
     rebuild();
-
-    window.addEventListener('resize', scheduleRebuild, { passive: true });
+    raf = requestAnimationFrame(tick);
 
     window.addEventListener('pagehide', () => {
-      stopAnimation();
+      cancelAnimationFrame(raf);
       observer.disconnect();
-      mainObserver.disconnect();
-      cancelAnimationFrame(rebuildFrame);
+      clearTimeout(resumeTimer);
     }, { once: true });
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initHomepageCarousel, { once: true });
+    document.addEventListener('DOMContentLoaded', initHomepageMarquee, { once: true });
   } else {
-    initHomepageCarousel();
+    initHomepageMarquee();
   }
 })();
