@@ -91,7 +91,6 @@ import {
 } from "../data/shared-media";
 import {
   adjustInventory,
-  bulkInventoryCount,
   initialInventoryCount,
   listAdminInventory,
   listInventoryHistory,
@@ -213,7 +212,6 @@ interface AdminDependencies {
   initialInventoryCountFn: typeof initialInventoryCount;
   adjustInventoryFn: typeof adjustInventory;
   physicalInventoryCountFn: typeof physicalInventoryCount;
-  bulkInventoryCountFn: typeof bulkInventoryCount;
   listInventoryHistoryFn: typeof listInventoryHistory;
   listOpenStocktakeSessionsFn: typeof listOpenStocktakeSessions;
   previewStocktakeScopeFn: typeof previewStocktakeScope;
@@ -288,7 +286,6 @@ const defaults: AdminDependencies = {
   initialInventoryCountFn: initialInventoryCount,
   adjustInventoryFn: adjustInventory,
   physicalInventoryCountFn: physicalInventoryCount,
-  bulkInventoryCountFn: bulkInventoryCount,
   listInventoryHistoryFn: listInventoryHistory,
   listOpenStocktakeSessionsFn: listOpenStocktakeSessions,
   previewStocktakeScopeFn: previewStocktakeScope,
@@ -1216,19 +1213,6 @@ export async function handleAdminRequest(
     }
   }
 
-  if (url.pathname === "/admin/api/inventory/bulk-count" && request.method === "POST") {
-    try {
-      const raw = await readProductJson(request);
-      const result = await deps.bulkInventoryCountFn(
-        env.DB,
-        raw as unknown as Parameters<typeof bulkInventoryCount>[1],
-        identity.email,
-      );
-      return json(result);
-    } catch (cause) {
-      return inventoryMutationError(cause);
-    }
-  }
 
   const inventoryHistoryMatch = url.pathname.match(
     /^\/admin\/api\/variants\/([^/]+)\/inventory\/history$/,
