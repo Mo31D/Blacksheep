@@ -1385,14 +1385,14 @@ async function homepageMerchandisingQa() {
         previewText.includes(HOMEPAGE_QA_HEADING),
       "CARD 06 Private Preview did not render the draft heading.",
     );
+    const previewModules = await page
+      .locator(".homepage-preview-modules .chip")
+      .evaluateAll((chips) => chips.map((chip) => (chip.textContent || "").trim()));
     assert(
-      previewText.indexOf("Hero & quick links") >= 0 &&
-        previewText.indexOf("Product strip") >
-          previewText.indexOf("Hero & quick links") &&
-        previewText.indexOf("Shop by collection") >
-          previewText.indexOf("Product strip") &&
-        !previewText.includes("Local favourites"),
-      "CARD 13 Private Preview did not reflect protected module order/visibility.",
+      previewModules.join(",") ===
+        "Hero & quick links,Product strip,Shop by collection,Visit / shop story",
+      "CARD 13 Private Preview did not reflect protected module order/visibility: " +
+        previewModules.join(","),
     );
     await page.locator("[data-close-product-sheet]:visible").first().click();
 
