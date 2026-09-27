@@ -1,102 +1,125 @@
 (() => {
   const TRACK_ID = 'homepageProductRailTrack';
-  const AUTOPLAY_MS = 3800;
-  const INTERACTION_PAUSE_MS = 8000;
+  const RAIL_ID = 'homepageProductRail';
+  const SPEED_PX_PER_SECOND = 18;
 
   function initHomepageCarousel() {
     const track = document.getElementById(TRACK_ID);
-    if (!track || track.dataset.autoCarouselReady === '1') return;
+    const rail = document.getElementById(RAIL_ID);
+    const main = document.querySelector('main');
+    if (!track || !rail || track.dataset.continuousCarouselReady === '1') return;
 
-    track.dataset.autoCarouselReady = '1';
+    track.dataset.continuousCarouselReady = '1';
 
     const reducedMotion = window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    let timer = null;
-    let resumeTimer = null;
-    let paused = false;
-
-    const cards = () => Array.from(track.querySelectorAll('.product-card'));
-
-    function stepDistance() {
-      const first = cards()[0];
-      if (!first) return 0;
-      const styles = getComputedStyle(track);
-      const gap = parseFloat(styles.columnGap || styles.gap || '0') || 0;
-      return first.getBoundingClientRect().width + gap;
+    if (reducedMotion) {
+      track.dataset.continuousCarousel = 'reduced';
+      return;
     }
 
-    function canAutoplay() {
-      return !reducedMotion &&
-        !paused &&
-        !document.hidden &&
-        cards().length > 1 &&
-        track.scrollWidth > track.clientWidth + 8;
+    track.dataset.continuousCarousel = 'on';
+
+    let cycleWidth = 0;
+    let frame = 0;
+    let lastTime = 0;
+    let rebuilding = false;
+
+    function positionRailBeforeCollections() {
+      const collections = main?.querySelector('[data-home-module="COLLECTIONS"]');
+      if (!collections || collections.previousElementSibling === rail) return;
+      main.insertBefore(rail, collections);
     }
 
-    function advance() {
-      if (!canAutoplay()) return;
-      const distance = stepDistance();
-      if (!distance) return;
+    function removeClones() {
+      track.querySelectorAll('[data-home-carousel-clone="1"]').forEach(node => node.remove());
+    }
 
-      const nearEnd =
-        track.scrollLeft + track.clientWidth >= track.scrollWidth - distance * 0.6;
-
-      track.scrollTo({
-        left: nearEnd ? 0 : track.scrollLeft + distance,
-        behavior: 'smooth'
+    function prepareClone(card) {
+      const clone = card.cloneNode(true);
+      clone.dataset.homeCarouselClone = '1';
+      clone.setAttribute('aria-hidden', 'true');
+      clone.removeAttribute('tabindex');
+      clone.querySelectorAll('a,button,input,select,textarea,[tabindex]').forEach(el => {
+        el.setAttribute('tabindex', '-1');
       });
+      return clone;
     }
 
-    function start() {
-      if (timer || reducedMotion) return;
-      timer = window.setInterval(advance, AUTOPLAY_MS);
-    }
+    function rebuildLoop() {
+      if (rebuilding) return;
+      rebuilding = true;
+      observer.disconnect();
 
-    function stop() {
-      if (!timer) return;
-      window.clearInterval(timer);
-      timer = null;
-    }
+      removeClones();
+      positionRailBeforeCollections();
 
-    function pauseForInteraction() {
-      paused = true;
-      stop();
-      window.clearTimeout(resumeTimer);
-      resumeTimer = window.setTimeout(() => {
-        paused = false;
-        start();
-      }, INTERACTION_PAUSE_MS);
-    }
+      const originals = Array.from(
+        track.querySelectorAll('.product-card:not([data-home-carousel-clone="1"])')
+      );
 
-    track.addEventListener('pointerdown', pauseForInteraction, { passive: true });
-    track.addEventListener('touchstart', pauseForInteraction, { passive: true });
-    track.addEventListener('wheel', pauseForInteraction, { passive: true });
-    track.addEventListener('focusin', pauseForInteraction);
-    track.addEventListener('mouseenter', () => {
-      if (window.matchMedia('(hover:hover)').matches) {
-        paused = true;
-        stop();
+      cycleWidth = 0;
+
+      if (originals.length > 1) {
+        const firstOriginal = originals[0];
+        originals.forEach(card => track.appendChild(prepareClone(card)));
+        const firstClone = track.querySelector('[data-home-carousel-clone="1"]');
+        if (firstClone) {
+          cycleWidth = firstClone.offsetLeft - firstOriginal.offsetLeft;
+        }
       }
-    });
-    track.addEventListener('mouseleave', () => {
-      if (window.matchMedia('(hover:hover)').matches) {
-        paused = false;
-        start();
+
+      if (cycleWidth > 0 && track.scrollLeft >= cycleWidth) {
+        track.scrollLeft %= cycleWidth;
       }
+
+      observer.observe(track, { childList: true });
+      rebuilding = false;
+    }
+
+    const observer = new MutationObserver(mutations => {
+      const externalChange = mutations.some(mutation =>
+        Array.from(mutation.addedNodes).some(node =>
+          node.nodeType === 1 && !node.matches?.('[data-home-carousel-clone="1"]')
+        ) ||
+        Array.from(mutation.removedNodes).some(node =>
+          node.nodeType === 1 && !node.matches?.('[data-home-carousel-clone="1"]')
+        )
+      );
+      if (externalChange) requestAnimationFrame(rebuildLoop);
     });
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) stop();
-      else if (!paused) start();
+    const mainObserver = new MutationObserver(() => {
+      positionRailBeforeCollections();
     });
 
-    const observer = new MutationObserver(() => {
-      if (cards().length > 1) start();
-    });
+    function tick(now) {
+      if (!lastTime) lastTime = now;
+      const delta = Math.min(now - lastTime, 50);
+      lastTime = now;
+
+      if (cycleWidth > 0 && !document.hidden) {
+        track.scrollLeft += SPEED_PX_PER_SECOND * (delta / 1000);
+        if (track.scrollLeft >= cycleWidth) {
+          track.scrollLeft -= cycleWidth;
+        }
+      }
+
+      frame = requestAnimationFrame(tick);
+    }
+
     observer.observe(track, { childList: true });
+    if (main) mainObserver.observe(main, { childList: true });
+    positionRailBeforeCollections();
+    rebuildLoop();
+    frame = requestAnimationFrame(tick);
 
-    if (cards().length > 1) start();
+    window.addEventListener('pagehide', () => {
+      if (frame) cancelAnimationFrame(frame);
+      observer.disconnect();
+      mainObserver.disconnect();
+    }, { once: true });
   }
 
   if (document.readyState === 'loading') {
