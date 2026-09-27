@@ -405,3 +405,58 @@ section{padding:78px 0}.section-head{display:flex;justify-content:space-between;
     scroll-snap-align:start;
   }
 }
+
+
+/* Homepage product carousel — transform marquee v3 */
+.home-product-rail-viewport{
+  overflow:hidden;
+  width:100%;
+  margin:0;
+}
+.home-product-rail-track{
+  display:flex;
+  width:max-content;
+  max-width:none;
+  gap:8px;
+  overflow:visible;
+  scroll-snap-type:none;
+  padding:2px 0 6px;
+  will-change:transform;
+}
+.home-product-rail-track .product-card{
+  flex:0 0 150px;
+  width:150px;
+}
+@media(max-width:1080px){
+  .home-product-rail-track .product-card{
+    flex-basis:138px;
+    width:138px;
+  }
+}
+@media(max-width:760px){
+  .home-product-rail-viewport{
+    width:calc(100vw - 20px);
+  }
+  .home-product-rail-track{
+    gap:8px;
+    margin-right:0;
+    padding-right:0;
+  }
+  .home-product-rail-track .product-card{
+    flex:0 0 31vw;
+    width:31vw;
+    max-width:122px;
+    min-width:104px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .home-product-rail-viewport{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .home-product-rail-viewport::-webkit-scrollbar{display:none}
+  .home-product-rail-track{
+    transform:none!important;
+  }
+}
