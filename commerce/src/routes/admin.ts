@@ -100,6 +100,7 @@ import {
   getAdminWebsiteAppearance,
   getPublishedWebsiteAppearance,
   listWebsiteAppearanceHistory,
+  listWebsiteAppearancePresets,
   publishAdminWebsiteAppearance,
   restoreAdminWebsiteAppearance,
   saveAdminWebsiteAppearanceDraft,
@@ -380,7 +381,9 @@ function appearanceMutationError(cause: unknown): Response {
     appearance_colour_invalid:
       "Choose a valid six-digit colour, for example #f8f4ea.",
     appearance_tokens_invalid: "Appearance colours are invalid.",
-    appearance_preset_invalid: "Theme preset is invalid.",
+    appearance_preset_invalid: "Choose one of the approved Theme presets.",
+    appearance_contrast_invalid:
+      "Those colours reduce readability. Choose colours with stronger contrast or reset to the preset.",
     appearance_hero_invalid: "Homepage hero settings are invalid.",
     appearance_hero_image_invalid: "Hero image address is invalid.",
     appearance_hero_heading_invalid: "Hero heading is too long.",
@@ -1172,7 +1175,11 @@ export async function handleAdminRequest(
         deps.getAdminWebsiteAppearanceFn(env.DB),
         deps.listWebsiteAppearanceHistoryFn(env.DB, 8),
       ]);
-      return json({ config, history });
+      return json({
+        config,
+        history,
+        presets: listWebsiteAppearancePresets(),
+      });
     } catch (cause) {
       return appearanceMutationError(cause);
     }
