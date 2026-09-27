@@ -301,8 +301,9 @@ Four cards only:
 ---
 
 ## CARD 09 — Seasonal theme presets, Hero editor & section imagery
-**Status:** READY  
-**Depends on:** CARD 08; CARD 11 for full shared-media reuse
+**Status:** COMPLETE · STAGING VERIFIED  
+**Completion evidence:** `docs/CARD09-SEASONAL-APPEARANCE-STAGING-2026-09-27.md` · Commerce CI `36316749986` · Staging deploy `36316859445` · Admin Browser QA `36316902429`. Production was intentionally not modified.  
+**Depends on:** CARD 08 · CARD 11 extends these image controls with full shared-media reuse
 
 **Goal:** deliver simple seasonal control.
 
@@ -329,16 +330,16 @@ Future preset library can include:
 Start/end activation dates supported in data model; scheduling UI deferred.
 
 **Acceptance criteria**
-- [ ] Preset can be applied without code.
-- [ ] Hero and section imagery editable from Admin.
-- [ ] Mobile hero behaviour is defined.
-- [ ] Reset-to-default works.
-- [ ] Theme cannot break contrast/layout constraints.
+- [x] Preset can be applied without code.
+- [x] Hero and section imagery editable from Admin.
+- [x] Mobile hero behaviour is defined.
+- [x] Reset-to-preset-default works.
+- [x] Theme cannot break contrast/layout constraints.
 
 ---
 
 ## CARD 10 — Unified Preview → Publish → Verify engine
-**Status:** BLOCKED  
+**Status:** READY  
 **Depends on:** CARD 03, CARD 04, CARD 06, CARD 08
 
 **Goal:** use one publishing contract across Product, Structure, Homepage and Appearance.
@@ -373,7 +374,7 @@ Start/end activation dates supported in data model; scheduling UI deferred.
 ---
 
 ## CARD 11 — Shared Media Library on R2
-**Status:** BLOCKED  
+**Status:** READY  
 **Depends on:** CARD 00
 
 **Goal:** one reusable image/media system for Products, Homepage, Sections and Themes.
@@ -552,5 +553,5 @@ CARD 00
 
 ## Immediate next action
 
-Start **CARD 09 — Seasonal theme presets, Hero editor & section imagery**. Cards 03–08 are now Staging verified by browser QA run `36315773161`. Build the preset library on top of the existing versioned Website Appearance domain; do not introduce arbitrary CSS and do not modify Production before Staging gates pass.
+Start **CARD 11 — Shared Media Library on R2**. CARD 09 is now Staging verified by Admin Browser QA run `36316902429`; its preset, Hero, section-image, contrast, mobile-crop, Preview/Publish and Restore gates all passed. Build the shared media picker/upload layer next so Products, Homepage, Sections and Themes can reuse one asset safely. Keep Production unchanged until the CARD 11 Staging gates pass. CARD 10 is also dependency-ready, but remains sequenced after the media layer for this programme.
 
