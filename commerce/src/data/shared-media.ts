@@ -611,3 +611,201 @@ export async function markSharedMediaObjectDeleted(
     }),
   ]);
 }
+
+
+export interface SharedMediaDeleteClaim {
+  assetId: string;
+  storageKey: string;
+  claimToken: string | null;
+  alreadyDeleted: boolean;
+}
+
+/**
+ * Claim an archived, unreferenced object for destructive R2 deletion.
+ *
+ * The INSERT ... SELECT eligibility predicate and the claim write are one D1
+ * statement, so a destructive caller never relies only on an earlier
+ * read/check. Repeating a FAILED/CLAIMED job creates a new claim token; DONE
+ * is idempotent success.
+ */
+export async function claimSharedMediaObjectDeletion(
+  db: D1DatabaseLike,
+  assetId: string,
+  actorEmail: string,
+): Promise<SharedMediaDeleteClaim> {
+  const existing = await db
+    .prepare(
+      "SELECT storage_key AS storageKey, state, claim_token AS claimToken " +
+        "FROM shared_media_delete_jobs WHERE asset_id = ? LIMIT 1",
+    )
+    .bind(assetId)
+    .first<{ storageKey: string; state: string; claimToken: string }>();
+
+  if (existing?.state === "DONE") {
+    return {
+      assetId,
+      storageKey: existing.storageKey,
+      claimToken: null,
+      alreadyDeleted: true,
+    };
+  }
+
+  const claimToken = uid("smdelete");
+  const timestamp = now();
+
+  await db
+    .prepare(
+      "INSERT INTO shared_media_delete_jobs (" +
+        "asset_id, storage_key, state, attempt_count, claim_token, last_error, " +
+        "claimed_by, claimed_at, updated_at" +
+        ") " +
+        "SELECT a.id, a.storage_key, 'CLAIMED', 1, ?, NULL, ?, ?, ? " +
+        "FROM shared_media_assets a " +
+        "WHERE a.id = ? AND a.status = 'ARCHIVED' " +
+        "AND NOT EXISTS (" +
+        " SELECT 1 FROM product_media pm" +
+        " WHERE pm.storage_provider = 'R2' AND pm.storage_key = a.storage_key" +
+        ") " +
+        "AND NOT EXISTS (" +
+        " SELECT 1 FROM storefront_node_versions snv WHERE snv.image_url = a.public_url" +
+        ") " +
+        "AND NOT EXISTS (" +
+        " SELECT 1 FROM website_appearance_versions wav" +
+        " WHERE wav.hero_image_url = a.public_url" +
+        " OR instr(COALESCE(wav.section_images_json, ''), a.public_url) > 0" +
+        ") " +
+        "AND NOT EXISTS (" +
+        " SELECT 1 FROM shared_media_references r" +
+        " WHERE r.asset_id = a.id AND r.released_at IS NULL" +
+        ") " +
+        "ON CONFLICT(asset_id) DO UPDATE SET " +
+        "storage_key = excluded.storage_key, state = 'CLAIMED', " +
+        "attempt_count = shared_media_delete_jobs.attempt_count + 1, " +
+        "claim_token = excluded.claim_token, last_error = NULL, " +
+        "claimed_by = excluded.claimed_by, claimed_at = excluded.claimed_at, " +
+        "updated_at = excluded.updated_at " +
+        "WHERE shared_media_delete_jobs.state IN ('CLAIMED','FAILED')",
+    )
+    .bind(claimToken, actorEmail, timestamp, timestamp, assetId)
+    .run();
+
+  const claimed = await db
+    .prepare(
+      "SELECT storage_key AS storageKey, state, claim_token AS claimToken " +
+        "FROM shared_media_delete_jobs WHERE asset_id = ? LIMIT 1",
+    )
+    .bind(assetId)
+    .first<{ storageKey: string; state: string; claimToken: string }>();
+
+  if (claimed?.state === "DONE") {
+    return {
+      assetId,
+      storageKey: claimed.storageKey,
+      claimToken: null,
+      alreadyDeleted: true,
+    };
+  }
+
+  if (claimed?.state === "CLAIMED" && claimed.claimToken === claimToken) {
+    return {
+      assetId,
+      storageKey: claimed.storageKey,
+      claimToken,
+      alreadyDeleted: false,
+    };
+  }
+
+  const eligibility = await sharedMediaDeleteEligibility(db, assetId);
+  if (!eligibility.canDeleteObject) throw new Error("shared_media_delete_blocked");
+  throw new Error("shared_media_delete_claim_failed");
+}
+
+export async function recordSharedMediaDeleteFailure(
+  db: D1DatabaseLike,
+  assetId: string,
+  claimToken: string,
+  cause: unknown,
+): Promise<void> {
+  const message = String(cause instanceof Error ? cause.message : cause ?? "R2 delete failed")
+    .slice(0, 500);
+  const timestamp = now();
+  await db
+    .prepare(
+      "UPDATE shared_media_delete_jobs SET state = 'FAILED', last_error = ?, updated_at = ? " +
+        "WHERE asset_id = ? AND state = 'CLAIMED' AND claim_token = ?",
+    )
+    .bind(message, timestamp, assetId, claimToken)
+    .run();
+}
+
+export async function finalizeSharedMediaObjectDeletion(
+  db: D1DatabaseLike,
+  claim: SharedMediaDeleteClaim,
+  actorEmail: string,
+): Promise<void> {
+  if (claim.alreadyDeleted) return;
+  if (!claim.claimToken) throw new Error("shared_media_delete_claim_failed");
+
+  const timestamp = now();
+  const beforeJson = JSON.stringify({ status: "ARCHIVED" });
+  const afterJson = JSON.stringify({
+    status: "DELETED",
+    storageKey: claim.storageKey,
+    crashSafeClaim: true,
+  });
+
+  await db.batch([
+    db
+      .prepare(
+        "UPDATE shared_media_assets SET status = 'DELETED', deleted_at = ?, " +
+          "updated_by = ?, updated_at = ? " +
+          "WHERE id = ? AND status = 'ARCHIVED' AND EXISTS (" +
+          "SELECT 1 FROM shared_media_delete_jobs j " +
+          "WHERE j.asset_id = ? AND j.state = 'CLAIMED' AND j.claim_token = ?)",
+      )
+      .bind(
+        timestamp,
+        actorEmail,
+        timestamp,
+        claim.assetId,
+        claim.assetId,
+        claim.claimToken,
+      ),
+    db
+      .prepare(
+        "UPDATE shared_media_delete_jobs SET state = 'DONE', last_error = NULL, updated_at = ? " +
+          "WHERE asset_id = ? AND state = 'CLAIMED' AND claim_token = ?",
+      )
+      .bind(timestamp, claim.assetId, claim.claimToken),
+    db
+      .prepare(
+        "INSERT INTO shared_media_audit_events (" +
+          "id, asset_id, event_type, actor_id, before_json, after_json, created_at" +
+          ") SELECT ?, ?, 'OBJECT_DELETED', ?, ?, ?, ? WHERE EXISTS (" +
+          "SELECT 1 FROM shared_media_delete_jobs j " +
+          "WHERE j.asset_id = ? AND j.state = 'CLAIMED' AND j.claim_token = ?)",
+      )
+      .bind(
+        uid("smae"),
+        claim.assetId,
+        actorEmail,
+        beforeJson,
+        afterJson,
+        timestamp,
+        claim.assetId,
+        claim.claimToken,
+      ),
+  ]);
+
+  const completed = await db
+    .prepare(
+      "SELECT state, claim_token AS claimToken FROM shared_media_delete_jobs " +
+        "WHERE asset_id = ? LIMIT 1",
+    )
+    .bind(claim.assetId)
+    .first<{ state: string; claimToken: string }>();
+
+  if (completed?.state !== "DONE" || completed.claimToken !== claim.claimToken) {
+    throw new Error("shared_media_delete_finalize_failed");
+  }
+}
