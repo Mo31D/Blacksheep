@@ -59,6 +59,15 @@ for(const page of sitemapExtras){
 if((sitemap.match(/<url>/g)||[]).length!==active.length+indexedRows.length+sitemapExtras.length) fail.push('Unexpected sitemap URL count');
 const robots=read('robots.txt');
 if(!robots.includes('Sitemap: '+base+'/sitemap.xml')) fail.push('robots.txt does not point at production sitemap');
+const wrangler=JSON.parse(read('commerce/wrangler.jsonc'));
+const cleanCollectionProductionEnabled=wrangler?.vars?.STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED==='true';
+const dynamicSitemapLine='Sitemap: '+base+'/sitemap-dynamic.xml';
+if(cleanCollectionProductionEnabled!==robots.includes(dynamicSitemapLine)) fail.push('Dynamic sitemap advertising does not match the production clean-route flag');
+const workerRoutePatterns=new Set((wrangler.routes||[]).map(x=>x&&x.pattern).filter(Boolean));
+for(const pattern of [
+  'theblacksheepshop.co.uk/collections/*',
+  'theblacksheepshop.co.uk/sitemap-dynamic.xml'
+]) if(!workerRoutePatterns.has(pattern)) fail.push('Missing scoped CARD 12 production Worker route: '+pattern);
 
 const officialRomneys=(catalog.romneys||[]).filter(x=>x.official?.url);
 const romneysSourceMap=exists('docs/ROMNEYS-SOURCE-MAP.md')?read('docs/ROMNEYS-SOURCE-MAP.md'):'';
