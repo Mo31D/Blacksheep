@@ -258,6 +258,7 @@ describe("Phase 6 public catalogue route", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     await expect(response.json()).resolves.toMatchObject({
       contract: "storefront-structure-published-v1",
+      cleanCollectionRoutes: false,
       nodes: [
         {
           id: "sfn_gifts",
@@ -268,6 +269,7 @@ describe("Phase 6 public catalogue route", () => {
           sortOrder: 10,
           showInNavigation: true,
           legacyPath: "/gifts.html",
+          cleanUrl: null,
           publishedVersionId: "sfv_gifts_1",
         },
       ],
@@ -278,6 +280,48 @@ describe("Phase 6 public catalogue route", () => {
     expect(db.prepared[0].sql).toContain(
       "WHERE n.publication_status = 'ACTIVE'",
     );
+  });
+
+  it("publishes clean URLs only for non-legacy Storefront nodes when enabled", async () => {
+    class CleanDb extends Db {
+      prepare(query: string): Statement {
+        if (query.includes("FROM storefront_nodes n")) {
+          const statement = new Statement(query, null, [
+            storefrontRow,
+            {
+              ...storefrontRow,
+              id: "sfn_dynamic",
+              stableKey: "dynamic",
+              name: "New Collection",
+              slug: "new-collection",
+              legacyPath: null,
+              publishedVersionId: "sfv_dynamic_1",
+            },
+          ]);
+          this.prepared.push(statement);
+          return statement;
+        }
+        return super.prepare(query);
+      }
+    }
+
+    const response = await handlePublicCatalogRequest(
+      new Request("https://api.example.test/v1/storefront-structure"),
+      {
+        DB: new CleanDb(),
+        D1_PUBLIC_CATALOG_ENABLED: "true",
+        STOREFRONT_CLEAN_COLLECTION_ROUTES_ENABLED: "true",
+      },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      cleanCollectionRoutes: true,
+      nodes: [
+        { slug: "gifts", cleanUrl: null },
+        { slug: "new-collection", cleanUrl: "/collections/new-collection" },
+      ],
+    });
   });
 
   it("rejects non-GET requests without querying D1", async () => {
