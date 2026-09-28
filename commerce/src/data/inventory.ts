@@ -443,7 +443,16 @@ async function movementByKey(
 async function replaySnapshot(
   db: D1DatabaseLike,
   movement: ExistingMovement,
+  expected: { variantId: string; locationId: string; movementType?: string },
 ): Promise<{ snapshot: InventorySnapshot; movementId: string; replayed: true }> {
+  // Apply the same identity check to ordinary retries and post-batch recovery.
+  if (
+    movement.variantId !== expected.variantId ||
+    movement.locationId !== expected.locationId ||
+    (expected.movementType !== undefined && movement.movementType !== expected.movementType)
+  ) {
+    throw new Error("inventory_idempotency_conflict");
+  }
   const row = await variantInventoryRow(
     db,
     movement.variantId,
@@ -494,16 +503,7 @@ export async function initialInventoryCount(
   const key = idempotencyKey(raw.idempotencyKey);
 
   const duplicate = await movementByKey(db, key);
-  if (duplicate) {
-    if (
-      duplicate.variantId !== variantId ||
-      duplicate.locationId !== locationId ||
-      duplicate.movementType !== "INITIAL_COUNT"
-    ) {
-      throw new Error("inventory_idempotency_conflict");
-    }
-    return replaySnapshot(db, duplicate);
-  }
+  if (duplicate) return replaySnapshot(db, duplicate, { variantId, locationId, movementType: "INITIAL_COUNT" });
 
   await requireActiveLocation(db, locationId);
   const row = await variantInventoryRow(db, variantId, locationId);
@@ -586,7 +586,7 @@ export async function initialInventoryCount(
     ]);
   } catch (cause) {
     const replay = await movementByKey(db, key);
-    if (replay) return replaySnapshot(db, replay);
+    if (replay) return replaySnapshot(db, replay, { variantId, locationId, movementType: "INITIAL_COUNT" });
     const current = await variantInventoryRow(db, variantId, locationId);
     if (current && Number(current.trackInventory) === 1) {
       throw new Error("inventory_already_tracked");
@@ -676,15 +676,7 @@ export async function adjustInventory(
   const key = idempotencyKey(raw.idempotencyKey);
 
   const duplicate = await movementByKey(db, key);
-  if (duplicate) {
-    if (
-      duplicate.variantId !== variantId ||
-      duplicate.locationId !== locationId
-    ) {
-      throw new Error("inventory_idempotency_conflict");
-    }
-    return replaySnapshot(db, duplicate);
-  }
+  if (duplicate) return replaySnapshot(db, duplicate, { variantId, locationId });
 
   await requireActiveLocation(db, locationId);
   const row = await variantInventoryRow(db, variantId, locationId);
@@ -759,7 +751,7 @@ export async function adjustInventory(
     ]);
   } catch (cause) {
     const replay = await movementByKey(db, key);
-    if (replay) return replaySnapshot(db, replay);
+    if (replay) return replaySnapshot(db, replay, { variantId, locationId });
     throw cause;
   }
 
@@ -811,15 +803,7 @@ export async function physicalInventoryCount(
   const key = idempotencyKey(raw.idempotencyKey);
 
   const duplicate = await movementByKey(db, key);
-  if (duplicate) {
-    if (
-      duplicate.variantId !== variantId ||
-      duplicate.locationId !== locationId
-    ) {
-      throw new Error("inventory_idempotency_conflict");
-    }
-    return replaySnapshot(db, duplicate);
-  }
+  if (duplicate) return replaySnapshot(db, duplicate, { variantId, locationId });
 
   await requireActiveLocation(db, locationId);
   const row = await variantInventoryRow(db, variantId, locationId);
@@ -890,7 +874,7 @@ export async function physicalInventoryCount(
     ]);
   } catch (cause) {
     const replay = await movementByKey(db, key);
-    if (replay) return replaySnapshot(db, replay);
+    if (replay) return replaySnapshot(db, replay, { variantId, locationId });
     throw cause;
   }
 

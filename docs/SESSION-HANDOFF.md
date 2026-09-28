@@ -7,10 +7,11 @@ Updated 28 September 2026. Repository Mo31D/Blacksheep, existing main only.
 - Completed Section/Appearance guard: 202f24d; Commerce CI 36429624306 SUCCESS.
 - Last completed: 12800da preserves product maker independently of shop range labels. Removed destructive UI projection; explicit maker field preloads existing values. Read-only production/staging audit documented in BRAND-OWNERSHIP-AUDIT.md; no database writes/migration.
 - TypeScript PASS; 62 files / 424 tests PASS, including three UI regressions and two real-schema ownership tests. Isolated local form layout reviewed; this is not deployed acceptance.
-- Current task complete and saved on main. Commerce CI 36464029093 SUCCESS (full check and browser regression); Search 36464029200 and Pages 36464026579 SUCCESS. Next task remains the inventory write-path audit below.
+- Maker fix is saved on main; Commerce CI 36464029093, Search 36464029200 and Pages 36464026579 SUCCESS.
+- Current batch: inventory replay identity validation. Three racing-key failures reproduced, central replay guard implemented; TypeScript and 439 tests PASS. See INVENTORY-WRITE-AUDIT.md. Publish and record Linux CI before next implementation.
 
 ## Next recommended task
-Audit stock writers across inventory/reservation, Stocktake completion, returns and order revisions; add failure/concurrency coverage where missing. Maker/category ownership audit is complete; preserve the distinct owners. Also review the remaining shared_media_references registration helper for atomicity; its only current runtime caller follows protected Product attachment, so it is not an independent image persistence owner.
+Reproduce Stocktake retry after inventory writes commit but session result persistence fails; verify preflight versus idempotency and session/item races. Then review bulk unchanged-version semantics and reservation transitions. Source inventory writer mapping is complete; broader concurrency audit remains open. Maker/category ownership audit is complete; preserve the distinct owners. Also review the remaining shared_media_references registration helper for atomicity; its only current runtime caller follows protected Product attachment, so it is not an independent image persistence owner.
 
 ## Decisions / risks
 - D1 owns commerce; main owns code/static outputs. Production clean Product routes remain disabled.

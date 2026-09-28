@@ -71,3 +71,11 @@
 **Why:** Read-only D1 evidence in BRAND-OWNERSHIP-AUDIT.md shows existing makers without Brand/Range categories and different makers grouped under one range. Deriving maker on every save silently loses valid data.
 
 **Rejected alternative:** Collapse maker into the first selected Brand/Range or migrate all maker text to category names. This would change existing product descriptions and erase distinct information. No database migration is needed.
+
+## Inventory replay validates identity at one boundary
+
+**Decision:** replaySnapshot validates the expected variant/location on every replay, including batch-error recovery; initial counts also require INITIAL_COUNT.
+
+**Why:** Catch-path duplication skipped the preflight identity checks and could return another operation as successful. One replay boundary prevents future callers bypassing the check.
+
+**Rejected alternative:** Patch each catch separately. That leaves duplicated checks prone to drift. No new stock owner or request contract is introduced.
