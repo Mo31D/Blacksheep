@@ -131,6 +131,25 @@ export interface AddProductMediaInput {
   altText?: unknown;
 }
 
+// Claim the Product version and check library availability in the same write.
+// Historical Product-scoped keys have no library row and remain supported.
+// D1 batches serialize this guard with association writes; a deletion claim
+// cannot slip between this check and the new Product reference.
+function beginMediaAttachment(
+  db: D1DatabaseLike,
+  token: string,
+  productId: string,
+  expected: number,
+  storageKey: string,
+): D1PreparedStatementLike {
+  return db.prepare(
+    "UPDATE products SET version = version + 1, updated_at = ? WHERE id = ? AND version = ? " +
+    "AND NOT EXISTS (SELECT 1 FROM shared_media_assets a WHERE a.storage_key = ? " +
+    "AND (a.status <> 'ACTIVE' OR EXISTS (" +
+    "SELECT 1 FROM shared_media_delete_jobs j WHERE j.asset_id = a.id)))",
+  ).bind(token, productId, expected, storageKey);
+}
+
 export async function addAdminProductMedia(
   db: D1DatabaseLike,
   productId: string,
@@ -167,11 +186,7 @@ export async function addAdminProductMedia(
   const mediaId = raw.mediaId?.trim() || uid("med");
 
   await db.batch([
-    db
-      .prepare(
-        "UPDATE products SET version = version + 1, updated_at = ? WHERE id = ? AND version = ?",
-      )
-      .bind(token, productId, expected),
+    beginMediaAttachment(db, token, productId, expected, raw.storageKey),
     db
       .prepare(
         q(
@@ -705,11 +720,7 @@ export async function replaceAdminProductMedia(
   const resultVersion = expected + 1;
 
   await db.batch([
-    db
-      .prepare(
-        "UPDATE products SET version = version + 1, updated_at = ? WHERE id = ? AND version = ?",
-      )
-      .bind(token, productId, expected),
+    beginMediaAttachment(db, token, productId, expected, raw.storageKey),
     db
       .prepare(
         q(

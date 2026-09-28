@@ -47,3 +47,11 @@
 **Why:** Product replacement was an active caller creating a competing storage lifecycle. Keeping its transport but changing its persistence owner removes that duplication without changing the full editor or historical associations. Direct Product media references already participate in library usage/deletion checks.
 
 **Rejected alternative:** Deleting the replacement endpoint breaks an active UI. Deleting a successfully created library asset when attachment fails destroys reusable content and can corrupt an ambiguously committed association. Retain it; independent library archive/delete remains the cleanup mechanism.
+
+## 2026-09-28 - Check asset availability inside the Product write
+
+**Decision:** Product add/replace performs the shared asset availability check in the initial optimistic UPDATE of its D1 batch. Archived/deleted assets and any deletion job block the batch's token-gated mutations. Legacy Product keys without a library row remain supported.
+
+**Why:** A prior HTTP/domain read can race with archive/delete. The deletion side already checks Product/history references atomically; both write directions must participate for protection to hold.
+
+**Rejected alternative:** Another preflight lookup or best-effort reference insert after attachment cannot prevent an image deletion already claimed before the Product write. No new lock table/schema is needed.
