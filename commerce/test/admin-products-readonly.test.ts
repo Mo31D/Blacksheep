@@ -1,3 +1,4 @@
+import { MediaUploadDb } from "./helpers/media-upload-db";
 import { describe, expect, it } from "vitest";
 import type {
   D1DatabaseLike,
@@ -432,7 +433,7 @@ describe("Phase 2 Product Admin", () => {
         headers: { origin: "https://admin.example.com" },
         body: form,
       }),
-      { DB: new Db(), PRODUCT_MEDIA: bucket },
+      { DB: new MediaUploadDb(), PRODUCT_MEDIA: bucket },
       {
         verifyAccessFn: identity,
         getAdminProductDetailFn: async () => ({
@@ -448,11 +449,13 @@ describe("Phase 2 Product Admin", () => {
     );
 
     expect(response.status).toBe(201);
-    expect(storedKey).toContain("products/prd-1/");
+    expect(storedKey).toMatch(/^library\/\d{4}-\d{2}\/asset_/);
     expect(storedKey).toMatch(/\.png$/);
     expect(storedBytes).toBe(png.byteLength);
     expect(mediaInput).toMatchObject({
       expectedVersion: 4,
+      publicUrl: expect.stringMatching(/^\/media\/asset_/),
+      storageKey: expect.stringMatching(/^library\//),
       mimeType: "image/png",
       altText: "Peter Rabbit gift",
     });
@@ -480,7 +483,7 @@ describe("Phase 2 Product Admin", () => {
         },
       ),
       {
-        DB: new Db(),
+        DB: new MediaUploadDb(),
         PRODUCT_MEDIA: {
           async put() {
             return {};
@@ -519,6 +522,8 @@ describe("Phase 2 Product Admin", () => {
     expect(replaced).toMatchObject({
       oldMediaId: "med-old",
       expectedVersion: 4,
+      publicUrl: expect.stringMatching(/^\/media\/asset_/),
+      storageKey: expect.stringMatching(/^library\//),
       mimeType: "image/png",
       altText: "Replacement image",
     });

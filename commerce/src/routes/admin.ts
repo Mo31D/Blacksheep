@@ -1,5 +1,5 @@
 import { readProductImageUpload, readSharedMediaImageUpload } from "../http/image-upload";
-import { cleanupUnownedMediaUpload } from "../data/media-upload-cleanup";
+import { uploadSharedMediaImage } from "../data/media-upload";
 import type { D1DatabaseLike } from "../data/d1";
 import {
   applyAdminOrderUpdate,
@@ -80,7 +80,6 @@ import {
   addSharedMediaReference,
   archiveAdminSharedMediaAsset,
   claimSharedMediaObjectDeletion,
-  createAdminSharedMediaAsset,
   finalizeSharedMediaObjectDeletion,
   getAdminSharedMediaAsset,
   listAdminSharedMedia,
@@ -1138,48 +1137,11 @@ export async function handleAdminRequest(
         "Media storage is not configured.",
       );
     }
-    let storageKey: string | null = null;
     try {
       const upload = await readSharedMediaImageUpload(request);
-      const assetId = "asset_" + crypto.randomUUID();
-      const month = new Date().toISOString().slice(0, 7);
-      storageKey =
-        "library/" + month + "/" + assetId + "." + upload.extension;
-
-      await env.PRODUCT_MEDIA.put(storageKey, upload.bytes, {
-        httpMetadata: {
-          contentType: upload.mimeType,
-          cacheControl: "public, max-age=31536000, immutable",
-        },
-        customMetadata: {
-          assetId,
-          checksumSha256: upload.checksumSha256,
-          mediaLibrary: "shared",
-        },
-      });
-
-      const asset = await createAdminSharedMediaAsset(
-        env.DB,
-        {
-          assetId,
-          storageKey,
-          publicUrl: "/media/" + encodeURIComponent(assetId),
-          mimeType: upload.mimeType,
-          width: null,
-          height: null,
-          fileSize: upload.bytes.byteLength,
-          checksumSha256: upload.checksumSha256,
-          title: upload.title,
-          altText: upload.altText,
-          context: upload.context,
-        },
-        identity.email,
-      );
+      const asset = await uploadSharedMediaImage(env.DB, env.PRODUCT_MEDIA, upload, identity.email);
       return json({ asset }, 201);
     } catch (cause) {
-      if (storageKey) {
-        await cleanupUnownedMediaUpload(env.DB, env.PRODUCT_MEDIA, storageKey);
-      }
       return sharedMediaMutationError(cause);
     }
   }
@@ -1867,7 +1829,6 @@ export async function handleAdminRequest(
       );
     }
 
-    let newStorageKey: string | null = null;
     try {
       const upload = await readProductImageUpload(request);
       const product = await ensureMediaDraft(
@@ -1878,29 +1839,9 @@ export async function handleAdminRequest(
         identity.email,
       );
       const mediaId = "med_" + crypto.randomUUID();
-      const month = new Date().toISOString().slice(0, 7);
-      newStorageKey =
-        "products/" +
-        productId +
-        "/" +
-        month +
-        "/" +
-        mediaId +
-        "." +
-        upload.extension;
-
-      await env.PRODUCT_MEDIA.put(newStorageKey, upload.bytes, {
-        httpMetadata: {
-          contentType: upload.mimeType,
-          cacheControl: "public, max-age=31536000, immutable",
-        },
-        customMetadata: {
-          productId,
-          mediaId,
-          checksumSha256: upload.checksumSha256,
-          replacesMediaId: oldMediaId,
-        },
-      });
+      const asset = await uploadSharedMediaImage(
+        env.DB, env.PRODUCT_MEDIA, { ...upload, context: "PRODUCT" }, identity.email,
+      );
 
       const replaced = await deps.replaceAdminProductMediaFn(
         env.DB,
@@ -1909,8 +1850,8 @@ export async function handleAdminRequest(
         {
           expectedVersion: Number(product.version),
           mediaId,
-          storageKey: newStorageKey,
-          publicUrl: "/media/" + encodeURIComponent(mediaId),
+          storageKey: asset.storageKey,
+          publicUrl: asset.publicUrl,
           mimeType: upload.mimeType,
           width: null,
           height: null,
@@ -1951,9 +1892,6 @@ export async function handleAdminRequest(
       const updated = await deps.getAdminProductDetailFn(env.DB, productId);
       return json({ product: updated, storageCleanupPending }, 201);
     } catch (cause) {
-      if (newStorageKey && env.PRODUCT_MEDIA) {
-        await cleanupUnownedMediaUpload(env.DB, env.PRODUCT_MEDIA, newStorageKey);
-      }
       return productMediaInputError(cause);
     }
   }
@@ -2060,7 +1998,6 @@ export async function handleAdminRequest(
       );
     }
 
-    let storageKey: string | null = null;
     try {
       const upload = await readProductImageUpload(request);
       const product = await ensureMediaDraft(
@@ -2071,28 +2008,9 @@ export async function handleAdminRequest(
         identity.email,
       );
       const mediaId = "med_" + crypto.randomUUID();
-      const month = new Date().toISOString().slice(0, 7);
-      storageKey =
-        "products/" +
-        productId +
-        "/" +
-        month +
-        "/" +
-        mediaId +
-        "." +
-        upload.extension;
-
-      await env.PRODUCT_MEDIA.put(storageKey, upload.bytes, {
-        httpMetadata: {
-          contentType: upload.mimeType,
-          cacheControl: "public, max-age=31536000, immutable",
-        },
-        customMetadata: {
-          productId,
-          mediaId,
-          checksumSha256: upload.checksumSha256,
-        },
-      });
+      const asset = await uploadSharedMediaImage(
+        env.DB, env.PRODUCT_MEDIA, { ...upload, context: "PRODUCT" }, identity.email,
+      );
 
       await deps.addAdminProductMediaFn(
         env.DB,
@@ -2100,8 +2018,8 @@ export async function handleAdminRequest(
         {
           expectedVersion: Number(product.version),
           mediaId,
-          storageKey,
-          publicUrl: "/media/" + encodeURIComponent(mediaId),
+          storageKey: asset.storageKey,
+          publicUrl: asset.publicUrl,
           mimeType: upload.mimeType,
           width: null,
           height: null,
@@ -2115,9 +2033,6 @@ export async function handleAdminRequest(
       const updated = await deps.getAdminProductDetailFn(env.DB, productId);
       return json({ product: updated }, 201);
     } catch (cause) {
-      if (storageKey && env.PRODUCT_MEDIA) {
-        await cleanupUnownedMediaUpload(env.DB, env.PRODUCT_MEDIA, storageKey);
-      }
       return productMediaInputError(cause);
     }
   }

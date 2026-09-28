@@ -39,3 +39,11 @@
 **Why:** Validation and release must use the same dependency graph; package/lock drift should fail rather than being silently reconciled during a release.
 
 **Rejected alternative:** Fresh dependency resolution with `npm install` in the primary gates weakens reproducibility. A new build framework or composite workflow is unnecessary for this correction. Ancillary QA workflows can be aligned in a separate reviewed task.
+
+## 2026-09-28 - Library ownership for every new upload
+
+**Decision:** data/media-upload.ts is the sole new R2 image creation service. The library and retained Product upload/replace routes call it. Product media and version rows retain gallery placement/history ownership; library assets own new bytes and reusable identity. Old objects and URLs are not rewritten.
+
+**Why:** Product replacement was an active caller creating a competing storage lifecycle. Keeping its transport but changing its persistence owner removes that duplication without changing the full editor or historical associations. Direct Product media references already participate in library usage/deletion checks.
+
+**Rejected alternative:** Deleting the replacement endpoint breaks an active UI. Deleting a successfully created library asset when attachment fails destroys reusable content and can corrupt an ambiguously committed association. Retain it; independent library archive/delete remains the cleanup mechanism.

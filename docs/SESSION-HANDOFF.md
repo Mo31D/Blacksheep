@@ -1,45 +1,37 @@
 # Session handoff
 
-Updated 28 September 2026. Repository `Mo31D/Blacksheep`, existing `main` only.
+Updated 28 September 2026. Repository Mo31D/Blacksheep, existing main only.
 
-## Current phase
-
-Architecture rehabilitation: discovery and shared image validation complete; media failure-safety fix validated locally. Read the rehabilitation checklist/map/plan/decisions. Earlier CARD 00–14 board is closed historical evidence, not the active queue.
-
-## Last completed / current task
-
-- Published `f6f6ff6` architecture docs and `ed48978` image validation extraction. Linux Commerce CI `36344781535` SUCCESS including full check and browser archive regression. Search Readiness `36344781570` and Pages `36344781456` SUCCESS.
-- Reproduced four destructive Product upload/replace cases: D1 saved an image but later response reload failed, or ownership became uncertain; old catch blocks still deleted R2 bytes.
-- New `data/media-upload-cleanup.ts` centralizes compensation across all three upload routes. Delete only after successful ownership reads find no Product/history or library owner. Existing-asset deletion still uses normal reference/claim rules.
-- Published media failure-safety fix: `7533b8a` (339 local tests PASS); its Linux CI is tracked separately.
-- Verified active Product replacement still calls the older multipart endpoint; preserve it until migration covers gallery metadata/history.
-- Current task: validate/publish `ci: use locked dependencies for validation and deployment`, then record final CI evidence.
+## Current phase / last completed
+- Discovery, shared input validation and safe failed-upload compensation complete.
+- Published f6f6ff6 (architecture), ed48978 (validation), 7533b8a (safe compensation), 4a3a64e (locked CI dependencies).
+- Current implementation: refactor: unify new image storage in shared library. All three upload routes now use data/media-upload.ts. Product multipart endpoints remain active adapters; gallery/version mutations and historical URLs unchanged. No schema migration.
+- Local validation: TypeScript PASS, 58 Vitest files / 349 tests PASS. Publish this implementation and record its Linux CI result.
 
 ## Next recommended task
-
-The repository caller audit confirms active Product replacement. Check external/deployed integrations before lifecycle consolidation. Existing successful add/replace and historic public URLs must survive. Then inspect backend Brand/Range projection before attempting data migration.
+Audit concurrent library archive/delete versus Product attachment. Product association SQL currently guards Product versions but not library deletion claims. Review from-library and new upload association together; use existing deletion-claim/history tests. Then address backend Brand/category authority only after read-only data comparison.
 
 ## Decisions / risks
+- D1 owns commerce; main owns code/static outputs. Production clean Product routes remain disabled.
+- New bytes belong to library assets; Product rows own versioned gallery associations. Historical Product-scoped R2 data stays valid.
+- A saved asset survives failed attachment/reload; ambiguous D1 ownership never authorizes R2 deletion. Failed attachments can leave reusable assets visible in Media Library.
+- Library deletion counts Product media rows directly, including history. No endpoint retirement or old asset migration in this batch.
+- No Worker deployment, business-data D1/R2 mutation or synthetic email performed. Automatic Pages build is separate.
+- Read-only staging browser inspection found older duplicate search/URL-first Appearance UI than main; deployed SHA unknown. Signed out. Do not mistake deployment drift for new source defects.
 
-- D1 owns operational commerce; main owns code/static outputs. Preserve storefront design, indexed Product URLs, versioned publication and stock/reservation concurrency.
-- Shared input validation and failed-upload cleanup now have single owners. Product-specific creation/replacement storage paths still exist pending migration proof.
-- Uncertain ownership retains data; possible orphan cleanup is preferable to corrupting persisted associations.
-- No Worker deployment, remote D1/R2 mutation or synthetic email was performed. Automatic Pages build on main is separate from Worker deployment.
-- Production clean Product routes stay disabled. Source config does not prove deployed secrets/settings.
-
-## Validation
-
-Latest fix: TypeScript PASS, 57 Vitest files / 339 tests PASS. New regression tests first reproduced four failures before the fix. First extraction's full Linux CI is green; the cleanup fix requires its own CI result.
-
-Local Windows workerd fails during D1 startup even outside the sandbox. Initial static/search gates and Worker dry-run passed. Use Linux CI for complete migration/inventory/runtime checks; do not claim local full-check success.
+## Validation evidence
+- ed48978: Linux Commerce CI 36344781535 SUCCESS.
+- 7533b8a: Linux Commerce CI 36369246615 SUCCESS.
+- 4a3a64e: Linux Commerce CI 36369475275 SUCCESS, including locked install/full check/browser regression. Search 36369475264 and Pages 36369474892 SUCCESS.
+- New storage consolidation: local TypeScript and 349 tests PASS; Linux result pending.
+- Local Windows workerd crashes at D1 startup even elevated. Use Linux CI for migrations/runtime checks; do not claim local full-check success.
 
 ## MANUAL ACTION REQUIRED
-
-Production promotion remains a guarded release after staging acceptance. No new secret or schema change is needed. Local runtime repair is independent of application work.
+Deploy the reviewed candidate to staging and accept Product add/replace, library reuse, Section/Homepage/Appearance uploads and history before guarded production promotion. No new secrets/schema needed. Source config does not prove deployed state.
 
 ## Git / workstation notes
-
-- Baseline `1d08f3b`; published commits `f6f6ff6`, `ed48978`. GitHub connector published identical trees after local credential manager stalled; local main reconciled without a force update/new branch.
-- Windows sparse checkout excludes only historical `images/romneys/Con.png`; preserve it in Git.
-- HTTPS Git needs bundled `GIT_EXEC_PATH` at `mingw64/bin`. Filesystem is now read-only; use explicit tool escalation for local writes.
-- Historical long handoff remains at `1d08f3b:docs/SESSION-HANDOFF.md` and dated release reports.
+- Fetch remote main before changes. No new branches or force push.
+- GitHub connector publishes identical local trees when Git credential manager stalls; reconcile main by fetch/rebase skipping equivalent patches.
+- Windows sparse checkout excludes only historical images/romneys/Con.png; preserve it in Git.
+- Git needs bundled GIT_EXEC_PATH at mingw64/bin. Filesystem is read-only; local writes require tool escalation.
+- Historical handoff remains at 1d08f3b:docs/SESSION-HANDOFF.md.

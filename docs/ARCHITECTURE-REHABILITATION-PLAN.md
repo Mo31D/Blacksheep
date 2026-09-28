@@ -4,7 +4,7 @@ Baseline: `1d08f3b`, 27 September 2026. Preserve the existing HTML/JavaScript st
 
 ## Current state
 
-The application already has domain/data modules, versioned content, D1 commerce authority, a shared media library and extensive regression tooling. Its largest remaining coupling is concentrated in the Admin route/UI files, static-versus-live publishing, legacy metadata projections and parallel media lifecycle paths. See `ARCHITECTURE-MAP.md` for ownership and data flow.
+The application already has domain/data modules, versioned content, D1 commerce authority, a shared media library and extensive regression tooling. Its largest remaining coupling is concentrated in the Admin route/UI files, static-versus-live publishing, legacy metadata projections and historical media lifecycle data. New image storage is now shared. See `ARCHITECTURE-MAP.md` for ownership and data flow.
 
 ## Problems found
 
@@ -12,7 +12,7 @@ The application already has domain/data modules, versioned content, D1 commerce 
 | --- | --- |
 | Critical | Confirmed Product upload/replace error paths deleted R2 objects even after a successful D1 save followed by response-reload failure. Reproduced in regression tests and fixed by shared ownership-aware upload compensation. No evidence of actual production loss was collected. Media lifecycle and stock/order concurrency remain priority audit areas. |
 | Structural | Large `routes/admin.ts` and `admin/ui.ts` mix many business objects. Extract responsibilities incrementally behind existing contracts; do not replace the Admin. |
-| Duplication | Product and shared-library HTTP upload readers duplicate validation and hashing. Centralize first with contract tests. Product-specific storage endpoints still require a caller/lifecycle audit. |
+| Duplication | Image validation and new asset storage now have shared owners with contract/failure tests. Retained Product endpoints are association adapters, not competing storage creators. Historical objects and concurrent attachment/deletion still need lifecycle review. |
 | Admin UX | Recent main already removes URL-first ordinary image controls, duplicate search/product operations and duplicate bulk Stocktake. Preserve these. Audit full/quick edit semantics and accessible feedback next. |
 | Data ownership | Brand text remains backend-writable independently of category relationships despite unified UI. Specialist provenance/static metadata is still required by export. Define field-level projection rules before migration. |
 | Backend/API | Repeated JSON/error adapters and domain-specific catch blocks; do not blindly merge error semantics. Extract by responsibility after tests. |

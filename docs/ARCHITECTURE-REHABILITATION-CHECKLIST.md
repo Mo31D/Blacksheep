@@ -21,7 +21,9 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 
 - [x] Centralize upload validation in `commerce/src/http/image-upload.ts`; `routes/admin.ts` imports the two contract readers. Removes duplicate multipart/size/MIME/signature/checksum logic while preserving metadata validation order and Product/library error codes. No route, storage key, D1 schema, UI or publication behaviour changed.
 - [x] Add `commerce/test/image-upload.test.ts`: both readers, JPEG/PNG/WebP signatures, digest, missing/empty/oversized/type-mismatch files, exact 8 MiB boundary, alt/title normalization and error precedence. Validation: TypeScript PASS; all 56 Vitest files / 330 tests PASS, including existing Product route, library ownership and generated Admin script coverage.
-- [ ] Consolidate Product-specific R2 creation/replacement into the shared asset lifecycle after Phase 1 caller/history proof. Preserve product associations and old public media URLs. Remove superseded endpoints only after consumers migrate and staging acceptance passes.
+- [x] Consolidate all new image persistence in commerce/src/data/media-upload.ts. Library, Product upload and Product replacement routes now create library assets before versioned Product associations. Existing transport contracts, old public URLs and add/replace domain logic remain; no schema or historical-object migration. Failed attachments retain reusable library assets. Tests: media-upload.test.ts, media-upload-cleanup.test.ts, admin-products-readonly.test.ts and helpers/media-upload-db.ts cover actual asset creation, R2 failure, ambiguous D1 commit, failed attachment/reload and successful add/replace. Validation: TypeScript PASS; 58 files / 349 tests PASS. Linux gate tracked in handoff.
+- [ ] Audit concurrent library archive/delete versus Product attachment, including from-library. Product association SQL currently has Product version guards but no atomic library deletion-claim guard. Preserve version/history semantics when addressing this; existing direct usage queries are the deletion baseline.
+- [ ] Retire Product multipart endpoints only if all callers migrate; replacement is still active, so retain it. Historical storage migration is separate and not required for new uploads.
 - [ ] Browser-verify Product, Section, Homepage and Appearance uploads/reuse as one non-technical workflow on mobile/tablet/desktop after deployment of the candidate. Recent `f91b72c`, `6e149c9`, `eb56845` already establish direct-upload UI; preserve them.
 
 ## Phase 3 — Backend and Admin boundaries
@@ -32,7 +34,7 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 
 ## Phase 4 — Storefront publication and generation
 
-- [x] Align primary CI and guarded deployment with the committed dependency lockfile. `.github/workflows/commerce-ci.yml` and `commerce-deploy.yml` use `npm ci --no-audit --no-fund` and key npm cache by `commerce/package-lock.json`, matching the documented local command. Explicit ephemeral Playwright install stays pinned and separate. Validation: lockfile install previously PASS; checked exact workflow diff and unchanged triggers/production confirmation. Final Linux CI remains the acceptance gate.
+- [x] Align primary CI and guarded deployment with the committed dependency lockfile. `.github/workflows/commerce-ci.yml` and `commerce-deploy.yml` use `npm ci --no-audit --no-fund` and key npm cache by `commerce/package-lock.json`, matching the documented local command. Explicit ephemeral Playwright install stays pinned and separate. Validation: lockfile install previously PASS; checked exact workflow diff and unchanged triggers/production confirmation. Linux Commerce CI 36369475275 SUCCESS on 4a3a64e, including locked install, full check and browser regression.
 
 - [ ] Run candidate export → package `--check` → verifier using an approved read-only D1 export and isolated output directory. Record deterministic hashes, parity and canonical/link results; never use the repository root as package output.
 - [ ] Audit `scripts/sync-romneys-official-data.py` catalogue-writing use. Integrate verified provenance into the canonical publication inputs or retire with caller proof; do not allow routine supplier sync to override owner commerce values.
@@ -53,7 +55,7 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 
 - [x] Run source/static gates: frozen Product Core validation, production import guards, storefront placement compatibility, cart/checkout/legal/dynamic-storefront/homepage contracts, JS syntax, TypeScript and Search Readiness. PASS: 146 static products / 17 active pages / 166 sitemap URLs / zero placeholders. Counts describe the fixture/static snapshot, not current live D1.
 - [x] Complete `npm run check` for first extraction `ed48978` in Linux CI: run `36344781535` SUCCESS including complete checks and Chromium/WebKit archive regression; Search Readiness `36344781570` and Pages `36344781456` SUCCESS. Local Windows workerd crashes at D1 startup even elevated; local Admin browser QA script syntax and Wrangler staging bundle dry-run PASS. This CI result covers the first extraction only; each later implementation needs its own gate.
-- [ ] Check Linux Commerce CI on the pushed implementation SHA, then staging upload/auth/order regression and guarded production promotion separately. No production deployment or D1/R2 mutation has been performed in this rehabilitation session.
+- [ ] Check Linux Commerce CI on the pushed implementation SHA, then staging upload/auth/order regression and guarded production promotion separately. No Worker deployment or business-data D1/R2 mutation has been performed. Read-only staging browser inspection created/revoked an authentication session.
 
 ## MANUAL ACTION REQUIRED
 
@@ -67,3 +69,9 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 - First implementation batch: `refactor: centralise image upload validation` (validation and files recorded above).
 - Published documentation: `f6f6ff6`; published image validation: `ed48978`. GitHub connector published trees identical to local commits because local Git credential manager stalled; local main reconciled by skipping equivalent patches. No force update or new branch.
 - Second implementation batch: `fix: preserve owned media after upload failures` (shared compensation and regression proof above).
+
+## Continuation evidence - 28 September 2026
+
+- Cleanup fix 7533b8a: Commerce CI 36369246615 SUCCESS; Search 36369246569 and Pages 36369246245 SUCCESS.
+- Locked dependency workflows 4a3a64e: Commerce CI 36369475275 SUCCESS; Search 36369475264 and Pages 36369474892 SUCCESS.
+- Staging browser inspection (signed out afterwards) showed older duplicate search and URL-first Appearance controls despite newer main UI fixes. Treat as deployment drift; deployed SHA was not established. Do not reimplement those fixes. Candidate upload workflows still require acceptance after staging deployment.
