@@ -107,7 +107,9 @@ describe("generated Admin HTML scripts", () => {
     expect(production).not.toContain('id="globalSearch"');
     expect(production).not.toContain('id="peBrand"');
     expect(production).toContain("Manage brands &amp; ranges");
-    expect(production).toContain("function brandNameForCategoryIds(ids)");
+    expect(production).not.toContain("function brandNameForCategoryIds(ids)");
+    expect(production).toContain("Product brand / maker");
+    expect(production).toContain("productMakerField('peMakerName',p.brand)");
     expect(production).not.toContain("Website settings…");
     expect(production).toContain("Website structure");
     expect(production).toContain("Brands &amp; ranges");

@@ -4,12 +4,13 @@ Updated 28 September 2026. Repository Mo31D/Blacksheep, existing main only.
 
 ## Current phase / last completed
 - Prior main 90c1d58 includes shared image input/storage, safe compensation and Product deletion-race protection; all prior implementation CI passed.
-- Current task: fix: guard storefront image references against deletion. Shared SQL predicates cover Product keys and Section/Appearance URLs. Section creation gates node/version/audit; retained archived references remain editable.
-- Reproduced 30 failures first. TypeScript PASS; 60 Vitest files / 419 tests PASS, including 56 new real-schema content image tests. No schema/generated content changes.
-- Publish this implementation and record its Linux CI before starting the next task.
+- Completed Section/Appearance guard: 202f24d; Commerce CI 36429624306 SUCCESS.
+- Current task: preserve product maker independently of shop range labels. Removed destructive UI projection; explicit maker field preloads existing values. Read-only production/staging audit documented in BRAND-OWNERSHIP-AUDIT.md; no database writes/migration.
+- TypeScript PASS; 62 files / 424 tests PASS, including three UI regressions and two real-schema ownership tests. Isolated local form layout reviewed; this is not deployed acceptance.
+- Publish this implementation and record Linux CI before the next task.
 
 ## Next recommended task
-Audit backend Brand/category ownership: trace create/save/duplicate/import and quick/full editors, compare D1 values read-only before choosing a migration. Do not overwrite legacy brand text without evidence. Also review the remaining shared_media_references registration helper for atomicity; its only current runtime caller follows protected Product attachment, so it is not an independent image persistence owner.
+Audit stock writers across inventory/reservation, Stocktake completion, returns and order revisions; add failure/concurrency coverage where missing. Maker/category ownership audit is complete; preserve the distinct owners. Also review the remaining shared_media_references registration helper for atomicity; its only current runtime caller follows protected Product attachment, so it is not an independent image persistence owner.
 
 ## Decisions / risks
 - D1 owns commerce; main owns code/static outputs. Production clean Product routes remain disabled.
@@ -25,7 +26,7 @@ Audit backend Brand/category ownership: trace create/save/duplicate/import and q
 - 4a3a64e: Linux Commerce CI 36369475275 SUCCESS, including locked install/full check/browser regression. Search 36369475264 and Pages 36369474892 SUCCESS.
 - 87cf4b3: Commerce CI 36391977922 SUCCESS including full check and Chromium/WebKit archive regression; Search 36391977918 and Pages 36391976789 SUCCESS.
 - ce6b620: TypeScript and 363 local tests PASS; Commerce CI 36392535999 SUCCESS (full check and Chromium/WebKit archive regression).
-- Current Section/Appearance guard: TypeScript and 419 local tests PASS; Linux CI pending publication.
+- Section/Appearance guard 202f24d: TypeScript and 419 local tests PASS; Linux Commerce CI 36429624306 SUCCESS.
 - Local Windows workerd crashes at D1 startup even elevated. Use Linux CI for migrations/runtime checks; do not claim local full-check success.
 
 ## MANUAL ACTION REQUIRED

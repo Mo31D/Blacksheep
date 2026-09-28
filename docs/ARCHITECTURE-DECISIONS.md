@@ -63,3 +63,11 @@
 **Why:** Preflight reads cannot stop a concurrent deletion claim. Only newly selected URLs need ACTIVE assets: old version references already protect archived images, so ordinary text edits must remain possible. One JSON binding covers Appearance image maps without per-image query loops.
 
 **Rejected alternative:** Requiring every retained image to be ACTIVE breaks edits to historical content; post-save reference registration is too late to stop deletion. Separate content and audit commits would permit partial saves.
+
+## Product maker and shop range are separate concepts (28 September 2026)
+
+**Decision:** product_versions.brand owns descriptive maker text. Versioned category relationships own shop classification. Product create/full edit exposes both explicitly; quick selling edits do not change them.
+
+**Why:** Read-only D1 evidence in BRAND-OWNERSHIP-AUDIT.md shows existing makers without Brand/Range categories and different makers grouped under one range. Deriving maker on every save silently loses valid data.
+
+**Rejected alternative:** Collapse maker into the first selected Brand/Range or migrate all maker text to category names. This would change existing product descriptions and erase distinct information. No database migration is needed.
