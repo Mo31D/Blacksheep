@@ -86,3 +86,6 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 - Section/Appearance guard 202f24d: Commerce CI 36429624306 SUCCESS including full check and browser regression.
 
 - Maker ownership fix 12800da: Commerce CI 36464029093 SUCCESS (full check and browser regression); Search 36464029200 and Pages 36464026579 SUCCESS. No Worker deployment or business-data changes.
+
+- Inventory replay guard ca6605e: Commerce CI 36465324317 SUCCESS (full check and browser regression); Search 36465324327 and Pages 36465324062 SUCCESS.
+- Bulk count versions 10a068a: Commerce CI 36465848390 SUCCESS (full check and browser regression); Search 36465848387 and Pages 36465847112 SUCCESS. All 445 local tests and TypeScript passed. No Worker deployment or business-data mutation.
