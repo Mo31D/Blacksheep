@@ -79,3 +79,11 @@
 **Why:** Catch-path duplication skipped the preflight identity checks and could return another operation as successful. One replay boundary prevents future callers bypassing the check.
 
 **Rejected alternative:** Patch each catch separately. That leaves duplicated checks prone to drift. No new stock owner or request contract is introduced.
+
+## Recover Stocktake from the existing inventory ledger
+
+**Decision:** Same-attempt Stocktake recovery validates committed movement receipts before baseline checks. inventory.ts owns receipt interpretation; stocktake.ts owns workflow aggregation. Preserve existing session/version/chunk keys.
+
+**Why:** A saved count advances the balance version even when session result persistence fails. Treating that receipt as an external edit loses the successful result. Exact namespace/target/type/quantity checks recover it without writing stock again.
+
+**Rejected alternative:** Reset count baselines to live stock, reapply counts, or add a parallel receipt store. These can overwrite later legitimate changes or create competing truth. Entire-session locking/concurrency is separate work, not implied by this bounded recovery.

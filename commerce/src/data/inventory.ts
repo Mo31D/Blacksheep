@@ -421,6 +421,14 @@ interface ExistingMovement {
   balanceSafetyAfter: number;
 }
 
+const movementColumns = q(
+  "id, variant_id AS variantId, location_id AS locationId,",
+  "movement_type AS movementType, on_hand_delta AS onHandDelta,",
+  "reason_code AS reasonCode, balance_on_hand_after AS balanceOnHandAfter,",
+  "balance_reserved_after AS balanceReservedAfter,",
+  "balance_safety_after AS balanceSafetyAfter",
+);
+
 async function movementByKey(
   db: D1DatabaseLike,
   key: string,
@@ -428,11 +436,7 @@ async function movementByKey(
   return db
     .prepare(
       q(
-        "SELECT id, variant_id AS variantId, location_id AS locationId,",
-        "movement_type AS movementType, on_hand_delta AS onHandDelta,",
-        "reason_code AS reasonCode, balance_on_hand_after AS balanceOnHandAfter,",
-        "balance_reserved_after AS balanceReservedAfter,",
-        "balance_safety_after AS balanceSafetyAfter",
+        "SELECT", movementColumns,
         "FROM inventory_movements WHERE idempotency_key = ? LIMIT 1",
       ),
     )
@@ -474,6 +478,47 @@ async function replaySnapshot(
     },
     movementId: movement.id,
     replayed: true,
+  };
+}
+
+
+/** Recover a count receipt from one workflow attempt, across its bulk chunks.
+ * The ledger remains authoritative; this function never changes stock.
+ */
+export async function getInventoryCountReplay(
+  db: D1DatabaseLike,
+  expected: {
+    variantId: string;
+    locationId: string;
+    chunkKeyPrefix: string;
+    countedOnHand: number;
+    initialCount: boolean;
+  },
+) {
+  const rows = await allRows<ExistingMovement & { batchId: string | null; requestKey: string }>(
+    db.prepare(
+      "SELECT " + movementColumns + ", batch_id AS batchId, idempotency_key AS requestKey " +
+      "FROM inventory_movements WHERE variant_id = ? AND location_id = ? " +
+      "AND substr(idempotency_key, 1, length(?)) = ? LIMIT 2",
+    ).bind(expected.variantId, expected.locationId, expected.chunkKeyPrefix, expected.chunkKeyPrefix),
+  );
+  if (!rows.length) return null;
+  const movement = rows[0];
+  const suffix = ":" + expected.variantId + ":" + expected.locationId;
+  const chunk = movement.requestKey.slice(expected.chunkKeyPrefix.length, -suffix.length);
+  if (
+    rows.length !== 1 ||
+    !movement.requestKey.endsWith(suffix) ||
+    !/^[1-9][0-9]*$/.test(chunk) ||
+    movement.movementType !== (expected.initialCount ? "INITIAL_COUNT" : "CORRECTION") ||
+    movement.reasonCode !== (expected.initialCount ? "INITIAL_COUNT" : "PHYSICAL_COUNT") ||
+    Number(movement.balanceOnHandAfter) !== expected.countedOnHand
+  ) {
+    throw new Error("inventory_idempotency_conflict");
+  }
+  return {
+    ...(await replaySnapshot(db, movement, expected)),
+    batchId: movement.batchId,
   };
 }
 

@@ -1,43 +1,28 @@
 # Session handoff
-
-Updated 28 September 2026. Repository Mo31D/Blacksheep, existing main only.
+Updated 28 September 2026. Repository Mo31D/Blacksheep; existing main only.
 
 ## Current phase / last completed
-- Prior main 90c1d58 includes shared image input/storage, safe compensation and Product deletion-race protection; all prior implementation CI passed.
-- Completed Section/Appearance guard: 202f24d; Commerce CI 36429624306 SUCCESS.
-- Last completed: 12800da preserves product maker independently of shop range labels. Removed destructive UI projection; explicit maker field preloads existing values. Read-only production/staging audit documented in BRAND-OWNERSHIP-AUDIT.md; no database writes/migration.
-- TypeScript PASS; 62 files / 424 tests PASS, including three UI regressions and two real-schema ownership tests. Isolated local form layout reviewed; this is not deployed acceptance.
-- Maker fix is saved on main; Commerce CI 36464029093, Search 36464029200 and Pages 36464026579 SUCCESS.
-- Saved inventory replay identity fix ca6605e: three racing-key failures reproduced; TypeScript and 439 tests PASS. Commerce CI 36465324317 SUCCESS (full check and browser regression).
-- Last completed: 10a068a validates versions for unchanged bulk counts while preserving committed retries. Two failures reproduced; TypeScript and 445 tests PASS. Commerce CI 36465848390 SUCCESS (full check and browser regression); Search 36465848387 and Pages 36465847112 SUCCESS.
-- Both inventory fixes are saved on main; no implementation is left uncommitted. Current phase remains inventory/Stocktake resilience; next task below. See INVENTORY-WRITE-AUDIT.md.
+- Phase: inventory and Stocktake resilience. Previous main ab9bbae includes replay identity ca6605e and unchanged-count versions 10a068a; both passed Linux Commerce CI and browser regression.
+- Current implementation: recover same-attempt Stocktake partial commits from validated inventory ledger receipts before stale-baseline preflight. Existing keys/schema retained; later stock changes preserved.
+- Four failures reproduced first; 12 real-schema recovery tests now pass. TypeScript PASS; 65 files / 457 tests PASS.
+- Publish this implementation and record its Linux Commerce CI before closing the batch. See INVENTORY-WRITE-AUDIT.md.
 
 ## Next recommended task
-Reproduce Stocktake retry after inventory writes commit but session result persistence fails; verify preflight versus idempotency and session/item races. Bulk unchanged-version semantics are fixed; next review reservation transitions after Stocktake recovery. Source inventory writer mapping is complete; broader concurrency audit remains open. Maker/category ownership audit is complete; preserve the distinct owners. Also review the remaining shared_media_references registration helper for atomicity; its only current runtime caller follows protected Product attachment, so it is not an independent image persistence owner.
+Reproduce simultaneous Stocktake edit/cancel/finalize races and completed-response retry behaviour. Recovery here handles an unchanged attempt after partial persistence, not an atomic whole-session transaction. Then audit reservation release/consume/return with real-schema failure tests. Keep work in small independent commits.
 
 ## Decisions / risks
-- D1 owns commerce; main owns code/static outputs. Production clean Product routes remain disabled.
-- New bytes belong to library assets; Product rows own versioned gallery associations. Historical Product-scoped R2 data stays valid.
-- A saved asset survives failed attachment/reload; ambiguous D1 ownership never authorizes R2 deletion. Failed attachments can leave reusable assets visible in Media Library.
-- Library deletion counts Product media rows directly, including history. No endpoint retirement or old asset migration in this batch.
-- No Worker deployment, business-data D1/R2 mutation or synthetic email performed. Automatic Pages build is separate.
-- Read-only staging browser inspection found older duplicate search/URL-first Appearance UI than main; deployed SHA unknown. Signed out. Do not mistake deployment drift for new source defects.
-
-## Validation evidence
-- ed48978: Linux Commerce CI 36344781535 SUCCESS.
-- 7533b8a: Linux Commerce CI 36369246615 SUCCESS.
-- 4a3a64e: Linux Commerce CI 36369475275 SUCCESS, including locked install/full check/browser regression. Search 36369475264 and Pages 36369474892 SUCCESS.
-- 87cf4b3: Commerce CI 36391977922 SUCCESS including full check and Chromium/WebKit archive regression; Search 36391977918 and Pages 36391976789 SUCCESS.
-- ce6b620: TypeScript and 363 local tests PASS; Commerce CI 36392535999 SUCCESS (full check and Chromium/WebKit archive regression).
-- Section/Appearance guard 202f24d: TypeScript and 419 local tests PASS; Linux Commerce CI 36429624306 SUCCESS.
-- Local Windows workerd crashes at D1 startup even elevated. Use Linux CI for migrations/runtime checks; do not claim local full-check success.
+- D1 inventory balances/movements are authoritative. Stocktake owns workflow, not a second stock counter. Receipt lookup fails closed on ambiguous/type/quantity/key mismatches.
+- Product maker and shop classification are distinct (BRAND-OWNERSHIP-AUDIT.md).
+- Shared Media owns new uploaded bytes; Product/content versions own references. Preserve historical URLs, ownership guards and ambiguous-failure retention.
+- No Worker deployment, schema migration, business-data mutation or synthetic email in this batch.
+- Production clean Product routes remain disabled. Prior staging inspection showed older UI than main; deployed SHA was unknown. Do not reimplement source fixes because of deployment drift.
+- Full historical validation evidence is in ARCHITECTURE-REHABILITATION-CHECKLIST.md. Local Windows workerd crashes at D1 startup; use Linux CI for runtime/migration gates.
 
 ## MANUAL ACTION REQUIRED
-Deploy the reviewed candidate to staging and accept Product add/replace, library reuse, Section/Homepage/Appearance uploads and history before guarded production promotion. No new secrets/schema needed. Source config does not prove deployed state.
+Deploy reviewed candidate to staging and accept Product/library/Section/Homepage/Appearance workflows and inventory/Stocktake behaviour before guarded production promotion. Source config does not prove deployed state. No new secrets or schema required for this batch.
 
-## Git / workstation notes
-- Fetch remote main before changes. No new branches or force push.
-- GitHub connector publishes identical local trees when Git credential manager stalls; reconcile main by fetch/rebase skipping equivalent patches.
+## Git / workstation
+- Fetch newest main before edits; no new branches or force push.
+- GitHub connector publishes an identical local tree when Git credential manager stalls; fetch/rebase skips equivalent patches.
 - Windows sparse checkout excludes only historical images/romneys/Con.png; preserve it in Git.
-- Git needs bundled GIT_EXEC_PATH at mingw64/bin. Filesystem is read-only; local writes require tool escalation.
-- Historical handoff remains at 1d08f3b:docs/SESSION-HANDOFF.md.
+- Bundled Git needs GIT_EXEC_PATH at mingw64/bin. Local filesystem writes require tool escalation.

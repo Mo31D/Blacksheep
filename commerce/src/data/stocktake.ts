@@ -5,6 +5,7 @@ import type {
 import {
   bulkInventoryCount,
   getInventorySnapshot,
+  getInventoryCountReplay,
 } from "./inventory";
 
 const DEFAULT_LOCATION_ID = "loc_ambleside";
@@ -672,7 +673,34 @@ export async function finalizeStocktakeSession(
     expectedBalanceVersion: number | null;
   }> = [];
 
+  const chunkKeyPrefix = "stocktake:" + session.id + ":finalize:" + session.version + ":chunk:";
+  const batchIds: string[] = [];
+  const appliedSuccess: Array<{ variantId: string; snapshot: unknown }> = [];
+  const appliedUnchanged: Array<{ variantId: string; snapshot: unknown }> = [];
+  const appliedConflicts: Array<{ variantId: string; code: string }> = [];
+
   for (const item of counted) {
+    // Recover committed items before comparing the old count baseline to live stock.
+    // Chunk numbers may shift when the remaining safe items are regrouped on retry.
+    let replay;
+    try {
+      replay = await getInventoryCountReplay(db, {
+        variantId: item.variantId,
+        locationId: session.locationId,
+        chunkKeyPrefix,
+        countedOnHand: Number(item.countedOnHand),
+        initialCount: !item.trackedSnapshot,
+      });
+    } catch (cause) {
+      if (!(cause instanceof Error) || cause.message !== "inventory_idempotency_conflict") throw cause;
+      preflightConflicts.push({ variantId: item.variantId, code: cause.message });
+      continue;
+    }
+    if (replay) {
+      appliedSuccess.push({ variantId: item.variantId, snapshot: replay.snapshot });
+      if (replay.batchId && !batchIds.includes(replay.batchId)) batchIds.push(replay.batchId);
+      continue;
+    }
     const current = await getInventorySnapshot(
       db,
       item.variantId,
@@ -714,10 +742,6 @@ export async function finalizeStocktakeSession(
     });
   }
 
-  const batchIds: string[] = [];
-  const appliedSuccess: Array<{ variantId: string; snapshot: unknown }> = [];
-  const appliedUnchanged: Array<{ variantId: string; snapshot: unknown }> = [];
-  const appliedConflicts: Array<{ variantId: string; code: string }> = [];
 
   for (let offset = 0; offset < safe.length; offset += 250) {
     const chunk = safe.slice(offset, offset + 250);
@@ -727,13 +751,7 @@ export async function finalizeStocktakeSession(
       {
         locationId: session.locationId,
         reason: "Stocktake — " + session.scopeLabel,
-        idempotencyKey:
-          "stocktake:" +
-          session.id +
-          ":finalize:" +
-          session.version +
-          ":chunk:" +
-          chunkNumber,
+        idempotencyKey: chunkKeyPrefix + chunkNumber,
         items: chunk,
       },
       actorEmail,
