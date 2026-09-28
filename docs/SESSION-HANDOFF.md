@@ -11,11 +11,13 @@ Architecture rehabilitation: discovery and shared image validation complete; med
 - Published `f6f6ff6` architecture docs and `ed48978` image validation extraction. Linux Commerce CI `36344781535` SUCCESS including full check and browser archive regression. Search Readiness `36344781570` and Pages `36344781456` SUCCESS.
 - Reproduced four destructive Product upload/replace cases: D1 saved an image but later response reload failed, or ownership became uncertain; old catch blocks still deleted R2 bytes.
 - New `data/media-upload-cleanup.ts` centralizes compensation across all three upload routes. Delete only after successful ownership reads find no Product/history or library owner. Existing-asset deletion still uses normal reference/claim rules.
-- Current task: publish `fix: preserve owned media after upload failures`, confirm its own Linux CI, then continue caller/lifecycle audit.
+- Published media failure-safety fix: `7533b8a` (339 local tests PASS); its Linux CI is tracked separately.
+- Verified active Product replacement still calls the older multipart endpoint; preserve it until migration covers gallery metadata/history.
+- Current task: validate/publish `ci: use locked dependencies for validation and deployment`, then record final CI evidence.
 
 ## Next recommended task
 
-Audit Product-specific media endpoint callers in UI, scripts and deployed integrations before lifecycle consolidation. Existing successful add/replace and historic public URLs must survive. Then inspect backend Brand/Range projection before attempting data migration.
+The repository caller audit confirms active Product replacement. Check external/deployed integrations before lifecycle consolidation. Existing successful add/replace and historic public URLs must survive. Then inspect backend Brand/Range projection before attempting data migration.
 
 ## Decisions / risks
 

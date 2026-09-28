@@ -31,3 +31,11 @@
 **Why:** D1 may commit before a later read fails. Unconditional R2 deletion turns an HTTP failure into a broken persisted image. Ownership uncertainty must retain data.
 
 **Rejected alternative:** A route-local success flag misses ambiguous database commits and would duplicate lifecycle policy. This helper is only for new-upload compensation, not a substitute for atomic claims when deleting existing assets.
+
+## 2026-09-28 — Lock dependency resolution at CI and release boundaries
+
+**Decision:** Primary Commerce CI and guarded deployment use `npm ci` and cache by the committed lockfile, matching local setup. Explicit pinned browser-only tooling remains a separate ephemeral step.
+
+**Why:** Validation and release must use the same dependency graph; package/lock drift should fail rather than being silently reconciled during a release.
+
+**Rejected alternative:** Fresh dependency resolution with `npm install` in the primary gates weakens reproducibility. A new build framework or composite workflow is unnecessary for this correction. Ancillary QA workflows can be aligned in a separate reviewed task.

@@ -17,6 +17,8 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 
 ## Phase 2 — Shared media transport and lifecycle
 
+- [x] Trace active Product media callers: `admin/ui.ts` add uses shared upload plus `/media/from-library`; replacement still posts multipart to `/media/:id/replace` and preserves gallery position/primary/alt text. `admin-products-readonly.test.ts` covers the old transport. Do not delete replacement as unused. External/deployed callers remain unverified; lifecycle migration is still open.
+
 - [x] Centralize upload validation in `commerce/src/http/image-upload.ts`; `routes/admin.ts` imports the two contract readers. Removes duplicate multipart/size/MIME/signature/checksum logic while preserving metadata validation order and Product/library error codes. No route, storage key, D1 schema, UI or publication behaviour changed.
 - [x] Add `commerce/test/image-upload.test.ts`: both readers, JPEG/PNG/WebP signatures, digest, missing/empty/oversized/type-mismatch files, exact 8 MiB boundary, alt/title normalization and error precedence. Validation: TypeScript PASS; all 56 Vitest files / 330 tests PASS, including existing Product route, library ownership and generated Admin script coverage.
 - [ ] Consolidate Product-specific R2 creation/replacement into the shared asset lifecycle after Phase 1 caller/history proof. Preserve product associations and old public media URLs. Remove superseded endpoints only after consumers migrate and staging acceptance passes.
@@ -29,6 +31,8 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 - [ ] Audit quick/full edits for identical validation/version/conflict semantics. Document intentionally independent classification, navigation placement, selling controls and publication.
 
 ## Phase 4 — Storefront publication and generation
+
+- [x] Align primary CI and guarded deployment with the committed dependency lockfile. `.github/workflows/commerce-ci.yml` and `commerce-deploy.yml` use `npm ci --no-audit --no-fund` and key npm cache by `commerce/package-lock.json`, matching the documented local command. Explicit ephemeral Playwright install stays pinned and separate. Validation: lockfile install previously PASS; checked exact workflow diff and unchanged triggers/production confirmation. Final Linux CI remains the acceptance gate.
 
 - [ ] Run candidate export → package `--check` → verifier using an approved read-only D1 export and isolated output directory. Record deterministic hashes, parity and canonical/link results; never use the repository root as package output.
 - [ ] Audit `scripts/sync-romneys-official-data.py` catalogue-writing use. Integrate verified provenance into the canonical publication inputs or retire with caller proof; do not allow routine supplier sync to override owner commerce values.
