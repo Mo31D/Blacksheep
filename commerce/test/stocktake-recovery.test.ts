@@ -74,8 +74,7 @@ describe("Stocktake recovery from committed inventory and missing session result
   });
   it("does not reuse an earlier session version's receipt", async () => {
     const detail = await fixture(true);
-    await loseSessionSave(detail.session.id);
-    await saveStocktakeItem(db, detail.session.id, variantId, { expectedItemVersion: 2, action: "COUNT", countedOnHand: 8 });
+    await physicalInventoryCount(db, { variantId, countedOnHand: 7, reason: "Earlier attempt", expectedBalanceVersion: 1, idempotencyKey: operationKey({ ...detail.session, version: detail.session.version - 1 }) }, actor);
     const before = ledger();
     const result = await finalizeStocktakeSession(db, detail.session.id, actor);
     expect(result.session.status).toBe("REVIEW");

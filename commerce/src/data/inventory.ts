@@ -522,6 +522,12 @@ export async function getInventoryCountReplay(
   };
 }
 
+/** Trusted domain-only predicate, evaluated in the same write as the stock mutation. */
+export interface InventoryMutationGuard {
+  sql: string;
+  values: unknown[];
+}
+
 export interface InitialCountInput {
   variantId: unknown;
   locationId?: unknown;
@@ -535,6 +541,7 @@ export async function initialInventoryCount(
   db: D1DatabaseLike,
   raw: InitialCountInput,
   actorEmail: string,
+  guard?: InventoryMutationGuard,
 ): Promise<{
   snapshot: InventorySnapshot;
   movementId: string;
@@ -577,9 +584,10 @@ export async function initialInventoryCount(
             "SET track_inventory = 1, version = version + 1,",
             "inventory_mutation_token = ?, updated_at = ?",
             "WHERE id = ? AND track_inventory = 0 AND version = ?",
+            guard ? "AND (" + guard.sql + ")" : "",
           ),
         )
-        .bind(mutationToken, timestamp, variantId, row.variantVersion),
+        .bind(mutationToken, timestamp, variantId, row.variantVersion, ...(guard?.values ?? [])),
       db
         .prepare(
           q(
@@ -830,6 +838,7 @@ export async function physicalInventoryCount(
   db: D1DatabaseLike,
   raw: PhysicalCountInput,
   actorEmail: string,
+  guard?: InventoryMutationGuard,
 ): Promise<{
   snapshot: InventorySnapshot;
   movementId: string;
@@ -877,6 +886,7 @@ export async function physicalInventoryCount(
             "UPDATE inventory_balances",
             "SET on_hand = ?, version = version + 1, mutation_token = ?, updated_at = ?",
             "WHERE variant_id = ? AND location_id = ? AND version = ?",
+            guard ? "AND (" + guard.sql + ")" : "",
           ),
         )
         .bind(
@@ -886,6 +896,7 @@ export async function physicalInventoryCount(
           variantId,
           locationId,
           expectedBalanceVersion,
+          ...(guard?.values ?? []),
         ),
       db
         .prepare(
@@ -989,6 +1000,7 @@ export async function bulkInventoryCount(
   db: D1DatabaseLike,
   raw: BulkCountInput,
   actorEmail: string,
+  guard?: InventoryMutationGuard,
 ): Promise<{
   batchId: string;
   success: Array<{ variantId: string; snapshot: InventorySnapshot }>;
@@ -1054,6 +1066,7 @@ export async function bulkInventoryCount(
             batchId,
           },
           actorEmail,
+          guard,
         );
         success.push({ variantId, snapshot: result.snapshot });
       } else {
@@ -1071,6 +1084,7 @@ export async function bulkInventoryCount(
             batchId,
           },
           actorEmail,
+          guard,
         );
         success.push({ variantId, snapshot: result.snapshot });
       }

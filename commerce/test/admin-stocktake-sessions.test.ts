@@ -272,4 +272,14 @@ describe("CARD 05 persistent Stocktake Admin", () => {
       ],
     });
   });
+
+  it("returns actionable conflict feedback when count writes have started", async () => {
+    const response = await handleAdminRequest(
+      request("/admin/api/stocktakes/stk-1/items/var-1", "PATCH", { expectedItemVersion: 1, countedOnHand: 8 }),
+      { DB: new Db() },
+      { verifyAccessFn: identity, saveStocktakeItemFn: (async () => { throw new Error("stocktake_finalization_in_progress"); }) as never },
+    );
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({ error: { code: "stocktake_finalization_in_progress", message: "Stock changes have started. Finish this stocktake before editing or cancelling it." } });
+  });
 });

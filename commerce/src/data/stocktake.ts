@@ -1,3 +1,4 @@
+import { d1StatementChanged } from "./d1";
 import type {
   D1DatabaseLike,
   D1PreparedStatementLike,
@@ -481,6 +482,19 @@ export interface SaveStocktakeItemInput {
   nextPosition?: unknown;
 }
 
+
+function attemptHasMovementSql(alias: string): string {
+  const prefix = "'stocktake:' || " + alias + ".id || ':finalize:' || " + alias + ".version || ':chunk:'";
+  return "EXISTS (SELECT 1 FROM inventory_movements m WHERE " +
+    "substr(m.idempotency_key, 1, length(" + prefix + ")) = (" + prefix + "))";
+}
+
+async function attemptHasMovement(db: D1DatabaseLike, sessionId: string) {
+  return Boolean(await db.prepare(
+    "SELECT 1 AS found FROM stocktake_sessions s WHERE s.id = ? AND " + attemptHasMovementSql("s"),
+  ).bind(sessionId).first());
+}
+
 export async function saveStocktakeItem(
   db: D1DatabaseLike,
   sessionId: string,
@@ -495,6 +509,8 @@ export async function saveStocktakeItem(
   if (session.status !== "IN_PROGRESS" && session.status !== "REVIEW") {
     throw new Error("stocktake_not_editable");
   }
+
+  if (await attemptHasMovement(db, sessionId)) throw new Error("stocktake_finalization_in_progress");
 
   const item = await db
     .prepare(
@@ -569,12 +585,12 @@ export async function saveStocktakeItem(
       "saved_at = ?, applied_at = NULL, version = version + 1 " +
       "WHERE session_id = ? AND variant_id = ? AND version = ? " +
       "AND EXISTS (SELECT 1 FROM stocktake_sessions s WHERE s.id = ? " +
-      "AND s.status IN ('IN_PROGRESS','REVIEW'))"
+      "AND s.version = ? AND s.status IN ('IN_PROGRESS','REVIEW') AND NOT " + attemptHasMovementSql("s") + ")"
     : "UPDATE stocktake_session_items SET counted_on_hand = ?, item_status = ?, " +
       "conflict_code = NULL, saved_at = ?, applied_at = NULL, version = version + 1 " +
       "WHERE session_id = ? AND variant_id = ? AND version = ? " +
       "AND EXISTS (SELECT 1 FROM stocktake_sessions s WHERE s.id = ? " +
-      "AND s.status IN ('IN_PROGRESS','REVIEW'))";
+      "AND s.version = ? AND s.status IN ('IN_PROGRESS','REVIEW') AND NOT " + attemptHasMovementSql("s") + ")";
 
   const itemStatement = baseline
     ? db
@@ -592,6 +608,7 @@ export async function saveStocktakeItem(
           variantId,
           expectedItemVersion,
           sessionId,
+          session.version,
         )
     : db
         .prepare(itemSql)
@@ -603,9 +620,10 @@ export async function saveStocktakeItem(
           variantId,
           expectedItemVersion,
           sessionId,
+          session.version,
         );
 
-  await db.batch([
+  const saved = await db.batch([
     itemStatement,
     db
       .prepare(
@@ -614,7 +632,7 @@ export async function saveStocktakeItem(
           "skipped_items = (SELECT COUNT(*) FROM stocktake_session_items WHERE session_id = ? AND item_status = 'SKIPPED'), " +
           "conflict_items = (SELECT COUNT(*) FROM stocktake_session_items WHERE session_id = ? AND item_status = 'CONFLICT'), " +
           "current_position = ?, updated_at = ?, version = version + 1 " +
-          "WHERE id = ? AND status IN ('IN_PROGRESS','REVIEW') AND EXISTS (" +
+          "WHERE id = ? AND version = ? AND status IN ('IN_PROGRESS','REVIEW') AND NOT " + attemptHasMovementSql("stocktake_sessions") + " AND EXISTS (" +
           "SELECT 1 FROM stocktake_session_items WHERE session_id = ? AND variant_id = ? " +
           "AND version = ? AND saved_at = ?)",
       )
@@ -625,12 +643,18 @@ export async function saveStocktakeItem(
         nextPosition,
         timestamp,
         sessionId,
+        session.version,
         sessionId,
         variantId,
         nextItemVersion,
         timestamp,
       ),
   ]);
+
+  if (d1StatementChanged(saved[0]) === false) {
+    if (await attemptHasMovement(db, sessionId)) throw new Error("stocktake_finalization_in_progress");
+    throw new Error("stocktake_item_version_conflict");
+  }
 
   const verified = await db
     .prepare(
@@ -755,11 +779,40 @@ export async function finalizeStocktakeSession(
         items: chunk,
       },
       actorEmail,
+      {
+        sql: "EXISTS (SELECT 1 FROM stocktake_sessions s WHERE s.id = ? AND s.version = ? AND s.status IN ('IN_PROGRESS','REVIEW'))",
+        values: [session.id, session.version],
+      },
     );
     batchIds.push(chunkResult.batchId);
     appliedSuccess.push(...chunkResult.success);
     appliedUnchanged.push(...chunkResult.unchanged);
     appliedConflicts.push(...chunkResult.conflicts);
+  }
+
+
+  // Another finalizer may have committed an item after this request's preflight.
+  for (const pendingConflicts of [preflightConflicts, appliedConflicts]) {
+    for (let index = pendingConflicts.length - 1; index >= 0; index--) {
+      const conflict = pendingConflicts[index];
+      const item = counted.find(row => row.variantId === conflict.variantId);
+      if (!item) continue;
+      let replay;
+      try {
+        replay = await getInventoryCountReplay(db, {
+          variantId: item.variantId, locationId: session.locationId, chunkKeyPrefix,
+          countedOnHand: Number(item.countedOnHand), initialCount: !item.trackedSnapshot,
+        });
+      } catch (cause) {
+        if (!(cause instanceof Error) || cause.message !== "inventory_idempotency_conflict") throw cause;
+        continue;
+      }
+      if (replay) {
+        pendingConflicts.splice(index, 1);
+        appliedSuccess.push({ variantId: item.variantId, snapshot: replay.snapshot });
+        if (replay.batchId && !batchIds.includes(replay.batchId)) batchIds.push(replay.batchId);
+      }
+    }
   }
 
   const result = {
@@ -837,7 +890,10 @@ export async function finalizeStocktakeSession(
       ),
   );
 
-  await db.batch(statements);
+  const finalized = await db.batch(statements);
+  if (d1StatementChanged(finalized[finalized.length - 1]) === false) {
+    throw new Error("stocktake_session_version_conflict");
+  }
 
   return {
     ...(await getStocktakeSession(db, sessionId)),
@@ -865,7 +921,7 @@ export async function cancelStocktakeSession(
     .prepare(
       "UPDATE stocktake_sessions SET status = 'CANCELLED', updated_at = ?, " +
         "version = version + 1 WHERE id = ? AND version = ? " +
-        "AND status IN ('IN_PROGRESS','REVIEW')",
+        "AND status IN ('IN_PROGRESS','REVIEW') AND NOT " + attemptHasMovementSql("stocktake_sessions"),
     )
     .bind(timestamp, sessionId, version)
     .run?.();
@@ -876,6 +932,7 @@ export async function cancelStocktakeSession(
     .first<SessionRow>();
   if (!session) throw new Error("stocktake_not_found");
   if (session.status !== "CANCELLED") {
+    if (await attemptHasMovement(db, sessionId)) throw new Error("stocktake_finalization_in_progress");
     throw new Error("stocktake_session_version_conflict");
   }
   return { session };

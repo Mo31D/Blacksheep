@@ -659,6 +659,7 @@ function stocktakeMutationError(cause: unknown): Response {
     "stocktake_session_version_conflict",
     "stocktake_not_editable",
     "stocktake_not_finalizable",
+    "stocktake_finalization_in_progress",
   ]);
   const messages: Record<string, string> = {
     stocktake_scope_type_invalid: "Choose what you want to count.",
@@ -678,6 +679,7 @@ function stocktakeMutationError(cause: unknown): Response {
     stocktake_count_invalid: "Physical quantity must be a whole number.",
     stocktake_position_invalid: "Stocktake position is invalid.",
     stocktake_not_editable: "This stocktake can no longer be edited.",
+    stocktake_finalization_in_progress: "Stock changes have started. Finish this stocktake before editing or cancelling it.",
     stocktake_not_finalizable: "This stocktake can no longer be finalized.",
     stocktake_no_counts: "Enter at least one physical count before finishing.",
   };

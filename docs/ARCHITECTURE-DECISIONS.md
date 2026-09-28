@@ -87,3 +87,11 @@
 **Why:** A saved count advances the balance version even when session result persistence fails. Treating that receipt as an external edit loses the successful result. Exact namespace/target/type/quantity checks recover it without writing stock again.
 
 **Rejected alternative:** Reset count baselines to live stock, reapply counts, or add a parallel receipt store. These can overwrite later legitimate changes or create competing truth. Entire-session locking/concurrency is separate work, not implied by this bounded recovery.
+
+## Stocktake write fencing and attempt immutability
+
+**Decision:** Stocktake supplies a trusted internal SQL predicate to inventory count writes. Its session/version must still be active in the same statement that mutates stock. Once current-attempt ledger receipts exist, edit/cancel cannot change that attempt until its result is finalized; saved summary advancement opens any REVIEW corrections.
+
+**Why:** Read-before-write checks alone allow cancelled/edited counts to reach balances. Mutating an already partly committed attempt also destroys its recovery identity. The authoritative ledger already records whether an attempt has started.
+
+**Rejected alternative:** UI disabling alone, preflight-only checks, or a new lease/lock store. These either leave races open or add another recovery protocol when atomic predicates and existing evidence suffice. The guard is not accepted from HTTP inputs.

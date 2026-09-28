@@ -3,12 +3,13 @@ Updated 28 September 2026. Repository Mo31D/Blacksheep; existing main only.
 
 ## Current phase / last completed
 - Phase: inventory and Stocktake resilience. Previous main ab9bbae includes replay identity ca6605e and unchanged-count versions 10a068a; both passed Linux Commerce CI and browser regression.
-- Last completed implementation 9d87462: recover same-attempt Stocktake partial commits from validated inventory ledger receipts before stale-baseline preflight. Existing keys/schema retained; later stock changes preserved.
-- Four failures reproduced first; 12 real-schema recovery tests now pass. TypeScript PASS; 65 files / 457 tests PASS.
-- Saved on main. Commerce CI 36468252710 SUCCESS (full check and browser regression); Search 36468252672 and Pages 36468251570 SUCCESS. Current batch complete; next task below. See INVENTORY-WRITE-AUDIT.md.
+- Previous implementation 9d87462 recovers same-attempt partial commits; Linux CI 36468252710 passed.
+- Current implementation fences count writes with session version/status and prevents edits/cancellation once an attempt has saved movements. Racing receipts are reconciled; stale final summaries return a conflict.
+- Twelve concurrency failures reproduced; 15 concurrency tests plus API feedback coverage now pass. TypeScript PASS; 66 files / 473 tests PASS.
+- Publish current batch and record its Linux CI. No schema migration or live stock write. See INVENTORY-WRITE-AUDIT.md.
 
 ## Next recommended task
-Reproduce simultaneous Stocktake edit/cancel/finalize races and completed-response retry behaviour. Recovery here handles an unchanged attempt after partial persistence, not an atomic whole-session transaction. Then audit reservation release/consume/return with real-schema failure tests. Keep work in small independent commits.
+Review response-loss retries after the session is already COMPLETED, then reservation release/consume/return using real-schema concurrency tests. Current fencing covers edit/cancel/write races; it does not make all count items one transaction. Keep work in small independent commits.
 
 ## Decisions / risks
 - D1 inventory balances/movements are authoritative. Stocktake owns workflow, not a second stock counter. Receipt lookup fails closed on ambiguous/type/quantity/key mismatches.
