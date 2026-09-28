@@ -1,4 +1,5 @@
 import { readProductImageUpload, readSharedMediaImageUpload } from "../http/image-upload";
+import { cleanupUnownedMediaUpload } from "../data/media-upload-cleanup";
 import type { D1DatabaseLike } from "../data/d1";
 import {
   applyAdminOrderUpdate,
@@ -87,7 +88,6 @@ import {
   releaseSharedMediaReferences,
   restoreAdminSharedMediaAsset,
   sharedMediaDeleteEligibility,
-  sharedMediaStorageOwnedByLibrary,
   updateAdminSharedMediaAsset,
 } from "../data/shared-media";
 import {
@@ -1178,14 +1178,7 @@ export async function handleAdminRequest(
       return json({ asset }, 201);
     } catch (cause) {
       if (storageKey) {
-        try {
-          const isOwned = await sharedMediaStorageOwnedByLibrary(env.DB, storageKey);
-          if (!isOwned) await env.PRODUCT_MEDIA.delete(storageKey);
-          // If D1 committed the asset, or ownership cannot be determined,
-          // retain the object. A later owner action can clean it safely.
-        } catch {
-          // Uncertainty is not permission to destroy a possibly committed object.
-        }
+        await cleanupUnownedMediaUpload(env.DB, env.PRODUCT_MEDIA, storageKey);
       }
       return sharedMediaMutationError(cause);
     }
@@ -1959,11 +1952,7 @@ export async function handleAdminRequest(
       return json({ product: updated, storageCleanupPending }, 201);
     } catch (cause) {
       if (newStorageKey && env.PRODUCT_MEDIA) {
-        try {
-          await env.PRODUCT_MEDIA.delete(newStorageKey);
-        } catch {
-          // Preserve the original error; orphan cleanup can be handled separately.
-        }
+        await cleanupUnownedMediaUpload(env.DB, env.PRODUCT_MEDIA, newStorageKey);
       }
       return productMediaInputError(cause);
     }
@@ -2127,11 +2116,7 @@ export async function handleAdminRequest(
       return json({ product: updated }, 201);
     } catch (cause) {
       if (storageKey && env.PRODUCT_MEDIA) {
-        try {
-          await env.PRODUCT_MEDIA.delete(storageKey);
-        } catch {
-          // Orphan cleanup is preferable to masking the original mutation error.
-        }
+        await cleanupUnownedMediaUpload(env.DB, env.PRODUCT_MEDIA, storageKey);
       }
       return productMediaInputError(cause);
     }

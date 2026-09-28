@@ -10,6 +10,7 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 
 ## Phase 1 — Data ownership and production risk
 
+- [x] Reproduce and fix destructive Product upload/replace compensation. `routes/admin.ts` previously deleted the new R2 key when a post-save response read failed. `data/media-upload-cleanup.ts` now owns compensation for Product upload, replacement and shared-library upload, checks both ownership stores, preserves historical Product rows and fails closed on D1 errors. `test/media-upload-cleanup.test.ts` reproduced four failing committed/uncertain scenarios before the fix; the two unowned cases already passed. Validation on 28 September: TypeScript PASS; all 57 Vitest files / 339 tests PASS, including nine compensation cases and the unchanged media ownership/deletion suites.
 - [ ] Audit Product/Shared Media upload and replace partial failures. Enumerate callers in UI, scripts, tests and external/deployed integrations; verify ambiguous D1 commit retains R2 objects and history. Existing `shared-media-ownership`, `shared-media-delete-claim`, `product-media-coexistence` tests are the minimum regression baseline.
 - [ ] Define brand/category write authority at backend boundary. Inspect `product-editor.ts` create/save/duplicate/import paths and `ui.ts` projection. Compare existing D1 brand/category values read-only before proposing a migration; do not discard historical text blindly.
 - [ ] Confirm every stock write enters inventory/reservation services, including Stocktake completion, returns and order revisions. Add concurrency/failure tests for any uncovered write path before changing it.
@@ -47,7 +48,7 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 ## Phase 7 — Validation and release
 
 - [x] Run source/static gates: frozen Product Core validation, production import guards, storefront placement compatibility, cart/checkout/legal/dynamic-storefront/homepage contracts, JS syntax, TypeScript and Search Readiness. PASS: 146 static products / 17 active pages / 166 sitemap URLs / zero placeholders. Counts describe the fixture/static snapshot, not current live D1.
-- [ ] Complete `npm run check` in supported runtime/CI. Local attempt reached D1 migration then Windows workerd access violation/stack overflow; initial sandbox also denied Wrangler log writes. Elevated retry confirmed the same workerd crash; Admin browser QA script syntax and Wrangler staging bundle dry-run both PASS. Do not mark migration, inventory integration or full build gates green from unit results.
+- [x] Complete `npm run check` for first extraction `ed48978` in Linux CI: run `36344781535` SUCCESS including complete checks and Chromium/WebKit archive regression; Search Readiness `36344781570` and Pages `36344781456` SUCCESS. Local Windows workerd crashes at D1 startup even elevated; local Admin browser QA script syntax and Wrangler staging bundle dry-run PASS. This CI result covers the first extraction only; each later implementation needs its own gate.
 - [ ] Check Linux Commerce CI on the pushed implementation SHA, then staging upload/auth/order regression and guarded production promotion separately. No production deployment or D1/R2 mutation has been performed in this rehabilitation session.
 
 ## MANUAL ACTION REQUIRED
@@ -60,3 +61,5 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 - Baseline: `1d08f3b` (latest fetched main at discovery).
 - Documentation batch: `docs: map architecture and establish rehabilitation memory`.
 - First implementation batch: `refactor: centralise image upload validation` (validation and files recorded above).
+- Published documentation: `f6f6ff6`; published image validation: `ed48978`. GitHub connector published trees identical to local commits because local Git credential manager stalled; local main reconciled by skipping equivalent patches. No force update or new branch.
+- Second implementation batch: `fix: preserve owned media after upload failures` (shared compensation and regression proof above).

@@ -10,7 +10,7 @@ The application already has domain/data modules, versioned content, D1 commerce 
 
 | Group | Finding / action |
 | --- | --- |
-| Critical | No newly proven production corruption in this source review. Media D1/R2 partial failure and stock/order concurrency remain highest-risk review areas; preserve existing ownership/claim and concurrency tests. |
+| Critical | Confirmed Product upload/replace error paths deleted R2 objects even after a successful D1 save followed by response-reload failure. Reproduced in regression tests and fixed by shared ownership-aware upload compensation. No evidence of actual production loss was collected. Media lifecycle and stock/order concurrency remain priority audit areas. |
 | Structural | Large `routes/admin.ts` and `admin/ui.ts` mix many business objects. Extract responsibilities incrementally behind existing contracts; do not replace the Admin. |
 | Duplication | Product and shared-library HTTP upload readers duplicate validation and hashing. Centralize first with contract tests. Product-specific storage endpoints still require a caller/lifecycle audit. |
 | Admin UX | Recent main already removes URL-first ordinary image controls, duplicate search/product operations and duplicate bulk Stocktake. Preserve these. Audit full/quick edit semantics and accessible feedback next. |

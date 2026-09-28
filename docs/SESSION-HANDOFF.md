@@ -1,40 +1,43 @@
 # Session handoff
 
-Updated 27 September 2026. Repository `Mo31D/Blacksheep`, existing `main` only.
+Updated 28 September 2026. Repository `Mo31D/Blacksheep`, existing `main` only.
 
 ## Current phase
 
-Architecture rehabilitation: discovery documented; shared HTTP image validation implemented and source-tested. This new programme continues the existing application. The previous CARD 00–14 board is marked closed; old dated reports remain release evidence, not the current next-task queue.
+Architecture rehabilitation: discovery and shared image validation complete; media failure-safety fix validated locally. Read the rehabilitation checklist/map/plan/decisions. Earlier CARD 00–14 board is closed historical evidence, not the active queue.
 
 ## Last completed / current task
 
-- Baseline fetched: `1d08f3b`. Recent shared upload UX, single Stocktake and Product editing fixes preserved.
-- Created architecture map, rehabilitation plan/checklist and decisions.
-- Extracted duplicated image validation from Admin routes into `commerce/src/http/image-upload.ts`; existing endpoints/error contracts remain intact.
-- Current task: finish validation evidence and commit/push the documentation and implementation on main.
+- Published `f6f6ff6` architecture docs and `ed48978` image validation extraction. Linux Commerce CI `36344781535` SUCCESS including full check and browser archive regression. Search Readiness `36344781570` and Pages `36344781456` SUCCESS.
+- Reproduced four destructive Product upload/replace cases: D1 saved an image but later response reload failed, or ownership became uncertain; old catch blocks still deleted R2 bytes.
+- New `data/media-upload-cleanup.ts` centralizes compensation across all three upload routes. Delete only after successful ownership reads find no Product/history or library owner. Existing-asset deletion still uses normal reference/claim rules.
+- Current task: publish `fix: preserve owned media after upload failures`, confirm its own Linux CI, then continue caller/lifecycle audit.
 
 ## Next recommended task
 
-Read `ARCHITECTURE-REHABILITATION-CHECKLIST.md`. First confirm Linux CI for this batch, then audit Product-specific upload/replace lifecycle and callers before consolidating R2 creation into Shared Media Library. Backend brand/classification projection is the next independent ownership task.
+Audit Product-specific media endpoint callers in UI, scripts and deployed integrations before lifecycle consolidation. Existing successful add/replace and historic public URLs must survive. Then inspect backend Brand/Range projection before attempting data migration.
 
 ## Decisions / risks
 
-- D1 owns operational commerce; main owns code/static outputs. No framework change or parallel application.
-- Shared HTTP validation is complete; shared storage lifecycle consolidation is not. Product-specific endpoints still exist intentionally pending caller/history proof.
-- Preserve versioned publication, media history, stock/reservation concurrency and existing static Product URLs. Production clean Product routes remain disabled.
-- Source config is not proof of deployed configuration. No Worker deployment, remote D1/R2 mutation or synthetic email was performed here.
-- Historical details from the former long handoff remain in Git at `1d08f3b:docs/SESSION-HANDOFF.md`; dated release reports and the completed platform board remain in docs.
+- D1 owns operational commerce; main owns code/static outputs. Preserve storefront design, indexed Product URLs, versioned publication and stock/reservation concurrency.
+- Shared input validation and failed-upload cleanup now have single owners. Product-specific creation/replacement storage paths still exist pending migration proof.
+- Uncertain ownership retains data; possible orphan cleanup is preferable to corrupting persisted associations.
+- No Worker deployment, remote D1/R2 mutation or synthetic email was performed. Automatic Pages build on main is separate from Worker deployment.
+- Production clean Product routes stay disabled. Source config does not prove deployed secrets/settings.
 
 ## Validation
 
-TypeScript and all 56 Vitest files / 330 tests PASS. Static/search and pre-migration check gates PASS (146 static products, 166 sitemap URLs). Full check stopped at local D1: Windows workerd access violation/stack overflow, plus initial sandbox log permissions. Elevated retry reproduced the runtime crash. Admin browser QA script syntax and staging Worker bundle dry-run PASS. Linux CI is required before claiming full readiness.
+Latest fix: TypeScript PASS, 57 Vitest files / 339 tests PASS. New regression tests first reproduced four failures before the fix. First extraction's full Linux CI is green; the cleanup fix requires its own CI result.
+
+Local Windows workerd fails during D1 startup even outside the sandbox. Initial static/search gates and Worker dry-run passed. Use Linux CI for complete migration/inventory/runtime checks; do not claim local full-check success.
 
 ## MANUAL ACTION REQUIRED
 
-Use existing Linux CI if Windows workerd remains unusable. Production promotion remains a separate guarded release after staging acceptance. No secret creation is required for this extraction.
+Production promotion remains a guarded release after staging acceptance. No new secret or schema change is needed. Local runtime repair is independent of application work.
 
 ## Git / workstation notes
 
-- Starting commit: `1d08f3b`; batch titles are recorded in the rehabilitation checklist.
-- Fresh Windows checkout excludes only `images/romneys/Con.png` through local sparse-checkout because it is a reserved Windows filename. The asset is preserved in Git; never stage its deletion.
-- Bundled Git needs `GIT_EXEC_PATH` pointing at its `mingw64/bin` directory for HTTPS. Sandbox Git metadata/network writes require the provided approval mechanism.
+- Baseline `1d08f3b`; published commits `f6f6ff6`, `ed48978`. GitHub connector published identical trees after local credential manager stalled; local main reconciled without a force update/new branch.
+- Windows sparse checkout excludes only historical `images/romneys/Con.png`; preserve it in Git.
+- HTTPS Git needs bundled `GIT_EXEC_PATH` at `mingw64/bin`. Filesystem is now read-only; use explicit tool escalation for local writes.
+- Historical long handoff remains at `1d08f3b:docs/SESSION-HANDOFF.md` and dated release reports.

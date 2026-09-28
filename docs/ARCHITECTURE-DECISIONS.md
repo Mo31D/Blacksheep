@@ -23,3 +23,11 @@
 **Why:** A public-feed version match does not prove rendered HTML, and a main push does not deploy the Worker.
 
 **Rejected alternative:** Marking work production-complete solely from unit tests or an old release report hides environment drift.
+
+## 2026-09-27 — Upload failure does not prove an unowned object
+
+**Decision:** All upload compensation goes through `data/media-upload-cleanup.ts`. Delete a newly generated key only after successful reads find neither a Product media owner nor an active/archived library owner; Product history rows also retain ownership. Preserve the original error on cleanup failure.
+
+**Why:** D1 may commit before a later read fails. Unconditional R2 deletion turns an HTTP failure into a broken persisted image. Ownership uncertainty must retain data.
+
+**Rejected alternative:** A route-local success flag misses ambiguous database commits and would duplicate lifecycle policy. This helper is only for new-upload compensation, not a substitute for atomic claims when deleting existing assets.
