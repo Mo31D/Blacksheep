@@ -90,3 +90,5 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 
 - Inventory replay guard ca6605e: Commerce CI 36465324317 SUCCESS (full check and browser regression); Search 36465324327 and Pages 36465324062 SUCCESS.
 - Bulk count versions 10a068a: Commerce CI 36465848390 SUCCESS (full check and browser regression); Search 36465848387 and Pages 36465847112 SUCCESS. All 445 local tests and TypeScript passed. No Worker deployment or business-data mutation.
+
+- Stocktake receipt recovery 9d87462: Commerce CI 36468252710 SUCCESS (full check and browser regression); Search 36468252672 and Pages 36468251570 SUCCESS. TypeScript and all 457 local tests passed. Concurrent session edits/cancellation remain a separate open task.

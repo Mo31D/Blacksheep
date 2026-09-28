@@ -3,9 +3,9 @@ Updated 28 September 2026. Repository Mo31D/Blacksheep; existing main only.
 
 ## Current phase / last completed
 - Phase: inventory and Stocktake resilience. Previous main ab9bbae includes replay identity ca6605e and unchanged-count versions 10a068a; both passed Linux Commerce CI and browser regression.
-- Current implementation: recover same-attempt Stocktake partial commits from validated inventory ledger receipts before stale-baseline preflight. Existing keys/schema retained; later stock changes preserved.
+- Last completed implementation 9d87462: recover same-attempt Stocktake partial commits from validated inventory ledger receipts before stale-baseline preflight. Existing keys/schema retained; later stock changes preserved.
 - Four failures reproduced first; 12 real-schema recovery tests now pass. TypeScript PASS; 65 files / 457 tests PASS.
-- Publish this implementation and record its Linux Commerce CI before closing the batch. See INVENTORY-WRITE-AUDIT.md.
+- Saved on main. Commerce CI 36468252710 SUCCESS (full check and browser regression); Search 36468252672 and Pages 36468251570 SUCCESS. Current batch complete; next task below. See INVENTORY-WRITE-AUDIT.md.
 
 ## Next recommended task
 Reproduce simultaneous Stocktake edit/cancel/finalize races and completed-response retry behaviour. Recovery here handles an unchanged attempt after partial persistence, not an atomic whole-session transaction. Then audit reservation release/consume/return with real-schema failure tests. Keep work in small independent commits.
