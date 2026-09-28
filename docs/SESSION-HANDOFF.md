@@ -5,9 +5,9 @@ Updated 28 September 2026. Repository Mo31D/Blacksheep, existing main only.
 ## Current phase / last completed
 - Prior main 90c1d58 includes shared image input/storage, safe compensation and Product deletion-race protection; all prior implementation CI passed.
 - Completed Section/Appearance guard: 202f24d; Commerce CI 36429624306 SUCCESS.
-- Current task: preserve product maker independently of shop range labels. Removed destructive UI projection; explicit maker field preloads existing values. Read-only production/staging audit documented in BRAND-OWNERSHIP-AUDIT.md; no database writes/migration.
+- Last completed: 12800da preserves product maker independently of shop range labels. Removed destructive UI projection; explicit maker field preloads existing values. Read-only production/staging audit documented in BRAND-OWNERSHIP-AUDIT.md; no database writes/migration.
 - TypeScript PASS; 62 files / 424 tests PASS, including three UI regressions and two real-schema ownership tests. Isolated local form layout reviewed; this is not deployed acceptance.
-- Publish this implementation and record Linux CI before the next task.
+- Current task complete and saved on main. Commerce CI 36464029093 SUCCESS (full check and browser regression); Search 36464029200 and Pages 36464026579 SUCCESS. Next task remains the inventory write-path audit below.
 
 ## Next recommended task
 Audit stock writers across inventory/reservation, Stocktake completion, returns and order revisions; add failure/concurrency coverage where missing. Maker/category ownership audit is complete; preserve the distinct owners. Also review the remaining shared_media_references registration helper for atomicity; its only current runtime caller follows protected Product attachment, so it is not an independent image persistence owner.

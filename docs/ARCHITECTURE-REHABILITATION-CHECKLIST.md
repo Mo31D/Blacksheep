@@ -82,3 +82,5 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 - Product attachment guard ce6b620: Commerce CI 36392535999 SUCCESS including full D1/runtime check and Chromium/WebKit archive regression. Both implementation commits are on main; local main reconciled cleanly without force push.
 
 - Section/Appearance guard 202f24d: Commerce CI 36429624306 SUCCESS including full check and browser regression.
+
+- Maker ownership fix 12800da: Commerce CI 36464029093 SUCCESS (full check and browser regression); Search 36464029200 and Pages 36464026579 SUCCESS. No Worker deployment or business-data changes.
