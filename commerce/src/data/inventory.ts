@@ -979,12 +979,24 @@ export async function bulkInventoryCount(
       const snapshot = await getInventorySnapshot(db, variantId, locationId);
       if (!snapshot) throw new Error("inventory_variant_not_found");
 
+      const childKey = baseKey + ":" + variantId + ":" + locationId;
       if (snapshot.tracked && snapshot.onHand === countedOnHand) {
+        const expectedBalanceVersion = integer(
+          record.expectedBalanceVersion ?? snapshot.balanceVersion,
+          "expected_balance_version",
+          { min: 1, max: Number.MAX_SAFE_INTEGER },
+        );
+        if (expectedBalanceVersion !== snapshot.balanceVersion) {
+          // A committed retry is valid; equal quantities alone do not prove it.
+          const movement = await movementByKey(db, childKey);
+          if (!movement) throw new Error("inventory_balance_version_conflict");
+          const replay = await replaySnapshot(db, movement, { variantId, locationId });
+          success.push({ variantId, snapshot: replay.snapshot });
+          continue;
+        }
         unchanged.push({ variantId, snapshot });
         continue;
       }
-
-      const childKey = baseKey + ":" + variantId + ":" + locationId;
       if (!snapshot.tracked) {
         const result = await initialInventoryCount(
           db,

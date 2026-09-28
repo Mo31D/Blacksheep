@@ -13,11 +13,16 @@ All three inventory count/adjust services checked variant/location on normal ide
 
 replaySnapshot now requires expected variant/location and applies the check on every entry. Initial-count replay additionally preserves its existing INITIAL_COUNT requirement. Existing conflict code maps to HTTP 409. No schema, UI or balance-write SQL changes.
 
-test/inventory-replay-identity.test.ts uses all migrations in SQLite and injects real competing writes before the atomic batch. Three tests failed before the fix. Fifteen cases verify pre-existing/racing mismatches, unchanged losing state, matching retries without extra movement, committed-but-lost responses, and uncommitted database failures. TypeScript PASS; all 63 files / 439 tests PASS. Linux CI must be recorded after publication.
+test/inventory-replay-identity.test.ts uses all migrations in SQLite and injects real competing writes before the atomic batch. Three tests failed before the fix. Fifteen cases verify pre-existing/racing mismatches, unchanged losing state, matching retries without extra movement, committed-but-lost responses, and uncommitted database failures. TypeScript PASS; all 63 files / 439 tests PASS. Published ca6605e; Linux Commerce CI 36465324317 tracked in handoff.
 
 ## Remaining work
 - Reproduce Stocktake recovery after inventory writes succeed but session result persistence fails. Its preflight currently runs before child idempotency recovery; inspect retry classification and session/item version races.
-- Audit bulk unchanged-count handling against an explicitly stale balance version.
+- Bulk unchanged-count validation is completed below; Stocktake session-level recovery remains separate.
 - Review whether same-target idempotency keys also need request payload/type fingerprints. This batch preserves existing contracts and only closes the asymmetric identity validation.
 - Verify reservation release/consume/return concurrency and idempotency with real-schema execution, supplementing existing reservation tests and Linux runtime scripts.
 - Deployed staging acceptance remains required; no live stock write or Worker deployment was performed.
+
+## Completed: unchanged bulk counts respect versions
+A matching quantity previously skipped expectedBalanceVersion validation. An intervening stock write could therefore be reported as unchanged despite a stale count baseline. bulkInventoryCount now validates the supplied version on its no-op path. A stale baseline is accepted only when the existing child idempotency key proves a committed replay through the shared replay guard. Current unchanged counts still create no movement; omitted versions retain their existing fallback contract.
+
+Two failing cases reproduced stale and invalid versions before the fix. inventory-bulk-version.test.ts adds six real-schema cases, including retries after later stock changes and no extra movement on replay. TypeScript PASS; 64 files / 445 tests PASS. This is not a claim of atomic session finalization or strict idempotency payload fingerprints. No schema/UI/live-data changes.
