@@ -163,7 +163,7 @@ describe("CARD 02 Storefront Structure Admin data layer", () => {
     expect(nodeInsert.sql).toContain("'DRAFT'");
     expect(versionInsert.sql).toContain("published_at");
     expect(auditInsert.sql).toContain("storefront_audit_events");
-    expect(auditInsert.sql).toContain("VALUES");
+    expect(auditInsert.sql).toContain("FROM storefront_nodes");
     expect(auditInsert.values).toContain("NODE_CREATED");
     expect(auditInsert.values).toContain("owner@example.com");
   });

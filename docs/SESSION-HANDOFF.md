@@ -3,14 +3,13 @@
 Updated 28 September 2026. Repository Mo31D/Blacksheep, existing main only.
 
 ## Current phase / last completed
-- Discovery, shared input validation and safe failed-upload compensation complete.
-- Published f6f6ff6 (architecture), ed48978 (validation), 7533b8a (safe compensation), 4a3a64e (locked CI dependencies).
-- Published 87cf4b3: refactor: unify new image storage in shared library. All three upload routes now use data/media-upload.ts. Product multipart endpoints remain active adapters; gallery/version mutations and historical URLs unchanged. No schema migration.
-- Published ce6b620: fix: guard product media attachments against deletion. Shared availability/deletion-job guard is inside the Product version UPDATE in both add/replace batches.
-- Local validation: TypeScript PASS, 59 Vitest files / 363 tests PASS. Fourteen real SQLite/migration-schema tests cover race orderings and slot/history; ten reproduced failures before the fix. Linux Commerce CI 36392535999 SUCCESS, including full check and browser regression. Current task complete; proceed with the next audit below.
+- Prior main 90c1d58 includes shared image input/storage, safe compensation and Product deletion-race protection; all prior implementation CI passed.
+- Current task: fix: guard storefront image references against deletion. Shared SQL predicates cover Product keys and Section/Appearance URLs. Section creation gates node/version/audit; retained archived references remain editable.
+- Reproduced 30 failures first. TypeScript PASS; 60 Vitest files / 419 tests PASS, including 56 new real-schema content image tests. No schema/generated content changes.
+- Publish this implementation and record its Linux CI before starting the next task.
 
 ## Next recommended task
-Audit Section/Appearance asset-reference writes against the same deletion-claim race. Source review: storefront-structure.ts createAdminStorefrontNode inserts node/version unconditionally; updateAdminStorefrontNode guards only node version. website-appearance.ts saveAdminWebsiteAppearanceDraft guards only appearance version. New URL references need atomic availability/deletion checks. Preserve unchanged archived references (historical content remains readable), static/external URLs and both existing/new draft paths. Use the real SQLite test adapter pattern from product-media-attachment.test.ts to reproduce first. Do not assume Product guards cover other entities. Then address backend Brand/category authority only after read-only data comparison. Staging acceptance remains separate from source/CI verification.
+Audit backend Brand/category ownership: trace create/save/duplicate/import and quick/full editors, compare D1 values read-only before choosing a migration. Do not overwrite legacy brand text without evidence. Also review the remaining shared_media_references registration helper for atomicity; its only current runtime caller follows protected Product attachment, so it is not an independent image persistence owner.
 
 ## Decisions / risks
 - D1 owns commerce; main owns code/static outputs. Production clean Product routes remain disabled.
@@ -26,6 +25,7 @@ Audit Section/Appearance asset-reference writes against the same deletion-claim 
 - 4a3a64e: Linux Commerce CI 36369475275 SUCCESS, including locked install/full check/browser regression. Search 36369475264 and Pages 36369474892 SUCCESS.
 - 87cf4b3: Commerce CI 36391977922 SUCCESS including full check and Chromium/WebKit archive regression; Search 36391977918 and Pages 36391976789 SUCCESS.
 - ce6b620: TypeScript and 363 local tests PASS; Commerce CI 36392535999 SUCCESS (full check and Chromium/WebKit archive regression).
+- Current Section/Appearance guard: TypeScript and 419 local tests PASS; Linux CI pending publication.
 - Local Windows workerd crashes at D1 startup even elevated. Use Linux CI for migrations/runtime checks; do not claim local full-check success.
 
 ## MANUAL ACTION REQUIRED

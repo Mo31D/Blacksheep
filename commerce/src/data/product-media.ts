@@ -1,3 +1,4 @@
+import { sharedMediaStorageAvailableSql } from "./shared-media-attachment";
 
 import type { D1DatabaseLike, D1PreparedStatementLike } from "./d1";
 import {
@@ -144,9 +145,7 @@ function beginMediaAttachment(
 ): D1PreparedStatementLike {
   return db.prepare(
     "UPDATE products SET version = version + 1, updated_at = ? WHERE id = ? AND version = ? " +
-    "AND NOT EXISTS (SELECT 1 FROM shared_media_assets a WHERE a.storage_key = ? " +
-    "AND (a.status <> 'ACTIVE' OR EXISTS (" +
-    "SELECT 1 FROM shared_media_delete_jobs j WHERE j.asset_id = a.id)))",
+    "AND " + sharedMediaStorageAvailableSql,
   ).bind(token, productId, expected, storageKey);
 }
 

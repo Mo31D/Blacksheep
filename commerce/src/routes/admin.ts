@@ -420,6 +420,7 @@ function storefrontMutationError(cause: unknown): Response {
     cause instanceof Error ? cause.message : "storefront_update_failed";
   const conflicts = new Set([
     "storefront_version_conflict",
+    "storefront_image_unavailable",
     "storefront_archive_has_children",
     "storefront_parent_archived",
     "storefront_archived",
@@ -433,6 +434,7 @@ function storefrontMutationError(cause: unknown): Response {
     storefront_name_required: "Section name is required.",
     storefront_name_too_long: "Section name must be 100 characters or fewer.",
     storefront_description_too_long: "Section description must be 500 characters or fewer.",
+    storefront_image_unavailable: "This image is no longer available. Choose another image from Media Library.",
     storefront_image_url_too_long: "Section image address is too long.",
     storefront_navigation_invalid: "Menu visibility value is invalid.",
     storefront_expected_version_invalid: "Section version is invalid.",

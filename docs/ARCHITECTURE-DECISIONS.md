@@ -55,3 +55,11 @@
 **Why:** A prior HTTP/domain read can race with archive/delete. The deletion side already checks Product/history references atomically; both write directions must participate for protection to hold.
 
 **Rejected alternative:** Another preflight lookup or best-effort reference insert after attachment cannot prevent an image deletion already claimed before the Product write. No new lock table/schema is needed.
+
+## 2026-09-28 - Guard newly used content images, retain historical references
+
+**Decision:** shared-media-attachment.ts owns the SQL availability predicates for Product keys and content URL sets. Section create/update and Appearance draft saves apply them in the first D1 batch write. Subsequent version/audit writes require that owner write to succeed.
+
+**Why:** Preflight reads cannot stop a concurrent deletion claim. Only newly selected URLs need ACTIVE assets: old version references already protect archived images, so ordinary text edits must remain possible. One JSON binding covers Appearance image maps without per-image query loops.
+
+**Rejected alternative:** Requiring every retained image to be ACTIVE breaks edits to historical content; post-save reference registration is too late to stop deletion. Separate content and audit commits would permit partial saves.

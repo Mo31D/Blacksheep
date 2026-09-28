@@ -1,3 +1,4 @@
+import { sharedMediaUrlsAvailableSql } from "./shared-media-attachment";
 import type {
   D1DatabaseLike,
   D1PreparedStatementLike,
@@ -543,6 +544,15 @@ export async function saveAdminWebsiteAppearanceDraft(
 
   validateAppearanceContrast(next.tokens);
 
+  // Only new references need ACTIVE assets. Retained archived images are still
+  // protected by existing version history and must not block ordinary text edits.
+  const newImageUrls = [
+    ...(next.hero.imageUrl === current.hero.imageUrl ? [] : [next.hero.imageUrl]),
+    ...Object.entries(next.sectionImages)
+      .filter(([key, value]) => value !== current.sectionImages[key])
+      .map(([, value]) => value),
+  ];
+
   const createdAt = now();
   const resultVersion = expected + 1;
   const draftId = uid("wav");
@@ -552,9 +562,10 @@ export async function saveAdminWebsiteAppearanceDraft(
     db
       .prepare(
         "UPDATE website_appearance SET current_draft_version_id = ?, " +
-          "version = version + 1, updated_at = ? WHERE id = ? AND version = ?",
+          "version = version + 1, updated_at = ? WHERE id = ? AND version = ? AND " +
+          sharedMediaUrlsAvailableSql,
       )
-      .bind(draftId, createdAt, APPEARANCE_ID, expected),
+      .bind(draftId, createdAt, APPEARANCE_ID, expected, JSON.stringify(newImageUrls)),
     db
       .prepare(
         "INSERT INTO website_appearance_versions (" +

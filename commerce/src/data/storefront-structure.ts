@@ -1,3 +1,5 @@
+import { sharedMediaUrlsAvailableSql } from "./shared-media-attachment";
+import { d1StatementChanged } from "./d1";
 import type {
   D1DatabaseLike,
   D1PreparedStatementLike,
@@ -818,13 +820,13 @@ export async function createAdminStorefrontNode(
     imageUrl,
   };
 
-  await db.batch([
+  const results = await db.batch([
     db
       .prepare(
         "INSERT INTO storefront_nodes (" +
           "id, stable_key, publication_status, current_published_version_id, current_draft_version_id, " +
           "version, created_at, updated_at, archived_at" +
-          ") VALUES (?, ?, 'DRAFT', NULL, ?, 1, ?, ?, NULL)",
+          ") SELECT ?, ?, 'DRAFT', NULL, ?, 1, ?, ?, NULL WHERE " + sharedMediaUrlsAvailableSql,
       )
       .bind(
         nodeId,
@@ -832,13 +834,15 @@ export async function createAdminStorefrontNode(
         versionId,
         timestamp,
         timestamp,
+        JSON.stringify([imageUrl]),
       ),
     db
       .prepare(
         "INSERT INTO storefront_node_versions (" +
           "id, node_id, version_number, name, slug, parent_node_id, sort_order, show_in_navigation, " +
           "short_description, image_url, legacy_path, created_by, created_at, published_at, superseded_at" +
-          ") VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, NULL, NULL)",
+          ") SELECT ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, NULL, NULL " +
+          "FROM storefront_nodes WHERE id = ?",
       )
       .bind(
         versionId,
@@ -852,6 +856,7 @@ export async function createAdminStorefrontNode(
         imageUrl,
         actorEmail,
         timestamp,
+        nodeId,
       ),
     storefrontAuditStatement(db, {
       nodeId,
@@ -863,9 +868,13 @@ export async function createAdminStorefrontNode(
         ? "Owner created a Storefront sub-section draft"
         : "Owner created a Storefront main-section draft",
       createdAt: timestamp,
+      guard: { resultVersion: 1, token: timestamp },
     }),
   ]);
 
+  if (d1StatementChanged(results[0]) === false) {
+    throw new Error("storefront_image_unavailable");
+  }
   return { id: nodeId };
 }
 
@@ -960,9 +969,11 @@ export async function updateAdminStorefrontNode(
     db
       .prepare(
         "UPDATE storefront_nodes SET current_draft_version_id = ?, version = version + 1, updated_at = ? " +
-          "WHERE id = ? AND version = ? AND publication_status <> 'ARCHIVED'",
+          "WHERE id = ? AND version = ? AND publication_status <> 'ARCHIVED' AND " +
+          sharedMediaUrlsAvailableSql,
       )
-      .bind(draftVersionId, timestamp, nodeId, expected),
+      .bind(draftVersionId, timestamp, nodeId, expected,
+        JSON.stringify(imageUrl === current.imageUrl ? [] : [imageUrl])),
   ];
 
   if (!current.draftVersionId) {
