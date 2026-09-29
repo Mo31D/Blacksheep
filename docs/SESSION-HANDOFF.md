@@ -9,7 +9,7 @@ Updated 29 September 2026. Repository Mo31D/Blacksheep; existing main only.
 - Shared Media route/UI extraction published 2b9d553 and 4504c07 with full CI SUCCESS. Product multipart adapters remain by design; external caller/deployed acceptance is pending.
 
 ## Next recommended task
-Current task: staging storefront preview fallback and archived/new membership. Live read-only in-app browser at /all-products.html?commerce-preview=staging showed ready, 146 cards, staging banner and correct canonical. Existing Playwright QA covers live staging feed, dynamic product and API fallback. Added missing simulated archived static HC-004 case in Full range/Gifts; syntax PASS. Publish to trigger Chromium/WebKit staging QA, inspect CI before closing. No D1 write or production route change.
+Staging browser fallback/membership task COMPLETE and published 2853ca7. In-app preview showed ready, 146 cards, staging banner and correct canonical. Browser QA 36562426938 SUCCESS for real staging feed plus browser-local new/archived/API-failure scenarios; Commerce CI 36562426866, Search 36562426836 and Pages 36562426290 SUCCESS. No D1 write or production route change. Next independent task: email retry/idempotency/audit boundaries in Phase 5.
 ## Decisions / risks
 - D1 balances/ledger own stock; reservation and Stocktake services own workflows. Missing expected reservation state must not bypass order concurrency guards; truly reservation-free legacy orders remain supported.
 - New image bytes belong to Shared Media; Product/content versions own references. Preserve historical URLs, atomic attachment guards and ambiguous-failure retention.
