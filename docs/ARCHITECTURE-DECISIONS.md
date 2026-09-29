@@ -111,3 +111,11 @@
 **Why:** Real-schema races proved that a terminal/committed reservation could disappear from a state-filtered lookup while the stale order action still proceeded. Durable reservation history distinguishes this from a genuinely old order.
 
 **Rejected alternative:** Reject every order without a hold (breaks legacy orders), or use another preflight-only check (leaves the same race). No new status flag or shadow reservation store is needed.
+
+## Admin composition root retains security (29 September 2026)
+
+**Decision:** Extract a business-object route area as an internal sub-handler called after the existing Origin/authentication/database guards. Shared-media dependencies are typed and composed at the same root; JSON response/read helpers have one HTTP owner.
+
+**Why:** This reduces coupling without creating a second security policy or changing endpoints, error contracts, storage ownership or frontend behaviour.
+
+**Rejected alternative:** Register an independent media router with copied auth checks, or move business persistence into the HTTP module. Both duplicate established responsibilities.

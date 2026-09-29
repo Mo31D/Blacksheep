@@ -58,3 +58,5 @@ Admin URLs, allowed origins, Turnstile hostname/action and sender address are co
 Completed Stocktake finalization responses are projected from saved session item outcomes (including earlier REVIEW attempts). Repeating finalize reads these outcomes and current inventory snapshots without new writes; batchId is an existing movement batch or null. Order reservation lifecycle concurrency is the next inventory audit boundary.
 
 Order lifecycle mutations keep concurrency guards even if a state-filtered reservation lookup is empty; existing reservation history prevents an expired/consumed/committed hold from falling into the historical no-reservation path. Customer decline verifies unpaid state atomically with its revision transition.
+
+Admin composition boundary: routes/admin.ts owns Origin/session/database checks and dispatches the Media Library area to routes/admin-shared-media.ts only afterward. The sub-handler owns library HTTP contracts and its domain dependency seam; http/admin-json.ts owns the unchanged common JSON readers/private response envelope. Product association routes continue to use the same data owners. No second router or application exists.

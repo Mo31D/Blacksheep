@@ -39,7 +39,7 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 
 ## Phase 3 — Backend and Admin boundaries
 
-- [ ] Extract a cohesive Admin route area with dependency seams and unchanged authorization/error contracts; start with media after lifecycle audit. Do not introduce another router/application.
+- [x] Extract the shared-media Admin route area to routes/admin-shared-media.ts, with typed domain dependencies composed by routes/admin.ts after existing Origin/auth/DB guards. Move existing JSON readers/response helpers once to http/admin-json.ts, preserving historical codes, size limit and private headers. Product media adapters remain. admin-shared-media-routes.test.ts adds ten composition tests for guard order, list filters, authenticated upload, archive/restore errors, deletion retry/finalization and fallback. TypeScript PASS; full suite 70 files / 526 tests PASS. GitHub full gate pending publication.
 - [ ] Extract matching Admin UI responsibilities from `admin/ui.ts` with script syntax and existing browser-contract checks. Keep full Product editing in Products; Stocktake remains the single bulk-count workspace.
 - [ ] Audit quick/full edits for identical validation/version/conflict semantics. Document intentionally independent classification, navigation placement, selling controls and publication.
 

@@ -1,4 +1,6 @@
-import { readProductImageUpload, readSharedMediaImageUpload } from "../http/image-upload";
+import { json, error, readJson, readProductJson } from "../http/admin-json";
+import { handleAdminSharedMediaRequest, sharedMediaMutationError, sharedMediaDefaults, type SharedMediaDependencies } from "./admin-shared-media";
+import { readProductImageUpload } from "../http/image-upload";
 import { uploadSharedMediaImage } from "../data/media-upload";
 import type { D1DatabaseLike } from "../data/d1";
 import {
@@ -78,16 +80,8 @@ import {
 } from "../data/product-media";
 import {
   addSharedMediaReference,
-  archiveAdminSharedMediaAsset,
-  claimSharedMediaObjectDeletion,
-  finalizeSharedMediaObjectDeletion,
   getAdminSharedMediaAsset,
-  listAdminSharedMedia,
-  recordSharedMediaDeleteFailure,
   releaseSharedMediaReferences,
-  restoreAdminSharedMediaAsset,
-  sharedMediaDeleteEligibility,
-  updateAdminSharedMediaAsset,
 } from "../data/shared-media";
 import {
   adjustInventory,
@@ -151,7 +145,7 @@ export interface AdminEnv extends AdminAccessEnv, PaymentNotificationEnv {
   ORDER_RESERVATIONS_ENABLED?: string;
 }
 
-interface AdminDependencies {
+interface AdminDependencies extends SharedMediaDependencies {
   verifyAccessFn: typeof verifyAdminAccess;
   listOrderRevisionsFn: typeof listOrderRevisions;
   createDraftRevisionFromOriginalFn: typeof createDraftRevisionFromOriginal;
@@ -226,6 +220,7 @@ interface AdminDependencies {
 }
 
 const defaults: AdminDependencies = {
+  ...sharedMediaDefaults,
   verifyAccessFn: verifyAdminAccess,
   listOrderRevisionsFn: listOrderRevisions,
   createDraftRevisionFromOriginalFn: createDraftRevisionFromOriginal,
@@ -299,20 +294,6 @@ const defaults: AdminDependencies = {
   listAdminSuppliersFn: listAdminSuppliers,
 };
 
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store",
-      "x-robots-tag": "noindex, nofollow",
-    },
-  });
-}
-
-function error(code: string, status: number, message = code): Response {
-  return json({ error: { code, message } }, status);
-}
 function categoryMutationError(cause: unknown): Response {
   const code = cause instanceof Error ? cause.message : "category_update_failed";
   const messages: Record<string, string> = {
@@ -526,37 +507,6 @@ function productMutationError(cause: unknown): Response {
   return error(code, status, messages[code] ?? "Unable to update product.");
 }
 
-function sharedMediaMutationError(cause: unknown): Response {
-  const code = cause instanceof Error ? cause.message : "shared_media_failed";
-  const notFound = new Set(["shared_media_not_found"]);
-  const conflicts = new Set([
-    "shared_media_not_available",
-    "shared_media_not_restorable",
-    "shared_media_delete_blocked",
-  ]);
-  const messages: Record<string, string> = {
-    shared_media_multipart_required: "Image upload must use multipart form data.",
-    shared_media_file_required: "Choose an image to upload.",
-    shared_media_file_empty: "The selected image is empty.",
-    shared_media_file_too_large: "Image must be 8 MB or smaller.",
-    shared_media_type_invalid: "Use a JPEG, PNG or WebP image.",
-    shared_media_signature_invalid: "The file content does not match its image type.",
-    shared_media_title_too_long: "Image title must be 160 characters or fewer.",
-    shared_media_alt_text_too_long: "Alt text must be 240 characters or fewer.",
-    shared_media_context_invalid: "Choose a valid image use.",
-    shared_media_storage_invalid: "Image storage details are invalid.",
-    shared_media_file_size_invalid: "Image size is invalid.",
-    shared_media_not_found: "Image not found.",
-    shared_media_not_available: "That image is archived. Restore it before reusing it.",
-    shared_media_not_restorable: "That image cannot be restored.",
-    shared_media_delete_blocked: "This image is still referenced and cannot be permanently removed.",
-    shared_media_reference_invalid: "Image reference is invalid.",
-    shared_media_surface_invalid: "Image destination is invalid.",
-  };
-  const status = notFound.has(code) ? 404 : conflicts.has(code) ? 409 : 400;
-  return error(code, status, messages[code] ?? "Unable to update Media Library.");
-}
-
 async function ensureMediaDraft(
   deps: AdminDependencies,
   db: D1DatabaseLike,
@@ -685,26 +635,6 @@ function stocktakeMutationError(cause: unknown): Response {
   };
   const status = notFound.has(code) ? 404 : conflicts.has(code) ? 409 : 400;
   return error(code, status, messages[code] ?? "Unable to update stocktake.");
-}
-
-async function readProductJson(request: Request): Promise<Record<string, unknown>> {
-  const raw = await readJson(request);
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    throw new Error("product_invalid_request");
-  }
-  return raw as Record<string, unknown>;
-}
-
-async function readJson(request: Request): Promise<unknown> {
-  const contentType = request.headers.get("content-type") ?? "";
-  if (!contentType.toLowerCase().startsWith("application/json")) {
-    throw new Error("admin_json_required");
-  }
-  const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > 16 * 1024) {
-    throw new Error("admin_payload_too_large");
-  }
-  return JSON.parse(text);
 }
 
 function adminOriginAllowed(request: Request, url: URL): boolean {
@@ -1120,164 +1050,10 @@ export async function handleAdminRequest(
     return json(result);
   }
 
-  if (url.pathname === "/admin/api/media" && request.method === "GET") {
-    try {
-      const assets = await listAdminSharedMedia(env.DB, {
-        includeArchived: url.searchParams.get("includeArchived") === "1",
-        context: url.searchParams.get("context") ?? undefined,
-        search: url.searchParams.get("q") ?? "",
-      });
-      return json({ assets });
-    } catch (cause) {
-      return sharedMediaMutationError(cause);
-    }
-  }
-
-  if (url.pathname === "/admin/api/media" && request.method === "POST") {
-    if (!env.PRODUCT_MEDIA) {
-      return error(
-        "shared_media_storage_unavailable",
-        503,
-        "Media storage is not configured.",
-      );
-    }
-    try {
-      const upload = await readSharedMediaImageUpload(request);
-      const asset = await uploadSharedMediaImage(env.DB, env.PRODUCT_MEDIA, upload, identity.email);
-      return json({ asset }, 201);
-    } catch (cause) {
-      return sharedMediaMutationError(cause);
-    }
-  }
-
-  const sharedMediaMatch = url.pathname.match(/^\/admin\/api\/media\/([^/]+)$/);
-  if (sharedMediaMatch && request.method === "PATCH") {
-    try {
-      const raw = await readProductJson(request);
-      const asset = await updateAdminSharedMediaAsset(
-        env.DB,
-        decodeURIComponent(sharedMediaMatch[1]),
-        raw,
-        identity.email,
-      );
-      return json({ asset });
-    } catch (cause) {
-      return sharedMediaMutationError(cause);
-    }
-  }
-
-  const sharedMediaArchiveMatch = url.pathname.match(
-    /^\/admin\/api\/media\/([^/]+)\/archive$/,
+  const mediaResponse = await handleAdminSharedMediaRequest(
+    request, { DB: env.DB, PRODUCT_MEDIA: env.PRODUCT_MEDIA }, identity, deps,
   );
-  if (sharedMediaArchiveMatch && request.method === "POST") {
-    try {
-      const asset = await archiveAdminSharedMediaAsset(
-        env.DB,
-        decodeURIComponent(sharedMediaArchiveMatch[1]),
-        identity.email,
-      );
-      return json({ asset });
-    } catch (cause) {
-      return sharedMediaMutationError(cause);
-    }
-  }
-
-  const sharedMediaRestoreMatch = url.pathname.match(
-    /^\/admin\/api\/media\/([^/]+)\/restore$/,
-  );
-  if (sharedMediaRestoreMatch && request.method === "POST") {
-    try {
-      const asset = await restoreAdminSharedMediaAsset(
-        env.DB,
-        decodeURIComponent(sharedMediaRestoreMatch[1]),
-        identity.email,
-      );
-      return json({ asset });
-    } catch (cause) {
-      return sharedMediaMutationError(cause);
-    }
-  }
-
-  if (sharedMediaMatch && request.method === "DELETE") {
-    if (!env.PRODUCT_MEDIA) {
-      return error(
-        "shared_media_storage_unavailable",
-        503,
-        "Media storage is not configured.",
-      );
-    }
-    const assetId = decodeURIComponent(sharedMediaMatch[1]);
-    try {
-      const claim = await claimSharedMediaObjectDeletion(
-        env.DB,
-        assetId,
-        identity.email,
-      );
-      if (claim.alreadyDeleted) {
-        return json({ ok: true, alreadyDeleted: true });
-      }
-
-      try {
-        await env.PRODUCT_MEDIA.delete(claim.storageKey);
-      } catch (storageCause) {
-        if (claim.claimToken) {
-          try {
-            await recordSharedMediaDeleteFailure(
-              env.DB,
-              assetId,
-              claim.claimToken,
-              storageCause,
-            );
-          } catch {
-            // The claim itself remains durable; retrying DELETE is safe.
-          }
-        }
-        return error(
-          "shared_media_delete_retry",
-          503,
-          "Storage deletion did not complete. Nothing was marked deleted; retry permanent delete.",
-        );
-      }
-
-      try {
-        await finalizeSharedMediaObjectDeletion(env.DB, claim, identity.email);
-      } catch {
-        return error(
-          "shared_media_delete_finalize_pending",
-          503,
-          "The file was removed from storage, but metadata finalization is pending. Retry permanent delete to finish safely.",
-        );
-      }
-      return json({ ok: true, retryable: false });
-    } catch (cause) {
-      if (cause instanceof Error && cause.message === "shared_media_delete_blocked") {
-        try {
-          const eligibility = await sharedMediaDeleteEligibility(env.DB, assetId);
-          return json(
-            {
-              error: {
-                code: "shared_media_delete_blocked",
-                message:
-                  "Archive is safe, but permanent deletion is blocked while this image is referenced.",
-                blockers: eligibility.blockers,
-              },
-            },
-            409,
-          );
-        } catch {
-          return sharedMediaMutationError(cause);
-        }
-      }
-      if (cause instanceof Error && cause.message === "shared_media_delete_claim_failed") {
-        return error(
-          "shared_media_delete_retry",
-          503,
-          "Could not obtain a safe deletion claim. Retry permanent delete.",
-        );
-      }
-      return sharedMediaMutationError(cause);
-    }
-  }
+  if (mediaResponse) return mediaResponse;
 
   if (
     url.pathname === "/admin/api/appearance" &&

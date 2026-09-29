@@ -2,27 +2,25 @@
 Updated 29 September 2026. Repository Mo31D/Blacksheep; existing main only.
 
 ## Current phase / last completed
-- Previous main verified: fe4790d. Its Commerce CI 36470349358, Search 36470348637 and Pages 36470348575 all completed SUCCESS, including full check and browser regression.
-- Stocktake resilience source phase CLOSED: receipt recovery (9d87462), session/write fencing (fe4790d), and completed-response retry fix 465610f. Completion uses saved cumulative item outcomes without stock writes; first completion and retries share the projection.
-- Published implementation 465610f: stocktake.ts and stocktake-recovery.test.ts; three failures reproduced, four new recovery cases. TypeScript PASS; 66 files / 477 tests PASS. Linux Commerce CI 36529470545 SUCCESS, including full check and browser regression; Search 36529470522 and Pages 36529469805 SUCCESS.
-- Current phase: reservation lifecycle. Release/consume proof completed: 15 real-schema cases pass, TypeScript PASS. No defect reproduced or production code changed. Tests and fixture recorded in INVENTORY-WRITE-AUDIT.md; 355827a passed Commerce CI 36530647707, Search 36530647828 and Pages 36530647230. Return proof now complete locally: ten cases and TypeScript pass; no production code change. 848876d passed Commerce CI 36531316256, Search 36531316234 and Pages 36531315582. Caller composition completed locally: four reproduced races fixed in admin-orders.ts/customer-review.ts; 14 new real-schema cases, TypeScript and full 516-test suite PASS. Published 048432e: Commerce CI 36534277220, Search 36534277180 and Pages 36534275900 SUCCESS, including full check and browser regression.
+- Phase 3: shared-media Admin route extraction completed locally. New routes/admin-shared-media.ts owns library HTTP contracts; existing admin.ts retains Origin/auth/DB guards. http/admin-json.ts owns unchanged JSON readers/responses. Product adapters remain. TypeScript PASS; 70 files / 526 tests PASS, including ten new composition cases. Publish and verify the current batch before next work.
+- Reservation source tasks COMPLETE: release/consume proof 355827a (CI 36530647707), return proof 848876d (CI 36531316256), four caller-race fixes 048432e (CI 36534277220). All full checks/browser regression, Search and Pages SUCCESS. Details: INVENTORY-WRITE-AUDIT.md.
+- Source media caller audit 4bc7ff8 passed Search 36535024251 and Pages 36535023864; docs-only commit did not trigger Commerce CI. Six relevant suites / 39 tests PASS. See MEDIA-CALLER-AUDIT.md.
+- Stocktake code phase CLOSED (465610f, CI 36529470545 SUCCESS). Do not revisit unless a new test proves a high-risk defect.
 
 ## Next recommended task
-Source media caller audit completed next: MEDIA-CALLER-AUDIT.md, six suites / 39 tests PASS. Retain active multipart replacement and compatibility add. After publishing/verifying this documentation, the next independent task is Phase 3: extract the shared-media Admin route area with unchanged authorization/error/transport contracts. External/deployed caller acceptance and staging visual checks remain open; do not retire endpoints. Reservation source tasks are complete. Stocktake remains closed unless a new test proves a high-risk defect. Stocktake source work is closed; live staging acceptance is still pending. No schema migration or production data changes in this batch.
+After current implementation passes GitHub, extract matching shared-media UI responsibilities from admin/ui.ts with unchanged generated-script/browser contracts. Then follow the next open checklist item (quick/full edit semantics). Do not retire Product multipart routes: replacement is active and external add consumers are unverified.
 
 ## Decisions / risks
-- D1 inventory balances/movements are authoritative. Stocktake owns workflow, not a second stock counter. Receipt lookup fails closed on ambiguous/type/quantity/key mismatches.
-- Product maker and shop classification are distinct (BRAND-OWNERSHIP-AUDIT.md).
-- Shared Media owns new uploaded bytes; Product/content versions own references. Preserve historical URLs, ownership guards and ambiguous-failure retention.
-- No Worker deployment, schema migration, business-data mutation or synthetic email in this batch.
-- Production clean Product routes remain disabled. Prior staging inspection showed older UI than main; deployed SHA was unknown. Do not reimplement source fixes because of deployment drift.
-- Full historical validation evidence is in ARCHITECTURE-REHABILITATION-CHECKLIST.md. Local Windows workerd crashes at D1 startup; use Linux CI for runtime/migration gates.
+- D1 balances/ledger own stock; reservation and Stocktake services own workflows. Missing expected reservation state must not bypass order concurrency guards; truly reservation-free legacy orders remain supported.
+- New image bytes belong to Shared Media; Product/content versions own references. Preserve historical URLs, atomic attachment guards and ambiguous-failure retention.
+- Product maker differs from Brand/Range classification (BRAND-OWNERSHIP-AUDIT.md).
+- Production clean Product routes remain disabled. Source tests do not prove deployed SHA or live acceptance. Local Windows workerd fails at D1 startup; Linux CI covers runtime/migrations.
+- No Worker deployment, schema migration, business-data mutation or synthetic customer email in these tasks.
 
 ## MANUAL ACTION REQUIRED
-Deploy reviewed candidate to staging and accept Product/library/Section/Homepage/Appearance workflows and inventory/Stocktake behaviour before guarded production promotion. Source config does not prove deployed state. No new secrets or schema required for this batch.
+At the deployment/acceptance phase, verify candidate SHA and external media callers, then accept Product/library/Section/Homepage/Appearance and inventory/order workflows on staging. Production deployment and production-data changes require explicit approval at that phase. Do not use production for fixture writes.
 
 ## Git / workstation
-- Fetch newest main before edits; no new branches or force push.
-- GitHub connector publishes an identical local tree when Git credential manager stalls; fetch/rebase skips equivalent patches.
-- Windows sparse checkout excludes only historical images/romneys/Con.png; preserve it in Git.
-- Bundled Git needs GIT_EXEC_PATH at mingw64/bin. Local filesystem writes require tool escalation.
+- Fetch latest main before edits; no new branches/force push. Publish each task and verify GitHub checks before the next.
+- GitHub connector publishes an identical local tree when credential manager stalls; fetch/rebase skips equivalent patches.
+- Windows sparse checkout excludes only historical images/romneys/Con.png; preserve it in Git. Bundled Git needs GIT_EXEC_PATH at mingw64/bin. Writes/tests may require tool escalation.
