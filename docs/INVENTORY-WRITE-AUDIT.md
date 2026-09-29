@@ -70,4 +70,8 @@ Next independently executable work:
 
 ### Release/consume proof completed
 
-reservation-transitions-concurrency.test.ts uses helpers/reservation-fixture.ts and actual all-migration SQLite statements. Fifteen cases verify ACTIVE/COMMITTED release, COMMITTED consume, tracked/all-untracked success and complete rollback on competing second-balance/reservation/order changes. The first balance plus composed earlier order/event writes are included in state equality. No production defect reproduced; retain existing NOT NULL guard. TypeScript and all 15 targeted cases pass. GitHub full validation pending publication.
+reservation-transitions-concurrency.test.ts uses helpers/reservation-fixture.ts and actual all-migration SQLite statements. Fifteen cases verify ACTIVE/COMMITTED release, COMMITTED consume, tracked/all-untracked success and complete rollback on competing second-balance/reservation/order changes. The first balance plus composed earlier order/event writes are included in state equality. No production defect reproduced; retain existing NOT NULL guard. TypeScript and all 15 targeted cases pass. Published 355827a: Commerce CI 36530647707, Search 36530647828 and Pages 36530647230 SUCCESS. Full local suite 492/492 PASS.
+
+### Return proof completed
+
+reservation-return-concurrency.test.ts executes returnConsumedReservationToStock against the shared all-migrations fixture. Ten cases prove tracked/untracked replay, racing return, lost committed response, preservation of later stock adjustments, rollback on stale second balance/refund/order/reservation guards and rejection before refund. Exactly one RETURN per variant and one event are asserted. No defect reproduced; TypeScript and 10 targeted tests pass. Full GitHub gate pending publication.
