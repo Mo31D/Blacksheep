@@ -1,3 +1,4 @@
+import { commitProductMutationBatch } from "./product-mutation";
 import { sharedMediaStorageAvailableSql } from "./shared-media-attachment";
 
 import type { D1DatabaseLike, D1PreparedStatementLike } from "./d1";
@@ -144,9 +145,9 @@ function beginMediaAttachment(
   storageKey: string,
 ): D1PreparedStatementLike {
   return db.prepare(
-    "UPDATE products SET version = version + 1, updated_at = ? WHERE id = ? AND version = ? " +
-    "AND " + sharedMediaStorageAvailableSql,
-  ).bind(token, productId, expected, storageKey);
+    "UPDATE products SET version = CASE WHEN version = ? AND " + sharedMediaStorageAvailableSql +
+    " THEN version + 1 ELSE NULL END, updated_at = ? WHERE id = ?",
+  ).bind(expected, storageKey, token, productId);
 }
 
 export async function addAdminProductMedia(
@@ -184,7 +185,7 @@ export async function addAdminProductMedia(
   const resultVersion = expected + 1;
   const mediaId = raw.mediaId?.trim() || uid("med");
 
-  await db.batch([
+  await commitProductMutationBatch(db, [
     beginMediaAttachment(db, token, productId, expected, raw.storageKey),
     db
       .prepare(
@@ -324,9 +325,9 @@ export async function updateAdminProductMedia(
   const statements: D1PreparedStatementLike[] = [
     db
       .prepare(
-        "UPDATE products SET version = version + 1, updated_at = ? WHERE id = ? AND version = ?",
+        "UPDATE products SET version = CASE WHEN version = ? THEN version + 1 ELSE NULL END, updated_at = ? WHERE id = ?",
       )
-      .bind(token, productId, expected),
+      .bind(expected, token, productId),
   ];
 
   if (isPrimary) {
@@ -386,7 +387,7 @@ export async function updateAdminProductMedia(
     }),
   );
 
-  await db.batch(statements);
+  await commitProductMutationBatch(db, statements);
   await verifyProductToken(db, productId, resultVersion, token);
 }
 
@@ -439,9 +440,9 @@ export async function reorderAdminProductMedia(
   const statements: D1PreparedStatementLike[] = [
     db
       .prepare(
-        "UPDATE products SET version = version + 1, updated_at = ? WHERE id = ? AND version = ?",
+        "UPDATE products SET version = CASE WHEN version = ? THEN version + 1 ELSE NULL END, updated_at = ? WHERE id = ?",
       )
-      .bind(token, productId, expected),
+      .bind(expected, token, productId),
   ];
 
   mediaIds.forEach((mediaId, index) => {
@@ -478,7 +479,7 @@ export async function reorderAdminProductMedia(
     }),
   );
 
-  await db.batch(statements);
+  await commitProductMutationBatch(db, statements);
   await verifyProductToken(db, productId, resultVersion, token);
 }
 
@@ -539,9 +540,9 @@ export async function removeAdminProductMedia(
   const statements: D1PreparedStatementLike[] = [
     db
       .prepare(
-        "UPDATE products SET version = version + 1, updated_at = ? WHERE id = ? AND version = ?",
+        "UPDATE products SET version = CASE WHEN version = ? THEN version + 1 ELSE NULL END, updated_at = ? WHERE id = ?",
       )
-      .bind(token, productId, expected),
+      .bind(expected, token, productId),
     db
       .prepare(
         q(
@@ -622,7 +623,7 @@ export async function removeAdminProductMedia(
     }),
   );
 
-  await db.batch(statements);
+  await commitProductMutationBatch(db, statements);
   await verifyProductToken(db, productId, resultVersion, token);
 
   const mediaRow = await db
@@ -718,7 +719,7 @@ export async function replaceAdminProductMedia(
   const token = now();
   const resultVersion = expected + 1;
 
-  await db.batch([
+  await commitProductMutationBatch(db, [
     beginMediaAttachment(db, token, productId, expected, raw.storageKey),
     db
       .prepare(

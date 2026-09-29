@@ -1,3 +1,4 @@
+import { commitProductMutationBatch } from "./product-mutation";
 
 import type { D1DatabaseLike, D1PreparedStatementLike } from "./d1";
 import { DEFAULT_VAT_RATE_BASIS_POINTS, resolveAdminSupplier } from "./inventory-valuation";
@@ -18,23 +19,6 @@ const SELL_STATUSES = new Set([
 ]);
 
 const q = (...parts: string[]) => parts.join(" ");
-
-// The first product UPDATE assigns NULL to the required version on conflict.
-// D1 then rolls back the whole batch before timestamp-gated dependent writes;
-// updated_at is a timestamp, not a unique ownership token.
-async function commitProductEditBatch(
-  db: D1DatabaseLike,
-  statements: D1PreparedStatementLike[],
-): Promise<void> {
-  try {
-    await db.batch(statements);
-  } catch (cause) {
-    if (cause instanceof Error && cause.message.includes("NOT NULL constraint failed: products.version")) {
-      throw new Error("product_version_conflict");
-    }
-    throw cause;
-  }
-}
 
 function uid(prefix: string): string {
   return prefix + "_" + crypto.randomUUID();
@@ -573,7 +557,7 @@ export async function updateAdminVariant(
   };
 
   try {
-    await commitProductEditBatch(db, [
+    await commitProductMutationBatch(db, [
       db
         .prepare(
           q(
@@ -749,7 +733,7 @@ export async function quickEditAdminProduct(
   };
 
   try {
-    await commitProductEditBatch(db, [
+    await commitProductMutationBatch(db, [
       db
         .prepare(
           q(
@@ -1215,7 +1199,7 @@ export async function saveAdminProductDraft(
     }),
   );
 
-  await commitProductEditBatch(db, statements);
+  await commitProductMutationBatch(db, statements);
   await verifyProductToken(db, productId, resultVersion, token);
 }
 
@@ -1307,11 +1291,11 @@ export async function publishAdminProduct(
         q(
           "UPDATE products SET current_published_version_id = current_draft_version_id,",
           "current_draft_version_id = NULL, publication_status = 'ACTIVE',",
-          "version = version + 1, updated_at = ?",
-          "WHERE id = ? AND version = ? AND current_draft_version_id = ?",
+          "version = CASE WHEN version = ? AND current_draft_version_id = ? THEN version + 1 ELSE NULL END, updated_at = ?",
+          "WHERE id = ?",
         ),
       )
-      .bind(token, productId, expected, current.draftVersionId),
+      .bind(expected, current.draftVersionId, token, productId),
     db
       .prepare(
         q(
@@ -1359,7 +1343,7 @@ export async function publishAdminProduct(
     }),
   );
 
-  await db.batch(statements);
+  await commitProductMutationBatch(db, statements);
   await verifyProductToken(db, productId, resultVersion, token);
 }
 
@@ -1749,17 +1733,17 @@ export async function archiveAdminProduct(
     archivedAt: token,
   };
 
-  await db.batch([
+  await commitProductMutationBatch(db, [
     db
       .prepare(
         q(
           "UPDATE products SET publication_status = 'ARCHIVED',",
           "sell_status = 'NOT_FOR_SALE', online_ordering_enabled = 0,",
-          "archived_at = ?, version = version + 1, updated_at = ?",
-          "WHERE id = ? AND version = ? AND archived_at IS NULL",
+          "archived_at = ?, version = CASE WHEN version = ? AND archived_at IS NULL THEN version + 1 ELSE NULL END, updated_at = ?",
+          "WHERE id = ?",
         ),
       )
-      .bind(token, token, productId, expected),
+      .bind(token, expected, token, productId),
     auditStatement(db, {
       productId,
       eventType: "PRODUCT_ARCHIVED",

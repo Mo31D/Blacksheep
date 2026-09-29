@@ -64,3 +64,5 @@ Admin composition boundary: routes/admin.ts owns Origin/session/database checks 
 Admin UI composition: admin/shared-media.ts owns library panel/state/upload/picker/event-binding fragments. admin/ui.ts inserts them in the existing script scope and DOM positions; navigation, shared helpers/CSS and Product/Appearance/Section draft adapters remain in the shell. Generated production/staging HTML remained byte-identical during extraction.
 
 Product edit concurrency: product-editor.ts owns shared draft/quick/variant validation and the atomic first-write version fence. A stale expected version aborts the entire batch with the existing conflict contract; updated_at alone is not ownership proof. See PRODUCT-EDIT-OWNERSHIP-AUDIT.md for field ownership and bounded follow-up coverage.
+
+Product lifecycle/media mutations share product-mutation.ts batch conflict translation. Product editor and media services each own their atomic first-write predicates; version conflicts roll back all content, association and audit writes before any object-deletion permission is returned.
