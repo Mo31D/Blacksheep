@@ -536,9 +536,9 @@ export async function applyAdminOrderUpdate(
 
   values.push(order.id);
 
-  const guardedLifecycle = Boolean(
-    options.inventoryReservations && lifecycle && reservationPlan,
-  );
+  // A missing expected hold may mean a competing transition already won.
+  // Only genuinely reservation-free legacy revisions may use the no-hold path.
+  const guardedLifecycle = Boolean(options.inventoryReservations && lifecycle);
   const update = guardedLifecycle
     ? db
         .prepare(
@@ -546,9 +546,15 @@ export async function applyAdminOrderUpdate(
           SET ${assignments.join(", ")}
           WHERE id = ?
             AND status = ?
-            AND payment_status = ?`,
+            AND payment_status = ?
+            ${!reservationPlan ? "AND NOT EXISTS (SELECT 1 FROM inventory_reservations WHERE revision_id = ?)" : ""}`,
         )
-        .bind(...values, order.status, order.paymentStatus)
+        .bind(
+          ...values,
+          order.status,
+          order.paymentStatus,
+          ...(!reservationPlan ? [order.activeRevisionId] : []),
+        )
     : db
         .prepare(`UPDATE orders SET ${assignments.join(", ")} WHERE id = ?`)
         .bind(...values);
@@ -596,6 +602,8 @@ export async function applyAdminOrderUpdate(
     }
   }
 
+  // Without reservation statements, this event immediately follows the order
+  // UPDATE. changes() prevents a stale no-op from borrowing a winner's timestamp.
   const event = guardedLifecycle
     ? db
         .prepare(
@@ -611,7 +619,7 @@ export async function applyAdminOrderUpdate(
             created_at
           )
           SELECT ?, ?, ?, ?, 'admin', ?, ?, ?, ?
-          WHERE EXISTS (
+          WHERE ${!reservationPlan ? "changes() > 0 AND " : ""}EXISTS (
             SELECT 1
             FROM orders
             WHERE id = ?

@@ -540,7 +540,9 @@ export async function declineCustomerReview(
             declined_at = ?,
             version = ?,
             mutation_token = ?
-        WHERE id = ? AND version = ? AND state = ?`,
+        WHERE id = ? AND version = ? AND state = ?
+          AND EXISTS (SELECT 1 FROM orders WHERE id = ?
+            AND payment_status IN ('UNPAID', 'PAYMENT_REQUESTED'))`,
       )
       .bind(
         now,
@@ -549,6 +551,7 @@ export async function declineCustomerReview(
         row.revisionId,
         row.revisionVersion,
         row.revisionState,
+        row.orderId,
       ),
   ];
 

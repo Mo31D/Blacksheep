@@ -103,3 +103,11 @@
 **Why:** The completed session is already the durable workflow receipt. Repeated requests must preserve stock and display accurate totals, including earlier review rounds.
 
 **Rejected alternative:** Reapply counts, invent a batch ID, return empty success arrays, or add a second persisted response store. These either risk stock, misrepresent results, or duplicate authoritative session state.
+
+## A missing lifecycle hold does not imply a legacy order (29 September 2026)
+
+**Decision:** Keep Admin order concurrency guards active when the expected reservation plan is absent; allow the no-plan write only if the revision has no reservation history. Couple its event to the immediately preceding successful update. Customer decline checks current unpaid state in the revision write.
+
+**Why:** Real-schema races proved that a terminal/committed reservation could disappear from a state-filtered lookup while the stale order action still proceeded. Durable reservation history distinguishes this from a genuinely old order.
+
+**Rejected alternative:** Reject every order without a hold (breaks legacy orders), or use another preflight-only check (leaves the same race). No new status flag or shadow reservation store is needed.
