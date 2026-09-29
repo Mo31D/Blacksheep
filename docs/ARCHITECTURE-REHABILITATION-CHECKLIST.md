@@ -73,7 +73,7 @@ This phase is scheduled after Phase 5 and before legacy cleanup/release. Keep th
 ## Phase 6 — Proven legacy cleanup
 
 - [x] Inventory `.b64`, restore assets, `loader.js` and legacy scripts against runtime HTML, generators, workflows and deployed content. `LEGACY-ASSET-REFERENCE-AUDIT.md` lists all seven archives, loader and two restore SVGs, decoded-vs-current evidence and the `router.b64` replacement gap. Search of 181 repository HTML pages plus tracked CSS/JS/generators/workflows found no active reference beyond loader's own archive fetch. Read-only live homepage, Full range and Product samples load direct current assets. `site.restore.b64` is corrupt. Search Readiness PASS (146 products / 17 active pages / 166 sitemap URLs / zero placeholders), Product Core validation PASS (146 products / 136 media). Published `960c07e`: Search 36614115301 and Pages 36614115032 SUCCESS. No deletion: external/cached consumers and router replacement remain unverified. No runtime code or business data changed.
-- [ ] Remove historical compatibility paths only after data migration and consumers are verified; keep canonical public URLs and history references valid.
+- [ ] Remove historical compatibility paths only after data migration and consumers are verified; keep canonical public URLs and history references valid. Read-only route parity is complete: `router.b64`'s 23 paths and three redirects all have standalone HTML counterparts (see `LEGACY-ASSET-REFERENCE-AUDIT.md`). Current live sample pages do not use `loader.js`. **MANUAL ACTION REQUIRED:** obtain time-bounded deployed request/reference evidence for loader/archive/restore paths and old cached HTML before deleting; external consumers cannot be ruled out from source searches. No deletion is authorized by the current evidence.
 
 ## Phase 7 — Validation and release
 
@@ -82,6 +82,8 @@ This phase is scheduled after Phase 5 and before legacy cleanup/release. Keep th
 - [ ] Check Linux Commerce CI on the pushed implementation SHA, then staging upload/auth/order regression and guarded production promotion separately. No Worker deployment or business-data D1/R2 mutation has been performed. Read-only staging browser inspection created/revoked an authentication session.
 
 ## MANUAL ACTION REQUIRED
+
+- Before Phase 6 retirement, inspect Cloudflare request logs/analytics (or an equivalent deployed reference inventory) for `assets/loader.js`, `assets/*.b64` and `assets/sprites/*restore.svg`, including any old cached HTML that might still call them. Route-path parity exists, but outside clients are unknown. Do not delete until this gate is recorded.
 
 - After an authorized staging Worker deployment with migration 0025, verify Appearance draft/preview/publish/restore and Winter/Christmas on staging desktop/mobile, including slow-network and low-memory/Save-Data behaviour. Current source/CI/local-fixture proof is not deployed acceptance. Production Worker promotion and production business-data changes require explicit approval.
 

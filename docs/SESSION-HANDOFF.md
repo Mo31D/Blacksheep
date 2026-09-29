@@ -19,7 +19,7 @@ Updated 29 September 2026. Repository Mo31D/Blacksheep; existing main only.
 - Shared Media route/UI extraction published 2b9d553 and 4504c07 with full CI SUCCESS. Product multipart adapters remain by design; external caller/deployed acceptance is pending.
 
 ## Next recommended task
-Current task: Phase 6 second cleanup item, assess historical compatibility paths against replacement and consumer gates. Phase 5A code/CI slices are complete; staging theme acceptance remains a manual release action before production promotion.
+Current task: Phase 6 second cleanup item is gated on deployed consumer evidence. Read-only route parity found all 23 router paths and three redirects have standalone HTML counterparts; see `LEGACY-ASSET-REFERENCE-AUDIT.md`. Do not delete loader/archive/restore assets yet. Continue independent Phase 7 source/CI validation and stage acceptance planning without production deployment; Phase 5A staging theme acceptance remains manual.
 ## Decisions / risks
 - D1 balances/ledger own stock; reservation and Stocktake services own workflows. Missing expected reservation state must not bypass order concurrency guards; truly reservation-free legacy orders remain supported.
 - New image bytes belong to Shared Media; Product/content versions own references. Preserve historical URLs, atomic attachment guards and ambiguous-failure retention.
@@ -28,6 +28,7 @@ Current task: Phase 6 second cleanup item, assess historical compatibility paths
 - No Worker deployment, schema migration, business-data mutation or synthetic customer email in these tasks. Staging recipient isolation is currently absent in deployed settings; do not exercise mail with real addresses.
 
 ## MANUAL ACTION REQUIRED
+Before legacy asset retirement, inspect deployed request logs/analytics or an equivalent source for old `loader.js`, `.b64` and restore-SVG consumers, including cached historical HTML. Current source/live samples are insufficient to prove nobody uses them.
 At the deployment/acceptance phase, verify candidate SHA and external media callers, then accept Product/library/Section/Homepage/Appearance and inventory/order workflows on staging. Production deployment and production-data changes require explicit approval at that phase. Do not use production for fixture writes.
 Before staging email acceptance, choose and configure a safe test mailbox/allowlist and verify the new source guard after authorized staging deployment. Deployed staging currently shares the production owner recipient; no address or secret is recorded here.
 Configure `STAGING_EMAIL_ALLOWLIST` as a staging-only Worker secret at release. An absent allowlist intentionally blocks staging/preview mail, including Admin email codes; password login remains available. The current deployed Worker does not include the guard.
