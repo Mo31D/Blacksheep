@@ -72,7 +72,7 @@ This phase is scheduled after Phase 5 and before legacy cleanup/release. Keep th
 
 ## Phase 6 — Proven legacy cleanup
 
-- [ ] Inventory `.b64`, restore assets, `loader.js` and legacy scripts against runtime HTML, generators, workflows and deployed content. Record replacement and reference evidence before deleting anything.
+- [x] Inventory `.b64`, restore assets, `loader.js` and legacy scripts against runtime HTML, generators, workflows and deployed content. `LEGACY-ASSET-REFERENCE-AUDIT.md` lists all seven archives, loader and two restore SVGs, decoded-vs-current evidence and the `router.b64` replacement gap. Search of 181 repository HTML pages plus tracked CSS/JS/generators/workflows found no active reference beyond loader's own archive fetch. Read-only live homepage, Full range and Product samples load direct current assets. `site.restore.b64` is corrupt. Search Readiness PASS (146 products / 17 active pages / 166 sitemap URLs / zero placeholders), Product Core validation PASS (146 products / 136 media). No deletion: external/cached consumers and router replacement remain unverified. No runtime code or business data changed.
 - [ ] Remove historical compatibility paths only after data migration and consumers are verified; keep canonical public URLs and history references valid.
 
 ## Phase 7 — Validation and release
