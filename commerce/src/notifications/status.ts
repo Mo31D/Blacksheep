@@ -5,6 +5,7 @@ import {
   recordOutboundEmailAudit,
 } from "../data/email-messages";
 import { resolveEmailSender, type EmailProviderEnv } from "./email-provider";
+import { EmailSendFailure, sendEmailWithRetry } from "./send-attempt";
 import {
   emailMoney,
   escapeEmailHtml,
@@ -130,68 +131,57 @@ export async function notifyLifecycleUpdate(
     refunded_and_cancelled: "REFUND_CANCELLATION_EMAIL",
   }[kind];
 
-  for (let attemptNumber = 1; attemptNumber <= 2; attemptNumber += 1) {
-    let result: unknown;
-    try {
-      result = await resolved.sender.send({
-        from: { email: env.ORDER_EMAIL_FROM, name: "The Black Sheep Shop" },
-        to: { email: order.customerEmail, name: order.customerName },
-        replyTo: {
-          email: env.ORDER_EMAIL_FROM,
-          name: "The Black Sheep Shop",
-        },
-        subject: copy.subject,
-        text: message.text,
-        html: message.html,
-      });
-    } catch {
-      if (attemptNumber === 2) {
-        try {
-          await recordOrderEvent(env.DB, {
-            orderId: order.id,
-            eventType: `${eventPrefix}_FAILED`,
-            metadata: {
-              provider: resolved.provider,
-              attempts: attemptNumber,
-              error: "send_failed",
-            },
-          });
-          await recordOutboundEmailAudit(env.DB, {
-            orderId: order.id,
-            subject: copy.subject,
-            body: message.text,
-            provider: resolved.provider,
-            deliveryStatus: "FAILED",
-          });
-        } catch {
-          // Preserve the provider failure even if audit storage is unavailable.
-        }
-      }
-      continue;
-    }
-
-    const providerMessageId = providerMessageIdFromResult(result);
+  let result: unknown;
+  let attemptNumber: number;
+  try {
+    ({ result, attempts: attemptNumber } = await sendEmailWithRetry(resolved.sender, {
+      from: { email: env.ORDER_EMAIL_FROM, name: "The Black Sheep Shop" },
+      to: { email: order.customerEmail, name: order.customerName },
+      replyTo: {
+        email: env.ORDER_EMAIL_FROM,
+        name: "The Black Sheep Shop",
+      },
+      subject: copy.subject,
+      text: message.text,
+      html: message.html,
+    }));
+  } catch (failure) {
+    const attempts = failure instanceof EmailSendFailure ? failure.attempts : 1;
     try {
       await recordOrderEvent(env.DB, {
         orderId: order.id,
-        eventType: `${eventPrefix}_SENT`,
-        metadata: {
-          provider: resolved.provider,
-          attempts: attemptNumber,
-          providerMessageId,
-        },
+        eventType: `${eventPrefix}_FAILED`,
+        metadata: { provider: resolved.provider, attempts, error: "send_failed" },
       });
       await recordOutboundEmailAudit(env.DB, {
         orderId: order.id,
         subject: copy.subject,
         body: message.text,
         provider: resolved.provider,
-        providerMessageId,
-        deliveryStatus: "SENT",
+        deliveryStatus: "FAILED",
       });
     } catch {
-      // Never resend a successful customer email because audit storage failed.
+      // Preserve the provider failure even if audit storage is unavailable.
     }
     return;
+  }
+
+  const providerMessageId = providerMessageIdFromResult(result);
+  try {
+    await recordOrderEvent(env.DB, {
+      orderId: order.id,
+      eventType: `${eventPrefix}_SENT`,
+      metadata: { provider: resolved.provider, attempts: attemptNumber, providerMessageId },
+    });
+    await recordOutboundEmailAudit(env.DB, {
+      orderId: order.id,
+      subject: copy.subject,
+      body: message.text,
+      provider: resolved.provider,
+      providerMessageId,
+      deliveryStatus: "SENT",
+    });
+  } catch {
+    // Never resend a successful customer email because audit storage failed.
   }
 }

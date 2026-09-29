@@ -24,6 +24,7 @@ describe("ResendEmailSender", () => {
       subject: "Order received",
       text: "Test",
       html: "<p>Test</p>",
+      idempotencyKey: "order/order-1/acknowledgement",
     });
 
     expect(calls).toHaveLength(1);
@@ -31,6 +32,7 @@ describe("ResendEmailSender", () => {
     expect(calls[0].init?.headers).toMatchObject({
       Authorization: "Bearer re_test_secret",
       "Content-Type": "application/json",
+      "Idempotency-Key": "order/order-1/acknowledgement",
     });
 
     const body = JSON.parse(String(calls[0].init?.body));

@@ -36,6 +36,7 @@ export class ResendEmailSender implements SendEmailBindingLike {
     subject: string;
     text: string;
     html: string;
+    idempotencyKey?: string;
   }): Promise<unknown> {
     if (!/^re_[A-Za-z0-9_-]+$/.test(this.apiKey)) {
       throw new ResendSendError(0, "invalid_api_key_format");
@@ -46,6 +47,7 @@ export class ResendEmailSender implements SendEmailBindingLike {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json",
+        ...(message.idempotencyKey ? { "Idempotency-Key": message.idempotencyKey } : {}),
       },
       body: JSON.stringify({
         from: mailbox(message.from),

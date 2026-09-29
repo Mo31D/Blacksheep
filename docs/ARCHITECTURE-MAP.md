@@ -15,7 +15,7 @@ Reviewed against `main` at `1d08f3b` on 27 September 2026. This describes source
 | Images | R2 owns bytes; D1 shared assets/references and product media own identity/associations | `shared-media.ts`, `product-media.ts`; `/media/:id` resolves both identities. Repository images remain valid historical/static assets. |
 | Orders / revisions / refunds | D1 orders and audit/history; dedicated `data/` modules | Admin Orders, customer review and reporting. BUSINESS/TEST/E2E classification separates operational reports. |
 | Authentication | `security/admin-access.ts`, D1 login/session records, environment secrets | Password and email-code sign-in converge on server sessions; Admin route boundary authorizes operations. |
-| Email | Notification services own message intent; provider adapter owns delivery | Resend sends messages and returns delivery events; D1 owns audit/delivery state. `EMAIL` binding adapter takes precedence if supplied; Wrangler currently configures Resend through secrets rather than this binding. |
+| Email | Notification services own message intent; `send-attempt.ts` owns retry policy; provider adapter owns delivery | Resend sends messages with a stable per-send retry key and returns delivery events; signed webhook claims and D1 own audit/delivery state. `EMAIL` binding adapter takes precedence if supplied; Wrangler currently configures Resend through secrets rather than this binding. See `EMAIL-DELIVERY-OWNERSHIP-AUDIT.md` for limits. |
 | Code and static publication | GitHub `main` | Source, static snapshot, generated pages, CI and release workflows. D1 remains commerce authority. |
 
 ## Actual flows

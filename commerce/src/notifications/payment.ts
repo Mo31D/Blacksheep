@@ -5,6 +5,7 @@ import {
   recordOutboundEmailAudit,
 } from "../data/email-messages";
 import { resolveEmailSender, type EmailProviderEnv } from "./email-provider";
+import { EmailSendFailure, retryEmailOperation } from "./send-attempt";
 import {
   emailMoney,
   escapeEmailHtml,
@@ -43,63 +44,52 @@ async function attempt(
   eventPrefix: string,
   provider: string,
   audit: { subject: string; text: string },
-  send: () => Promise<unknown>,
+  send: (idempotencyKey: string) => Promise<unknown>,
 ): Promise<void> {
   if (!env.DB || !env.ORDER_EMAIL_FROM) return;
 
-  for (let attemptNumber = 1; attemptNumber <= 2; attemptNumber += 1) {
-    let result: unknown;
-    try {
-      result = await send();
-    } catch {
-      if (attemptNumber === 2) {
-        try {
-          await recordOrderEvent(env.DB, {
-            orderId,
-            eventType: `${eventPrefix}_FAILED`,
-            metadata: {
-              provider,
-              attempts: attemptNumber,
-              error: "send_failed",
-            },
-          });
-          await recordOutboundEmailAudit(env.DB, {
-            orderId,
-            subject: audit.subject,
-            body: audit.text,
-            provider,
-            deliveryStatus: "FAILED",
-          });
-        } catch {
-          // Email delivery failure must not be hidden by audit persistence failure.
-        }
-      }
-      continue;
-    }
-
-    const providerMessageId = providerMessageIdFromResult(result);
+  let result: unknown;
+  let attemptNumber: number;
+  try {
+    ({ result, attempts: attemptNumber } = await retryEmailOperation(send));
+  } catch (failure) {
+    const attempts = failure instanceof EmailSendFailure ? failure.attempts : 1;
     try {
       await recordOrderEvent(env.DB, {
         orderId,
-        eventType: `${eventPrefix}_SENT`,
-        metadata: {
-          provider,
-          attempts: attemptNumber,
-          providerMessageId,
-        },
+        eventType: `${eventPrefix}_FAILED`,
+        metadata: { provider, attempts, error: "send_failed" },
       });
       await recordOutboundEmailAudit(env.DB, {
         orderId,
         subject: audit.subject,
         body: audit.text,
         provider,
-        providerMessageId,
-        deliveryStatus: "SENT",
+        deliveryStatus: "FAILED",
       });
     } catch {
-      // Do not send the customer a duplicate email if audit persistence fails.
+      // Email delivery failure must not be hidden by audit persistence failure.
     }
     return;
+  }
+
+  const providerMessageId = providerMessageIdFromResult(result);
+  try {
+    await recordOrderEvent(env.DB, {
+      orderId,
+      eventType: `${eventPrefix}_SENT`,
+      metadata: { provider, attempts: attemptNumber, providerMessageId },
+    });
+    await recordOutboundEmailAudit(env.DB, {
+      orderId,
+      subject: audit.subject,
+      body: audit.text,
+      provider,
+      providerMessageId,
+      deliveryStatus: "SENT",
+    });
+  } catch {
+    // Do not send the customer a duplicate email if audit persistence fails.
   }
 }
 
@@ -178,7 +168,7 @@ export async function notifyPaymentRequest(
     "PAYMENT_REQUEST_EMAIL",
     resolved.provider,
     { subject, text: message.text },
-    () =>
+    (idempotencyKey) =>
       resolved.sender.send({
         from: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
         to: { email: order.customerEmail, name: order.customerName },
@@ -189,6 +179,7 @@ export async function notifyPaymentRequest(
         subject,
         text: message.text,
         html: message.html,
+        idempotencyKey,
       }),
   );
 }
@@ -238,7 +229,7 @@ export async function notifyPaymentConfirmed(
     "PAYMENT_CONFIRMED_EMAIL",
     resolved.provider,
     { subject, text: message.text },
-    () =>
+    (idempotencyKey) =>
       resolved.sender.send({
         from: { email: env.ORDER_EMAIL_FROM!, name: "The Black Sheep Shop" },
         to: { email: order.customerEmail, name: order.customerName },
@@ -249,6 +240,7 @@ export async function notifyPaymentConfirmed(
         subject,
         text: message.text,
         html: message.html,
+        idempotencyKey,
       }),
   );
 }

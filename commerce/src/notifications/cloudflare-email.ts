@@ -21,7 +21,7 @@ export class CloudflareEmailOrderNotifier implements OrderNotifier {
     private readonly adminBaseUrl: string,
   ) {}
 
-  async notifyOwner(context: OrderNotificationContext): Promise<unknown> {
+  async notifyOwner(context: OrderNotificationContext, idempotencyKey?: string): Promise<unknown> {
     const method =
       context.request.fulfilmentMethod === "collection" ? "Collection" : "Delivery";
     const subject =
@@ -116,10 +116,11 @@ export class CloudflareEmailOrderNotifier implements OrderNotifier {
       subject,
       text: message.text,
       html: message.html,
+      idempotencyKey,
     });
   }
 
-  async acknowledgeCustomer(context: OrderNotificationContext): Promise<unknown> {
+  async acknowledgeCustomer(context: OrderNotificationContext, idempotencyKey?: string): Promise<unknown> {
     const subject = `We received your order request ${context.order.publicReference}`;
     const method =
       context.request.fulfilmentMethod === "collection" ? "Collection" : "Delivery";
@@ -161,6 +162,7 @@ export class CloudflareEmailOrderNotifier implements OrderNotifier {
       subject,
       text: message.text,
       html: message.html,
+      idempotencyKey,
     });
   }
 }

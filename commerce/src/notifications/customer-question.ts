@@ -1,6 +1,7 @@
 import type { D1DatabaseLike } from "../data/d1";
 import { recordOrderEvent } from "../data/order-events";
 import { resolveEmailSender, type EmailProviderEnv } from "./email-provider";
+import { EmailSendFailure, sendEmailWithRetry } from "./send-attempt";
 import {
   adminOrderUrl,
   escapeEmailHtml,
@@ -76,42 +77,48 @@ export async function notifyOwnerCustomerQuestion(
     },
   });
 
-  for (let attemptNumber = 1; attemptNumber <= 2; attemptNumber += 1) {
-    try {
-      await resolved.sender.send({
-        from: { email: env.ORDER_EMAIL_FROM, name: "The Black Sheep Shop" },
-        to: { email: env.ORDER_OWNER_EMAIL, name: "The Black Sheep Shop" },
-        replyTo: {
-          email: question.customerEmail,
-          name: question.customerName,
-        },
+  let attempts: number;
+  try {
+    ({ attempts } = await sendEmailWithRetry(resolved.sender, {
+      from: { email: env.ORDER_EMAIL_FROM, name: "The Black Sheep Shop" },
+      to: { email: env.ORDER_OWNER_EMAIL, name: "The Black Sheep Shop" },
+      replyTo: {
+        email: question.customerEmail,
+        name: question.customerName,
+      },
         subject: "Customer question · " + question.reference,
-        text: message.text,
-        html: message.html,
-      });
+      text: message.text,
+      html: message.html,
+      idempotencyKey: question.messageId,
+    }));
+  } catch (cause) {
+    try {
       await recordOrderEvent(env.DB, {
         orderId: question.orderId,
-        eventType: "CUSTOMER_QUESTION_OWNER_EMAIL_SENT",
+        eventType: "CUSTOMER_QUESTION_OWNER_EMAIL_FAILED",
         metadata: {
           provider: resolved.provider,
-          attempts: attemptNumber,
+          attempts: cause instanceof EmailSendFailure ? cause.attempts : 1,
           messageId: question.messageId,
+          error: "send_failed",
         },
       });
-      return;
     } catch {
-      if (attemptNumber === 2) {
-        await recordOrderEvent(env.DB, {
-          orderId: question.orderId,
-          eventType: "CUSTOMER_QUESTION_OWNER_EMAIL_FAILED",
-          metadata: {
-            provider: resolved.provider,
-            attempts: attemptNumber,
-            messageId: question.messageId,
-            error: "send_failed",
-          },
-        });
-      }
+      // The question is already stored; audit failure must not change its response.
     }
+    return;
+  }
+  try {
+    await recordOrderEvent(env.DB, {
+      orderId: question.orderId,
+      eventType: "CUSTOMER_QUESTION_OWNER_EMAIL_SENT",
+      metadata: {
+        provider: resolved.provider,
+        attempts,
+        messageId: question.messageId,
+      },
+    });
+  } catch {
+    // Do not send again after provider success when only the audit write failed.
   }
 }

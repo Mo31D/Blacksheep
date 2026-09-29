@@ -127,3 +127,11 @@ Decision: draft, quick and variant edits must fail the first batch mutation atom
 Why: updated_at is a timestamp, not a unique write owner. Nine real-schema races proved that equal millisecond timestamps can authorize a stale request after a no-op optimistic UPDATE. Aborting the transaction protects all dependent writes.
 
 Rejected alternative: adding random suffixes to timestamps or checking only after the batch. The former corrupts timestamp semantics; the latter cannot undo committed dependent changes. No new schema is needed.
+
+## Email retry ends at provider acceptance (29 September 2026)
+
+Decision: notification services share one two-attempt send policy. Resend retries only ambiguous/transient failures with the same provider idempotency key; permanent rejections are final. D1 audit writes happen after provider acceptance and never trigger a resend. Webhook event claims remain atomic and older nonterminal events cannot downgrade a newer delivery state.
+
+Why: a transport timeout can hide successful acceptance, while an audit database error after acceptance is not a send failure. Resend's 24-hour key window covers a single logical retry; D1 remains the authoritative local audit. Signed webhook IDs are the durable replay boundary for delivery events.
+
+Rejected alternative: independently retry every caught error in each notification module, including audit errors and permanent 4xx. That duplicated code can send the same message twice and still misstate delivery. A new queue or universal exactly-once claim would require a separate durable outbox migration and is not implied by this repair.

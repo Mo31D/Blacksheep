@@ -108,7 +108,10 @@ export async function applyResendDeliveryEvent(
             AND EXISTS (
               SELECT 1 FROM email_webhook_events
               WHERE webhook_event_id = ? AND claim_token = ?
-            )`,
+            )
+            AND NOT (delivery_status IN ('DELIVERED', 'BOUNCED', 'COMPLAINED', 'FAILED')
+              AND ? IN ('SENT', 'DELAYED'))
+            AND NOT (delivery_status = 'DELAYED' AND ? = 'SENT')`,
         )
         .bind(
           status,
@@ -118,6 +121,8 @@ export async function applyResendDeliveryEvent(
           message.id,
           event.webhookEventId,
           claimToken,
+          status,
+          status,
         ),
     );
 

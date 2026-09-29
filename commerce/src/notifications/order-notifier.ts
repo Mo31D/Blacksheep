@@ -9,8 +9,8 @@ export interface OrderNotificationContext {
 }
 
 export interface OrderNotifier {
-  notifyOwner(context: OrderNotificationContext): Promise<unknown>;
-  acknowledgeCustomer(context: OrderNotificationContext): Promise<unknown>;
+  notifyOwner(context: OrderNotificationContext, idempotencyKey?: string): Promise<unknown>;
+  acknowledgeCustomer(context: OrderNotificationContext, idempotencyKey?: string): Promise<unknown>;
 }
 
 export interface SendEmailBindingLike {
@@ -21,5 +21,6 @@ export interface SendEmailBindingLike {
     subject: string;
     text: string;
     html: string;
+    idempotencyKey?: string;
   }): Promise<unknown>;
 }

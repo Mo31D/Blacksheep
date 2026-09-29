@@ -11,6 +11,7 @@ import type {
 import { CloudflareEmailOrderNotifier } from "./cloudflare-email";
 import { resolveEmailSender, type EmailProviderEnv } from "./email-provider";
 import { ResendSendError } from "./resend-email";
+import { EmailSendFailure, retryEmailOperation } from "./send-attempt";
 
 export interface NotificationEnv extends EmailProviderEnv {
   DB?: D1DatabaseLike;
@@ -24,57 +25,27 @@ async function attemptNotification(
   orderId: string,
   eventPrefix: string,
   provider: string,
-  send: () => Promise<unknown>,
+  send: (idempotencyKey: string) => Promise<unknown>,
   audit?: { subject: string; body: string },
 ): Promise<void> {
-  const maxAttempts = 2;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    let result: unknown;
-    try {
-      result = await send();
-    } catch (cause) {
-      if (attempt === maxAttempts) {
-        try {
-          await recordOrderEvent(db, {
-            orderId,
-            eventType: `${eventPrefix}_FAILED`,
-            metadata: {
-              provider,
-              attempts: attempt,
-              error: "send_failed",
-              ...(cause instanceof ResendSendError
-                ? {
-                    providerStatus: cause.status,
-                    providerCode: cause.providerCode,
-                  }
-                : {}),
-            },
-          });
-          if (audit) {
-            await recordOutboundEmailAudit(db, {
-              orderId,
-              subject: audit.subject,
-              body: audit.body,
-              provider,
-              deliveryStatus: "FAILED",
-            });
-          }
-        } catch {
-          // Keep the provider failure independent from audit persistence.
-        }
-      }
-      continue;
-    }
-
-    const providerMessageId = providerMessageIdFromResult(result);
+  let result: unknown;
+  let attempt: number;
+  try {
+    ({ result, attempts: attempt } = await retryEmailOperation(send));
+  } catch (failure) {
+    const cause = failure instanceof EmailSendFailure ? failure.cause : failure;
+    const attempts = failure instanceof EmailSendFailure ? failure.attempts : 1;
     try {
       await recordOrderEvent(db, {
         orderId,
-        eventType: `${eventPrefix}_SENT`,
+        eventType: `${eventPrefix}_FAILED`,
         metadata: {
           provider,
-          attempts: attempt,
-          providerMessageId,
+          attempts,
+          error: "send_failed",
+          ...(cause instanceof ResendSendError
+            ? { providerStatus: cause.status, providerCode: cause.providerCode }
+            : {}),
         },
       });
       if (audit) {
@@ -83,14 +54,38 @@ async function attemptNotification(
           subject: audit.subject,
           body: audit.body,
           provider,
-          providerMessageId,
-          deliveryStatus: "SENT",
+          deliveryStatus: "FAILED",
         });
       }
     } catch {
-      // Never duplicate a successful email because audit storage failed.
+      // Keep the provider failure independent from audit persistence.
     }
     return;
+  }
+
+  const providerMessageId = providerMessageIdFromResult(result);
+  try {
+    await recordOrderEvent(db, {
+      orderId,
+      eventType: `${eventPrefix}_SENT`,
+      metadata: {
+        provider,
+        attempts: attempt,
+        providerMessageId,
+      },
+    });
+    if (audit) {
+      await recordOutboundEmailAudit(db, {
+        orderId,
+        subject: audit.subject,
+        body: audit.body,
+        provider,
+        providerMessageId,
+        deliveryStatus: "SENT",
+      });
+    }
+  } catch {
+    // Never duplicate a successful email because audit storage failed.
   }
 }
 
@@ -118,15 +113,15 @@ export async function notifyOrderSubmitted(
   const context = { request, order };
 
   await Promise.all([
-    attemptNotification(env.DB, order.id, "OWNER_NOTIFICATION", resolved.provider, () =>
-      notifier.notifyOwner(context),
+    attemptNotification(env.DB, order.id, "OWNER_NOTIFICATION", resolved.provider, (key) =>
+      notifier.notifyOwner(context, key),
     ),
     attemptNotification(
       env.DB,
       order.id,
       "CUSTOMER_ACKNOWLEDGEMENT",
       resolved.provider,
-      () => notifier.acknowledgeCustomer(context),
+      (key) => notifier.acknowledgeCustomer(context, key),
       {
         subject: `We received your order request ${order.publicReference}`,
         body:

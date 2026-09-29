@@ -1,6 +1,7 @@
 import type { D1DatabaseLike } from "../data/d1";
 import { recordOrderEvent } from "../data/order-events";
 import { resolveEmailSender, type EmailProviderEnv } from "./email-provider";
+import { EmailSendFailure, sendEmailWithRetry } from "./send-attempt";
 import {
   escapeEmailHtml,
   renderTransactionalEmail,
@@ -130,26 +131,51 @@ export async function sendOwnerCustomerMessage(
   });
 
   const prefix = eventPrefix(input.kind);
-  let lastError: unknown = null;
+  let result: unknown;
+  let attemptNumber: number;
+  try {
+    ({ result, attempts: attemptNumber } = await sendEmailWithRetry(resolved.sender, {
+      from: { email: env.ORDER_EMAIL_FROM, name: "The Black Sheep Shop" },
+      to: { email: order.customerEmail, name: order.customerName },
+      replyTo: {
+        email: env.ORDER_EMAIL_FROM,
+        name: "The Black Sheep Shop",
+      },
+      subject,
+      text: message.text,
+      html: message.html,
+      idempotencyKey: messageId,
+    }));
+  } catch (cause) {
+    const failedAt = new Date().toISOString();
+    await env.DB.batch([
+      env.DB.prepare(`INSERT INTO order_messages (
+        id, order_id, revision_id, direction, kind,
+        subject, body, delivery_status, provider,
+        provider_message_id, created_by, created_at,
+        sent_at, delivered_at, updated_at
+      ) VALUES (?, ?, NULL, 'SHOP_TO_CUSTOMER', ?, ?, ?, 'FAILED', ?, NULL, ?, ?, NULL, NULL, ?)`).bind(
+        messageId, order.id, input.kind, subject, body, resolved.provider,
+        input.actorEmail, createdAt, failedAt,
+      ),
+      env.DB.prepare(`INSERT INTO order_events (
+        order_id, event_type, from_status, to_status,
+        actor_type, actor_id, note, metadata_json, created_at
+      ) VALUES (?, ?, NULL, NULL, 'admin', ?, NULL, ?, ?)`).bind(
+        order.id, prefix + "_FAILED", input.actorEmail,
+        JSON.stringify({ provider: resolved.provider, messageId,
+          attempts: cause instanceof EmailSendFailure ? cause.attempts : 1,
+          error: "send_failed" }), failedAt,
+      ),
+    ]);
+    throw new Error("customer_message_send_failed");
+  }
 
-  for (let attemptNumber = 1; attemptNumber <= 2; attemptNumber += 1) {
-    try {
-      const result = await resolved.sender.send({
-        from: { email: env.ORDER_EMAIL_FROM, name: "The Black Sheep Shop" },
-        to: { email: order.customerEmail, name: order.customerName },
-        replyTo: {
-          email: env.ORDER_EMAIL_FROM,
-          name: "The Black Sheep Shop",
-        },
-        subject,
-        text: message.text,
-        html: message.html,
-      });
+  const providerMessageId = messageIdFromResult(result);
+  const sentAt = new Date().toISOString();
 
-      const providerMessageId = messageIdFromResult(result);
-      const sentAt = new Date().toISOString();
-
-      await env.DB.batch([
+  try {
+    await env.DB.batch([
         env.DB
           .prepare(
             `INSERT INTO order_messages (
@@ -191,58 +217,10 @@ export async function sendOwnerCustomerMessage(
             }),
             sentAt,
           ),
-      ]);
-
-      return { messageId, providerMessageId, status: "SENT" };
-    } catch (cause) {
-      lastError = cause;
-      if (attemptNumber === 2) {
-        const failedAt = new Date().toISOString();
-        await env.DB.batch([
-          env.DB
-            .prepare(
-              `INSERT INTO order_messages (
-                id, order_id, revision_id, direction, kind,
-                subject, body, delivery_status, provider,
-                provider_message_id, created_by, created_at,
-                sent_at, delivered_at, updated_at
-              ) VALUES (?, ?, NULL, 'SHOP_TO_CUSTOMER', ?, ?, ?, 'FAILED', ?, NULL, ?, ?, NULL, NULL, ?)`,
-            )
-            .bind(
-              messageId,
-              order.id,
-              input.kind,
-              subject,
-              body,
-              resolved.provider,
-              input.actorEmail,
-              createdAt,
-              failedAt,
-            ),
-          env.DB
-            .prepare(
-              `INSERT INTO order_events (
-                order_id, event_type, from_status, to_status,
-                actor_type, actor_id, note, metadata_json, created_at
-              ) VALUES (?, ?, NULL, NULL, 'admin', ?, NULL, ?, ?)`,
-            )
-            .bind(
-              order.id,
-              prefix + "_FAILED",
-              input.actorEmail,
-              JSON.stringify({
-                provider: resolved.provider,
-                messageId,
-                attempts: attemptNumber,
-                error: "send_failed",
-              }),
-              failedAt,
-            ),
-        ]);
-      }
-    }
+    ]);
+  } catch {
+    // The provider accepted the message. Audit failure must not send it again.
   }
 
-  void lastError;
-  throw new Error("customer_message_send_failed");
+  return { messageId, providerMessageId, status: "SENT" };
 }
