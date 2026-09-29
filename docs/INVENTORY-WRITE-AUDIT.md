@@ -67,3 +67,7 @@ Next independently executable work:
 1. Add all-migrations SqliteD1 fixtures with two tracked variants and real order/revision/reservation rows. Run the actual prepared release and consume statements. Change the second balance or order/reservation state after planning, before batch; prove the first balance, reservation, ledger and order/event changes all roll back. Also prove valid and all-untracked transitions.
 2. Exercise returnConsumedReservationToStock with a competing return, a lost response after commit, and a stale refund/order guard. Assert exactly one RETURN per variant and one event, preservation of later stock adjustments, and no mutation on invalid refund state.
 3. Test caller composition (expiry versus payment/fulfilment, cancellation and customer decline); only fix defects after reproduction. Do not equate builder SQL assertions with end-to-end transaction proof.
+
+### Release/consume proof completed
+
+reservation-transitions-concurrency.test.ts uses helpers/reservation-fixture.ts and actual all-migration SQLite statements. Fifteen cases verify ACTIVE/COMMITTED release, COMMITTED consume, tracked/all-untracked success and complete rollback on competing second-balance/reservation/order changes. The first balance plus composed earlier order/event writes are included in state equality. No production defect reproduced; retain existing NOT NULL guard. TypeScript and all 15 targeted cases pass. GitHub full validation pending publication.

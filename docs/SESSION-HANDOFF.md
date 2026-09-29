@@ -5,10 +5,10 @@ Updated 29 September 2026. Repository Mo31D/Blacksheep; existing main only.
 - Previous main verified: fe4790d. Its Commerce CI 36470349358, Search 36470348637 and Pages 36470348575 all completed SUCCESS, including full check and browser regression.
 - Stocktake resilience source phase CLOSED: receipt recovery (9d87462), session/write fencing (fe4790d), and completed-response retry fix 465610f. Completion uses saved cumulative item outcomes without stock writes; first completion and retries share the projection.
 - Published implementation 465610f: stocktake.ts and stocktake-recovery.test.ts; three failures reproduced, four new recovery cases. TypeScript PASS; 66 files / 477 tests PASS. Linux Commerce CI 36529470545 SUCCESS, including full check and browser regression; Search 36529470522 and Pages 36529469805 SUCCESS.
-- Current phase: reservation lifecycle audit opened after publication. Owner/caller and rollback-boundary matrix recorded in INVENTORY-WRITE-AUDIT.md; no reservation implementation changes yet.
+- Current phase: reservation lifecycle. Release/consume proof completed: 15 real-schema cases pass, TypeScript PASS. No defect reproduced or production code changed. Tests and fixture recorded in INVENTORY-WRITE-AUDIT.md; publish and verify this commit before return work.
 
 ## Next recommended task
-Implement the first reservation audit item: two-variant real-schema release/consume tests with competing balance/order/reservation changes before batch. Preserve the intentional NOT NULL rollback guard; existing mock and schema checks do not prove domain race handling. Then cover return replay and caller composition. Stocktake source work is closed; live staging acceptance is still pending. No schema migration or production data changes in this batch.
+After successful GitHub checks, execute the next checklist item: return replay (competing return, committed-response loss, stale refund/order guard, preservation of later adjustments), then caller composition. Preserve the now-tested NOT NULL rollback guard. Stocktake source work is closed; live staging acceptance is still pending. No schema migration or production data changes in this batch.
 
 ## Decisions / risks
 - D1 inventory balances/movements are authoritative. Stocktake owns workflow, not a second stock counter. Receipt lookup fails closed on ambiguous/type/quantity/key mismatches.
