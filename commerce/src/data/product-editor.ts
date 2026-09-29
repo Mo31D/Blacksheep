@@ -19,6 +19,23 @@ const SELL_STATUSES = new Set([
 
 const q = (...parts: string[]) => parts.join(" ");
 
+// The first product UPDATE assigns NULL to the required version on conflict.
+// D1 then rolls back the whole batch before timestamp-gated dependent writes;
+// updated_at is a timestamp, not a unique ownership token.
+async function commitProductEditBatch(
+  db: D1DatabaseLike,
+  statements: D1PreparedStatementLike[],
+): Promise<void> {
+  try {
+    await db.batch(statements);
+  } catch (cause) {
+    if (cause instanceof Error && cause.message.includes("NOT NULL constraint failed: products.version")) {
+      throw new Error("product_version_conflict");
+    }
+    throw cause;
+  }
+}
+
 function uid(prefix: string): string {
   return prefix + "_" + crypto.randomUUID();
 }
@@ -556,21 +573,21 @@ export async function updateAdminVariant(
   };
 
   try {
-    await db.batch([
+    await commitProductEditBatch(db, [
       db
         .prepare(
           q(
-            "UPDATE products SET version = version + 1, updated_at = ?",
-            "WHERE id = ? AND version = ? AND EXISTS (",
+            "UPDATE products SET version = CASE WHEN version = ? AND EXISTS (",
             "SELECT 1 FROM product_variants WHERE id = ? AND version = ?)",
+            "THEN version + 1 ELSE NULL END, updated_at = ? WHERE id = ?",
           ),
         )
         .bind(
-          token,
-          current.productId,
           current.productVersion,
           variantId,
           expected,
+          token,
+          current.productId,
         ),
       db
         .prepare(
@@ -732,24 +749,24 @@ export async function quickEditAdminProduct(
   };
 
   try {
-    await db.batch([
+    await commitProductEditBatch(db, [
       db
         .prepare(
           q(
             "UPDATE products SET sell_status = ?, online_ordering_enabled = ?,",
-            "version = version + 1, updated_at = ?",
-            "WHERE id = ? AND version = ? AND EXISTS (",
+            "version = CASE WHEN version = ? AND EXISTS (",
             "SELECT 1 FROM product_variants WHERE id = ? AND version = ?)",
+            "THEN version + 1 ELSE NULL END, updated_at = ? WHERE id = ?",
           ),
         )
         .bind(
           next.sellStatus,
           next.onlineOrderingEnabled ? 1 : 0,
-          token,
-          productId,
           expectedProductVersion,
           current.variantId,
           expectedVariantVersion,
+          token,
+          productId,
         ),
       db
         .prepare(
@@ -980,9 +997,9 @@ export async function saveAdminProductDraft(
   const statements: D1PreparedStatementLike[] = [
     db
       .prepare(
-        "UPDATE products SET current_draft_version_id = ?, version = version + 1, updated_at = ? WHERE id = ? AND version = ?",
+        "UPDATE products SET current_draft_version_id = ?, version = CASE WHEN version = ? THEN version + 1 ELSE NULL END, updated_at = ? WHERE id = ?",
       )
-      .bind(draftId, token, productId, expected),
+      .bind(draftId, expected, token, productId),
   ];
 
   if (newDraft) {
@@ -1198,7 +1215,7 @@ export async function saveAdminProductDraft(
     }),
   );
 
-  await db.batch(statements);
+  await commitProductEditBatch(db, statements);
   await verifyProductToken(db, productId, resultVersion, token);
 }
 

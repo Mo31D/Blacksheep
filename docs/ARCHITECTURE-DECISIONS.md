@@ -119,3 +119,11 @@
 **Why:** This reduces coupling without creating a second security policy or changing endpoints, error contracts, storage ownership or frontend behaviour.
 
 **Rejected alternative:** Register an independent media router with copied auth checks, or move business persistence into the HTTP module. Both duplicate established responsibilities.
+
+## Atomic Product edit ownership (29 September 2026)
+
+Decision: draft, quick and variant edits must fail the first batch mutation atomically when expected versions are stale; reuse the required Product version constraint and existing conflict error.
+
+Why: updated_at is a timestamp, not a unique write owner. Nine real-schema races proved that equal millisecond timestamps can authorize a stale request after a no-op optimistic UPDATE. Aborting the transaction protects all dependent writes.
+
+Rejected alternative: adding random suffixes to timestamps or checking only after the batch. The former corrupts timestamp semantics; the latter cannot undo committed dependent changes. No new schema is needed.
