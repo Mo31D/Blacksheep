@@ -1,15 +1,13 @@
 # Session handoff
-Updated 28 September 2026. Repository Mo31D/Blacksheep; existing main only.
+Updated 29 September 2026. Repository Mo31D/Blacksheep; existing main only.
 
 ## Current phase / last completed
-- Phase: inventory and Stocktake resilience. Previous main ab9bbae includes replay identity ca6605e and unchanged-count versions 10a068a; both passed Linux Commerce CI and browser regression.
-- Previous implementation 9d87462 recovers same-attempt partial commits; Linux CI 36468252710 passed.
-- Current implementation fences count writes with session version/status and prevents edits/cancellation once an attempt has saved movements. Racing receipts are reconciled; stale final summaries return a conflict.
-- Twelve concurrency failures reproduced; 15 concurrency tests plus API feedback coverage now pass. TypeScript PASS; 66 files / 473 tests PASS.
-- Publish current batch and record its Linux CI. No schema migration or live stock write. See INVENTORY-WRITE-AUDIT.md.
+- Latest remote main verified: fe4790d. Its Commerce CI 36470349358, Search 36470348637 and Pages 36470348575 all completed SUCCESS, including full check and browser regression.
+- Stocktake resilience source phase CLOSED: receipt recovery (9d87462), session/write fencing (fe4790d), and current completed-response retry fix. Completion uses saved cumulative item outcomes without stock writes; first completion and retries share the projection.
+- Current implementation: stocktake.ts and stocktake-recovery.test.ts; three failures reproduced, four new recovery cases. TypeScript PASS; 66 files / 477 tests PASS. Publish this batch and verify its Linux CI before starting the next implementation.
 
 ## Next recommended task
-Review response-loss retries after the session is already COMPLETED, then reservation release/consume/return using real-schema concurrency tests. Current fencing covers edit/cancel/write races; it does not make all count items one transaction. Keep work in small independent commits.
+Begin reservation release/consume/return concurrency audit in order-reservations.ts and order/customer/expiry callers using real-schema tests. Stocktake source work is closed; live staging acceptance is still pending. No schema migration or production data changes in this batch.
 
 ## Decisions / risks
 - D1 inventory balances/movements are authoritative. Stocktake owns workflow, not a second stock counter. Receipt lookup fails closed on ambiguous/type/quantity/key mismatches.

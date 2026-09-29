@@ -131,3 +131,69 @@ describe("Stocktake recovery from committed inventory and missing session result
   });
 });
 
+
+
+describe("completed Stocktake response recovery", () => {
+  it.each([true, false])("retries a committed final summary for tracked=%s without writes", async tracked => {
+    const detail = await fixture(tracked);
+    const batch = db.batch.bind(db);
+    let calls = 0;
+    db.batch = async <T>(statements: Parameters<typeof db.batch>[0]) => {
+      const result = await batch<T>(statements);
+      if (++calls === 2) throw new Error("response_lost");
+      return result;
+    };
+    await expect(finalizeStocktakeSession(db, detail.session.id, actor)).rejects.toThrow("response_lost");
+    db.batch = batch;
+    const saved = await getStocktakeSession(db, detail.session.id);
+    expect(saved.session.status).toBe("COMPLETED");
+    await adjustInventory(db, { variantId, delta: 2, reasonCode: "RESTOCK", expectedBalanceVersion: tracked ? 2 : 1, idempotencyKey: "after:complete" }, actor);
+    const before = ledger();
+    db.batch = async () => { throw new Error("completed_retry_must_not_write"); };
+    const retry = await finalizeStocktakeSession(db, detail.session.id, actor);
+    expect(retry.session).toEqual(saved.session);
+    expect(retry.result.success.map(row => row.variantId)).toEqual([variantId]);
+    expect(retry.result.unchanged).toEqual([]);
+    expect(retry.result.conflicts).toEqual([]);
+    expect(retry.items[0].currentOnHand).toBe(9);
+    expect(ledger()).toEqual(before);
+  });
+  it("returns the same saved no-op outcome without inventing a batch receipt", async () => {
+    await initialInventoryCount(db, { variantId, quantity: 7, reason: "Seed", idempotencyKey: "seed:no-op" }, actor);
+    const detail = await fixture(false);
+    const first = await finalizeStocktakeSession(db, detail.session.id, actor);
+    const retry = await finalizeStocktakeSession(db, detail.session.id, actor);
+    expect(retry).toEqual(first);
+    expect(retry.result.success).toEqual([]);
+    expect(retry.result.unchanged.map(row => row.variantId)).toEqual([variantId]);
+    expect(retry.result.batchId).toBeNull();
+  });
+});
+
+
+it("projects all saved outcomes after REVIEW, including earlier applied and skipped items", async () => {
+  const ids = [variantId];
+  for (let i = 0; i < 3; i++) {
+    const product = await createAdminProduct(db, { title: "Completion fixture " + i }, actor);
+    ids.push(String(db.sqlite.prepare("SELECT id FROM product_variants WHERE product_id=?").get(product.id)?.id));
+  }
+  for (const id of ids) await initialInventoryCount(db, { variantId: id, quantity: 10, reason: "Seed", idempotencyKey: "seed:" + id }, actor);
+  let detail = await createStocktakeSession(db, { scopeType: "CUSTOM", customVariantIds: ids }, actor);
+  for (let i = 0; i < ids.length; i++) detail = await saveStocktakeItem(db, detail.session.id, ids[i], {
+    expectedItemVersion: 1, action: i === 3 ? "SKIP" : "COUNT", countedOnHand: i === 1 ? 10 : 7,
+  });
+  await adjustInventory(db, { variantId: ids[2], delta: 2, reasonCode: "RESTOCK", expectedBalanceVersion: 1, idempotencyKey: "concurrent:delivery" }, actor);
+  const review = await finalizeStocktakeSession(db, detail.session.id, actor);
+  expect(review.session.status).toBe("REVIEW");
+  const conflict = review.items.find(item => item.variantId === ids[2])!;
+  await saveStocktakeItem(db, detail.session.id, ids[2], { expectedItemVersion: conflict.version, action: "COUNT", countedOnHand: 7 });
+  const completed = await finalizeStocktakeSession(db, detail.session.id, actor);
+  const before = ledger();
+  const replay = await finalizeStocktakeSession(db, detail.session.id, actor);
+  expect(replay).toEqual(completed);
+  expect(replay.session.status).toBe("COMPLETED");
+  expect(replay.result.success.map(row => row.variantId).sort()).toEqual([ids[0], ids[2]].sort());
+  expect(replay.result.unchanged.map(row => row.variantId)).toEqual([ids[1]]);
+  expect(replay.session.skippedItems).toBe(1);
+  expect(ledger()).toEqual(before);
+});

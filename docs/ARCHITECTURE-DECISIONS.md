@@ -95,3 +95,11 @@
 **Why:** Read-before-write checks alone allow cancelled/edited counts to reach balances. Mutating an already partly committed attempt also destroys its recovery identity. The authoritative ledger already records whether an attempt has started.
 
 **Rejected alternative:** UI disabling alone, preflight-only checks, or a new lease/lock store. These either leave races open or add another recovery protocol when atomic predicates and existing evidence suffice. The guard is not accepted from HTTP inputs.
+
+## Completed Stocktake retries use saved outcomes (29 September 2026)
+
+**Decision:** Project cumulative completion results from stocktake_session_items for first completion and retries; return live inventory snapshots and a real batch reference or null. Keep REVIEW results per attempt.
+
+**Why:** The completed session is already the durable workflow receipt. Repeated requests must preserve stock and display accurate totals, including earlier review rounds.
+
+**Rejected alternative:** Reapply counts, invent a batch ID, return empty success arrays, or add a second persisted response store. These either risk stock, misrepresent results, or duplicate authoritative session state.

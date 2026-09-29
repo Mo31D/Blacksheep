@@ -674,6 +674,36 @@ export async function saveStocktakeItem(
   return getStocktakeSession(db, sessionId);
 }
 
+// Saved item outcomes include earlier REVIEW attempts; snapshots are live read models.
+// Replaying completion never reapplies a historical count to current inventory.
+async function completedStocktakeResult(
+  db: D1DatabaseLike,
+  detail: Awaited<ReturnType<typeof getStocktakeSession>>,
+) {
+  const success: Array<{ variantId: string; snapshot: unknown }> = [];
+  const unchanged: Array<{ variantId: string; snapshot: unknown }> = [];
+  for (const item of detail.items) {
+    if (item.itemStatus !== "APPLIED" && item.itemStatus !== "UNCHANGED") continue;
+    const row = {
+      variantId: item.variantId,
+      snapshot: await getInventorySnapshot(db, item.variantId, detail.session.locationId),
+    };
+    (item.itemStatus === "APPLIED" ? success : unchanged).push(row);
+  }
+  const prefix = "stocktake:" + detail.session.id + ":finalize:";
+  const receipt = await db.prepare(
+    "SELECT batch_id AS batchId FROM inventory_movements " +
+    "WHERE substr(idempotency_key,1,length(?)) = ? AND batch_id IS NOT NULL ORDER BY id LIMIT 1",
+  ).bind(prefix, prefix).first<{ batchId: string }>();
+  return {
+    ...detail,
+    result: {
+      batchId: receipt?.batchId ?? null, success, unchanged,
+      conflicts: [] as Array<{ variantId: string; code: string }>,
+    },
+  };
+}
+
 export async function finalizeStocktakeSession(
   db: D1DatabaseLike,
   sessionId: string,
@@ -681,6 +711,7 @@ export async function finalizeStocktakeSession(
 ) {
   const detail = await getStocktakeSession(db, sessionId);
   const session = detail.session;
+  if (session.status === "COMPLETED") return completedStocktakeResult(db, detail);
   if (session.status !== "IN_PROGRESS" && session.status !== "REVIEW") {
     throw new Error("stocktake_not_finalizable");
   }
@@ -895,8 +926,10 @@ export async function finalizeStocktakeSession(
     throw new Error("stocktake_session_version_conflict");
   }
 
+  const saved = await getStocktakeSession(db, sessionId);
+  if (saved.session.status === "COMPLETED") return completedStocktakeResult(db, saved);
   return {
-    ...(await getStocktakeSession(db, sessionId)),
+    ...saved,
     result: {
       batchId: result.batchId,
       success: result.success,
