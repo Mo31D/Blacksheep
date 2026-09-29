@@ -35,4 +35,8 @@ Keep one Worker composition root, HTTP adapters per business object, existing do
 6. Verify static publication determinism and snapshot/live parity; retire legacy generators/assets only after dependency proof.
 7. Run complete CI, staging integration/browser checks and explicit guarded production promotion. Record each evidence level separately.
 
+## New ordered phase: Admin UX and premium storefront themes (29 September 2026)
+
+After the Phase 5 backend/email boundaries, improve the existing Admin and Appearance system in five separate slices: (1) audit and reorganize Admin navigation by business object, (2) build a reusable premium responsive Admin visual system, (3) extend the existing Appearance source/preview/publish flow for lightweight decorative theme layers, (4) deliver restrained Winter and Christmas themes with tracked asset provenance, and (5) verify mobile/weak-device performance, reduced motion, accessibility and staging acceptance. Preserve current routes, APIs, data ownership and working features. Do not create a replacement app, branch or parallel theme store. Legacy cleanup and production release follow this phase. See Phase 5A in the checklist for executable acceptance.
+
 Each implementation commit updates the checklist and handoff. Fetch remote main before commits/pushes; use fast-forward integration and never force-push. Do not mix data migrations, endpoint retirement and visual changes in one commit. Rollback code through a normal forward revert; never reset the application to an older snapshot or roll back business data blindly.
