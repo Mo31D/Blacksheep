@@ -17,7 +17,7 @@ test/inventory-replay-identity.test.ts uses all migrations in SQLite and injects
 
 ## Remaining work
 - Same-attempt Stocktake receipt recovery is completed below. Edit/cancel/finalize fencing is completed below. Completed-response retry recovery is completed below; reservation concurrency is next.
-- Bulk unchanged-count validation is completed below; Stocktake session-level recovery remains separate.
+- Bulk unchanged-count validation and Stocktake session-level recovery are completed below.
 - Review whether same-target idempotency keys also need request payload/type fingerprints. This batch preserves existing contracts and only closes the asymmetric identity validation.
 - Verify reservation release/consume/return concurrency and idempotency with real-schema execution, supplementing existing reservation tests and Linux runtime scripts.
 - Deployed staging acceptance remains required; no live stock write or Worker deployment was performed.
@@ -47,4 +47,23 @@ stocktake-concurrency.test.ts covers 15 real-schema cases for tracked/untracked 
 
 stocktake.ts returns a shared completion projection on the first successful completion and subsequent finalize requests. Saved item outcomes own cumulative success/no-change counts, including prior REVIEW attempts; SKIPPED remains in the session summary. Snapshots describe live inventory, not a historical balance to restore. batchId is one actual session movement batch (deterministic by movement ID), or null if none exists; it is not a new receipt or an exhaustive list of batches. REVIEW responses retain per-attempt results. CANCELLED sessions still reject finalization.
 
-Four additional real-schema cases cover a committed final summary with lost response for tracked/untracked stock, later stock movement preservation, no-op replay, and mixed outcomes across REVIEW. Three failures reproduced before the fix. TypeScript and all 477 tests pass. No schema or live-data mutation. Stocktake resilience source phase is closed; staging acceptance remains required. Next work belongs to order reservation lifecycle concurrency.
+Four additional real-schema cases cover a committed final summary with lost response for tracked/untracked stock, later stock movement preservation, no-op replay, and mixed outcomes across REVIEW. Three failures reproduced before the fix. TypeScript and all 477 tests pass. Published 465610f; Linux Commerce CI 36529470545 SUCCESS, including full check and browser regression. Search 36529470522 and Pages 36529469805 SUCCESS. No schema or live-data mutation. Stocktake resilience source phase is closed; staging acceptance remains required. Next work belongs to order reservation lifecycle concurrency.
+
+## Next phase opened: reservation lifecycle (29 September 2026)
+
+Source audit started only after Stocktake completion fix 465610f was saved on GitHub. No reservation implementation change or live-data write yet.
+
+| Transition | Owning service / callers | Atomic boundary to verify |
+| --- | --- | --- |
+| Release ACTIVE / COMMITTED | order-reservations.ts prepareReservationReleaseMutation; order-revisions.ts supersede/send, customer-review.ts decline, admin-orders.ts cancellation, expireDueReservations | Caller batches revision/order transition with balance release, reservation terminal state and events. |
+| Consume COMMITTED | prepareReservationConsumeMutation; admin-orders.ts fulfilment | On-hand and reserved decrement together with CONSUMED state and SALE ledger; guarded by order and reservation versions/tokens. |
+| Return CONSUMED | returnConsumedReservationToStock; Admin return endpoint | Refunded order guard, on-hand increment, returned_at receipt and RETURN/event in one batch. Catch recovery reads returned_at for a committed retry. |
+
+Release/consume/return intentionally assign NULL to a NOT NULL mutation_token on guard failure: migration 0011 enforces rollback of the entire batch, including earlier variant updates. Preserve this guard unless executable tests justify a change; a simple conditional no-op replacement could allow partial commits.
+
+Coverage inspected: test/order-reservations.test.ts checks generated statement contracts with a mock whose batch returns an empty array. scripts/test-order-reservations.mjs executes migration/schema invariants (unique keys, immutable membership and unchanged stock), not these domain concurrency scenarios. Neither is evidence that racing multi-variant transitions roll back correctly.
+
+Next independently executable work:
+1. Add all-migrations SqliteD1 fixtures with two tracked variants and real order/revision/reservation rows. Run the actual prepared release and consume statements. Change the second balance or order/reservation state after planning, before batch; prove the first balance, reservation, ledger and order/event changes all roll back. Also prove valid and all-untracked transitions.
+2. Exercise returnConsumedReservationToStock with a competing return, a lost response after commit, and a stale refund/order guard. Assert exactly one RETURN per variant and one event, preservation of later stock adjustments, and no mutation on invalid refund state.
+3. Test caller composition (expiry versus payment/fulfilment, cancellation and customer decline); only fix defects after reproduction. Do not equate builder SQL assertions with end-to-end transaction proof.

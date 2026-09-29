@@ -2,12 +2,13 @@
 Updated 29 September 2026. Repository Mo31D/Blacksheep; existing main only.
 
 ## Current phase / last completed
-- Latest remote main verified: fe4790d. Its Commerce CI 36470349358, Search 36470348637 and Pages 36470348575 all completed SUCCESS, including full check and browser regression.
-- Stocktake resilience source phase CLOSED: receipt recovery (9d87462), session/write fencing (fe4790d), and current completed-response retry fix. Completion uses saved cumulative item outcomes without stock writes; first completion and retries share the projection.
-- Current implementation: stocktake.ts and stocktake-recovery.test.ts; three failures reproduced, four new recovery cases. TypeScript PASS; 66 files / 477 tests PASS. Publish this batch and verify its Linux CI before starting the next implementation.
+- Previous main verified: fe4790d. Its Commerce CI 36470349358, Search 36470348637 and Pages 36470348575 all completed SUCCESS, including full check and browser regression.
+- Stocktake resilience source phase CLOSED: receipt recovery (9d87462), session/write fencing (fe4790d), and completed-response retry fix 465610f. Completion uses saved cumulative item outcomes without stock writes; first completion and retries share the projection.
+- Published implementation 465610f: stocktake.ts and stocktake-recovery.test.ts; three failures reproduced, four new recovery cases. TypeScript PASS; 66 files / 477 tests PASS. Linux Commerce CI 36529470545 SUCCESS, including full check and browser regression; Search 36529470522 and Pages 36529469805 SUCCESS.
+- Current phase: reservation lifecycle audit opened after publication. Owner/caller and rollback-boundary matrix recorded in INVENTORY-WRITE-AUDIT.md; no reservation implementation changes yet.
 
 ## Next recommended task
-Begin reservation release/consume/return concurrency audit in order-reservations.ts and order/customer/expiry callers using real-schema tests. Stocktake source work is closed; live staging acceptance is still pending. No schema migration or production data changes in this batch.
+Implement the first reservation audit item: two-variant real-schema release/consume tests with competing balance/order/reservation changes before batch. Preserve the intentional NOT NULL rollback guard; existing mock and schema checks do not prove domain race handling. Then cover return replay and caller composition. Stocktake source work is closed; live staging acceptance is still pending. No schema migration or production data changes in this batch.
 
 ## Decisions / risks
 - D1 inventory balances/movements are authoritative. Stocktake owns workflow, not a second stock counter. Receipt lookup fails closed on ambiguous/type/quantity/key mismatches.
