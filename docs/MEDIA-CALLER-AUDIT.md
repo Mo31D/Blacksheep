@@ -26,3 +26,9 @@ Old-object deletion is a different operation: product-media.ts computes deletion
 Retain multipart Product replacement because the current UI depends on it. Retain multipart add pending proof about deployed/external consumers. Both adapters already share one byte-storage owner; retention does not recreate a competing persistence service.
 
 MANUAL ACTION REQUIRED: before any transport retirement, verify deployed candidate SHA and relevant external/client usage, then accept Product/Section/Homepage/Appearance upload/reuse on staging across mobile/tablet/desktop. No Worker deployment, staging fixture mutation or production data mutation occurred. Source route extraction may proceed independently while preserving all transports and contracts.
+
+## Extracted ownership after audit
+
+routes/admin-shared-media.ts now owns the library HTTP area behind admin.ts security checks (2b9d553; Commerce CI 36535646763, Search 36535646738 and Pages 36535646426 SUCCESS). Product adapters remain in admin.ts. admin/shared-media.ts owns the static library panel/state/functions/event-binding fragments; ui.ts composes them at their original positions. Shared navigation, CSS and other business-object draft adapters remain in the Admin shell; no new runtime bundle or initialization path was added.
+
+UI validation: TypeScript and full 70-file / 526-test suite PASS, including generated-script compilation and existing UI contracts. Before/after full adminHtml('owner@example.test', environment) output was byte-identical, including scripts: production 340697 UTF-8 bytes, SHA-256 249fd74a14cb4529ab5c9f0fda11a90b1f2830ca935a15bc3a0ad3f3302553be; staging 341118 bytes, SHA-256 6dd6da74cdbcd355d1ad8e6d505daaf2490919ba092ab77fbf0530da522e6d1e. These are migration evidence, not permanent snapshots that should block intentional future UI edits. GitHub gate pending this UI commit.

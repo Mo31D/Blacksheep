@@ -2,13 +2,14 @@
 Updated 29 September 2026. Repository Mo31D/Blacksheep; existing main only.
 
 ## Current phase / last completed
-- Phase 3: shared-media Admin route extraction completed locally. New routes/admin-shared-media.ts owns library HTTP contracts; existing admin.ts retains Origin/auth/DB guards. http/admin-json.ts owns unchanged JSON readers/responses. Product adapters remain. TypeScript PASS; 70 files / 526 tests PASS, including ten new composition cases. Publish and verify the current batch before next work.
+- Phase 3: shared-media Admin route extraction completed locally. New routes/admin-shared-media.ts owns library HTTP contracts; existing admin.ts retains Origin/auth/DB guards. http/admin-json.ts owns unchanged JSON readers/responses. Product adapters remain. TypeScript PASS; 70 files / 526 tests PASS, including ten new composition cases. Published 2b9d553: Commerce CI 36535646763, Search 36535646738 and Pages 36535646426 SUCCESS, including full check/browser regression.
+- Matching Media Library UI extraction now completed locally in admin/shared-media.ts. Full production/staging HTML byte-identical; TypeScript and 526 tests PASS. Publish and verify this UI batch before next work.
 - Reservation source tasks COMPLETE: release/consume proof 355827a (CI 36530647707), return proof 848876d (CI 36531316256), four caller-race fixes 048432e (CI 36534277220). All full checks/browser regression, Search and Pages SUCCESS. Details: INVENTORY-WRITE-AUDIT.md.
 - Source media caller audit 4bc7ff8 passed Search 36535024251 and Pages 36535023864; docs-only commit did not trigger Commerce CI. Six relevant suites / 39 tests PASS. See MEDIA-CALLER-AUDIT.md.
 - Stocktake code phase CLOSED (465610f, CI 36529470545 SUCCESS). Do not revisit unless a new test proves a high-risk defect.
 
 ## Next recommended task
-After current implementation passes GitHub, extract matching shared-media UI responsibilities from admin/ui.ts with unchanged generated-script/browser contracts. Then follow the next open checklist item (quick/full edit semantics). Do not retire Product multipart routes: replacement is active and external add consumers are unverified.
+After the UI extraction passes GitHub, audit quick/full Product edits for shared validation/version/conflict semantics. Document independent maker/classification/navigation/selling/publication owners; fix only reproduced inconsistencies. Do not retire Product multipart routes: replacement is active and external add consumers are unverified.
 
 ## Decisions / risks
 - D1 balances/ledger own stock; reservation and Stocktake services own workflows. Missing expected reservation state must not bypass order concurrency guards; truly reservation-free legacy orders remain supported.
