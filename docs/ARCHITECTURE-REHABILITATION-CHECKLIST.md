@@ -56,7 +56,8 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 ## Phase 5 — Orders, communications and environments
 
 - [x] Review email retry/idempotency/audit boundaries across notification services, authenticated Admin actions and signed webhook processing. `EMAIL-DELIVERY-OWNERSHIP-AUDIT.md` maps each owner and limit. `send-attempt.ts` centralizes two-attempt policy; Resend requests carry one idempotency key across transport/429 retries and permanent 4xx fails once. Customer-message/question audit errors after provider acceptance no longer resend. The signed webhook claim remains atomic; late `sent`/`delayed` events cannot downgrade delivery state. TypeScript and full 74-file / 558-test suite PASS, including actual SQLite status-ordering tests. Published c6a54f9: Commerce CI 36565389256, Search 36565389293 and Pages 36565388042 SUCCESS. No synthetic customer email, Worker deployment or D1 mutation.
-- [ ] Verify configured-versus-deployed D1/R2, Admin URLs, origin/Turnstile policy and secret presence without logging values. Confirm actual staging recipient policy; environment names alone do not isolate email.
+- [x] Verify configured-versus-deployed D1/R2, Admin URLs, origin/Turnstile policy and secret presence without logging values. `DEPLOYED-ENVIRONMENT-AUDIT.md` records read-only Cloudflare API evidence: distinct D1/R2, matching Admin/origin/Turnstile flags, required secret binding names present, and deployed Workers still at 27 Sep builds. **Confirmed risk:** staging and production have the same owner recipient, while staging customer mail targets supplied addresses. No secret values, D1 rows or R2 objects were exposed or changed.
+- [ ] Add a source-level staging recipient guard for every notification path, with safe default when no approved staging allowlist is configured. Test owner and customer paths without sending real mail; preserve production behaviour. Deployed staging configuration of a designated test mailbox is MANUAL ACTION REQUIRED at release.
 - [ ] Consolidate configuration/error helpers only where semantics truly match; retain intentional staging and production differences.
 
 ## Phase 6 — Proven legacy cleanup
@@ -73,7 +74,7 @@ Active project memory, started 27 September 2026 from `main` `1d08f3b`. Read `AR
 ## MANUAL ACTION REQUIRED
 
 - If local Windows workerd continues failing, use existing Linux CI for the complete gate; repairing the machine runtime is independent of application refactoring.
-- External secret/DNS/provider changes are not requested by this batch. If environment audit discovers a required change, record the exact action here without secret values and continue independent tasks.
+- Before staging email acceptance or Worker deployment, an authorized operator must choose a safe staging test mailbox/allowlist and configure it in the staging Worker; verify only test addresses are allowed. Deployed staging currently shares the production owner recipient. No mailbox or secret value is invented here. Production secret/data changes and production deployment require separate approval.
 
 ## Commit ledger
 
