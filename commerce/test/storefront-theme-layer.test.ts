@@ -32,6 +32,22 @@ function storefrontThemeHarness() {
 }
 
 describe("published storefront theme layer", () => {
+  it("uses two tracked, inert, small seasonal illustrations", () => {
+    const css = readFileSync(new URL("../../assets/theme-layers.css", import.meta.url), "utf8");
+    for (const [preset, asset] of [
+      ["WINTER", "winter-branch.svg"],
+      ["CHRISTMAS", "christmas-ornaments.svg"],
+    ]) {
+      expect(css).toContain(`[data-theme-preset="${preset}"][data-theme-decorations="on"]`);
+      expect(css).toContain(`/assets/themes/${asset}`);
+      const svg = readFileSync(new URL(`../../assets/themes/${asset}`, import.meta.url), "utf8");
+      expect(Buffer.byteLength(svg)).toBeLessThan(4096);
+      expect(svg).toContain('aria-hidden="true"');
+      expect(svg).not.toMatch(/<script|<image|<foreignObject|\b(?:href|src)=["']https?:/i);
+    }
+    expect(css).toContain("pointer-events:none");
+  });
+
   it("loads one optional stylesheet only for an enabled supported preset, then removes it", () => {
     const { sync, attributes, links } = storefrontThemeHarness();
     sync({ presetKey: "DEFAULT", decorationsEnabled: true });

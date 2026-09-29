@@ -48,7 +48,7 @@ export const WEBSITE_APPEARANCE_PRESETS: readonly WebsiteAppearancePreset[] = [
   {
     key: "WINTER",
     label: "Winter",
-    description: "Cool, calm blue-grey tones with strong readable contrast.",
+    description: "Frosted branches, quiet blue-grey tones and crisp framing when decorations are on.",
     tokens: {
       background: "#f1f5f6",
       surface: "#ffffff",
@@ -63,7 +63,7 @@ export const WEBSITE_APPEARANCE_PRESETS: readonly WebsiteAppearancePreset[] = [
   {
     key: "CHRISTMAS",
     label: "Christmas",
-    description: "Cream, deep evergreen and restrained gold for the festive season.",
+    description: "Elegant hanging ornaments, deep evergreen and restrained festive gold when decorations are on.",
     tokens: {
       background: "#f7f3e8",
       surface: "#fffdf7",

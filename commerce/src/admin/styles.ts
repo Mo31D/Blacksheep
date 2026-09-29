@@ -58,4 +58,12 @@ button:disabled{cursor:not-allowed}.btn:not(:disabled):hover{filter:brightness(.
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
 .appearance-decoration-control{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;margin:14px 0;border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface2);cursor:pointer}.appearance-decoration-control input{width:18px;height:18px;accent-color:var(--focus);margin:2px 0 0}.appearance-decoration-control strong,.appearance-decoration-control small{display:block}.appearance-decoration-control small{color:var(--muted);margin-top:3px;line-height:1.5}.appearance-decoration-control:has(input:disabled){opacity:.7;cursor:default}
 .appearance-preview-box[data-decoration-enabled="true"]::before{content:"";display:block;height:5px;border-radius:5px 5px 0 0;background:var(--preview-header)}
+.appearance-preview-box[data-decoration-enabled="true"] .appearance-preview-hero{position:relative;isolation:isolate}
+.appearance-preview-box[data-decoration-enabled="true"] .appearance-preview-hero::after{position:absolute;right:24px;top:10px;pointer-events:none;font-family:Georgia,serif;font-size:42px;line-height:1;opacity:.72}
+.appearance-preview-box[data-appearance-theme="WINTER"][data-decoration-enabled="true"]{border-color:#9ebec7;box-shadow:0 16px 38px rgba(36,74,89,.1)}
+.appearance-preview-box[data-appearance-theme="WINTER"][data-decoration-enabled="true"]::before{background:linear-gradient(90deg,#c8dfe5,#edf5f7,#c8dfe5)}
+.appearance-preview-box[data-appearance-theme="WINTER"][data-decoration-enabled="true"] .appearance-preview-hero::after{content:"❄";color:#547985}
+.appearance-preview-box[data-appearance-theme="CHRISTMAS"][data-decoration-enabled="true"]{border-color:#b89c64;box-shadow:0 16px 38px rgba(30,82,57,.11)}
+.appearance-preview-box[data-appearance-theme="CHRISTMAS"][data-decoration-enabled="true"]::before{background:linear-gradient(90deg,#315e45,#c9ad75,#315e45)}
+.appearance-preview-box[data-appearance-theme="CHRISTMAS"][data-decoration-enabled="true"] .appearance-preview-hero::after{content:"✦";color:#a47a35}
 `;
