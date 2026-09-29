@@ -372,6 +372,7 @@ function appearanceMutationError(cause: unknown): Response {
       "Choose a valid six-digit colour, for example #f8f4ea.",
     appearance_tokens_invalid: "Appearance colours are invalid.",
     appearance_preset_invalid: "Choose one of the approved Theme presets.",
+    appearance_decorations_invalid: "Choose whether seasonal decorations are shown.",
     appearance_contrast_invalid:
       "Those colours reduce readability. Choose colours with stronger contrast or reset to the preset.",
     appearance_hero_invalid: "Homepage hero settings are invalid.",

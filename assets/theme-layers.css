@@ -1,0 +1,3 @@
+/* Loaded only for a published Appearance version with seasonal decoration enabled.
+   Preset-scoped, noninteractive decoration rules and tracked assets belong here. */
+:root[data-theme-decorations="on"] .hero{isolation:isolate}

@@ -151,3 +151,11 @@ Decision: share exact public no-store and private no-store/noindex JSON response
 Why: catalogue, order and webhook JSON have one exact header contract, while Admin, customer review and media error JSON have the same additional indexing protection. Sharing those two shapes removes drift without flattening distinct route responsibilities.
 
 Rejected alternative: a universal response helper with per-route flags, or merging environment feature flags because they look similar. Both would hide meaningful public/private and staging/production differences behind switches.
+
+## Seasonal decoration belongs to published Website Appearance (29 September 2026)
+
+Decision: store a versioned `decorationsEnabled` boolean alongside the existing Appearance preset and use one tracked, optional static stylesheet for supported seasonal layers. Historical versions default off. Draft/preview and explicit publish retain the existing contract boundary.
+
+Why: the owner can turn decoration on or off with the theme and restore a previous published choice. A missing API or stylesheet leaves the established static storefront intact. Static, preset-scoped assets give the browser a bounded cacheable loading path.
+
+Rejected alternative: a separate theme service, local-browser theme state, or arbitrary decoration URLs in Admin. Each would create a second source of truth, unsafe asset ownership, or a preview that differs from publication.

@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0024_")) {
+  if (!latestMigration?.startsWith("0025_")) {
     throw new Error(
-      `Expected latest migration to be 0024, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0025, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0023_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0023.");
+  if (baselineMigrations.at(-1)?.startsWith("0024_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0024.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -143,6 +143,7 @@ try {
     "SELECT merchandising_id, event_type, actor_id, before_json, after_json FROM homepage_merchandising_audit_events LIMIT 0",
     "SELECT id, current_published_version_id, current_draft_version_id, version FROM website_appearance LIMIT 0",
     "SELECT appearance_id, version_number, preset_key, background_color, surface_color, text_color, muted_text_color, accent_color, button_color, border_color, header_color, hero_image_url, hero_heading, hero_text, hero_button_label, hero_button_href, section_images_json, scheduled_start_at, scheduled_end_at, published_at, superseded_at FROM website_appearance_versions LIMIT 0",
+    "SELECT decorations_enabled FROM website_appearance_versions LIMIT 0",
     "SELECT appearance_id, event_type, actor_id, before_json, after_json FROM website_appearance_audit_events LIMIT 0",
     "SELECT id, storage_provider, storage_key, public_url, mime_type, file_size, checksum_sha256, title, alt_text, context, status, archived_at, deleted_at FROM shared_media_assets LIMIT 0",
     "SELECT asset_id, surface, owner_id, owner_version_id, slot_key, released_at FROM shared_media_references LIMIT 0",
@@ -348,7 +349,7 @@ try {
   }
 
   console.log(
-    "PASS: migrations 0000–0023 upgraded cleanly to 0024; shared-media deletion claims and all prior platform schemas are present.",
+    "PASS: migrations 0000–0024 upgraded cleanly to 0025; Appearance decoration control and all prior platform schemas are present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });

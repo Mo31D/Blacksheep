@@ -133,6 +133,7 @@ export interface WebsiteAppearanceSnapshot {
   presetKey: string;
   tokens: AppearanceTokens;
   hero: AppearanceHero;
+  decorationsEnabled: boolean;
   sectionImages: Record<string, string>;
   scheduledStartAt: string | null;
   scheduledEndAt: string | null;
@@ -156,6 +157,7 @@ export interface SaveWebsiteAppearanceDraftInput {
   presetKey?: unknown;
   tokens?: unknown;
   hero?: unknown;
+  decorationsEnabled?: unknown;
   sectionImages?: unknown;
 }
 
@@ -326,6 +328,7 @@ function snapshotFromRow(row: Record<string, unknown>): WebsiteAppearanceSnapsho
     effectiveVersionNumber: Number(row.effectiveVersionNumber),
     hasDraft: row.draftVersionId != null,
     presetKey: String(row.presetKey),
+    decorationsEnabled: Number(row.decorationsEnabled ?? 0) === 1,
     tokens: {
       background: String(row.backgroundColor),
       surface: String(row.surfaceColor),
@@ -367,6 +370,7 @@ async function loadAppearance(
       "SELECT wa.id, wa.version, wa.current_published_version_id AS publishedVersionId, " +
         "wa.current_draft_version_id AS draftVersionId, wav.id AS effectiveVersionId, " +
         "wav.version_number AS effectiveVersionNumber, wav.preset_key AS presetKey, " +
+        "wav.decorations_enabled AS decorationsEnabled, " +
         "wav.background_color AS backgroundColor, wav.surface_color AS surfaceColor, " +
         "wav.text_color AS textColor, wav.muted_text_color AS mutedTextColor, " +
         "wav.accent_color AS accentColor, wav.button_color AS buttonColor, " +
@@ -499,9 +503,17 @@ export async function saveAdminWebsiteAppearanceDraft(
   const tokenFallback = presetChanged
     ? presetTokens(nextPresetKey)
     : current.tokens;
+  if (raw.decorationsEnabled !== undefined && typeof raw.decorationsEnabled !== "boolean") {
+    throw new Error("appearance_decorations_invalid");
+  }
 
   const next = {
     presetKey: nextPresetKey,
+    decorationsEnabled: raw.decorationsEnabled === undefined
+      ? presetChanged
+        ? nextPresetKey === "WINTER" || nextPresetKey === "CHRISTMAS"
+        : current.decorationsEnabled
+      : raw.decorationsEnabled,
     tokens: {
       background: colour(tokenRaw.background, tokenFallback.background),
       surface: colour(tokenRaw.surface, tokenFallback.surface),
@@ -569,13 +581,13 @@ export async function saveAdminWebsiteAppearanceDraft(
     db
       .prepare(
         "INSERT INTO website_appearance_versions (" +
-          "id, appearance_id, version_number, preset_key, " +
+          "id, appearance_id, version_number, preset_key, decorations_enabled, " +
           "background_color, surface_color, text_color, muted_text_color, " +
           "accent_color, button_color, border_color, header_color, " +
           "hero_image_url, hero_heading, hero_text, hero_button_label, hero_button_href, " +
           "section_images_json, scheduled_start_at, scheduled_end_at, " +
           "created_by, created_at, published_at, superseded_at" +
-          ") SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL " +
+          ") SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL " +
           "FROM website_appearance WHERE id = ? AND version = ? AND updated_at = ?",
       )
       .bind(
@@ -583,6 +595,7 @@ export async function saveAdminWebsiteAppearanceDraft(
         APPEARANCE_ID,
         versionNumber,
         next.presetKey,
+        next.decorationsEnabled ? 1 : 0,
         next.tokens.background,
         next.tokens.surface,
         next.tokens.text,
@@ -778,12 +791,12 @@ export async function restoreAdminWebsiteAppearance(
     db
       .prepare(
         "INSERT INTO website_appearance_versions (" +
-          "id, appearance_id, version_number, preset_key, background_color, surface_color, " +
+          "id, appearance_id, version_number, preset_key, decorations_enabled, background_color, surface_color, " +
           "text_color, muted_text_color, accent_color, button_color, border_color, header_color, " +
           "hero_image_url, hero_heading, hero_text, hero_button_label, hero_button_href, " +
           "section_images_json, scheduled_start_at, scheduled_end_at, created_by, created_at, " +
           "published_at, superseded_at" +
-          ") SELECT ?, appearance_id, ?, preset_key, background_color, surface_color, " +
+          ") SELECT ?, appearance_id, ?, preset_key, decorations_enabled, background_color, surface_color, " +
           "text_color, muted_text_color, accent_color, button_color, border_color, header_color, " +
           "hero_image_url, hero_heading, hero_text, hero_button_label, hero_button_href, " +
           "section_images_json, scheduled_start_at, scheduled_end_at, ?, ?, ?, NULL " +

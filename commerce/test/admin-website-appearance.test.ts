@@ -31,6 +31,7 @@ const config = {
   effectiveVersionNumber: 3,
   hasDraft: true,
   presetKey: "DEFAULT",
+  decorationsEnabled: false,
   tokens: {
     background: "#f8f4ea",
     surface: "#fffefa",
