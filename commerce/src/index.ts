@@ -22,6 +22,7 @@ interface Env {
   TURNSTILE_EXPECTED_ACTION?: string;
   RESEND_API_KEY?: string;
   RESEND_WEBHOOK_SECRET?: string;
+  STAGING_EMAIL_ALLOWLIST?: string;
   ORDER_EMAIL_FROM?: string;
   ORDER_OWNER_EMAIL?: string;
   PRODUCT_MEDIA?: R2BucketLike;

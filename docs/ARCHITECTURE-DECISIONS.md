@@ -135,3 +135,11 @@ Decision: notification services share one two-attempt send policy. Resend retrie
 Why: a transport timeout can hide successful acceptance, while an audit database error after acceptance is not a send failure. Resend's 24-hour key window covers a single logical retry; D1 remains the authoritative local audit. Signed webhook IDs are the durable replay boundary for delivery events.
 
 Rejected alternative: independently retry every caught error in each notification module, including audit errors and permanent 4xx. That duplicated code can send the same message twice and still misstate delivery. A new queue or universal exactly-once claim would require a separate durable outbox migration and is not implied by this repair.
+
+## Staging outbound mail fails closed (29 September 2026)
+
+Decision: the shared email-provider resolver blocks every staging/preview recipient unless their exact mailbox is present in a staging-only `STAGING_EMAIL_ALLOWLIST`. An absent or malformed list blocks all sends; policy rejection is not retried. Production keeps its established delivery behaviour.
+
+Why: the deployed staging Worker shares the production owner recipient and can target supplied customer addresses. The provider boundary covers order, Admin, customer-review and admin-code flows without adding separate UI or route checks. An operator must supply a safe test mailbox at release; the repository cannot invent one.
+
+Rejected alternative: infer safety from the environment name, rewrite recipients in each caller, or silently claim a blocked message was sent. Those leave bypasses or false audit records. A provider-account split alone would not prevent mail to real recipients.

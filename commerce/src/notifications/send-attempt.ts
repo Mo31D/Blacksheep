@@ -1,4 +1,5 @@
 import type { SendEmailBindingLike } from "./order-notifier";
+import { EmailRecipientPolicyError } from "./email-provider";
 import { ResendSendError } from "./resend-email";
 
 type EmailMessage = Parameters<SendEmailBindingLike["send"]>[0];
@@ -13,6 +14,7 @@ export class EmailSendFailure extends Error {
 }
 
 function retryable(error: unknown): boolean {
+  if (error instanceof EmailRecipientPolicyError) return false;
   if (!(error instanceof ResendSendError)) return true;
   return (error.status === 0 && error.providerCode === "transport_error") ||
     error.status === 408 || error.status === 429 ||
