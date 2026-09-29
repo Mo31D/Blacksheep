@@ -2,13 +2,14 @@
 Updated 29 September 2026. Repository Mo31D/Blacksheep; existing main only.
 
 ## Current phase / last completed
-- Phase 4 candidate publication audit COMPLETE pending documentation commit. Published exporter 0700cbd and current-state workflow gate efa0ccf. Read-only staging CI run 36560733660 SUCCESS: 146/146 Product parity, zero semantic/missing/new differences, 146 Product pages, 14 collection pages, zero verifier failures, deterministic 162-file package SHA-256 61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7. No tracked site changes, unsafe slug removals or live mutation. Search 36560733694 / Pages 36560733344 SUCCESS.
+- Phase 4 supplier writer audit complete locally: uncalled Romney direct catalogue writer retired, with ownership/caller proof in ROMNEYS-SYNC-OWNERSHIP-AUDIT.md. Search Readiness PASS (146/17/166 URLs, zero placeholders) and Product Core validation PASS (146 products/136 media); publication and GitHub checks pending this task. Existing catalogue, images and D1 data unchanged.
+- Phase 4 candidate publication audit COMPLETE. Published exporter 0700cbd and current-state workflow gate efa0ccf. Read-only staging CI run 36560733660 SUCCESS: 146/146 Product parity, zero semantic/missing/new differences, 146 Product pages, 14 collection pages, zero verifier failures, deterministic 162-file package SHA-256 61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7. No tracked site changes, unsafe slug removals or live mutation. Search 36560733694 / Pages 36560733344 SUCCESS.
 - Product edit and lifecycle concurrency fixes published ee20351 and 4423238; full Commerce CI 36537699726 and 36538739167 SUCCESS, 551 local tests PASS. See PRODUCT-EDIT-OWNERSHIP-AUDIT.md.
 - Reservation release/consume, return and caller fixes published 355827a, 848876d and 048432e; full CI SUCCESS. Stocktake code phase CLOSED at 465610f. See INVENTORY-WRITE-AUDIT.md.
 - Shared Media route/UI extraction published 2b9d553 and 4504c07 with full CI SUCCESS. Product multipart adapters remain by design; external caller/deployed acceptance is pending.
 
 ## Next recommended task
-The next unchecked independent item is the supplier catalogue writer audit (scripts/sync-romneys-official-data.py). Trace its callers and overwrite boundary before changing it. The current user asked to execute only the completed candidate export item, so do not start this next item in this turn.
+After publishing and verifying the Romney writer retirement, the next open independent item is actual staging browser fallback/membership across archived and new Products. Browser inspection must be read-only and retain production clean Product routes disabled.
 ## Decisions / risks
 - D1 balances/ledger own stock; reservation and Stocktake services own workflows. Missing expected reservation state must not bypass order concurrency guards; truly reservation-free legacy orders remain supported.
 - New image bytes belong to Shared Media; Product/content versions own references. Preserve historical URLs, atomic attachment guards and ambiguous-failure retention.
