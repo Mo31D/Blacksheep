@@ -1,0 +1,11 @@
+# Admin visual system
+
+29 September 2026 · Phase 5A, slice 2. `commerce/src/admin/styles.ts` owns the authenticated Admin CSS rendered by `adminHtml` in `ui.ts`. The previous inline rules were moved intact before changing their shared tokens and components. Feature layout rules stay in the same stylesheet and retain their existing selectors.
+
+The system uses a cool neutral canvas, white panels, dark primary actions and a teal focus ring. `--space-*`, `--radius-*`, `--control-height`, colour and shadow tokens keep the shared elements consistent. Page headings, panels, metrics, forms, table rows, status badges, filters, empty states and disabled/focus states now use those tokens or the same component treatment. The shop wordmark remains serif; operational text uses the existing system font stack for readability and fast rendering. No external font request was added.
+
+At 720px and below, five primary destinations have touch targets above 44px. The **More** dialog gives access to Sections & brands, Homepage, Themes & appearance, Media Library, Reports and Log out. Its native `dialog` supplies Escape/focus behaviour, and the same `setView` handler keeps existing views, hashes and APIs. At tablet widths, the compact sidebar keeps all destinations and now has distinct Storefront/Theme/Media icons, accessible labels and tooltips. Shared `:focus-visible` outlines and reduced-motion rules are present.
+
+Local visual QA used the real generated Admin HTML served at `127.0.0.1` with empty API fixtures. Desktop, 768px tablet, 390px and 320px phone views were inspected; at 320px the document width stayed within the viewport and each bottom button measured about 58 × 49px. The mobile dialog opened, Media Library selected `#media`, and Escape closed the dialog and returned focus to More. The tablet icon rail announced all nine destination names. Browser console had no errors. These checks cover layout and navigation with fixtures, not live business workflows or a deployed Worker. Local screenshots are in ignored `commerce/admin-ux-artifacts/` and are not part of the application.
+
+Validation: TypeScript and complete Commerce suite (75 files / 563 tests) pass locally. GitHub Commerce/Search/Pages checks are recorded in the checklist after publication.

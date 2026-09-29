@@ -247,13 +247,17 @@ describe("generated Admin HTML scripts", () => {
       ".structure-subrow,.brand-range-row{grid-template-columns:1fr}",
     );
     expect(html).toContain(
-      ".mobile-bottom{position:fixed;display:grid;grid-template-columns:repeat(7,1fr)",
+      ".mobile-bottom{position:fixed;display:grid;grid-template-columns:repeat(5,1fr)",
     );
     expect(html).not.toContain(
-      "@media(max-width:720px){.mobile-bottom{grid-template-columns:repeat(7,1fr)}",
+      ".mobile-bottom{grid-template-columns:repeat(7,1fr)}",
     );
     expect(html).toContain(
       "@media(max-width:720px){.placement-grid,.placement-options{grid-template-columns:1fr}",
     );
+    expect(html).toContain('aria-controls="adminNavigation"');
+    expect(html).toContain('<dialog class="admin-navigation"');
+    expect(html).toContain("adminNavigation.showModal()");
+    expect(html).toContain("document.getElementById('mobileLogout').onclick=logoutAdmin");
   });
 });
