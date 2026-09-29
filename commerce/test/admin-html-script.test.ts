@@ -33,6 +33,7 @@ describe("generated Admin HTML scripts", () => {
     expect(resolve("/images/1.png")).toBe(
       "https://theblacksheepshop.co.uk/images/1.png",
     );
+    expect(resolve("/media/staging-upload")).toBe("/media/staging-upload");
     expect(resolve("https://example.com/image.webp")).toBe(
       "https://example.com/image.webp",
     );

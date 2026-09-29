@@ -14,7 +14,7 @@ Target: `main` `d3ce3717a6b9db6d3ae746452936f043669777e6`, deployed by [Commerce
 
 ## Defect fix in source
 
-`commerce/src/admin/shared-media.ts` now resolves storefront-relative image paths for the shared image preview; `commerce/src/admin/ui.ts` uses the same resolver for private Appearance preview. Stored image values and API payloads are unchanged. `commerce/test/admin-html-script.test.ts` checks relative, absolute and protocol-relative URLs and generated preview calls. TypeScript and all 77 files / 570 Commerce tests pass locally. This fix is **not** in deployed `d3ce371`; re-run the guarded staging workflow on its new commit before browser rechecking.
+`commerce/src/admin/shared-media.ts` now resolves static storefront-relative image paths for the shared image preview, while preserving Worker-owned `/media/...` URLs so staging uploads still load from staging R2. `commerce/src/admin/ui.ts` uses the same resolver for private Appearance preview. Stored image values and API payloads are unchanged. `commerce/test/admin-html-script.test.ts` checks static, Media, absolute and protocol-relative URLs and generated preview calls. TypeScript and all 77 files / 570 Commerce tests pass locally after both patches. Neither fix is in deployed `d3ce371`; re-run the guarded staging workflow on the final commit before browser rechecking.
 
 ## Still to accept
 
