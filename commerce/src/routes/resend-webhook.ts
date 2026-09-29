@@ -1,20 +1,11 @@
 import type { D1DatabaseLike } from "../data/d1";
 import { applyResendDeliveryEvent } from "../data/email-delivery";
 import { verifyResendWebhookSignature } from "../security/resend-webhook";
+import { jsonNoStore as json } from "../http/json-response";
 
 export interface ResendWebhookEnv {
   DB?: D1DatabaseLike;
   RESEND_WEBHOOK_SECRET?: string;
-}
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store",
-    },
-  });
 }
 
 export async function handleResendWebhook(

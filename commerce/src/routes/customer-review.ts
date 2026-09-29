@@ -9,21 +9,11 @@ import {
   notifyOwnerCustomerQuestion,
   type CustomerQuestionEnv,
 } from "../notifications/customer-question";
+import { jsonNoIndex as json } from "../http/json-response";
 
 export interface CustomerReviewEnv extends CustomerQuestionEnv {
   DB?: D1DatabaseLike;
   ORDER_RESERVATIONS_ENABLED?: string;
-}
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store",
-      "x-robots-tag": "noindex, nofollow",
-    },
-  });
 }
 
 function escapeHtml(value: unknown): string {

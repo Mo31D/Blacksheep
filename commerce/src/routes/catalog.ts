@@ -6,6 +6,7 @@ import {
 import { listPublishedStorefrontNodes } from "../data/storefront-structure";
 import { getPublishedHomepageMerchandisingPreview } from "../data/homepage-merchandising";
 import { getPublishedWebsiteAppearance } from "../data/website-appearance";
+import { jsonNoStore as json } from "../http/json-response";
 
 export interface PublicCatalogEnv {
   DB?: D1DatabaseLike;
@@ -26,16 +27,6 @@ function withCleanProductUrl<T extends { id: string; productId: string; slug: st
         ? "/products/" + encodeURIComponent(product.slug)
         : null,
   };
-}
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store",
-    },
-  });
 }
 
 export async function handlePublicCatalogRequest(

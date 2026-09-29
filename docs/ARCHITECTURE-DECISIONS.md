@@ -143,3 +143,11 @@ Decision: the shared email-provider resolver blocks every staging/preview recipi
 Why: the deployed staging Worker shares the production owner recipient and can target supplied customer addresses. The provider boundary covers order, Admin, customer-review and admin-code flows without adding separate UI or route checks. An operator must supply a safe test mailbox at release; the repository cannot invent one.
 
 Rejected alternative: infer safety from the environment name, rewrite recipients in each caller, or silently claim a blocked message was sent. Those leave bypasses or false audit records. A provider-account split alone would not prevent mail to real recipients.
+
+## JSON response privacy is an explicit HTTP boundary (29 September 2026)
+
+Decision: share exact public no-store and private no-store/noindex JSON response shapes in `http/json-response.ts`. Admin request parsing/error mapping stays in `http/admin-json.ts`; root Worker responses retain their CORS/initialization logic.
+
+Why: catalogue, order and webhook JSON have one exact header contract, while Admin, customer review and media error JSON have the same additional indexing protection. Sharing those two shapes removes drift without flattening distinct route responsibilities.
+
+Rejected alternative: a universal response helper with per-route flags, or merging environment feature flags because they look similar. Both would hide meaningful public/private and staging/production differences behind switches.

@@ -1,13 +1,5 @@
-export function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store",
-      "x-robots-tag": "noindex, nofollow",
-    },
-  });
-}
+import { jsonNoIndex as json } from "./json-response";
+export { json };
 
 export function error(code: string, status: number, message = code): Response {
   return json({ error: { code, message } }, status);

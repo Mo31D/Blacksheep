@@ -12,6 +12,7 @@ import {
 } from "../http/order-request";
 import { verifyTurnstile } from "../security/turnstile";
 import { notifyOrderSubmitted, type NotificationEnv } from "../notifications/service";
+import { jsonNoStore as json } from "../http/json-response";
 
 export interface RateLimiterLike {
   limit(input: { key: string }): Promise<{ success: boolean }>;
@@ -41,16 +42,6 @@ const defaultDependencies: RouteDependencies = {
   createReference: () => createPublicOrderReference(),
   priceRequestedCartFromD1Fn: priceRequestedCartFromD1,
 };
-
-function json(body: unknown, status: number): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store",
-    },
-  });
-}
 
 async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest(

@@ -4,21 +4,11 @@ import {
   getR2MediaStorage,
   type R2BucketLike,
 } from "../data/product-media";
+import { jsonNoIndex as json } from "../http/json-response";
 
 export interface ProductMediaPublicEnv {
   DB?: D1DatabaseLike;
   PRODUCT_MEDIA?: R2BucketLike;
-}
-
-function json(body: unknown, status: number): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store",
-      "x-robots-tag": "noindex, nofollow",
-    },
-  });
 }
 
 export async function handleProductMediaRequest(
