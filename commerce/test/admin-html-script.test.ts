@@ -22,6 +22,27 @@ function compileInlineScripts(html: string): void {
 }
 
 describe("generated Admin HTML scripts", () => {
+  it("resolves storefront-relative images in Worker-hosted Admin previews", () => {
+    const script = inlineScripts(adminHtml("owner@example.com", "staging"))[0];
+    const helper = script.match(/function storefrontImageUrl\(url\)\{[^}]+\}/)?.[0];
+    expect(helper).toBeTruthy();
+    const resolve = new Function(`${helper};return storefrontImageUrl`)() as (
+      url: string,
+    ) => string;
+
+    expect(resolve("/images/1.png")).toBe(
+      "https://theblacksheepshop.co.uk/images/1.png",
+    );
+    expect(resolve("https://example.com/image.webp")).toBe(
+      "https://example.com/image.webp",
+    );
+    expect(resolve("//example.com/image.webp")).toBe(
+      "//example.com/image.webp",
+    );
+    expect(script).toContain("esc(storefrontImageUrl(h.imageUrl))");
+    expect(script).toContain("esc(storefrontImageUrl(url))");
+  });
+
   it("emits syntactically valid authenticated Admin JavaScript", () => {
     const html = adminHtml("owner@example.com");
     compileInlineScripts(html);
