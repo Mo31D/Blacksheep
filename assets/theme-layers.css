@@ -27,3 +27,4 @@
 :root[data-theme-preset="CHRISTMAS"][data-theme-decorations="on"] .commerce-strip{background:linear-gradient(90deg,#eaf0e7,#fffaf0 50%,#eaf0e7)}
 
 @media(max-width:760px){:root[data-theme-decorations="on"] .hero::before{width:110px;top:8px;right:12px;opacity:.32}:root[data-theme-decorations="on"] .hero-media{box-shadow:none}:root[data-theme-decorations="on"] .hero-media::after{inset:7px;border-radius:17px}}
+@media(max-width:480px){:root[data-theme-decorations="on"] .hero::before,:root[data-theme-decorations="on"] .hero-media::after{display:none}}

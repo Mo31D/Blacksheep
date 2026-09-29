@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 type ThemeConfig = { presetKey: string; decorationsEnabled: boolean };
 
-function storefrontThemeHarness() {
+function storefrontThemeHarness(navigator: { deviceMemory?: number; connection?: { saveData: boolean } } = {}) {
   const source = readFileSync(new URL("../../assets/site.js", import.meta.url), "utf8");
   const definition = source.split("\n").find((line) => line.startsWith("function syncStorefrontThemeLayer("));
   if (!definition) throw new Error("Storefront theme owner is missing");
@@ -27,13 +27,19 @@ function storefrontThemeHarness() {
     },
     head: { appendChild: (link: Record<string, unknown>) => links.push(link) },
   };
-  const sync = runInNewContext(`${definition}; syncStorefrontThemeLayer`, { document }) as (config: ThemeConfig) => void;
+  const sync = runInNewContext(`${definition}; syncStorefrontThemeLayer`, { document, navigator }) as (config: ThemeConfig) => void;
   return { sync, attributes, links };
 }
 
 describe("published storefront theme layer", () => {
   it("uses two tracked, inert, small seasonal illustrations", () => {
     const css = readFileSync(new URL("../../assets/theme-layers.css", import.meta.url), "utf8");
+    expect(Buffer.byteLength(css)).toBeLessThan(6144);
+    expect(css).toContain("@media(max-width:480px)");
+    expect(css).not.toMatch(/\banimation\s*:/i);
+    const baseCss = readFileSync(new URL("../../assets/style.css", import.meta.url), "utf8");
+    expect(baseCss).toContain("@media(prefers-reduced-motion:reduce)");
+    expect(baseCss).toContain("animation:none!important");
     for (const [preset, asset] of [
       ["WINTER", "winter-branch.svg"],
       ["CHRISTMAS", "christmas-ornaments.svg"],
@@ -73,5 +79,17 @@ describe("published storefront theme layer", () => {
     (links[0].onerror as () => void)();
     expect(links).toHaveLength(0);
     expect(attributes.has("data-theme-decorations")).toBe(false);
+  });
+
+  it("skips optional artwork on data-saving and low-memory devices", () => {
+    for (const navigator of [
+      { connection: { saveData: true } },
+      { deviceMemory: 2 },
+    ]) {
+      const { sync, links, attributes } = storefrontThemeHarness(navigator);
+      sync({ presetKey: "WINTER", decorationsEnabled: true });
+      expect(links).toHaveLength(0);
+      expect(attributes.size).toBe(0);
+    }
   });
 });
