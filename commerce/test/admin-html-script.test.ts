@@ -29,6 +29,23 @@ describe("generated Admin HTML scripts", () => {
     expect(html).toContain("openOrder(requestedOrder)");
   });
 
+  it("keeps one Website workspace with direct Appearance and Media navigation", () => {
+    const html = adminHtml("owner@example.com");
+    compileInlineScripts(html);
+    expect(html).toContain('data-nav="appearance"');
+    expect(html).toContain('data-nav="media"');
+    expect(html).toContain('id="view-website"');
+    expect(html).not.toContain('id="view-appearance"');
+    expect(html).not.toContain('id="view-media"');
+    expect(html).toContain("view==='appearance'?'appearance':view==='media'?'media':null");
+    expect(html).toContain("'#'+(websiteTab==='homepage'?'website':websiteTab)");
+    expect(html).toContain("'website','appearance','media','stock'");
+    expect(html).toContain('class="nav-group-label">Operations');
+    expect(html).toContain('class="nav-group-label">Storefront');
+    expect(html).toContain('Orders &amp; reservations');
+    expect(html).toContain('Inventory &amp; stocktake');
+  });
+
   it("renders owner-ready production copy and staging-only test controls", () => {
     const production = adminHtml("owner@example.com", "production");
     const staging = adminHtml("owner@example.com", "staging");
