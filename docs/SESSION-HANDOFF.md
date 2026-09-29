@@ -2,17 +2,13 @@
 Updated 29 September 2026. Repository Mo31D/Blacksheep; existing main only.
 
 ## Current phase / last completed
-- Phase 3: shared-media Admin route extraction completed locally. New routes/admin-shared-media.ts owns library HTTP contracts; existing admin.ts retains Origin/auth/DB guards. http/admin-json.ts owns unchanged JSON readers/responses. Product adapters remain. TypeScript PASS; 70 files / 526 tests PASS, including ten new composition cases. Published 2b9d553: Commerce CI 36535646763, Search 36535646738 and Pages 36535646426 SUCCESS, including full check/browser regression.
-- Media Library UI extraction published 4504c07. Full production/staging HTML byte-identical; TypeScript and 526 tests PASS. Commerce CI 36536432053, Search 36536432063 and Pages 36536431166 SUCCESS.
-- Product draft/quick/variant fix published ee20351: Commerce CI 36537699726, Search 36537699891 and Pages 36537700321 SUCCESS. Nine same-millisecond failures reproduced; 537 local tests PASS.
-- Product lifecycle/media fence published 4423238: Commerce CI 36538739167, Search 36538739265 and Pages 36538738373 SUCCESS. Seven stale-success failures reproduced; TypeScript and 72 files / 551 tests PASS. See PRODUCT-EDIT-OWNERSHIP-AUDIT.md.
-- Reservation source tasks COMPLETE: release/consume proof 355827a (CI 36530647707), return proof 848876d (CI 36531316256), four caller-race fixes 048432e (CI 36534277220). All full checks/browser regression, Search and Pages SUCCESS. Details: INVENTORY-WRITE-AUDIT.md.
-- Source media caller audit 4bc7ff8 passed Search 36535024251 and Pages 36535023864; docs-only commit did not trigger Commerce CI. Six relevant suites / 39 tests PASS. See MEDIA-CALLER-AUDIT.md.
-- Stocktake code phase CLOSED (465610f, CI 36529470545 SUCCESS). Do not revisit unless a new test proves a high-risk defect.
+- Phase 4 candidate publication audit COMPLETE pending documentation commit. Published exporter 0700cbd and current-state workflow gate efa0ccf. Read-only staging CI run 36560733660 SUCCESS: 146/146 Product parity, zero semantic/missing/new differences, 146 Product pages, 14 collection pages, zero verifier failures, deterministic 162-file package SHA-256 61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7. No tracked site changes, unsafe slug removals or live mutation. Search 36560733694 / Pages 36560733344 SUCCESS.
+- Product edit and lifecycle concurrency fixes published ee20351 and 4423238; full Commerce CI 36537699726 and 36538739167 SUCCESS, 551 local tests PASS. See PRODUCT-EDIT-OWNERSHIP-AUDIT.md.
+- Reservation release/consume, return and caller fixes published 355827a, 848876d and 048432e; full CI SUCCESS. Stocktake code phase CLOSED at 465610f. See INVENTORY-WRITE-AUDIT.md.
+- Shared Media route/UI extraction published 2b9d553 and 4504c07 with full CI SUCCESS. Product multipart adapters remain by design; external caller/deployed acceptance is pending.
 
 ## Next recommended task
-Phase 4 publication candidate export is the only current task. Local Windows exporter failed before D1 due spawnSync(npx.cmd) EINVAL; script now invokes local Wrangler through Node. Local retry reached Wrangler but lacks CLOUDFLARE_API_TOKEN, so no D1 result. Exporter fix published 0700cbd. Publication workflow run 36560388839 had Actions credentials and read staging latest migration 0024 with 146 active Products, but failed its obsolete 0012 gate before export. Current workflow edit replaces that historical gate with nonempty migration / positive active checks; publish and inspect the new read-only export, package --check and verifier artifacts. Record hashes, parity and canonical/link findings, then close the checklist item only if proven. Its output is isolated; never target repository root. Do not retire Product multipart routes.
-
+The next unchecked independent item is the supplier catalogue writer audit (scripts/sync-romneys-official-data.py). Trace its callers and overwrite boundary before changing it. The current user asked to execute only the completed candidate export item, so do not start this next item in this turn.
 ## Decisions / risks
 - D1 balances/ledger own stock; reservation and Stocktake services own workflows. Missing expected reservation state must not bypass order concurrency guards; truly reservation-free legacy orders remain supported.
 - New image bytes belong to Shared Media; Product/content versions own references. Preserve historical URLs, atomic attachment guards and ambiguous-failure retention.
