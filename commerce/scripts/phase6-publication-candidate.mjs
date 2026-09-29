@@ -33,12 +33,11 @@ const repoRoot = resolve(process.cwd(), "..");
 const legacyCataloguePath = resolve(repoRoot, "assets/catalog.js");
 
 function query(command) {
-  const executable = process.platform === "win32" ? "npx.cmd" : "npx";
+  const wrangler = resolve(process.cwd(), "node_modules/wrangler/bin/wrangler.js");
   const result = spawnSync(
-    executable,
+    process.execPath,
     [
-      "--no-install",
-      "wrangler",
+      wrangler,
       "d1",
       "execute",
       ...wranglerDatabaseArgs,
@@ -56,7 +55,7 @@ function query(command) {
 
   if (result.status !== 0) {
     throw new Error(
-      "Wrangler query failed.\n" +
+      "Wrangler query failed: " + String(result.error?.code ?? result.status) + "\n" +
         String(result.stdout ?? "") +
         "\n" +
         String(result.stderr ?? ""),
