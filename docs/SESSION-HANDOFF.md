@@ -2,14 +2,14 @@
 Updated 29 September 2026. Repository Mo31D/Blacksheep; existing main only.
 
 ## Current phase / last completed
-- Phase 4 supplier writer audit complete locally: uncalled Romney direct catalogue writer retired, with ownership/caller proof in ROMNEYS-SYNC-OWNERSHIP-AUDIT.md. Search Readiness PASS (146/17/166 URLs, zero placeholders) and Product Core validation PASS (146 products/136 media); publication and GitHub checks pending this task. Existing catalogue, images and D1 data unchanged.
+- Phase 4 supplier writer audit published 34134db (Search 36561969089 / Pages 36561968525 SUCCESS): uncalled Romney direct catalogue writer retired, with ownership/caller proof in ROMNEYS-SYNC-OWNERSHIP-AUDIT.md. Search Readiness PASS (146/17/166 URLs, zero placeholders) and Product Core validation PASS (146 products/136 media); no further work pending on this task. Existing catalogue, images and D1 data unchanged.
 - Phase 4 candidate publication audit COMPLETE. Published exporter 0700cbd and current-state workflow gate efa0ccf. Read-only staging CI run 36560733660 SUCCESS: 146/146 Product parity, zero semantic/missing/new differences, 146 Product pages, 14 collection pages, zero verifier failures, deterministic 162-file package SHA-256 61d0b5f8cd4e038d3d6b38fff8bda77fe1bd491fc7f6c796ac59089522d7c3f7. No tracked site changes, unsafe slug removals or live mutation. Search 36560733694 / Pages 36560733344 SUCCESS.
 - Product edit and lifecycle concurrency fixes published ee20351 and 4423238; full Commerce CI 36537699726 and 36538739167 SUCCESS, 551 local tests PASS. See PRODUCT-EDIT-OWNERSHIP-AUDIT.md.
 - Reservation release/consume, return and caller fixes published 355827a, 848876d and 048432e; full CI SUCCESS. Stocktake code phase CLOSED at 465610f. See INVENTORY-WRITE-AUDIT.md.
 - Shared Media route/UI extraction published 2b9d553 and 4504c07 with full CI SUCCESS. Product multipart adapters remain by design; external caller/deployed acceptance is pending.
 
 ## Next recommended task
-After publishing and verifying the Romney writer retirement, the next open independent item is actual staging browser fallback/membership across archived and new Products. Browser inspection must be read-only and retain production clean Product routes disabled.
+Current task: staging storefront preview fallback and archived/new membership. Live read-only in-app browser at /all-products.html?commerce-preview=staging showed ready, 146 cards, staging banner and correct canonical. Existing Playwright QA covers live staging feed, dynamic product and API fallback. Added missing simulated archived static HC-004 case in Full range/Gifts; syntax PASS. Publish to trigger Chromium/WebKit staging QA, inspect CI before closing. No D1 write or production route change.
 ## Decisions / risks
 - D1 balances/ledger own stock; reservation and Stocktake services own workflows. Missing expected reservation state must not bypass order concurrency guards; truly reservation-free legacy orders remain supported.
 - New image bytes belong to Shared Media; Product/content versions own references. Preserve historical URLs, atomic attachment guards and ambiguous-failure retention.

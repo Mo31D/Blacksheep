@@ -339,6 +339,11 @@ async function verifyMockedLiveChanges(realPayload) {
     publishedVersionId: "pver-dynamic-storefront-qa",
     publishedVersionNumber: 1,
   };
+  const archivedId = "HC-004";
+  const archivedPath = "/products/hc-004-highland-cow-in-bath-ornament.html";
+  const archivedIndex = trackedPayload.products.findIndex((product) => product.id === archivedId);
+  assert(archivedIndex >= 0, "Archived Product test target missing from staging catalogue");
+  trackedPayload.products.splice(archivedIndex, 1);
   trackedPayload.products.push(dynamicProduct);
 
   await page.route(API + "/v1/catalog?limit=200", async (route) => {
@@ -362,6 +367,11 @@ async function verifyMockedLiveChanges(realPayload) {
       { waitUntil: "domcontentloaded", timeout: 60_000 },
     );
     await waitForCommerce(page, "ready");
+
+    assert(
+      (await page.locator('.product-card[data-url="' + archivedPath + '"]').count()) === 0,
+      "Archived D1 Product remained in Full range after authoritative catalogue load",
+    );
 
     const card = page.locator(CARD_SELECTOR);
     await card.waitFor({ state: "visible", timeout: 15_000 });
@@ -404,6 +414,16 @@ async function verifyMockedLiveChanges(realPayload) {
       (await dynamicAllProducts.locator(".product-price").textContent())?.trim() ===
         "£3.21",
       "New D1-only product was not rendered in Full range",
+    );
+
+    await page.goto(SITE + "/gifts.html", {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    await waitForCommerce(page, "ready");
+    assert(
+      (await page.locator('.product-card[data-url="' + archivedPath + '"]').count()) === 0,
+      "Archived D1 Product remained in Gifts range after authoritative catalogue load",
     );
 
     await page.goto(SITE + "/hawkshead-relish.html", {
