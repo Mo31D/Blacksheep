@@ -40,11 +40,11 @@ All these are views/sheets in the existing Worker Admin, not separate applicatio
 
 | Home | Purpose / data | Overlap and intended disposition |
 | --- | --- | --- |
-| Dashboard | Operational summary and navigation | Keep read-only summaries; link to owning workspace. |
+| Overview | Operational summary and navigation | Keep read-only summaries; link to owning workspace. |
 | Orders | Order status, revisions, refunds, communication | Keep detail actions together; reports are projections only. |
 | Products | Identity, content, selling controls, images, placements | Full editor is the home; quick controls must call the same data functions. Stock links may expose the same inventory service, not an independent count store. |
-| Catalogue | Website hierarchy and Brands & ranges | Keep hierarchy separate from classification; category picker belongs in Product editing, definition management here. |
-| Website | Homepage, appearance, Media Library | Keep related tabs; all ordinary image selection/upload should use library helpers. |
+| Website → Sections & collections | Website hierarchy and Brands & ranges | Existing `#catalogue` child page and Product shortcuts remain valid; primary navigation has one Website entry. Keep hierarchy separate from classification; category picker belongs in Product editing, definition management here. |
+| Website → Homepage, Appearance & themes, Image Library | Homepage composition, visual configuration and reusable images | Child tabs live in the same Website workspace; ordinary image selection/upload uses Shared Media helpers beside content. |
 | Stock | Counts, thresholds, Stocktake, valuation | Stocktake is the existing single bulk-count workflow; valuation is a derived subsection. |
 | Reports | Business/operational metrics | Keep independent read-only reporting with data-class isolation. |
 | Login/session | Authentication | Keep outside business-object navigation. No dedicated Customer or general Settings subsystem was identified; do not invent one. |

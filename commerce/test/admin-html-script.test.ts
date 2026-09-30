@@ -51,19 +51,29 @@ describe("generated Admin HTML scripts", () => {
     expect(html).toContain("openOrder(requestedOrder)");
   });
 
-  it("keeps one Website workspace with direct Appearance and Media navigation", () => {
+  it("gives each owner job one navigation home while preserving Website deep links", () => {
     const html = adminHtml("owner@example.com");
     compileInlineScripts(html);
-    expect(html).toContain('data-nav="appearance"');
-    expect(html).toContain('data-nav="media"');
+    expect(html.match(/data-nav="website"/g)).toHaveLength(2); // Sidebar and mobile More.
+    expect(html).not.toContain('data-nav="catalogue"');
+    expect(html).not.toContain('data-nav="appearance"');
+    expect(html).not.toContain('data-nav="media"');
+    expect(html).toContain('data-website-tab="sections"');
+    expect(html).toContain('data-website-tab="appearance"');
+    expect(html).toContain('data-website-tab="media"');
+    expect(html).toContain('data-nav="dashboard"');
+    expect(html).toContain('<h1>Overview</h1>');
+    expect(html).toContain('<span>Overview</span>');
     expect(html).toContain('id="view-website"');
     expect(html).not.toContain('id="view-appearance"');
     expect(html).not.toContain('id="view-media"');
     expect(html).toContain("view==='appearance'?'appearance':view==='media'?'media':null");
+    expect(html).toContain("if(target==='sections')setView('catalogue')");
+    expect(html).toContain("activeView==='catalogue'?'website'");
     expect(html).toContain("'#'+(websiteTab==='homepage'?'website':websiteTab)");
     expect(html).toContain("'website','appearance','media','stock'");
     expect(html).toContain('class="nav-group-label">Operations');
-    expect(html).toContain('class="nav-group-label">Storefront');
+    expect(html).toContain('class="nav-group-label">Website');
     expect(html).toContain('Orders &amp; reservations');
     expect(html).toContain('Inventory &amp; stocktake');
   });
@@ -83,7 +93,7 @@ describe("generated Admin HTML scripts", () => {
     expect(production).not.toContain('id="resetTestOrders"');
     expect(production).not.toContain('data-order-class="TEST"');
     expect(production).toContain('id="view-catalogue"');
-    expect(production).toContain('data-nav="catalogue"');
+    expect(production).toContain('data-website-tab="sections"');
     expect(production).toContain('id="view-website"');
     expect(production).toContain('data-nav="website"');
     expect(production).toContain("Homepage product strip");

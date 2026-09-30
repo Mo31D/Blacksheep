@@ -159,3 +159,11 @@ Decision: store a versioned `decorationsEnabled` boolean alongside the existing 
 Why: the owner can turn decoration on or off with the theme and restore a previous published choice. A missing API or stylesheet leaves the established static storefront intact. Static, preset-scoped assets give the browser a bounded cacheable loading path.
 
 Rejected alternative: a separate theme service, local-browser theme state, or arbitrary decoration URLs in Admin. Each would create a second source of truth, unsafe asset ownership, or a preview that differs from publication.
+
+## Website is one owner-facing Admin destination (30 September 2026)
+
+Decision: primary Admin navigation presents Overview, Orders, Products, Stock, Website and Reports. Website owns Homepage, Sections & collections, Appearance & themes and Image Library as child workflows. The existing Catalogue view and `#catalogue` deep link remain as the Sections child page; existing Appearance/Media deep links continue to select their Website tabs.
+
+Why: owners should choose a business job once and then see related tools in context. Duplicate top-level and More-menu entries for the same Website tasks obscured where editing belongs. Preserving underlying views and hash links avoids changing API or domain ownership in a navigation slice.
+
+Rejected alternative: leaving Homepage, Appearance and Media as parallel top-level tools, or replacing the existing Admin with a new routed application. Both retain or add unnecessary navigation and migration risk.
