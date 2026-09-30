@@ -132,6 +132,8 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("function archiveSharedMediaAsset");
     expect(production).toContain("Homepage hero");
     expect(production).not.toContain("<h2>Section images</h2>");
+    expect(production).toContain("Change approved colours and homepage hero content.");
+    expect(production).not.toContain("hero content and section imagery");
     expect(production).toContain('id="appearancePresetGrid"');
     expect(production).toContain('id="appearanceResetPreset"');
     expect(production).toContain("Reset colours to preset");

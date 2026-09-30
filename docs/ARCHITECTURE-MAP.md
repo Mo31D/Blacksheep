@@ -39,6 +39,8 @@ Reviewed against `main` at `1d08f3b` on 27 September 2026. This describes source
 Homepage card composition uses `homepage_merchandising_cards` to store ordered references to Storefront Structure nodes in each Homepage version. Section versions own the card's name, image and route; the existing published Homepage API supplies resolved cards to the static storefront, whose legacy cards remain its network-failure fallback. No separate collection catalogue is introduced.
 The three legacy local-favourite Section versions lacked image references even though their static cards displayed images. Migration 0027 backfills their existing static asset paths only where the published Section image is null; owner-supplied images are preserved.
 
+Section images have one owner: `storefront_node_versions.image_url`. The Section draft/publish flow updates that versioned value; collection pages and Homepage destination cards read the published node. Shared Media owns uploaded bytes and lifecycle, not placement. Forward migration `0030` transfers only published Appearance-only Section URLs into new node versions, retains an existing node image when present, rejects conflicting drafts, and clears current Appearance overrides while keeping historical versions for audit/media protection. Appearance now owns themes and the Homepage hero only; it cannot save Section images. Staging applied `0030` on 30 September; Production still awaits explicit deployment approval.
+
 All these are views/sheets in the existing Worker Admin, not separate applications.
 
 | Home | Purpose / data | Overlap and intended disposition |
