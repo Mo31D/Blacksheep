@@ -2,7 +2,36 @@
 
 ## Owner storefront-structure clarification — 30 September 2026
 
-The final owner-facing navigation target is **six main sections only**: **Local Treats** (with Romney's + Hawkshead Relish beneath it), **Lake District Souvenirs**, **Peter Rabbit Gifts**, **Highland Cows Ornaments**, **Ice cream**, and **Christmas**. This should be achieved by re-parenting/renaming canonical Storefront nodes, not by duplicating Products or manually relocating Product records. The earlier staging migration 0028 that only promoted Peter Rabbit is an interim state and must be reviewed/superseded forward, not rewritten. See `docs/ADMIN-V2-CHECKLIST.md` and `docs/SESSION-HANDOFF.md` for the Codex review gate and exact commit history.
+The final owner-facing navigation target is **six main sections only**: **Local Treats**, **Lake District Souvenirs**, **Peter Rabbit Gifts**, **Highland Cows Ornaments**, **Ice cream**, and **Christmas**.
+
+The important productization requirement is broader than the first Section-level UI patch:
+
+- the owner must be able to re-parent an existing canonical Website section without manually reassigning Products;
+- the Storefront node's stable identity must remain the Product-placement anchor;
+- moving a section must also be safe when that section already owns child sections;
+- the hierarchy therefore needs **at least three levels** for the intended Local Treats design.
+
+Required example:
+
+```text
+Local Treats
+├── Romney's
+│   ├── Mint Cake
+│   ├── Fudge
+│   ├── Biscuits
+│   └── ...
+└── Hawkshead Relish
+    ├── Chutneys & Pickles
+    ├── Jams & Preserves
+    ├── Honey
+    └── ...
+```
+
+Commit `9bb2d7e` should be understood as the **first implementation of this UX principle**, not the completed design. It successfully allows leaf-node re-parenting and preserves Product placements, but its current UI suppresses parent choices for nodes with children and the current data-layer depth guard limits the tree to two levels. That is why the Staging editor for Romney's currently shows only **Main section**.
+
+The next implementation must extend the same owner-friendly interaction rather than replace it with manual Product movement: create Local Treats, then allow the existing Romney's and Hawkshead Relish nodes to become children of Local Treats while retaining their own existing children. Cycle/self-parent protection, ordering, versioning, audit history and publish behavior must remain guarded.
+
+The earlier staging migration 0028 that promoted Peter Rabbit is valid interim history but only one piece of the final hierarchy. It must be superseded by forward changes, never rewritten after application. See `docs/ADMIN-V2-CHECKLIST.md` and `docs/SESSION-HANDOFF.md` for the exact six-root target and Codex review gate.
 
 
 Initial owner-job review: 30 September 2026, against remote `main` through `53bf362` and deployed staging Admin #50. Scope is the existing Worker Admin only. Closed backend/domain phases remain closed. Status below is an implementation queue, not a claim that the final UX already exists.
