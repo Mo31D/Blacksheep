@@ -236,9 +236,9 @@ try {
     "--persist-to",
     persistDir,
     "--command",
-    "SELECT COUNT(*) AS node_count FROM storefront_nodes; SELECT COUNT(*) AS root_count FROM storefront_node_versions WHERE parent_node_id IS NULL AND published_at IS NOT NULL AND superseded_at IS NULL; SELECT COUNT(*) AS nav_roots FROM storefront_node_versions WHERE parent_node_id IS NULL AND show_in_navigation=1 AND published_at IS NOT NULL AND superseded_at IS NULL;",
+    "SELECT COUNT(*) AS node_count FROM storefront_nodes; SELECT COUNT(*) AS root_count FROM storefront_node_versions WHERE parent_node_id IS NULL AND published_at IS NOT NULL AND superseded_at IS NULL; SELECT COUNT(*) AS nav_roots FROM storefront_node_versions WHERE parent_node_id IS NULL AND show_in_navigation=1 AND published_at IS NOT NULL AND superseded_at IS NULL; SELECT COUNT(*) AS peter_rabbit_root FROM storefront_node_versions WHERE node_id='sfn_gifts_peter_rabbit' AND parent_node_id IS NULL AND published_at IS NOT NULL AND superseded_at IS NULL;",
   ]);
-  for (const expected of ['"node_count": 23', '"root_count": 4', '"nav_roots": 4']) {
+  for (const expected of ['"node_count": 23', '"root_count": 5', '"nav_roots": 4', '"peter_rabbit_root": 1']) {
     if (!storefrontSeed.includes(expected)) {
       throw new Error("Storefront Structure seed invariant missing: " + expected + "\\n" + storefrontSeed);
     }
