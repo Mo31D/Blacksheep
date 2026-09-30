@@ -1,5 +1,39 @@
 # Session handoff
 
+## OWNER OVERRIDE — 30 September 2026 — READ BEFORE CONTINUING
+
+The owner clarified the intended website hierarchy after an out-of-band ChatGPT session made several changes on `main`. **Do not continue from the assumption that Peter Rabbit alone should become a new root.** Review the changes first, then implement the final hierarchy below.
+
+### Changes made outside the Codex workstream
+
+- `9054469`: Admin cookie `SameSite=Strict` → `SameSite=Lax` to preserve the authenticated session when the owner opens the public website and returns to Admin in Safari; `Secure` + `HttpOnly` retained.
+- `4d1453b`: regression test for the session-cookie policy.
+- `9bb2d7e`: Admin Section editor now exposes a Section-level selector, allowing re-parenting an existing Storefront node without moving its Products.
+- `29b9950`: migration 0028 promoted the existing Peter Rabbit node from Gifts child to root. Product placements were intentionally left attached to the same stable node ID.
+- `2a6fe3c`, `90981ab`: migration test/invariant updates.
+- `43703f1`: corrected guarded Staging deploy; full validation + migration + Worker health succeeded. Production unchanged.
+
+### Owner's exact final main-menu structure
+
+1. **Local Treats** — contains **Romney's** and **Hawkshead Relish** as sub-sections.
+2. **Lake District Souvenirs**.
+3. **Peter Rabbit Gifts**.
+4. **Highland Cows Ornaments**.
+5. **Ice cream**.
+6. **Christmas**.
+
+There must be exactly six main Storefront roots/menu entries after publication. Re-parent/rename existing stable Storefront nodes; preserve Product/inventory records and placements. The existing Gifts/souvenir children should remain under Lake District Souvenirs where semantically appropriate. Do not duplicate Products or rebuild collections manually.
+
+### Required Codex action
+
+1. Fetch newest remote `main` and review the out-of-band commits above before editing.
+2. Audit the cookie change and Section-level control for security, draft/publish, ordering and hierarchy regressions.
+3. Treat applied migration 0028 as interim Staging history; **never edit/rewrite it after application**. Add a new forward migration for any remaining hierarchy changes.
+4. Implement the six-root target on Staging, add hierarchy/navigation regression coverage, and verify the public menu/collections plus Admin editing behavior.
+5. Update `docs/ADMIN-V2-CHECKLIST.md`, this handoff and relevant audit evidence with exact commits/runs.
+6. Do **not** deploy Production unless the owner explicitly approves it after Staging review.
+
+
 Updated 30 September 2026. Repository `Mo31D/Blacksheep`, existing `main` only. Remote `main` is authoritative: this workstation's local `.git` index/ref is stale and cannot create `.git/index.lock` in the sandbox. Use a fast-forward-only GitHub connector ref update if local Git remains restricted; never push the stale local ref, create a branch or force-push.
 
 ## Current phase / last completed task
