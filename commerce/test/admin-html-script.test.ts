@@ -112,6 +112,9 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain('id="appearanceHeroUpload"');
     expect(production).toContain('id="appearanceHeroClear"');
     expect(production).toContain('id="structureImageUploadButton"');
+    expect(production).toContain('id="structureImageChoose"');
+    expect(production).toContain('id="structureImagePicker"');
+    expect(production).toContain('function loadStructureImageChoices');
     expect(production).toContain("function uploadSharedImageFile");
     expect(production).toContain("function uploadAppearanceHeroImage");
     expect(production).not.toContain("function uploadAppearanceSectionImage");

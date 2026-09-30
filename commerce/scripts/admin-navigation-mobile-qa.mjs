@@ -45,7 +45,8 @@ const server = http.createServer((request, response) => {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(html);
   } else {
     const body = pathname === '/admin/api/storefront-structure' ? { nodes }
-      : pathname === '/admin/api/homepage-merchandising' ? { config: homepage } : {};
+      : pathname === '/admin/api/homepage-merchandising' ? { config: homepage }
+      : pathname === '/admin/api/media' ? { assets: [{ id: 'asset-existing', publicUrl: '/media/asset-existing', title: 'Existing section artwork', altText: 'Existing artwork', status: 'ACTIVE' }] } : {};
     response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(body));
   }
 });
@@ -98,6 +99,11 @@ try {
         pendingUploadResponse = null;
         await page.waitForFunction(() => document.getElementById('saveStructureNode')?.disabled === false);
         assert.equal(await page.locator('#structureImageUrl').inputValue(), '/media/asset-fixture', `${engine}: upload fills canonical Section draft`);
+        await page.locator('#structureImageChoose').click();
+        await page.locator('[data-structure-image-choice="asset-existing"]').waitFor();
+        await page.locator('[data-structure-image-choice="asset-existing"]').click();
+        assert.equal(await page.locator('#structureImageUrl').inputValue(), '/media/asset-existing', `${engine}: existing Shared Media selection fills the same Section draft`);
+        assert.equal(draftWrites, 0, `${engine}: image selection stays private until Save`);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${engine}: structure editor fits ${width}px`);
         await page.locator('[data-close-product-sheet]').first().click();
         await page.locator('#backToWebsite').click();
