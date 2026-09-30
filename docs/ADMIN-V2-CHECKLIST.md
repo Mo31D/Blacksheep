@@ -1,5 +1,54 @@
 # Black Sheep Admin V2 — Live Execution Checklist
 
+## 30 September 2026 — OWNER STRUCTURE OVERRIDE / CODEX REVIEW REQUIRED
+
+> This is the current owner instruction and supersedes any interpretation that the final website structure should merely promote Peter Rabbit on its own.
+
+### Out-of-band changes made on `main` while Codex was working
+
+These changes were made in a separate ChatGPT session and **must be reviewed by Codex before further structure work**:
+
+- [~] `9054469` changed the Admin session cookie from `SameSite=Strict` to `SameSite=Lax` so returning from the public website to the Admin on iPhone/Safari does not appear to sign the owner out. Security attributes `Secure` and `HttpOnly` remain. Regression coverage was added in `4d1453b`.
+- [~] `9bb2d7e` added an Admin **Section level** selector so an existing Storefront node can move between Main section and Sub-section without reassigning its products. Product placements continue to reference the stable Storefront node ID.
+- [~] `29b9950` added migration `0028_promote_peter_rabbit_main_section.sql`, which promoted the existing Peter Rabbit node to a root/main section without moving Product placements.
+- [~] `2a6fe3c` and `90981ab` updated migration-upgrade guards/invariants for migration 0028.
+- [x] `43703f1` triggered the corrected guarded Staging deployment. Full pre-deploy validation, Staging migration apply, Worker deploy and health check passed. **Production was not changed.**
+
+### Important correction: migration 0028 is only a partial/interim interpretation
+
+The owner's intended final public structure is **exactly six main sections/menu entries**:
+
+1. **Local Treats**
+   - Romney's
+   - Hawkshead Relish
+2. **Lake District Souvenirs**
+3. **Peter Rabbit Gifts**
+4. **Highland Cows Ornaments**
+5. **Ice cream**
+6. **Christmas**
+
+Required structural intent:
+
+- [ ] Create/use one root section named **Local Treats** and move the existing Romney's and Hawkshead Relish Storefront nodes beneath it as sub-sections.
+- [ ] Rename the current Gifts & Souvenirs root to **Lake District Souvenirs** and keep the relevant souvenir sub-sections/products attached through stable node IDs.
+- [ ] Keep/promote the existing Peter Rabbit node as a root and rename it **Peter Rabbit Gifts**.
+- [ ] Promote the existing Highland Cows node to a root and rename it **Highland Cows Ornaments**.
+- [ ] Keep Ice Cream as a root, displayed as **Ice cream**.
+- [ ] Promote the existing Christmas/seasonal node to a root and display it as **Christmas**.
+- [ ] Final published main navigation must contain **only these six Storefront roots**. Romney's and Hawkshead Relish must not remain top-level menu entries.
+- [ ] Preserve Product records, inventory, Product placements, existing legacy URLs/canonicals and current published history. **Do not solve this by recreating/moving products one by one.** Re-parent/rename the stable Storefront nodes instead.
+- [ ] Audit any current Gifts child sections (for example Mugs & Tableware, Soft Toys, Cards & Stationery and other souvenir destinations) and keep them under **Lake District Souvenirs** unless their current Product semantics require otherwise. Do not create duplicate destinations.
+
+### Codex review gate before implementing the six-root structure
+
+- [ ] Review commits `9054469` through `43703f1` for correctness, regressions and consistency with the current Admin/Storefront architecture.
+- [ ] Specifically verify the `SameSite=Lax` session fix on iPhone/Safari navigation and confirm no auth/security regression.
+- [ ] Review the new Section-level Admin control for depth guards, draft/publish behavior, ordering, child-count constraints and stable Product placement behavior.
+- [ ] Treat migration 0028 as staging-applied interim state; decide whether to supersede it with an additive migration that reaches the six-root target safely. **Do not rewrite an already-applied migration.**
+- [ ] Add/update automated tests for the final six-root hierarchy and navigation output.
+- [ ] Deploy and verify on Staging first. Do not promote to Production without explicit owner approval.
+
+
 > **NEXT PLATFORM ARCHITECTURE PROGRAM — authoritative implementation cards**
 >
 > The approved next architecture programme is tracked in:
