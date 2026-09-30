@@ -1,5 +1,10 @@
 # Admin productization audit
 
+## Owner storefront-structure clarification — 30 September 2026
+
+The final owner-facing navigation target is **six main sections only**: **Local Treats** (with Romney's + Hawkshead Relish beneath it), **Lake District Souvenirs**, **Peter Rabbit Gifts**, **Highland Cows Ornaments**, **Ice cream**, and **Christmas**. This should be achieved by re-parenting/renaming canonical Storefront nodes, not by duplicating Products or manually relocating Product records. The earlier staging migration 0028 that only promoted Peter Rabbit is an interim state and must be reviewed/superseded forward, not rewritten. See `docs/ADMIN-V2-CHECKLIST.md` and `docs/SESSION-HANDOFF.md` for the Codex review gate and exact commit history.
+
+
 Initial owner-job review: 30 September 2026, against remote `main` through `53bf362` and deployed staging Admin #50. Scope is the existing Worker Admin only. Closed backend/domain phases remain closed. Status below is an implementation queue, not a claim that the final UX already exists.
 
 | Current UX | Why it slows a first-time owner | Canonical responsibility and proposed experience | Priority | Status |
