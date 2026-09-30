@@ -86,6 +86,8 @@ Local Treats
 - [x] Update storefront collection traversal, child links and parent trail for three levels; `commerce/src/routes/storefront-clean.ts`, `assets/site.js`, focused contract tests passed.
 - [ ] Confirm on deployed Staging that public navigation has exactly six roots; Romney's/Hawkshead are nested, their children and Products are browsable, and sitemap/canonicals/legacy URLs resolve. No Production promotion.
 
+Staging [36716553693](https://github.com/Mo31D/Blacksheep/actions/runs/36716553693) applied `0029` and deployed successfully. Read-only Admin browser inspection showed the six named roots, Local Treats → Romney's/Hawkshead → their original children, unchanged direct Product counts (55/15) and Romney's Section level picker offering valid roots while keeping its children. The staging Worker `/collections/local-treats` rendered 70 Products and child links. **Reproducible defect found:** server-rendered clean collection/product headers still contained the pre-hierarchy four category links. A follow-up fixes their shared server navigation and compact desktop layout; re-verify after CI/Staging before marking the gate complete.
+
 ### Codex review gate before implementation
 
 - [x] Review commits `9054469` through `43703f1` and preserve their working behavior. Cookie policy uses `Lax; Secure; HttpOnly`; test `commerce/test/admin-session-cookie.test.ts` covers it.

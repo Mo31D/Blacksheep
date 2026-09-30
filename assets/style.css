@@ -491,3 +491,5 @@ section{padding:78px 0}.section-head{display:flex;justify-content:space-between;
     margin-right:calc((100vw - 100%)/-2);
   }
 }
+/* Six canonical shop sections fit comfortably without wrapping on desktop. */
+@media (min-width:1081px){.menu{gap:14px;font-size:12px}}

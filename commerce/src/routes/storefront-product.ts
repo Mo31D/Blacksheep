@@ -7,6 +7,7 @@ import {
   listPublishedStorefrontNodes,
   type StorefrontNodeSnapshot,
 } from "../data/storefront-structure";
+import { renderStorefrontNavigation } from "./storefront-navigation";
 
 export interface CleanProductEnv {
   DB?: D1DatabaseLike;
@@ -67,8 +68,10 @@ function availabilityLabel(product: PublicCommerceProduct): string {
 export function renderCleanProductHtml(input: {
   product: PublicCommerceProduct;
   collection: StorefrontNodeSnapshot | null;
+  nodes?: StorefrontNodeSnapshot[];
 }): string {
   const { product, collection } = input;
+  const navigation = renderStorefrontNavigation(input.nodes ?? (collection ? [collection] : []), collection?.id ?? null);
   const path = cleanProductPath(product.slug);
   const canonical = STOREFRONT_ORIGIN + path;
   const description =
@@ -182,7 +185,7 @@ ${image ? '<meta property="og:image" content="' + esc(image) + '">' : ""}
 </head>
 <body>
 <div class="topbar"><div class="wrap"><span>Independent gift &amp; souvenir shop in Ambleside, Lake District</span><span class="right"><a href="/visit.html">Find us in Ambleside</a></span></div></div>
-<header class="header"><div class="wrap nav"><a class="brand" href="/" aria-label="The Black Sheep Shop home"><img class="brand-mark" src="/assets/sheep-icon.png" alt=""><span class="brand-type"><strong>The Black Sheep</strong><small>Shop · Ambleside</small></span></a><nav class="menu"><a href="/">Home</a><a href="/gifts.html">Gifts &amp; Souvenirs</a><a href="/icecream.html">Ice Cream</a><a href="/romneys.html">Romney's</a><a href="/hawkshead-relish.html">Hawkshead Relish</a><a href="/all-products.html">Full range</a><a href="/about.html">About</a><a href="/visit.html">Visit</a></nav><a class="nav-cta" href="/gifts.html">Browse gifts</a><button class="hamb" onclick="toggleMenu()" aria-label="Open menu" aria-expanded="false">☰</button></div><nav class="mobile-menu" id="mobileMenu"><a href="/">Home</a><a href="/gifts.html">Gifts &amp; Souvenirs</a><a href="/icecream.html">Ice Cream</a><a href="/romneys.html">Romney's</a><a href="/hawkshead-relish.html">Hawkshead Relish</a><a href="/all-products.html">Full range</a><a href="/about.html">About</a><a href="/visit.html">Visit</a></nav></header>
+<header class="header"><div class="wrap nav"><a class="brand" href="/" aria-label="The Black Sheep Shop home"><img class="brand-mark" src="/assets/sheep-icon.png" alt=""><span class="brand-type"><strong>The Black Sheep</strong><small>Shop · Ambleside</small></span></a><nav class="menu">${navigation.desktop}</nav><a class="nav-cta" href="${esc(navigation.ctaPath)}">Browse gifts</a><button class="hamb" onclick="toggleMenu()" aria-label="Open menu" aria-expanded="false">☰</button></div><nav class="mobile-menu" id="mobileMenu">${navigation.mobile}</nav></header>
 <main>
 <nav class="wrap breadcrumbs" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">›</span><a href="${esc(backHref)}">${esc(backLabel)}</a><span aria-hidden="true">›</span><span aria-current="page">${esc(product.name)}</span></nav>
 <article class="wrap detail-layout product-static">
@@ -264,7 +267,7 @@ export async function handleCleanProductRequest(
   const collection =
     nodes.find((node) => node.id === product.primaryStorefrontNodeId) ?? null;
 
-  return new Response(renderCleanProductHtml({ product, collection }), {
+  return new Response(renderCleanProductHtml({ product, collection, nodes }), {
     status: 200,
     headers: {
       "content-type": "text/html; charset=utf-8",

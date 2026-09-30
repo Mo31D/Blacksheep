@@ -7,6 +7,7 @@ import {
   listPublishedStorefrontNodes,
   type StorefrontNodeSnapshot,
 } from "../data/storefront-structure";
+import { renderStorefrontNavigation } from "./storefront-navigation";
 
 export interface CleanCollectionEnv {
   DB?: D1DatabaseLike;
@@ -121,12 +122,14 @@ export function renderCleanCollectionHtml(input: {
   node: StorefrontNodeSnapshot;
   parent: StorefrontNodeSnapshot | null;
   ancestors?: StorefrontNodeSnapshot[];
+  nodes?: StorefrontNodeSnapshot[];
   children: StorefrontNodeSnapshot[];
   products: PublicCommerceProduct[];
   cleanProductRoutes?: boolean;
 }): string {
   const { node, parent, children, products } = input;
   const ancestors = input.ancestors ?? (parent ? [parent] : []);
+  const navigation = renderStorefrontNavigation(input.nodes ?? [node], node.id);
   const cleanProductRoutes = input.cleanProductRoutes === true;
   const path = cleanPath(node.slug);
   const canonical = STOREFRONT_ORIGIN + path;
@@ -212,7 +215,7 @@ export function renderCleanCollectionHtml(input: {
 </head>
 <body class="catalog-body">
 <div class="topbar"><div class="wrap"><span>Independent gift &amp; souvenir shop in Ambleside, Lake District</span><span class="right"><a href="/visit.html">Find us in Ambleside</a></span></div></div>
-<header class="header"><div class="wrap nav"><a aria-label="The Black Sheep Shop home" class="brand" href="/"><img alt="" class="brand-mark" src="/assets/sheep-icon.png"><span class="brand-type"><strong>The Black Sheep</strong><small>Shop · Ambleside</small></span></a><nav class="menu"><a href="/">Home</a><a href="/gifts.html">Gifts &amp; Souvenirs</a><a href="/icecream.html">Ice Cream</a><a href="/romneys.html">Romney's</a><a href="/hawkshead-relish.html">Hawkshead Relish</a><a href="/all-products.html">Full range</a><a href="/about.html">About</a><a href="/visit.html">Visit</a></nav><a class="nav-cta" href="/gifts.html">Browse gifts</a><button aria-label="Open menu" class="hamb" onclick="toggleMenu()">☰</button></div><nav class="mobile-menu" id="mobileMenu"><a href="/">Home</a><a href="/gifts.html">Gifts &amp; Souvenirs</a><a href="/icecream.html">Ice Cream</a><a href="/romneys.html">Romney's</a><a href="/hawkshead-relish.html">Hawkshead Relish</a><a href="/all-products.html">Full range</a><a href="/about.html">About</a><a href="/visit.html">Visit</a></nav></header>
+<header class="header"><div class="wrap nav"><a aria-label="The Black Sheep Shop home" class="brand" href="/"><img alt="" class="brand-mark" src="/assets/sheep-icon.png"><span class="brand-type"><strong>The Black Sheep</strong><small>Shop · Ambleside</small></span></a><nav class="menu">${navigation.desktop}</nav><a class="nav-cta" href="${esc(navigation.ctaPath)}">Browse gifts</a><button aria-label="Open menu" class="hamb" onclick="toggleMenu()">☰</button></div><nav class="mobile-menu" id="mobileMenu">${navigation.mobile}</nav></header>
 <main class="catalog-page">
 <section class="page-hero"><div class="wrap inner"><div><div class="eyebrow">${breadcrumbs || "Shop collection"}</div><h1>${esc(node.name)}</h1><p class="lead">${esc(description)}</p>${childLinks ? '<div class="chips">' + childLinks + "</div>" : ""}</div>${heroImage ? '<div class="media"><img src="' + esc(heroImage) + '" alt="' + esc(node.name) + '"></div>' : ""}</div></section>
 <section style="padding-top:20px"><div class="wrap"><div class="catalog-intro"><div class="catalog-title-row"><h2>Products</h2><span class="catalog-count">${products.length} ${products.length === 1 ? "product" : "products"}</span></div></div><div class="catalog shopping-catalog gift-grid">${products.map((product) => productCard(product, cleanProductRoutes)).join("")}</div></div></section>
@@ -319,6 +322,7 @@ export async function handleCleanCollectionRequest(
       node,
       parent,
       ancestors,
+      nodes,
       children,
       products,
       cleanProductRoutes:
