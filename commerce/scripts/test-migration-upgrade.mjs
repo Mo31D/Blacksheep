@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0029_")) {
+  if (!latestMigration?.startsWith("0030_")) {
     throw new Error(
-      `Expected latest migration to be 0029, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0030, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0028_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0028.");
+  if (baselineMigrations.at(-1)?.startsWith("0029_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0029.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -105,6 +105,11 @@ try {
     "d1", "execute", "DB", "--local", "--config", configPath,
     "--persist-to", persistDir, "--command",
     "INSERT INTO storefront_node_versions (id,node_id,version_number,name,slug,parent_node_id,sort_order,show_in_navigation,short_description,image_url,legacy_path,created_by,created_at,published_at,superseded_at) SELECT 'sfv_upgrade_romneys_draft',v.node_id,(SELECT MAX(version_number)+1 FROM storefront_node_versions WHERE node_id=v.node_id),v.name,v.slug,v.parent_node_id,v.sort_order,v.show_in_navigation,'Owner draft preserved','/images/owner-draft.png',v.legacy_path,'upgrade-fixture','2026-09-30T11:00:00.000Z',NULL,NULL FROM storefront_nodes n JOIN storefront_node_versions v ON v.id=n.current_published_version_id WHERE n.id='sfn_romneys'; UPDATE storefront_nodes SET current_draft_version_id='sfv_upgrade_romneys_draft' WHERE id='sfn_romneys'",
+  ]);
+  runWrangler([
+    "d1", "execute", "DB", "--local", "--config", configPath,
+    "--persist-to", persistDir, "--command",
+    "UPDATE storefront_node_versions SET image_url='/media/local-canonical' WHERE id=(SELECT current_published_version_id FROM storefront_nodes WHERE stable_key='local-treats'); UPDATE website_appearance_versions SET section_images_json='{\"gifts\":\"/media/gifts-appearance\",\"local-treats\":\"/media/local-appearance\"}' WHERE id=(SELECT current_published_version_id FROM website_appearance)",
   ]);
 
   copyMigration(latestMigration);
@@ -284,6 +289,16 @@ try {
   if (!placementsBefore || placementsBefore !== placementsAfter) {
     throw new Error("Storefront hierarchy migration changed Product placements.");
   }
+  const sectionImagesAfter = runWrangler([
+    "d1", "execute", "DB", "--local", "--config", configPath,
+    "--persist-to", persistDir, "--command",
+    "SELECT n.stable_key, v.image_url FROM storefront_nodes n JOIN storefront_node_versions v ON v.id=n.current_published_version_id WHERE n.stable_key IN ('gifts','local-treats') ORDER BY n.stable_key; SELECT section_images_json FROM website_appearance_versions WHERE id=(SELECT current_published_version_id FROM website_appearance)",
+  ]);
+  for (const expected of ['/media/gifts-appearance', '/media/local-canonical', '"section_images_json": "{}"']) {
+    if (!sectionImagesAfter.includes(expected)) {
+      throw new Error("Section image ownership transfer missing: " + expected + "\n" + sectionImagesAfter);
+    }
+  }
 
   const homepageSeed = runWrangler([
     "d1",
@@ -414,7 +429,7 @@ try {
   }
 
   console.log(
-    "PASS: migrations 0000–0028 upgraded cleanly to 0029; six published roots, nested Local Treats and all prior platform schemas are present.",
+    "PASS: migrations 0000–0029 upgraded cleanly to 0030; canonical Section images, six published roots, nested Local Treats and all prior platform schemas are present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
