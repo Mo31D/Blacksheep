@@ -57,5 +57,7 @@ jobs:
         run: npm install --no-save --package-lock=false playwright@1.55.0
       - name: Install regression browsers
         run: npx playwright install --with-deps chromium webkit
+      - name: Verify generated Admin navigation at phone widths
+        run: node scripts/admin-navigation-mobile-qa.mjs
       - name: Verify archive behaviour against candidate storefront
         run: node scripts/storefront-archive-browser-qa.mjs
