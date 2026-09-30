@@ -1,4 +1,5 @@
 name: Commerce Staging V2 Deploy
+# Trigger guarded staging validation for Homepage module composition; never deploy production.
 
 on:
   push:

@@ -167,3 +167,12 @@ Decision: primary Admin navigation presents Overview, Orders, Products, Stock, W
 Why: owners should choose a business job once and then see related tools in context. Duplicate top-level and More-menu entries for the same Website tasks obscured where editing belongs. Preserving underlying views and hash links avoids changing API or domain ownership in a navigation slice.
 
 Rejected alternative: leaving Homepage, Appearance and Media as parallel top-level tools, or replacing the existing Admin with a new routed application. Both retain or add unnecessary navigation and migration risk.
+
+## Homepage section order (30 September 2026)
+
+**Decision** — All five existing structured Homepage modules can be enabled and reordered by the owner through the versioned Homepage draft, with ↑ ↓ controls in Admin. The published storefront applies the saved order directly.
+
+**Why** — The prior Hero/Product strip/Collections pin existed independently in the Admin, draft validator and storefront renderer, with no layout or data invariant requiring it. A single saved order now means the same thing in editing, Preview data and publication.
+
+**Rejected alternative** — Keep a movable two-section tail or add a new page-builder model. The former contradicts the owner-facing controls; the latter duplicates the site's known structured sections.
+

@@ -10,7 +10,7 @@ Direct Product, Appearance hero and Section image uploads passed using tracked `
 
 ## Current task / next recommended task
 
-Complete Slice A's real 390px staging browser check of mobile bottom navigation/More and Website child routes using a browser whose viewport control works; keep its checkbox open until then. The desktop path and GitHub checks are green. Then close Slice A and proceed to Homepage editing Slice B. Continue independent Phase 7 staging gates using isolated fixtures; do not overwrite the existing Homepage draft or unfinished Stocktake. A synthetic staging order review/revision write flow passed and its rows were cleaned; Stocktake/reservation and full order lifecycle remain open.
+Slice B.1 source now removes arbitrary pinning of all five Homepage modules in the D1 draft validator, Admin controls and published storefront renderer. TypeScript and all 78 files / 573 tests pass locally. Commit this bounded implementation to remote `main`, verify GitHub checks and guarded staging deploy, then inspect the generated Admin controls and staging storefront. **Do not publish/restore the existing staging Homepage draft** merely to test ordering; establish ownership or use an isolated fixture. Complete Slice A's real 390px staging browser check of mobile bottom navigation/More and Website child routes using a browser whose viewport control works; keep its checkbox open until then. Card content/contextual editing remains next in Slice B. A synthetic staging order review/revision write flow passed and its rows were cleaned; Stocktake/reservation and full order lifecycle remain open.
 
 ## Decisions and unresolved risks
 

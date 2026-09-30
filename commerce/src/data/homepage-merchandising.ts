@@ -171,7 +171,7 @@ function featuredIds(
   return unique;
 }
 
-function moduleSettings(
+export function normalizeHomepageModuleSettings(
   value: unknown,
   fallback: HomepageModuleSetting[],
 ): HomepageModuleSetting[] {
@@ -206,15 +206,7 @@ function moduleSettings(
     throw new Error("homepage_modules_invalid");
   }
 
-  const pinned: HomepageModuleKey[] = ["HERO", "PRODUCT_RAIL", "COLLECTIONS"];
-  const byKey = new Map(result.map((row) => [row.key, row]));
-  const tail = result.filter((row) => !pinned.includes(row.key));
-  const ordered = pinned
-    .map((key) => byKey.get(key))
-    .filter((row): row is HomepageModuleSetting => Boolean(row))
-    .concat(tail);
-
-  return ordered.map((row, index) => ({
+  return result.map((row, index) => ({
     ...row,
     position: (index + 1) * 10,
   }));
@@ -486,7 +478,7 @@ export async function saveAdminHomepageMerchandisingDraft(
     raw.featuredProductIds,
     current.featuredProducts.map((product) => product.productId),
   );
-  const modules = moduleSettings(raw.modules, current.modules);
+  const modules = normalizeHomepageModuleSettings(raw.modules, current.modules);
 
   if (mode === "SELECTED_COLLECTION" && !selectedStorefrontNodeId) {
     throw new Error("homepage_collection_required");
