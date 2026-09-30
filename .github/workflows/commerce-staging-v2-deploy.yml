@@ -1,5 +1,5 @@
 name: Commerce Staging V2 Deploy
-# Trigger guarded staging validation for canonical local-favourite images; never deploy production.
+# Trigger guarded staging validation for forward-only six-root hierarchy migration 0029; never deploy production.
 
 on:
   push:
