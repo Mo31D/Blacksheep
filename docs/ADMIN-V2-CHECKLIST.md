@@ -2,9 +2,9 @@
 
 ## 30 September 2026 — six-section hierarchy implementation
 
-Implementation candidate on newest remote main `b32f5d4` is being validated. The out-of-band cookie and Section-level changes were reviewed rather than reverted. `SameSite=Lax` retains `Secure` and `HttpOnly`; the policy regression test is present. A physical Safari return check remains part of staging/mobile acceptance.
+The six-section hierarchy is implemented and accepted on Staging. The out-of-band cookie and Section-level changes were reviewed rather than reverted. `SameSite=Lax` retains `Secure` and `HttpOnly`; the policy regression test is present. A physical Safari return check remains part of staging/mobile acceptance.
 
-The new forward migration is `0029_local_treats_three_level_structure.sql`; migration `0028` remains untouched. It clones published node versions, preserves original versions and legacy URLs, retains Product placements, and aligns hierarchy fields on any existing owner draft without replacing its other content. Local SQLite with foreign keys on verified the six roots, third-level children, owner draft preservation and unchanged placement count. TypeScript, generated Admin syntax, storefront contract and all 81 Vitest files / 581 tests passed locally. Linux Commerce CI, guarded Staging deployment and live browser acceptance are still required before closing this hierarchy task.
+Forward migration `0029_local_treats_three_level_structure.sql` is applied on Staging; migration `0028` remains untouched. It clones published node versions, preserves original versions and legacy URLs, retains Product placements, and aligns hierarchy fields on any existing owner draft without replacing its other content. Local SQLite with foreign keys on verified the six roots, third-level children, owner draft preservation and unchanged placement count. TypeScript, generated Admin syntax, storefront contract and all 81 Vitest files / 582 tests passed locally. [Commerce CI 36718457955](https://github.com/Mo31D/Blacksheep/actions/runs/36718457955) and guarded [Staging acceptance 36720391093](https://github.com/Mo31D/Blacksheep/actions/runs/36720391093) passed.
 
 > This is the current owner instruction. It also clarifies the purpose and limitation of the out-of-band Section-level edit already deployed to Staging.
 
@@ -23,7 +23,7 @@ The architectural intent of commit `9bb2d7e` was therefore correct:
 The first implementation, however, only completed the **two-level** form of that idea. It can move a leaf section between:
 `Main section` ↔ `Sub-section of <root>`.
 
-It intentionally hides parent choices when the edited node already has children, and the current data-layer depth guard rejects a parent that is itself a child. That was sufficient for the first Peter Rabbit operation (leaf child → root), but it is **not sufficient for the owner's actual Local Treats structure**, because Romney's and Hawkshead Relish already contain their own sub-sections.
+It hid parent choices when the edited node had children, and its original data-layer depth guard rejected a parent that was itself a child. That was sufficient for the first Peter Rabbit operation (leaf child → root), but was **not sufficient for the owner's actual Local Treats structure**, because Romney's and Hawkshead Relish already contained their own sub-sections. Migration `0029` and the three-level editor now resolve this.
 
 ### Out-of-band changes made on `main` while Codex was working
 
@@ -84,9 +84,9 @@ Local Treats
 - [x] Extend Admin Section level/tree and Product placement picker to display all three levels without changing Product records; `commerce/src/admin/ui.ts`, generated Admin and full Vitest passed.
 - [x] Rename/promote the existing canonical nodes to Lake District Souvenirs, Peter Rabbit Gifts, Highland Cows Ornaments, Ice cream and Christmas through `0029`; original slugs and legacy paths retained.
 - [x] Update storefront collection traversal, child links and parent trail for three levels; `commerce/src/routes/storefront-clean.ts`, `assets/site.js`, focused contract tests passed.
-- [ ] Confirm on deployed Staging that public navigation has exactly six roots; Romney's/Hawkshead are nested, their children and Products are browsable, and sitemap/canonicals/legacy URLs resolve. No Production promotion.
+- [x] Confirm on deployed Staging that public navigation has exactly six roots; Romney's/Hawkshead are nested, their children and Products are browsable, and sitemap/canonicals/legacy URLs resolve. [Guarded acceptance 36720391093](https://github.com/Mo31D/Blacksheep/actions/runs/36720391093) passed read-only API, raw HTML navigation, 70-Product Local Treats page, third-level breadcrumb, sitemap and legacy Romney's 301 checks. No Production promotion.
 
-Staging [36716553693](https://github.com/Mo31D/Blacksheep/actions/runs/36716553693) applied `0029` and deployed successfully. Read-only Admin browser inspection showed the six named roots, Local Treats → Romney's/Hawkshead → their original children, unchanged direct Product counts (55/15) and Romney's Section level picker offering valid roots while keeping its children. The staging Worker `/collections/local-treats` rendered 70 Products and child links. **Reproducible defect found:** server-rendered clean collection/product headers still contained the pre-hierarchy four category links. A follow-up fixes their shared server navigation and compact desktop layout; re-verify after CI/Staging before marking the gate complete.
+Staging [36716553693](https://github.com/Mo31D/Blacksheep/actions/runs/36716553693) applied `0029` and deployed successfully. Read-only Admin inspection showed six named roots, Local Treats → Romney's/Hawkshead → original children, unchanged direct Product counts (55/15) and Romney's Section level picker offering valid roots. The old four-link server header was fixed in `ffe796d`; the initial post-deploy raw HTML assertion saw a stale cached page, so `9c78074` added a unique acceptance query. The guarded rerun passed every hierarchy/route assertion, and browser inspection confirmed the six-link navigation and 70 Products. Production Worker/data remain unchanged.
 
 ### Codex review gate before implementation
 
@@ -96,7 +96,7 @@ Staging [36716553693](https://github.com/Mo31D/Blacksheep/actions/runs/367165536
 - [x] Replace the two-level Admin/data restriction; retain cycle, archive, version, draft/publish and sibling-order guards. `0029` adds publication/audit versions.
 - [x] Leave staging-applied `0028` immutable; add forward migration `0029`.
 - [x] Add/update tests for the three-level move and cycle/depth rejection, six published roots, child traversal/breadcrumbs and preserved draft/placements; local SQLite and 81/581 Vitest passed.
-- [ ] Deploy and verify on Staging first. Do not promote to Production without explicit owner approval.
+- [x] Deploy and verify on Staging first — guarded run 36720391093 passed. Do not promote to Production without explicit owner approval.
 
 
 > **NEXT PLATFORM ARCHITECTURE PROGRAM — authoritative implementation cards**

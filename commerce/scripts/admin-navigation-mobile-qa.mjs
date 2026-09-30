@@ -19,6 +19,9 @@ const nodes = [
   { id: 'sfn_gifts_peter_rabbit', name: 'Peter Rabbit', legacyPath: '/gifts-peter-rabbit.html', publicationStatus: 'ACTIVE', publishedVersionId: 'sfv-rabbit' },
   { id: 'sfn_gifts_highland_cows', name: 'Highland Cows', legacyPath: '/gifts-highland-cows.html', publicationStatus: 'ACTIVE', publishedVersionId: 'sfv-cows' },
   { id: 'sfn_icecream', name: 'Ice Cream', legacyPath: '/icecream.html', publicationStatus: 'ACTIVE', publishedVersionId: 'sfv-icecream' },
+  { id: 'sfn_local_treats', name: 'Local Treats', slug: 'local-treats', parentNodeId: null, sortOrder: 10, publicationStatus: 'ACTIVE', publishedVersionId: 'sfv-local' },
+  { id: 'sfn_romneys', name: "Romney's", slug: 'romneys', parentNodeId: 'sfn_local_treats', sortOrder: 10, publicationStatus: 'ACTIVE', publishedVersionId: 'sfv-romneys' },
+  { id: 'sfn_mint_cake', name: 'Mint Cake', slug: 'mint-cake', parentNodeId: 'sfn_romneys', sortOrder: 10, publicationStatus: 'ACTIVE', publishedVersionId: 'sfv-mint' },
 ];
 const homepage = {
   version: 1, hasDraft: false, publishedVersionId: 'hmv-default', enabled: false,
@@ -72,6 +75,12 @@ try {
         assert.equal(await page.locator('#view-website [data-website-tab]').count(), 4, `${engine}: four Website tasks`);
         await page.locator('[data-website-tab="sections"]').click();
         assert.equal(await page.locator('#view-catalogue').isVisible(), true, `${engine}: Sections opens`);
+        await page.locator('[data-structure-edit="sfn_mint_cake"]').waitFor();
+        assert.equal(await page.locator('#storefrontStructureTree').innerText().then(text => text.includes('Local Treats') && text.includes("Romney's") && text.includes('Mint Cake')), true, `${engine}: third-level structure is visible`);
+        await page.locator('[data-structure-edit="sfn_romneys"]').click();
+        assert.equal(await page.locator('#structureParent').inputValue(), 'sfn_local_treats', `${engine}: parent with children remains editable`);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${engine}: structure editor fits ${width}px`);
+        await page.locator('[data-close-product-sheet]').first().click();
         await page.locator('#backToWebsite').click();
         assert.equal(await page.locator('#view-website').isVisible(), true, `${engine}: Sections returns`);
         for (const [hash, tab] of [['appearance', 'appearance'], ['media', 'media']]) {

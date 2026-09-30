@@ -2,7 +2,7 @@
 
 ## Owner storefront-structure clarification — 30 September 2026
 
-Implementation `49e7480` retained stable-node Section level from `9bb2d7e`, extended it to a guarded three-level tree, and added forward migration `0029` after applied `0028`. Admin tree/Product picker display third-level sections. Migration clones published versions and aligns hierarchy fields on any draft while preserving its other content, stable node IDs, Product placements, inventory, slugs and legacy paths. Local SQLite FK/draft/placement checks, TypeScript and 81 files / 581 tests passed; Commerce CI 36715995115 and guarded Staging 36716553693 succeeded. Live Admin showed six roots and the Romney's/Hawkshead children; Local Treats clean page rendered 70 Products. **Follow-up defect:** clean collection/product HTML still served hardcoded old header links; a shared published-node server renderer is in progress. Recheck after staging before marking complete. Production Worker/data unchanged.
+Implementation `49e7480` retained stable-node Section level from `9bb2d7e`, extended it to a guarded three-level tree, and added forward migration `0029` after applied `0028`. Admin tree/Product picker display third-level sections. Migration clones published versions and aligns hierarchy fields on any draft while preserving its other content, stable node IDs, Product placements, inventory, slugs and legacy paths. Local SQLite FK/draft/placement checks, TypeScript and 81 files / 582 tests passed. [Commerce CI 36715995115](https://github.com/Mo31D/Blacksheep/actions/runs/36715995115), [CI 36718457955](https://github.com/Mo31D/Blacksheep/actions/runs/36718457955), initial guarded Staging 36716553693 and final [Staging acceptance 36720391093](https://github.com/Mo31D/Blacksheep/actions/runs/36720391093) succeeded. Live Admin showed six roots and the Romney's/Hawkshead children; Local Treats clean page rendered 70 Products. The four-link hardcoded server header was fixed by `ffe796d`; acceptance verified six raw HTML links, third-level breadcrumb, sitemap and legacy redirect. Production Worker/data unchanged.
 
 The final owner-facing navigation target is **six main sections only**: **Local Treats**, **Lake District Souvenirs**, **Peter Rabbit Gifts**, **Highland Cows Ornaments**, **Ice cream**, and **Christmas**.
 
@@ -29,9 +29,9 @@ Local Treats
     └── ...
 ```
 
-Commit `9bb2d7e` should be understood as the **first implementation of this UX principle**, not the completed design. It successfully allows leaf-node re-parenting and preserves Product placements, but its current UI suppresses parent choices for nodes with children and the current data-layer depth guard limits the tree to two levels. That is why the Staging editor for Romney's currently shows only **Main section**.
+Commit `9bb2d7e` was the **first implementation of this UX principle**. It allowed leaf-node re-parenting and preserved Product placements, but hid parent choices for nodes with children and capped depth at two levels. The three-level follow-up now allows Romney's parent to be edited while its children stay attached.
 
-The next implementation must extend the same owner-friendly interaction rather than replace it with manual Product movement: create Local Treats, then allow the existing Romney's and Hawkshead Relish nodes to become children of Local Treats while retaining their own existing children. Cycle/self-parent protection, ordering, versioning, audit history and publish behavior must remain guarded.
+The implemented interaction moved existing Romney's and Hawkshead Relish nodes beneath Local Treats while retaining their children and Product placements. Cycle/self-parent protection, ordering, versioning, audit history and publish behavior remain guarded.
 
 The earlier staging migration 0028 that promoted Peter Rabbit is valid interim history but only one piece of the final hierarchy. It must be superseded by forward changes, never rewritten after application. See `docs/ADMIN-V2-CHECKLIST.md` and `docs/SESSION-HANDOFF.md` for the exact six-root target and Codex review gate.
 
