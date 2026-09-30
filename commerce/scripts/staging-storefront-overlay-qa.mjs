@@ -692,8 +692,8 @@ async function verifyHomepageRailModes(realCatalogPayload) {
     );
     assert(
       publishedModules.map((row) => row.key).join(",") ===
-        "HERO,PRODUCT_RAIL,COLLECTIONS,VISIT_SHOP,LOCAL_FAVOURITES",
-      "Homepage pinned Hero → Product rail → Collections order did not reach the DOM: " +
+        "COLLECTIONS,HERO,PRODUCT_RAIL,VISIT_SHOP,LOCAL_FAVOURITES",
+      "Homepage owner-defined module order did not reach the DOM: " +
         JSON.stringify(publishedModules),
     );
     assert(
