@@ -2,50 +2,103 @@
 
 ## 30 September 2026 — OWNER STRUCTURE OVERRIDE / CODEX REVIEW REQUIRED
 
-> This is the current owner instruction and supersedes any interpretation that the final website structure should merely promote Peter Rabbit on its own.
+> This is the current owner instruction. It also clarifies the purpose and limitation of the out-of-band Section-level edit already deployed to Staging.
+
+### What the previous Section-level edit was trying to achieve
+
+The owner asked for a safe Admin operation that changes **where an existing Website section sits in the hierarchy without moving/recreating its Products**.
+
+The architectural intent of commit `9bb2d7e` was therefore correct:
+
+- edit the existing Storefront node rather than duplicate it;
+- change its `parentNodeId` / level;
+- preserve the stable Storefront node ID;
+- preserve Product records, inventory and Product placements attached to that node;
+- make hierarchy changes owner-manageable from Admin rather than requiring code or manual Product reassignment.
+
+The first implementation, however, only completed the **two-level** form of that idea. It can move a leaf section between:
+`Main section` ↔ `Sub-section of <root>`.
+
+It intentionally hides parent choices when the edited node already has children, and the current data-layer depth guard rejects a parent that is itself a child. That was sufficient for the first Peter Rabbit operation (leaf child → root), but it is **not sufficient for the owner's actual Local Treats structure**, because Romney's and Hawkshead Relish already contain their own sub-sections.
 
 ### Out-of-band changes made on `main` while Codex was working
 
 These changes were made in a separate ChatGPT session and **must be reviewed by Codex before further structure work**:
 
 - [~] `9054469` changed the Admin session cookie from `SameSite=Strict` to `SameSite=Lax` so returning from the public website to the Admin on iPhone/Safari does not appear to sign the owner out. Security attributes `Secure` and `HttpOnly` remain. Regression coverage was added in `4d1453b`.
-- [~] `9bb2d7e` added an Admin **Section level** selector so an existing Storefront node can move between Main section and Sub-section without reassigning its products. Product placements continue to reference the stable Storefront node ID.
+- [~] `9bb2d7e` added an Admin **Section level** selector. Its goal was generic safe re-parenting without Product reassignment, but the current implementation only supports a two-level tree and cannot demote a section that already has children.
 - [~] `29b9950` added migration `0028_promote_peter_rabbit_main_section.sql`, which promoted the existing Peter Rabbit node to a root/main section without moving Product placements.
 - [~] `2a6fe3c` and `90981ab` updated migration-upgrade guards/invariants for migration 0028.
 - [x] `43703f1` triggered the corrected guarded Staging deployment. Full pre-deploy validation, Staging migration apply, Worker deploy and health check passed. **Production was not changed.**
 
-### Important correction: migration 0028 is only a partial/interim interpretation
+### Owner's exact target hierarchy
 
-The owner's intended final public structure is **exactly six main sections/menu entries**:
+The public website must have **exactly six main sections/menu entries**:
 
 1. **Local Treats**
-   - Romney's
-   - Hawkshead Relish
+   - **Romney's**
+     - keep its existing children such as Mint Cake, Fudge, Biscuits, Sweets, Gift Boxes
+   - **Hawkshead Relish**
+     - keep its existing children such as Chutneys & Pickles, Jams & Preserves, Honey, Mustard, Savoury Sauces
 2. **Lake District Souvenirs**
+   - keep the relevant existing souvenir children
 3. **Peter Rabbit Gifts**
 4. **Highland Cows Ornaments**
 5. **Ice cream**
 6. **Christmas**
 
-Required structural intent:
+This means the Storefront Structure must support **at least three hierarchy levels** where required:
 
-- [ ] Create/use one root section named **Local Treats** and move the existing Romney's and Hawkshead Relish Storefront nodes beneath it as sub-sections.
-- [ ] Rename the current Gifts & Souvenirs root to **Lake District Souvenirs** and keep the relevant souvenir sub-sections/products attached through stable node IDs.
+```text
+Main section
+└── Sub-section
+    └── Child section
+```
+
+Concrete required example:
+
+```text
+Local Treats
+├── Romney's
+│   ├── Mint Cake
+│   ├── Fudge
+│   ├── Biscuits
+│   ├── Sweets
+│   └── Gift Boxes
+└── Hawkshead Relish
+    ├── Chutneys & Pickles
+    ├── Jams & Preserves
+    ├── Honey
+    ├── Mustard
+    └── Savoury Sauces
+```
+
+### Required structural work
+
+- [ ] Create/use one root section named **Local Treats**.
+- [ ] Re-parent the existing **Romney's** root beneath Local Treats **while preserving all of Romney's existing child sections**.
+- [ ] Re-parent the existing **Hawkshead Relish** root beneath Local Treats **while preserving all of Hawkshead's existing child sections**.
+- [ ] Extend Storefront hierarchy validation/rendering/navigation so this three-level structure is valid and browsable; do not flatten or discard the existing children merely to satisfy the old two-level guard.
+- [ ] Extend the Admin **Section level** control so a section with children can be moved safely beneath another valid section. The selector should show valid parent destinations and must prevent cycles/self-parenting.
+- [ ] Rename the current Gifts & Souvenirs root to **Lake District Souvenirs** and keep the relevant souvenir child sections attached through stable node IDs.
 - [ ] Keep/promote the existing Peter Rabbit node as a root and rename it **Peter Rabbit Gifts**.
 - [ ] Promote the existing Highland Cows node to a root and rename it **Highland Cows Ornaments**.
 - [ ] Keep Ice Cream as a root, displayed as **Ice cream**.
 - [ ] Promote the existing Christmas/seasonal node to a root and display it as **Christmas**.
-- [ ] Final published main navigation must contain **only these six Storefront roots**. Romney's and Hawkshead Relish must not remain top-level menu entries.
-- [ ] Preserve Product records, inventory, Product placements, existing legacy URLs/canonicals and current published history. **Do not solve this by recreating/moving products one by one.** Re-parent/rename the stable Storefront nodes instead.
-- [ ] Audit any current Gifts child sections (for example Mugs & Tableware, Soft Toys, Cards & Stationery and other souvenir destinations) and keep them under **Lake District Souvenirs** unless their current Product semantics require otherwise. Do not create duplicate destinations.
+- [ ] Final published main navigation must contain **only these six root entries**. Romney's and Hawkshead Relish must not remain top-level menu entries.
+- [ ] Preserve Product records, inventory, Product placements, existing legacy URLs/canonicals and publication/audit history. **Do not recreate or move Products one by one.**
+- [ ] Do not create duplicate Storefront destinations. Re-parent/rename canonical nodes.
+- [ ] Confirm collection routes, breadcrumbs, section-page child navigation and sitemap behavior remain correct for the new third level.
 
-### Codex review gate before implementing the six-root structure
+### Codex review gate before implementation
 
-- [ ] Review commits `9054469` through `43703f1` for correctness, regressions and consistency with the current Admin/Storefront architecture.
-- [ ] Specifically verify the `SameSite=Lax` session fix on iPhone/Safari navigation and confirm no auth/security regression.
-- [ ] Review the new Section-level Admin control for depth guards, draft/publish behavior, ordering, child-count constraints and stable Product placement behavior.
-- [ ] Treat migration 0028 as staging-applied interim state; decide whether to supersede it with an additive migration that reaches the six-root target safely. **Do not rewrite an already-applied migration.**
-- [ ] Add/update automated tests for the final six-root hierarchy and navigation output.
+- [ ] Review commits `9054469` through `43703f1` for correctness, regressions and consistency with current Admin/Storefront architecture.
+- [ ] Specifically verify the `SameSite=Lax` session fix on iPhone/Safari and confirm no auth/security regression.
+- [ ] Review `9bb2d7e` as an **incomplete first implementation of generic re-parenting**, not as the final hierarchy model.
+- [ ] Identify and replace the current two-level restrictions in both Admin UI and data-layer validation with the minimum safe hierarchy support needed for the three-level target above.
+- [ ] Preserve cycle protection, archived-parent protection, optimistic concurrency, draft/publish behavior, sibling ordering and audit events.
+- [ ] Treat migration 0028 as staging-applied interim history. **Do not edit/rewrite an applied migration.** Add a forward migration for the remaining hierarchy changes.
+- [ ] Add/update automated tests for: three-level hierarchy, moving a node that has children, cycle rejection, published navigation showing exactly six roots, child collection browsing and stable Product placement preservation.
 - [ ] Deploy and verify on Staging first. Do not promote to Production without explicit owner approval.
 
 
