@@ -32,8 +32,10 @@ const homepage = {
     LOCAL_FAVOURITES: [{ storefrontNodeId: nodes[2].id, name: nodes[2].name, imageUrl: null, position: 10 }],
   },
 };
+let draftWrites = 0;
 const server = http.createServer((request, response) => {
   const pathname = new URL(request.url, 'http://localhost').pathname;
+  if (request.method !== 'GET' && pathname.includes('/draft')) draftWrites++;
   if (pathname === '/admin') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(html);
   } else {
@@ -62,6 +64,9 @@ try {
         assert.equal(await page.locator('#homepageCollectionCards .homepage-destination-row').count(), 2, `${engine}: card editor shows current collections`);
         await page.locator('#homepageCollectionCards [data-card-move="1"]').first().click();
         assert.equal(await page.locator('#homepageCollectionCards .homepage-destination-row strong').first().textContent(), 'Highland Cows', `${engine}: phone reorder works`);
+        page.once('dialog', dialog => dialog.dismiss());
+        await page.locator('#homepagePublish').click();
+        assert.equal(draftWrites, 0, `${engine}: cancelling Publish must not save the draft`);
         assert.equal(await page.locator('.mobile-bottom [data-nav]').count(), 4, `${engine}: four primary mobile jobs`);
         await page.locator('#openAdminNavigation').click();
         assert.equal(await page.locator('#adminNavigation').evaluate(dialog => dialog.open), true, `${engine}: More opens`);

@@ -88,6 +88,11 @@ Local Treats
 
 Staging [36716553693](https://github.com/Mo31D/Blacksheep/actions/runs/36716553693) applied `0029` and deployed successfully. Read-only Admin inspection showed six named roots, Local Treats → Romney's/Hawkshead → original children, unchanged direct Product counts (55/15) and Romney's Section level picker offering valid roots. The old four-link server header was fixed in `ffe796d`; the initial post-deploy raw HTML assertion saw a stale cached page, so `9c78074` added a unique acceptance query. The guarded rerun passed every hierarchy/route assertion, and browser inspection confirmed the six-link navigation and 70 Products. Production Worker/data remain unchanged.
 
+### Phase 8 continuation after hierarchy acceptance
+
+- [x] Generated Admin phone regression includes third-level Local Treats tree and editing Romney's parent with children. [Commerce CI 36721459601](https://github.com/Mo31D/Blacksheep/actions/runs/36721459601) passed at 390/320px Chromium/WebKit; no staging draft or Product was changed.
+- [x] Fix the Homepage/Appearance Publish confirmation order so cancelling cannot save a private draft; make the Preview draft save explicit in the button label. `commerce/src/admin/ui.ts`, phone fixture and local TypeScript/81 files/582 tests passed. GitHub CI and Staging visual check pending; keep broader contextual Homepage Slice B open in `ARCHITECTURE-REHABILITATION-CHECKLIST.md`.
+
 ### Codex review gate before implementation
 
 - [x] Review commits `9054469` through `43703f1` and preserve their working behavior. Cookie policy uses `Lax; Secure; HttpOnly`; test `commerce/test/admin-session-cookie.test.ts` covers it.
