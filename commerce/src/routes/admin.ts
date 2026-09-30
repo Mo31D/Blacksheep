@@ -337,6 +337,8 @@ function homepageMutationError(cause: unknown): Response {
     homepage_heading_too_long: "Homepage heading must be 120 characters or fewer.",
     homepage_reference_invalid: "The selected homepage reference is invalid.",
     homepage_featured_products_invalid: "Featured products selection is invalid.",
+    homepage_cards_invalid: "Choose between 1 and 9 unique collection cards and between 1 and 6 unique local favourites.",
+    homepage_card_destination_missing: "A selected homepage card needs a published website destination.",
     homepage_featured_products_required: "Choose at least one Featured product before publishing.",
     homepage_featured_product_not_found: "One of the selected products no longer exists.",
     homepage_featured_product_archived: "An archived product cannot be featured.",

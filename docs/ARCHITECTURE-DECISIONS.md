@@ -176,3 +176,11 @@ Rejected alternative: leaving Homepage, Appearance and Media as parallel top-lev
 
 **Rejected alternative** — Keep a movable two-section tail or add a new page-builder model. The former contradicts the owner-facing controls; the latter duplicates the site's known structured sections.
 
+## Homepage cards reference Website sections (30 September 2026)
+
+**Decision** — Shop by collection and Local favourites card selections are versioned with the existing Homepage draft as ordered Storefront Structure node IDs. Published card names, images and destinations resolve from the nodes' published versions; the Admin shows the selected cards beside ↑ ↓, add and remove controls. Existing static cards remain the outage fallback.
+
+**Why** — All existing collection and local-favourite destinations already have canonical Storefront Structure nodes. References allow the owner to compose the Homepage without copying Product or Section identity and retain the existing Save/Preview/Publish boundary.
+
+**Rejected alternative** — Store card titles, raw links and image URLs in a new Homepage-specific catalogue or edit static HTML. Both would reintroduce competing sources of truth and make later Section edits inconsistent.
+

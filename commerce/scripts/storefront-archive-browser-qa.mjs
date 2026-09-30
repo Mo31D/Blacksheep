@@ -62,7 +62,17 @@ try{
       mode='failure';
       await open('/all-products.html');
       assert.equal(await page.locator('.product-card[data-url="/products/'+archived.slug+'.html"]').count(),1);
-      console.log(name+': archived legacy cards, new cards, old detail, empty catalogue and outage fallback passed');
+      await open('/index.html');
+      await page.evaluate(()=>syncHomepageDestinationCards({
+        COLLECTIONS:[{name:'Highland Cows',shortDescription:'New collection copy',imageUrl:'/images/highland-cows/highland-cow-flowers-lp73651.webp',destinationPath:'/gifts-highland-cows.html'}],
+        LOCAL_FAVOURITES:[{name:"Romney's",shortDescription:'Local treats',imageUrl:null,destinationPath:'/romneys.html'}],
+      }));
+      assert.equal(await page.locator('#homeCollections .collection').count(),1);
+      assert.equal(await page.locator('#homeCollections .collection h3').textContent(),'Highland Cows');
+      assert.equal(await page.locator('.home-discover-grid .feature').count(),1);
+      assert.equal(await page.locator('.home-discover-grid .feature h3').textContent(),"Romney's");
+      assert.equal(await page.locator('.home-discover-grid .feature img').count(),1);
+      console.log(name+': archived catalogue behaviour and Homepage destination-card rendering passed');
     }finally{await browser.close();}
   }
 }finally{await new Promise(resolve=>server.close(resolve));}

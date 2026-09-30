@@ -28,6 +28,9 @@ class Statement implements D1PreparedStatementLike {
     if (this.sql.includes("FROM homepage_merchandising_modules")) {
       return { results: this.db.modules as T[] };
     }
+    if (this.sql.includes("FROM homepage_merchandising_cards c")) {
+      return { results: this.db.cards as T[] };
+    }
     if (
       this.sql.includes("ORDER BY pv.published_at DESC")
     ) {
@@ -51,6 +54,10 @@ class HomepagePublicDb implements D1DatabaseLike {
   featured: Record<string, unknown>[] = [];
   newArrivals: Record<string, unknown>[] = [];
   collection: Record<string, unknown>[] = [];
+  cards: Record<string, unknown>[] = [
+    { moduleKey: "COLLECTIONS", storefrontNodeId: "sfn_gifts_peter_rabbit", name: "Peter Rabbit", shortDescription: "Gifts", imageUrl: "/images/rabbit.webp", legacyPath: "/gifts-peter-rabbit.html", slug: "peter-rabbit", position: 10 },
+    { moduleKey: "LOCAL_FAVOURITES", storefrontNodeId: "sfn_icecream", name: "Ice Cream", shortDescription: null, imageUrl: null, legacyPath: "/icecream.html", slug: "ice-cream", position: 10 },
+  ];
   modules: Record<string, unknown>[] = [
     { moduleKey: "HERO", enabled: 1, position: 10 },
     { moduleKey: "COLLECTIONS", enabled: 1, position: 20 },
@@ -124,6 +131,13 @@ describe("CARD 07 published Homepage product rail", () => {
       "LOCAL_FAVOURITES",
       "VISIT_SHOP",
     ]);
+    expect(result.config.cards.COLLECTIONS[0]).toMatchObject({
+      storefrontNodeId: "sfn_gifts_peter_rabbit",
+      name: "Peter Rabbit",
+      destinationPath: "/gifts-peter-rabbit.html",
+    });
+    const cardQuery = db.prepared.find((statement) => statement.sql.includes("FROM homepage_merchandising_cards c"));
+    expect(cardQuery?.sql).toContain("n.current_published_version_id");
     expect(
       db.prepared.some((statement) =>
         statement.sql.includes("ORDER BY pv.published_at DESC"),

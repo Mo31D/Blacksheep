@@ -21,6 +21,21 @@ export interface HomepageModuleSetting {
   position: number;
 }
 
+export interface HomepageDestinationCard {
+  storefrontNodeId: string;
+  name: string;
+  shortDescription: string | null;
+  imageUrl: string | null;
+  legacyPath: string | null;
+  destinationPath: string;
+  position: number;
+}
+
+export interface HomepageDestinationCards {
+  COLLECTIONS: HomepageDestinationCard[];
+  LOCAL_FAVOURITES: HomepageDestinationCard[];
+}
+
 export interface HomepageMerchandisingProduct {
   productId: string;
   title: string;
@@ -47,6 +62,7 @@ export interface HomepageMerchandisingSnapshot {
   selectedStorefrontNodeName: string | null;
   featuredProducts: HomepageMerchandisingProduct[];
   modules: HomepageModuleSetting[];
+  cards: HomepageDestinationCards;
 }
 
 export interface HomepageMerchandisingPreview {
@@ -63,6 +79,7 @@ export interface SaveHomepageMerchandisingDraftInput {
   selectedStorefrontNodeId?: unknown;
   featuredProductIds?: unknown;
   modules?: unknown;
+  cards?: unknown;
 }
 
 const MERCHANDISING_ID = "home_product_rail";
@@ -79,6 +96,39 @@ const HOMEPAGE_MODULE_KEYS: HomepageModuleKey[] = [
   "LOCAL_FAVOURITES",
   "VISIT_SHOP",
 ];
+const CARD_MODULE_KEYS = ["COLLECTIONS", "LOCAL_FAVOURITES"] as const;
+type CardModuleKey = (typeof CARD_MODULE_KEYS)[number];
+
+export function normalizeHomepageCards(
+  value: unknown,
+  fallback: HomepageDestinationCards,
+): Record<CardModuleKey, string[]> {
+  if (value === undefined) {
+    return {
+      COLLECTIONS: fallback.COLLECTIONS.map((card) => card.storefrontNodeId),
+      LOCAL_FAVOURITES: fallback.LOCAL_FAVOURITES.map((card) => card.storefrontNodeId),
+    };
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("homepage_cards_invalid");
+  }
+  const raw = value as Record<string, unknown>;
+  if (Object.keys(raw).some((key) => !CARD_MODULE_KEYS.includes(key as CardModuleKey))) {
+    throw new Error("homepage_cards_invalid");
+  }
+  const result = {} as Record<CardModuleKey, string[]>;
+  for (const key of CARD_MODULE_KEYS) {
+    const candidate = raw[key];
+    if (!Array.isArray(candidate)) throw new Error("homepage_cards_invalid");
+    const ids = candidate.map((item) => typeof item === "string" ? item.trim() : "");
+    const max = key === "COLLECTIONS" ? 9 : 6;
+    if (!ids.length || ids.length > max || ids.some((id) => !id || id.length > 160) || new Set(ids).size !== ids.length) {
+      throw new Error("homepage_cards_invalid");
+    }
+    result[key] = ids;
+  }
+  return result;
+}
 
 async function allRows<T>(
   statement: D1PreparedStatementLike,
@@ -245,6 +295,44 @@ async function selectedModules(
   }));
 }
 
+async function selectedCards(
+  db: D1DatabaseLike,
+  versionId: string,
+  publishedOnly: boolean,
+): Promise<HomepageDestinationCards> {
+  const version = publishedOnly
+    ? "n.current_published_version_id"
+    : "COALESCE(n.current_draft_version_id, n.current_published_version_id)";
+  const rows = await allRows<Record<string, unknown>>(
+    db.prepare(
+      "SELECT c.module_key AS moduleKey, c.storefront_node_id AS storefrontNodeId, " +
+        "nv.name, nv.short_description AS shortDescription, nv.image_url AS imageUrl, " +
+        "nv.legacy_path AS legacyPath, nv.slug, c.position " +
+        "FROM homepage_merchandising_cards c " +
+        "JOIN storefront_nodes n ON n.id = c.storefront_node_id " +
+        "JOIN storefront_node_versions nv ON nv.id = " + version + " " +
+        "WHERE c.version_id = ? ORDER BY c.module_key, c.position",
+    ).bind(versionId),
+  );
+  const cards: HomepageDestinationCards = { COLLECTIONS: [], LOCAL_FAVOURITES: [] };
+  for (const row of rows) {
+    const key = String(row.moduleKey) as CardModuleKey;
+    if (!CARD_MODULE_KEYS.includes(key)) continue;
+    cards[key].push({
+      storefrontNodeId: String(row.storefrontNodeId),
+      name: String(row.name),
+      shortDescription: row.shortDescription == null ? null : String(row.shortDescription),
+      imageUrl: row.imageUrl == null ? null : String(row.imageUrl),
+      legacyPath: row.legacyPath == null ? null : String(row.legacyPath),
+      destinationPath: row.legacyPath == null
+        ? "/collections/" + encodeURIComponent(String(row.slug))
+        : String(row.legacyPath),
+      position: Number(row.position),
+    });
+  }
+  return cards;
+}
+
 async function selectedProducts(
   db: D1DatabaseLike,
   versionId: string,
@@ -304,13 +392,14 @@ async function loadSnapshot(
 
   if (!row) throw new Error("homepage_merchandising_not_found");
   const effectiveVersionId = String(row.effectiveVersionId);
-  const [featuredProducts, modules] = await Promise.all([
+  const [featuredProducts, modules, cards] = await Promise.all([
     selectedProducts(
       db,
       effectiveVersionId,
       publishedOnly,
     ),
     selectedModules(db, effectiveVersionId),
+    selectedCards(db, effectiveVersionId, publishedOnly),
   ]);
 
   return {
@@ -337,6 +426,7 @@ async function loadSnapshot(
         : String(row.selectedStorefrontNodeName),
     featuredProducts,
     modules,
+    cards,
   };
 }
 
@@ -479,6 +569,7 @@ export async function saveAdminHomepageMerchandisingDraft(
     current.featuredProducts.map((product) => product.productId),
   );
   const modules = normalizeHomepageModuleSettings(raw.modules, current.modules);
+  const cards = normalizeHomepageCards(raw.cards, current.cards);
 
   if (mode === "SELECTED_COLLECTION" && !selectedStorefrontNodeId) {
     throw new Error("homepage_collection_required");
@@ -489,6 +580,9 @@ export async function saveAdminHomepageMerchandisingDraft(
     false,
   );
   await assertProductsAvailable(db, featuredProductIds, false);
+  for (const key of CARD_MODULE_KEYS) {
+    for (const nodeId of cards[key]) await assertStorefrontNodeAvailable(db, nodeId, false);
+  }
 
   const createdAt = now();
   const resultVersion = expected + 1;
@@ -502,6 +596,7 @@ export async function saveAdminHomepageMerchandisingDraft(
     selectedStorefrontNodeId,
     featuredProductIds,
     modules,
+    cards,
   };
 
   const statements: D1PreparedStatementLike[] = [
@@ -577,6 +672,18 @@ export async function saveAdminHomepageMerchandisingDraft(
     );
   });
 
+  for (const key of CARD_MODULE_KEYS) {
+    cards[key].forEach((nodeId, index) => {
+      statements.push(
+        db.prepare(
+          "INSERT INTO homepage_merchandising_cards (version_id, module_key, storefront_node_id, position) " +
+            "SELECT ?, ?, ?, ? FROM homepage_merchandising " +
+            "WHERE id = ? AND version = ? AND updated_at = ?",
+        ).bind(draftId, key, nodeId, (index + 1) * 10, MERCHANDISING_ID, resultVersion, createdAt),
+      );
+    });
+  }
+
   statements.push(
     auditStatement(db, {
       eventType: "DRAFT_SAVED",
@@ -651,6 +758,13 @@ export async function publishAdminHomepageMerchandising(
       current.selectedStorefrontNodeId,
       true,
     );
+  }
+  for (const key of CARD_MODULE_KEYS) {
+    if (current.modules.find((module) => module.key === key)?.enabled === false) continue;
+    for (const card of current.cards[key]) {
+      await assertStorefrontNodeAvailable(db, card.storefrontNodeId, true);
+      if (!card.destinationPath) throw new Error("homepage_card_destination_missing");
+    }
   }
 
   const createdAt = now();

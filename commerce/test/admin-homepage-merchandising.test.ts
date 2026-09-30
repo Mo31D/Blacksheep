@@ -43,6 +43,7 @@ const config = {
     { key: "LOCAL_FAVOURITES" as const, enabled: true, position: 40 },
     { key: "VISIT_SHOP" as const, enabled: true, position: 50 },
   ],
+  cards: { COLLECTIONS: [], LOCAL_FAVOURITES: [] },
   featuredProducts: [
     {
       productId: "prd-1",

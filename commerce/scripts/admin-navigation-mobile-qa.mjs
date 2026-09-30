@@ -15,11 +15,28 @@ const bundle = await build({
 const moduleUrl = 'data:text/javascript;base64,' + Buffer.from(bundle.outputFiles[0].contents).toString('base64');
 const { adminHtml } = await import(moduleUrl);
 const html = adminHtml('owner@example.test', 'staging');
+const nodes = [
+  { id: 'sfn_gifts_peter_rabbit', name: 'Peter Rabbit', legacyPath: '/gifts-peter-rabbit.html', publicationStatus: 'ACTIVE', publishedVersionId: 'sfv-rabbit' },
+  { id: 'sfn_gifts_highland_cows', name: 'Highland Cows', legacyPath: '/gifts-highland-cows.html', publicationStatus: 'ACTIVE', publishedVersionId: 'sfv-cows' },
+  { id: 'sfn_icecream', name: 'Ice Cream', legacyPath: '/icecream.html', publicationStatus: 'ACTIVE', publishedVersionId: 'sfv-icecream' },
+];
+const homepage = {
+  version: 1, hasDraft: false, publishedVersionId: 'hmv-default', enabled: false,
+  mode: 'NEW_ARRIVALS', productLimit: 8, heading: null, selectedStorefrontNodeId: null,
+  featuredProducts: [], modules: ['HERO', 'COLLECTIONS', 'PRODUCT_RAIL', 'LOCAL_FAVOURITES', 'VISIT_SHOP'].map((key, index) => ({ key, enabled: true, position: (index + 1) * 10 })),
+  cards: {
+    COLLECTIONS: nodes.slice(0, 2).map((node, index) => ({ storefrontNodeId: node.id, name: node.name, imageUrl: null, position: (index + 1) * 10 })),
+    LOCAL_FAVOURITES: [{ storefrontNodeId: nodes[2].id, name: nodes[2].name, imageUrl: null, position: 10 }],
+  },
+};
 const server = http.createServer((request, response) => {
-  if (new URL(request.url, 'http://localhost').pathname === '/admin') {
+  const pathname = new URL(request.url, 'http://localhost').pathname;
+  if (pathname === '/admin') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(html);
   } else {
-    response.writeHead(200, { 'content-type': 'application/json' }).end('{}');
+    const body = pathname === '/admin/api/storefront-structure' ? { nodes }
+      : pathname === '/admin/api/homepage-merchandising' ? { config: homepage } : {};
+    response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(body));
   }
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -38,6 +55,10 @@ try {
         assert.equal(await page.locator('.mobile-bottom').isVisible(), true, `${engine}: phone navigation`);
         assert.equal(await page.locator('.sidebar').isVisible(), false, `${engine}: desktop sidebar hidden`);
         assert.equal(await page.locator('#view-website').isVisible(), true, `${engine}: Website opens`);
+        await page.locator('#homepageCollectionCards .homepage-destination-row').first().waitFor();
+        assert.equal(await page.locator('#homepageCollectionCards .homepage-destination-row').count(), 2, `${engine}: card editor shows current collections`);
+        await page.locator('#homepageCollectionCards [data-card-move="1"]').first().click();
+        assert.equal(await page.locator('#homepageCollectionCards .homepage-destination-row strong').first().textContent(), 'Highland Cows', `${engine}: phone reorder works`);
         assert.equal(await page.locator('.mobile-bottom [data-nav]').count(), 4, `${engine}: four primary mobile jobs`);
         await page.locator('#openAdminNavigation').click();
         assert.equal(await page.locator('#adminNavigation').evaluate(dialog => dialog.open), true, `${engine}: More opens`);

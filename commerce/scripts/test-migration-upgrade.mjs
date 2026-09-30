@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+﻿import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
   mkdirSync,
@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0025_")) {
+  if (!latestMigration?.startsWith("0026_")) {
     throw new Error(
-      `Expected latest migration to be 0025, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0026, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0024_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0024.");
+  if (baselineMigrations.at(-1)?.startsWith("0025_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0025.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -140,6 +140,7 @@ try {
     "SELECT merchandising_id, version_number, enabled, mode, product_limit, heading, selected_storefront_node_id, published_at, superseded_at FROM homepage_merchandising_versions LIMIT 0",
     "SELECT version_id, product_id, position FROM homepage_merchandising_products LIMIT 0",
     "SELECT version_id, module_key, enabled, position FROM homepage_merchandising_modules LIMIT 0",
+    "SELECT version_id, module_key, storefront_node_id, position FROM homepage_merchandising_cards LIMIT 0",
     "SELECT merchandising_id, event_type, actor_id, before_json, after_json FROM homepage_merchandising_audit_events LIMIT 0",
     "SELECT id, current_published_version_id, current_draft_version_id, version FROM website_appearance LIMIT 0",
     "SELECT appearance_id, version_number, preset_key, background_color, surface_color, text_color, muted_text_color, accent_color, button_color, border_color, header_color, hero_image_url, hero_heading, hero_text, hero_button_label, hero_button_href, section_images_json, scheduled_start_at, scheduled_end_at, published_at, superseded_at FROM website_appearance_versions LIMIT 0",
@@ -176,7 +177,7 @@ try {
     "--persist-to",
     persistDir,
     "--command",
-    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort','idx_suppliers_active_name','idx_product_variants_supplier','idx_inventory_valuation_snapshots_location_date','idx_storefront_nodes_status_updated','idx_storefront_live_slug','idx_storefront_one_live_version','idx_storefront_node_versions_parent_sort','idx_product_storefront_one_primary','idx_product_storefront_node_version','idx_storefront_audit_node_created','idx_storefront_audit_event_created','idx_stocktake_sessions_status_updated','idx_stocktake_sessions_location_status','idx_stocktake_items_session_position','idx_stocktake_items_session_status','idx_homepage_merchandising_one_live_version','idx_homepage_merchandising_products_position','idx_homepage_merchandising_audit_created','idx_homepage_merchandising_modules_position','idx_shared_media_assets_status_context','idx_shared_media_assets_checksum','idx_shared_media_references_asset','idx_shared_media_references_owner','idx_shared_media_audit_asset_created','idx_shared_media_delete_jobs_state_updated') ORDER BY name",
+    "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_refunds_order_idempotency','idx_product_variants_sku','idx_product_version_media_one_primary','idx_inventory_movements_idempotency','idx_inventory_movements_initial_count','idx_inventory_movements_variant_created','idx_inventory_incoming_variant_status','idx_inventory_reservations_idempotency','idx_inventory_reservations_state_expiry','idx_inventory_reservation_items_variant','idx_inventory_reservations_returned','idx_orders_data_class_created','idx_categories_type_active_sort','idx_suppliers_active_name','idx_product_variants_supplier','idx_inventory_valuation_snapshots_location_date','idx_storefront_nodes_status_updated','idx_storefront_live_slug','idx_storefront_one_live_version','idx_storefront_node_versions_parent_sort','idx_product_storefront_one_primary','idx_product_storefront_node_version','idx_storefront_audit_node_created','idx_storefront_audit_event_created','idx_stocktake_sessions_status_updated','idx_stocktake_sessions_location_status','idx_stocktake_items_session_position','idx_stocktake_items_session_status','idx_homepage_merchandising_one_live_version','idx_homepage_merchandising_products_position','idx_homepage_merchandising_audit_created','idx_homepage_merchandising_modules_position','idx_homepage_merchandising_cards_order','idx_shared_media_assets_status_context','idx_shared_media_assets_checksum','idx_shared_media_references_asset','idx_shared_media_references_owner','idx_shared_media_audit_asset_created','idx_shared_media_delete_jobs_state_updated') ORDER BY name",
   ]);
 
   for (const required of [
@@ -212,6 +213,7 @@ try {
     "idx_homepage_merchandising_products_position",
     "idx_homepage_merchandising_audit_created",
     "idx_homepage_merchandising_modules_position",
+    "idx_homepage_merchandising_cards_order",
     "idx_shared_media_assets_status_context",
     "idx_shared_media_assets_checksum",
     "idx_shared_media_references_asset",
@@ -289,6 +291,17 @@ try {
     }
   }
 
+  const homepageCardsSeed = runWrangler([
+    "d1", "execute", "DB", "--local", "--config", configPath,
+    "--persist-to", persistDir, "--command",
+    "SELECT module_key, COUNT(*) AS cards FROM homepage_merchandising_cards WHERE version_id='hmv_default_1' GROUP BY module_key ORDER BY module_key",
+  ]);
+  for (const expected of ['"module_key": "COLLECTIONS"', '"cards": 6', '"module_key": "LOCAL_FAVOURITES"', '"cards": 3']) {
+    if (!homepageCardsSeed.includes(expected)) {
+      throw new Error("Homepage card seed invariant missing: " + expected + "\n" + homepageCardsSeed);
+    }
+  }
+
   const locationOutput = runWrangler([
     "d1",
     "execute",
@@ -349,9 +362,9 @@ try {
   }
 
   console.log(
-    "PASS: migrations 0000–0024 upgraded cleanly to 0025; Appearance decoration control and all prior platform schemas are present.",
+    "PASS: migrations 0000–0025 upgraded cleanly to 0026; Homepage destination cards and all prior platform schemas are present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
 }
-// CARD 08 migration guard updated for 0022.
+// Keep the latest migration as the upgrade candidate so seeded data survives.
