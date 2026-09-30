@@ -1,5 +1,13 @@
 # Architecture decisions
 
+## 2026-09-30 — Storefront Section owns its image
+
+**Decision:** The published Storefront node version's `image_url` is the sole source for a Section image on its collection page and Homepage cards. Website Appearance owns theme tokens and hero content, not Section imagery. Preserve Appearance history, transfer only published Appearance images for Sections with no canonical image through a forward migration, and remove the duplicate editor/write/render path.
+
+**Why:** Production currently has a Local Treats image in both domains with different URLs; Lake District Souvenirs has only an Appearance image and renders a Homepage card without an `<img>`. The Appearance DOM override acts after card construction and cannot provide a missing image reliably. A canonical node image already flows to collection pages and Homepage card data.
+
+**Rejected alternative:** Keeping both fields with precedence or timing fixes would preserve competing ownership and race-dependent display. Copying the Appearance image over an existing Section image would overwrite the owner's working collection choice. No Production migration/deploy is authorized by this decision alone.
+
 ## 2026-09-27 — Preserve the current stack and authority boundaries
 
 **Decision:** Keep the static storefront, Commerce Worker and D1/R2. D1 owns operational commerce; Git main owns code and static publication. Static metadata is an export input where explicitly required, never a second checkout pricing source.
