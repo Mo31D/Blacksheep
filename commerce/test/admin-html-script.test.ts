@@ -103,7 +103,10 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain('data-website-tab="media"');
     expect(production).toContain('id="websiteMediaPanel"');
     expect(production).toContain("Media Library");
-    expect(production).toContain("Upload to Media Library");
+    expect(production).toContain("Add to Image Library");
+    expect(production).toContain("Organise in library · optional");
+    expect(production).toContain("It does not place the image on the website.");
+    expect(production).toContain("All categories");
     expect(production).toContain('id="appearanceHeroChooseMedia"');
     expect(production).toContain('id="appearanceHeroUploadButton"');
     expect(production).toContain('id="appearanceHeroUpload"');
