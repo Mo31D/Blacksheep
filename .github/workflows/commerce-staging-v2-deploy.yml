@@ -1,5 +1,5 @@
 name: Commerce Staging V2 Deploy
-# Trigger guarded staging validation for forward-only six-root hierarchy migration 0029; never deploy production.
+# Trigger guarded staging acceptance for published six-root navigation; never deploy production.
 
 on:
   push:
@@ -92,6 +92,47 @@ jobs:
           if (health.environment !== "staging") throw new Error("staging environment marker is incorrect");
           if (health.database !== "bound") throw new Error("staging D1 binding is not active");
           console.log("Staging health verified.");
+          NODE
+
+      - name: Verify published Storefront hierarchy and clean routes
+        if: steps.deploy.outputs.url != ''
+        env:
+          STAGING_URL: ${{ steps.deploy.outputs.url }}
+        shell: bash
+        run: |
+          curl --fail --silent --show-error --max-time 20 "$STAGING_URL/v1/storefront-structure" -o /tmp/staging-structure.json
+          curl --fail --silent --show-error --max-time 20 "$STAGING_URL/collections/local-treats" -o /tmp/staging-local-treats.html
+          curl --fail --silent --show-error --max-time 20 "$STAGING_URL/collections/mint-cake" -o /tmp/staging-mint-cake.html
+          curl --fail --silent --show-error --max-time 20 "$STAGING_URL/sitemap.xml" -o /tmp/staging-sitemap.xml
+          curl --silent --show-error --max-time 20 -D /tmp/staging-romneys-headers -o /dev/null "$STAGING_URL/collections/romneys"
+          node - <<'NODE'
+          const fs = require("fs");
+          const nodes = JSON.parse(fs.readFileSync("/tmp/staging-structure.json", "utf8")).nodes;
+          const roots = nodes.filter((n) => !n.parentNodeId && n.showInNavigation).sort((a,b) => a.sortOrder-b.sortOrder);
+          const expected = ["Local Treats","Lake District Souvenirs","Peter Rabbit Gifts","Highland Cows Ornaments","Ice cream","Christmas"];
+          if (JSON.stringify(roots.map((n) => n.name)) !== JSON.stringify(expected)) throw new Error("Published roots differ from owner target");
+          const local = nodes.find((n) => n.stableKey === "local-treats");
+          const romneys = nodes.find((n) => n.id === "sfn_romneys");
+          const hawkshead = nodes.find((n) => n.id === "sfn_hawkshead");
+          if (!local || romneys?.parentNodeId !== local.id || hawkshead?.parentNodeId !== local.id) throw new Error("Local Treats parents incorrect");
+          for (const parent of [romneys, hawkshead]) {
+            if (nodes.filter((n) => n.parentNodeId === parent.id).length < 5) throw new Error(parent.name + " lost child sections");
+          }
+          const localHtml = fs.readFileSync("/tmp/staging-local-treats.html", "utf8");
+          const mintHtml = fs.readFileSync("/tmp/staging-mint-cake.html", "utf8");
+          const menu = localHtml.match(/<nav class="menu">([\s\S]*?)<\/nav>/)?.[1] || "";
+          if ((menu.match(/<a /g) || []).length !== 6 || !expected.every((name) => menu.includes(name))) throw new Error("Server HTML lacks six-root navigation");
+          if (menu.includes("Romney&#39;s") || menu.includes("Hawkshead Relish")) throw new Error("Nested sections leaked into main menu");
+          const productCount = Number(localHtml.match(/<span class="catalog-count">(\d+) products<\/span>/)?.[1] || 0);
+          if (productCount < 1 || !localHtml.includes("Romney&#39;s") || !localHtml.includes("Hawkshead Relish")) throw new Error("Local Treats collection missing products or child links");
+          if (!mintHtml.includes("Local Treats") || !mintHtml.includes("Romney&#39;s")) throw new Error("Third-level breadcrumb missing");
+          const sitemap = fs.readFileSync("/tmp/staging-sitemap.xml", "utf8");
+          for (const path of ["/collections/local-treats","/collections/mint-cake","/romneys.html","/hawkshead-relish.html"]) {
+            if (!sitemap.includes(path)) throw new Error("Sitemap missing " + path);
+          }
+          const redirect = fs.readFileSync("/tmp/staging-romneys-headers", "utf8");
+          if (!/^HTTP\/\S+ 301/m.test(redirect) || !redirect.includes("/romneys.html")) throw new Error("Legacy Romney's route no longer redirects");
+          console.log("Staging six-root menu, third level, " + productCount + " Products, legacy redirect and sitemap verified.");
           NODE
 
       - name: Safety confirmation
