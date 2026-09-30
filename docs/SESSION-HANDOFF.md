@@ -1,6 +1,6 @@
 # Session handoff
 
-Updated 29 September 2026. Repository `Mo31D/Blacksheep`; work directly on existing `main`. Remote main is authoritative because this workstation's `.git` index/ref remains stale and cannot create `.git/index.lock` in the current sandbox. Do not push the stale local ref or create a branch. Publish changed files through the GitHub connector with a fast-forward-only ref update if Git remains restricted.
+Updated 30 September 2026. Repository `Mo31D/Blacksheep`; work directly on existing `main`. Remote main is authoritative because this workstation's `.git` index/ref remains stale and cannot create `.git/index.lock` in the current sandbox. Do not push the stale local ref or create a branch. Publish changed files through the GitHub connector with a fast-forward-only ref update if Git remains restricted.
 
 ## Current phase and last completed task
 
@@ -12,12 +12,12 @@ A reproducible image-preview defect was found: static hero `/images/1.png` resol
 
 ## Current task / next recommended task
 
-Commit this updated acceptance record/checklist/handoff to `main` and verify GitHub checks. Next, have an authorized operator run the guarded Commerce Staging V2 Deploy workflow on `509d153` (or the subsequent docs-only main SHA) and recheck static hero previews in staging Admin. Continue independent test-only acceptance for direct Product/Section/Appearance upload, Homepage, stocktake/order/reservation, checkout/Turnstile and weak-device/Save-Data. The available GitHub connector and unsigned GitHub browser cannot dispatch workflows; do not substitute an ad hoc Worker upload.
+Direct Appearance hero and Section image uploads passed on staging using the tracked sheep icon; both temporary assets were archived after unsaved editor changes were discarded. The user-approved test mailbox is configured in staging-only `STAGING_EMAIL_ALLOWLIST`, and secret-name read-back passed; no mail was sent. Commit these findings plus the guarded workflow trigger to `main`, verify GitHub checks and the staging deploy, then recheck static hero preview. Continue isolated Product/Homepage, stocktake/order/reservation, email, checkout/Turnstile and weak-device/Save-Data acceptance. After prior executable gates are closed or accurately recorded, add the user-requested Admin productization phase to checklist/handoff **before** its implementation. Do not deploy production.
 
 ## Decisions and unresolved risks
 
 - The Worker/API and D1/R2 remain the canonical owners; public storefront paths are preserved. Appearance draft/publish/restore is versioned; decorations are opt-in and default off for existing published versions.
-- Staging Worker secret names include `ADMIN_PASSWORD` and `RESEND_API_KEY` but **not** `STAGING_EMAIL_ALLOWLIST`. New staging mail policy fails closed, including Admin codes. Password sign-in works. Do not send test mail to the production owner or real customers. An authorized operator must choose a safe staging mailbox and set the staging-only allowlist before email acceptance; no address or secret belongs in Git.
+- Staging Worker now includes `STAGING_EMAIL_ALLOWLIST` for the user-approved test mailbox; only its binding name was verified. The source mail guard permits that exact recipient and rejects all others. Password sign-in works; delivery QA remains open. Do not send to the production owner or real customers, and do not commit mailbox/secret values.
 - Phase 6 historical `loader.js`, `.b64` and restore assets remain untouched. Route parity and source absence are documented in `LEGACY-ASSET-REFERENCE-AUDIT.md`; the Cloudflare Free Website zone `/logs/received` probe returned `1010 auth.forbidden`. Obtain equivalent time-bounded deployed consumer evidence before deletion.
 - Local Windows workerd D1 launch fails; Linux Commerce CI is the complete runtime/migration gate. No production promotion without explicit user approval.
 

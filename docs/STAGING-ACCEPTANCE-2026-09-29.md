@@ -16,6 +16,8 @@ Target: `main` `d3ce3717a6b9db6d3ae746452936f043669777e6`, deployed by [Commerce
 | Appearance publish/restore | Published Christmas and Winter to staging only, observed versioned published state, then restored original version `wav_default_1` through the authenticated Admin API. Final `/v1/appearance` and Admin state: DEFAULT, decorations off, hero `/images/1.png`, no draft. | Pass at API/state boundary; UI Restore click remains unverified |
 | Seasonal storefront preview | Public static storefront used `?commerce-preview=staging` to read staging API. Winter and Christmas each applied `data-theme-preset` and loaded `/assets/theme-layers.css` exactly when enabled. Visual review showed distinct restrained art and legible hero at desktop/tablet; 390px phone kept content legible, hid nonessential artwork and had no horizontal overflow (`scrollWidth` 381). Tablet was 753/768px; desktop was 1265/1280px. After DEFAULT restore the optional layer was absent. | Pass for normal devices; Save-Data/≤2 GiB manual emulation still open |
 | Inventory and orders | Admin Stock view loaded 146 tracked products and the Stocktake entry point; an existing unfinished staging session was observed but not changed. Business/Test order tabs loaded separately; Test queue was empty. | Read-only pass; write-flow regression open |
+| Direct Website image uploads | Uploaded tracked `assets/sheep-icon.png` through the Appearance hero control and a Section image control. Both new staging R2 images rendered at 512px in their respective editor previews. Refreshed without saving; the published DEFAULT hero remains `/images/1.png` and Section override remains empty. Both temporary assets were archived, not deleted. | Pass for Appearance and Section direct upload; Product direct upload open |
+| Staging recipient policy | Configured `STAGING_EMAIL_ALLOWLIST` as a **staging-only Worker secret** for the user-approved test mailbox on 30 September. Read-back confirmed the binding name exists; value was not read or committed. No mail has been sent yet. | Configuration pass; delivery acceptance open |
 
 ## Defect fix in source
 
@@ -28,8 +30,8 @@ The pre-existing active QA Media record `asset_45e015c7-977d-4a53-ac29-9d9a4759b
 ## Still to accept
 
 - Re-deploy the committed preview fix to staging through the guarded workflow, then verify hero image in the editor and Winter/Christmas private previews on desktop, tablet and phone.
-- Exercise direct per-screen Product/Section/Appearance upload, Homepage controls, inventory/stocktake write flow, order/reservation and customer checkout with isolated test data. The shared Media upload/reuse and seasonal publish/restore paths above passed. A safe mail allowlist and any Turnstile-dependent checkout fixture remain prerequisites for their corresponding flows.
-- Choose an approved staging test mailbox and configure `STAGING_EMAIL_ALLOWLIST` only in the staging Worker before email QA. Never send staging test mail to the production owner or real customers.
+- Exercise direct per-screen Product upload, Homepage controls, inventory/stocktake write flow, order/reservation and customer checkout with isolated test data. Appearance/Section direct uploads and shared Media upload/reuse passed. A Turnstile-dependent checkout fixture remains a prerequisite for the corresponding flow.
+- Send only staging test mail to the approved test mailbox and verify the guard rejects all other recipients. Never send staging test mail to the production owner or real customers.
 - Obtain time-bounded deployed usage evidence for historical `loader.js`, `.b64` and restore assets before Phase 6 deletion. Source absence is insufficient.
 - The zone is on Cloudflare Free Website; the read-only `/logs/received` probe returned `1010 auth.forbidden`. Obtain equivalent request/reference telemetry through an authorized source before deleting historical paths.
 - Production promotion remains unapproved and must not be performed.
