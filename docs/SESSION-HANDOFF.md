@@ -2,36 +2,64 @@
 
 ## OWNER OVERRIDE — 30 September 2026 — READ BEFORE CONTINUING
 
-The owner clarified the intended website hierarchy after an out-of-band ChatGPT session made several changes on `main`. **Do not continue from the assumption that Peter Rabbit alone should become a new root.** Review the changes first, then implement the final hierarchy below.
+The owner clarified both the final hierarchy and the intended purpose of the out-of-band **Section level** edit. **Do not continue from the assumption that Peter Rabbit alone should become a new root, and do not treat the current two-level re-parenting UI as complete.**
+
+### Why the previous edit was made
+
+Commit `9bb2d7e` was intended to make hierarchy changes operate on the existing canonical Storefront node rather than forcing the owner to move Products manually. The desired invariant is:
+
+`move/re-parent Section → stable node ID remains → Products/inventory/placements remain attached`.
+
+The implementation achieved that invariant for a **leaf** section, which is why Peter Rabbit could be promoted from a Gifts child to a root without touching its 29 Product placements.
+
+However, the first UI/data-layer implementation only supports two levels. A node that already has children is not offered parent destinations, and the data layer rejects nesting beneath an existing child. That limitation now blocks the real requirement: moving Romney's and Hawkshead Relish beneath Local Treats while retaining their own children.
 
 ### Changes made outside the Codex workstream
 
 - `9054469`: Admin cookie `SameSite=Strict` → `SameSite=Lax` to preserve the authenticated session when the owner opens the public website and returns to Admin in Safari; `Secure` + `HttpOnly` retained.
 - `4d1453b`: regression test for the session-cookie policy.
-- `9bb2d7e`: Admin Section editor now exposes a Section-level selector, allowing re-parenting an existing Storefront node without moving its Products.
-- `29b9950`: migration 0028 promoted the existing Peter Rabbit node from Gifts child to root. Product placements were intentionally left attached to the same stable node ID.
+- `9bb2d7e`: first implementation of Admin Section re-parenting without moving Products; currently limited to a two-level hierarchy.
+- `29b9950`: migration 0028 promoted the existing Peter Rabbit node from Gifts child to root; Product placements remained attached to the same stable node ID.
 - `2a6fe3c`, `90981ab`: migration test/invariant updates.
 - `43703f1`: corrected guarded Staging deploy; full validation + migration + Worker health succeeded. Production unchanged.
 
-### Owner's exact final main-menu structure
+### Owner's exact final structure
 
-1. **Local Treats** — contains **Romney's** and **Hawkshead Relish** as sub-sections.
-2. **Lake District Souvenirs**.
-3. **Peter Rabbit Gifts**.
-4. **Highland Cows Ornaments**.
-5. **Ice cream**.
-6. **Christmas**.
+There must be exactly six top-level Storefront/menu entries:
 
-There must be exactly six main Storefront roots/menu entries after publication. Re-parent/rename existing stable Storefront nodes; preserve Product/inventory records and placements. The existing Gifts/souvenir children should remain under Lake District Souvenirs where semantically appropriate. Do not duplicate Products or rebuild collections manually.
+1. **Local Treats**
+   - **Romney's**
+     - preserve Romney's existing children (Mint Cake, Fudge, Biscuits, Sweets, Gift Boxes, etc.)
+   - **Hawkshead Relish**
+     - preserve Hawkshead's existing children (Chutneys & Pickles, Jams & Preserves, Honey, Mustard, Savoury Sauces, etc.)
+2. **Lake District Souvenirs**
+3. **Peter Rabbit Gifts**
+4. **Highland Cows Ornaments**
+5. **Ice cream**
+6. **Christmas**
+
+The required model therefore needs **at least three levels**:
+
+```text
+Local Treats
+└── Romney's
+    └── Mint Cake / Fudge / ...
+```
+
+and similarly for Hawkshead Relish.
 
 ### Required Codex action
 
-1. Fetch newest remote `main` and review the out-of-band commits above before editing.
-2. Audit the cookie change and Section-level control for security, draft/publish, ordering and hierarchy regressions.
-3. Treat applied migration 0028 as interim Staging history; **never edit/rewrite it after application**. Add a new forward migration for any remaining hierarchy changes.
-4. Implement the six-root target on Staging, add hierarchy/navigation regression coverage, and verify the public menu/collections plus Admin editing behavior.
-5. Update `docs/ADMIN-V2-CHECKLIST.md`, this handoff and relevant audit evidence with exact commits/runs.
-6. Do **not** deploy Production unless the owner explicitly approves it after Staging review.
+1. Fetch newest remote `main` and review the out-of-band commits before editing.
+2. Audit the cookie change for Safari-return behavior and security.
+3. Treat `9bb2d7e` as a correct **first step toward stable-node re-parenting**, but incomplete because of the two-level restriction.
+4. Extend hierarchy validation and the Admin Section-level editor to support moving a section **with existing children** under another section, while preventing cycles/self-parenting and preserving draft/publish/version/audit semantics.
+5. Keep Product records, inventory and Product placements untouched. Do not flatten Romney's/Hawkshead, duplicate their children, or move Products individually.
+6. Treat applied migration 0028 as immutable Staging history. Add a forward migration for Local Treats, the remaining promotions/renames/re-parenting and any required ordering/navigation changes.
+7. Verify the published public navigation contains exactly the six roots above, while the nested Romney's/Hawkshead collection pages still expose their children and Products correctly.
+8. Add regression coverage for the third level, moving parent nodes with children, cycle rejection, stable placement preservation, navigation, routes/breadcrumbs and sitemap output.
+9. Update `docs/ADMIN-V2-CHECKLIST.md`, this handoff and relevant audit evidence with exact commits/runs.
+10. Do **not** deploy Production unless the owner explicitly approves it after Staging review.
 
 
 Updated 30 September 2026. Repository `Mo31D/Blacksheep`, existing `main` only. Remote `main` is authoritative: this workstation's local `.git` index/ref is stale and cannot create `.git/index.lock` in the sandbox. Use a fast-forward-only GitHub connector ref update if local Git remains restricted; never push the stale local ref, create a branch or force-push.
