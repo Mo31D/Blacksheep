@@ -37,6 +37,7 @@ Reviewed against `main` at `1d08f3b` on 27 September 2026. This describes source
 ## Admin information architecture
 
 Homepage card composition uses `homepage_merchandising_cards` to store ordered references to Storefront Structure nodes in each Homepage version. Section versions own the card's name, image and route; the existing published Homepage API supplies resolved cards to the static storefront, whose legacy cards remain its network-failure fallback. No separate collection catalogue is introduced.
+The three legacy local-favourite Section versions lacked image references even though their static cards displayed images. Migration 0027 backfills their existing static asset paths only where the published Section image is null; owner-supplied images are preserved.
 
 All these are views/sheets in the existing Worker Admin, not separate applications.
 

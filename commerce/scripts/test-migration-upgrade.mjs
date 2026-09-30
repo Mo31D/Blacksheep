@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0026_")) {
+  if (!latestMigration?.startsWith("0027_")) {
     throw new Error(
-      `Expected latest migration to be 0026, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0027, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0025_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0025.");
+  if (baselineMigrations.at(-1)?.startsWith("0026_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0026.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -302,6 +302,17 @@ try {
     }
   }
 
+  const localCardImages = runWrangler([
+    "d1", "execute", "DB", "--local", "--config", configPath,
+    "--persist-to", persistDir, "--command",
+    "SELECT n.id, nv.image_url FROM storefront_nodes n JOIN storefront_node_versions nv ON nv.id=n.current_published_version_id WHERE n.id IN ('sfn_icecream','sfn_romneys','sfn_hawkshead') ORDER BY n.id",
+  ]);
+  for (const expected of ["/images/9.png", "/images/46.png", "/images/49.png"]) {
+    if (!localCardImages.includes(expected)) {
+      throw new Error("Canonical local-favourite image missing: " + expected + "\n" + localCardImages);
+    }
+  }
+
   const locationOutput = runWrangler([
     "d1",
     "execute",
@@ -362,7 +373,7 @@ try {
   }
 
   console.log(
-    "PASS: migrations 0000–0025 upgraded cleanly to 0026; Homepage destination cards and all prior platform schemas are present.",
+    "PASS: migrations 0000–0026 upgraded cleanly to 0027; canonical local-favourite images and all prior platform schemas are present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
