@@ -13,23 +13,12 @@ CREATE TABLE homepage_merchandising_cards (
 CREATE INDEX idx_homepage_merchandising_cards_order
   ON homepage_merchandising_cards(version_id, module_key, position);
 
-INSERT INTO homepage_merchandising_cards (version_id, module_key, storefront_node_id, position)
-SELECT v.id, 'COLLECTIONS', d.node_id, d.position
-FROM homepage_merchandising_versions v
-CROSS JOIN (
-  SELECT 'sfn_gifts_peter_rabbit' AS node_id, 10 AS position UNION ALL
-  SELECT 'sfn_gifts_highland_cows', 20 UNION ALL
-  SELECT 'sfn_gifts_mugs', 30 UNION ALL
-  SELECT 'sfn_gifts_soft_toys', 40 UNION ALL
-  SELECT 'sfn_gifts_cards', 50 UNION ALL
-  SELECT 'sfn_gifts_seasonal', 60
-) d;
-
-INSERT INTO homepage_merchandising_cards (version_id, module_key, storefront_node_id, position)
-SELECT v.id, 'LOCAL_FAVOURITES', d.node_id, d.position
-FROM homepage_merchandising_versions v
-CROSS JOIN (
-  SELECT 'sfn_icecream' AS node_id, 10 AS position UNION ALL
-  SELECT 'sfn_romneys', 20 UNION ALL
-  SELECT 'sfn_hawkshead', 30
-) d;
+INSERT INTO homepage_merchandising_cards SELECT id, 'COLLECTIONS', 'sfn_gifts_peter_rabbit', 10 FROM homepage_merchandising_versions;
+INSERT INTO homepage_merchandising_cards SELECT id, 'COLLECTIONS', 'sfn_gifts_highland_cows', 20 FROM homepage_merchandising_versions;
+INSERT INTO homepage_merchandising_cards SELECT id, 'COLLECTIONS', 'sfn_gifts_mugs', 30 FROM homepage_merchandising_versions;
+INSERT INTO homepage_merchandising_cards SELECT id, 'COLLECTIONS', 'sfn_gifts_soft_toys', 40 FROM homepage_merchandising_versions;
+INSERT INTO homepage_merchandising_cards SELECT id, 'COLLECTIONS', 'sfn_gifts_cards', 50 FROM homepage_merchandising_versions;
+INSERT INTO homepage_merchandising_cards SELECT id, 'COLLECTIONS', 'sfn_gifts_seasonal', 60 FROM homepage_merchandising_versions;
+INSERT INTO homepage_merchandising_cards SELECT id, 'LOCAL_FAVOURITES', 'sfn_icecream', 10 FROM homepage_merchandising_versions;
+INSERT INTO homepage_merchandising_cards SELECT id, 'LOCAL_FAVOURITES', 'sfn_romneys', 20 FROM homepage_merchandising_versions;
+INSERT INTO homepage_merchandising_cards SELECT id, 'LOCAL_FAVOURITES', 'sfn_hawkshead', 30 FROM homepage_merchandising_versions;
