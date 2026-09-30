@@ -7,7 +7,7 @@ import { claimSharedMediaObjectDeletion, createAdminSharedMediaAsset } from "../
 let db: SqliteD1;
 const actor = "owner@example.test";
 const url = "/media/asset-new";
-const operations = ["create", "draft", "published", "hero", "section"] as const;
+const operations = ["create", "draft", "published", "hero"] as const;
 type Operation = typeof operations[number];
 beforeEach(async () => {
   db = new SqliteD1();
@@ -33,14 +33,13 @@ async function prepare(operation: Operation, initialUrl: string | null = null) {
   if (initialUrl) {
     await saveAdminWebsiteAppearanceDraft(db, {
       expectedVersion: 1,
-      ...(operation === "hero" ? { hero: { imageUrl: initialUrl } } : { sectionImages: { gifts: initialUrl } }),
+      hero: { imageUrl: initialUrl },
     }, actor);
   }
   const current = await getAdminWebsiteAppearance(db);
   return (imageUrl: string | null) => saveAdminWebsiteAppearanceDraft(db, {
     expectedVersion: current.version,
-    ...(operation === "hero" ? { hero: { imageUrl, heading: "Edited heading" } }
-      : { sectionImages: imageUrl ? { gifts: imageUrl } : {} }),
+    hero: { imageUrl, heading: "Edited heading" },
   }, actor);
 }
 
@@ -95,7 +94,7 @@ describe.each(operations)("%s image reference availability", operation => {
   );
 });
 
-describe.each(["draft", "published", "hero", "section"] as const)(
+describe.each(["draft", "published", "hero"] as const)(
   "%s existing archived reference", operation => {
     it("allows text edits retaining the already referenced image", async () => {
       const mutate = await prepare(operation, url);
@@ -107,35 +106,12 @@ describe.each(["draft", "published", "hero", "section"] as const)(
 );
 
 
-describe("Appearance image map updates", () => {
-  it("keeps an archived existing slot while adding a different active image", async () => {
-    await saveAdminWebsiteAppearanceDraft(db, { expectedVersion: 1, sectionImages: { gifts: url } }, actor);
-    db.sqlite.exec("UPDATE shared_media_assets SET status='ARCHIVED' WHERE id='asset-new'");
-    await createAdminSharedMediaAsset(db, {
-      assetId: "asset-other", storageKey: "library/other.png", publicUrl: "/media/asset-other",
-      mimeType: "image/png", fileSize: 8, checksumSha256: "other",
-    }, actor);
-    await saveAdminWebsiteAppearanceDraft(db, {
-      expectedVersion: 2, sectionImages: { gifts: url, cards: "/media/asset-other" },
-    }, actor);
-    expect((await getAdminWebsiteAppearance(db)).sectionImages)
-      .toEqual({ gifts: url, cards: "/media/asset-other" });
-  });
-
-  it("rejects the whole appearance edit if any newly selected slot becomes unavailable", async () => {
-    await createAdminSharedMediaAsset(db, {
-      assetId: "asset-other", storageKey: "library/other.png", publicUrl: "/media/asset-other",
-      mimeType: "image/png", fileSize: 8, checksumSha256: "other",
-    }, actor);
-    const before = snapshot();
-    db.beforeBatch = () => {
-      db.sqlite.exec("UPDATE shared_media_assets SET status='ARCHIVED' WHERE id='asset-other'");
-    };
-    await expect(saveAdminWebsiteAppearanceDraft(db, {
-      expectedVersion: 1, hero: { heading: "Must not save" },
-      sectionImages: { gifts: url, cards: "/media/asset-other" },
-    }, actor)).rejects.toThrow("appearance_version_conflict");
-    expect(snapshot()).toEqual(before);
-  });
+it("rejects attempts to edit Section images through Appearance", async () => {
+  const before = snapshot();
+  await expect(saveAdminWebsiteAppearanceDraft(db, {
+    expectedVersion: 1,
+    sectionImages: { gifts: url },
+  }, actor)).rejects.toThrow("appearance_section_images_owned_by_storefront");
+  expect(snapshot()).toEqual(before);
 });
 

@@ -385,6 +385,7 @@ function appearanceMutationError(cause: unknown): Response {
     appearance_hero_href_invalid:
       "Hero button must link to this website or an approved internal path.",
     appearance_section_images_invalid: "Section image settings are invalid.",
+    appearance_section_images_owned_by_storefront: "Edit section images in Website → Sections & collections.",
     appearance_no_draft: "There are no Appearance draft changes to publish.",
     appearance_restore_target_required: "Choose a previous Appearance version to restore.",
     appearance_restore_target_not_found:

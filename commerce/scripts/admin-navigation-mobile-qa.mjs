@@ -33,9 +33,14 @@ const homepage = {
   },
 };
 let draftWrites = 0;
+let pendingUploadResponse = null;
 const server = http.createServer((request, response) => {
   const pathname = new URL(request.url, 'http://localhost').pathname;
   if (request.method !== 'GET' && pathname.includes('/draft')) draftWrites++;
+  if (pathname === '/admin/api/media' && request.method === 'POST') {
+    pendingUploadResponse = response;
+    return;
+  }
   if (pathname === '/admin') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(html);
   } else {
@@ -84,6 +89,15 @@ try {
         assert.equal(await page.locator('#storefrontStructureTree').innerText().then(text => text.includes('Local Treats') && text.includes("Romney's") && text.includes('Mint Cake')), true, `${engine}: third-level structure is visible`);
         await page.locator('[data-structure-edit="sfn_romneys"]').click();
         assert.equal(await page.locator('#structureParent').inputValue(), 'sfn_local_treats', `${engine}: parent with children remains editable`);
+        const uploadRequest = page.waitForRequest(request => request.url().endsWith('/admin/api/media') && request.method() === 'POST');
+        await page.locator('#structureImageUpload').setInputFiles({ name: 'section.png', mimeType: 'image/png', buffer: Buffer.from('fixture') });
+        await uploadRequest;
+        assert.equal(await page.locator('#saveStructureNode').isDisabled(), true, `${engine}: Save waits for image upload`);
+        assert.ok(pendingUploadResponse, `${engine}: media upload reached shared endpoint`);
+        pendingUploadResponse.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ asset: { id: 'asset-fixture', publicUrl: '/media/asset-fixture' } }));
+        pendingUploadResponse = null;
+        await page.waitForFunction(() => document.getElementById('saveStructureNode')?.disabled === false);
+        assert.equal(await page.locator('#structureImageUrl').inputValue(), '/media/asset-fixture', `${engine}: upload fills canonical Section draft`);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${engine}: structure editor fits ${width}px`);
         await page.locator('[data-close-product-sheet]').first().click();
         await page.locator('#backToWebsite').click();

@@ -112,10 +112,10 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain('id="appearanceHeroUpload"');
     expect(production).toContain('id="appearanceHeroClear"');
     expect(production).toContain('id="structureImageUploadButton"');
-    expect(production).toContain('data-appearance-section-upload-button');
     expect(production).toContain("function uploadSharedImageFile");
     expect(production).toContain("function uploadAppearanceHeroImage");
-    expect(production).toContain("function uploadAppearanceSectionImage");
+    expect(production).not.toContain("function uploadAppearanceSectionImage");
+    expect(production).not.toContain('id="appearanceSectionImages"');
     expect(production).toContain("function uploadStructureImage");
     expect(production).not.toContain('placeholder="/images/1.png"');
     expect(production).not.toContain('placeholder="Image address"');
@@ -131,7 +131,7 @@ describe("generated Admin HTML scripts", () => {
     );
     expect(production).toContain("function archiveSharedMediaAsset");
     expect(production).toContain("Homepage hero");
-    expect(production).toContain("Section images");
+    expect(production).not.toContain("<h2>Section images</h2>");
     expect(production).toContain('id="appearancePresetGrid"');
     expect(production).toContain('id="appearanceResetPreset"');
     expect(production).toContain("Reset colours to preset");

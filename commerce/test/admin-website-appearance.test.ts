@@ -111,7 +111,6 @@ describe("CARD 08 Website Appearance Admin API", () => {
         presetKey: "DEFAULT",
         tokens: { accent: "#b7904c" },
         hero: { heading: "Seasonal heading" },
-        sectionImages: { gifts: "/images/gifts.webp" },
       }),
       { DB: new Db() },
       {

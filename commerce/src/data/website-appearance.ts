@@ -279,31 +279,6 @@ function safeHref(value: unknown, fallback: string | null): string | null {
   return result;
 }
 
-function sectionImages(
-  value: unknown,
-  fallback: Record<string, string>,
-): Record<string, string> {
-  if (value === undefined) return fallback;
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("appearance_section_images_invalid");
-  }
-  const result: Record<string, string> = {};
-  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
-    if (!/^[a-z0-9_-]{2,80}$/i.test(key)) {
-      throw new Error("appearance_section_images_invalid");
-    }
-    const url = String(raw ?? "").trim();
-    if (!url || url.length > 700) {
-      throw new Error("appearance_section_images_invalid");
-    }
-    result[key] = url;
-  }
-  if (Object.keys(result).length > 50) {
-    throw new Error("appearance_section_images_invalid");
-  }
-  return result;
-}
-
 function parseImages(value: unknown): Record<string, string> {
   if (!value) return {};
   try {
@@ -551,8 +526,15 @@ export async function saveAdminWebsiteAppearanceDraft(
       ),
       buttonHref: safeHref(heroRaw.buttonHref, current.hero.buttonHref),
     },
-    sectionImages: sectionImages(raw.sectionImages, current.sectionImages),
+    sectionImages: {},
   };
+
+  if (raw.sectionImages !== undefined &&
+      (!raw.sectionImages || typeof raw.sectionImages !== "object" ||
+        Array.isArray(raw.sectionImages) ||
+        Object.keys(raw.sectionImages).length > 0)) {
+    throw new Error("appearance_section_images_owned_by_storefront");
+  }
 
   validateAppearanceContrast(next.tokens);
 
@@ -560,9 +542,6 @@ export async function saveAdminWebsiteAppearanceDraft(
   // protected by existing version history and must not block ordinary text edits.
   const newImageUrls = [
     ...(next.hero.imageUrl === current.hero.imageUrl ? [] : [next.hero.imageUrl]),
-    ...Object.entries(next.sectionImages)
-      .filter(([key, value]) => value !== current.sectionImages[key])
-      .map(([, value]) => value),
   ];
 
   const createdAt = now();
@@ -799,7 +778,7 @@ export async function restoreAdminWebsiteAppearance(
           ") SELECT ?, appearance_id, ?, preset_key, decorations_enabled, background_color, surface_color, " +
           "text_color, muted_text_color, accent_color, button_color, border_color, header_color, " +
           "hero_image_url, hero_heading, hero_text, hero_button_label, hero_button_href, " +
-          "section_images_json, scheduled_start_at, scheduled_end_at, ?, ?, ?, NULL " +
+          "'{}', scheduled_start_at, scheduled_end_at, ?, ?, ?, NULL " +
           "FROM website_appearance_versions WHERE id = ? AND appearance_id = ? " +
           "AND EXISTS (SELECT 1 FROM website_appearance WHERE id = ? AND version = ? AND updated_at = ?)",
       )
