@@ -187,7 +187,8 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("if(placement.name)return placement.name");
     expect(production).not.toContain("h.textContent==='Storefront placement'");
     expect(production).toContain("Primary section");
-    expect(production).toContain("Primary sub-section");
+    expect(production).toContain("Sub-section · optional");
+    expect(production).toContain("Child section · optional");
     expect(production).toContain("Also show in");
     expect(production).toContain("Product labels &amp; classification");
     expect(production).toContain("Preview draft");

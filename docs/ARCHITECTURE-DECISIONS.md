@@ -184,3 +184,11 @@ Rejected alternative: leaving Homepage, Appearance and Media as parallel top-lev
 
 **Rejected alternative** — Store card titles, raw links and image URLs in a new Homepage-specific catalogue or edit static HTML. Both would reintroduce competing sources of truth and make later Section edits inconsistent.
 
+## Storefront hierarchy preserves stable node identity (30 September 2026)
+
+**Decision** — Storefront Structure supports three levels, with guarded re-parenting of existing nodes even when they own children. Parent changes never rewrite Product placements. The six-root owner target is published by forward migration `0029`, which clones published node versions and preserves slugs, legacy paths, drafts and audit history.
+
+**Why** — Romney's and Hawkshead Relish need to sit beneath Local Treats while their existing child sections and Products stay attached. Cycle/depth guards, recursive collection traversal and the Admin Product picker must agree on the same tree.
+
+**Rejected alternative** — Flatten the children, reassign Products manually, rewrite staging-applied migration `0028`, or duplicate Romney's/Hawkshead as new nodes. Each risks Product ownership, migration history or URL continuity.
+

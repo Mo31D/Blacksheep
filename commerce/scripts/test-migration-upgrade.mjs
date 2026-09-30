@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0028_")) {
+  if (!latestMigration?.startsWith("0029_")) {
     throw new Error(
-      `Expected latest migration to be 0028, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0029, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0027_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0027.");
+  if (baselineMigrations.at(-1)?.startsWith("0028_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0028.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
@@ -92,6 +92,19 @@ try {
     configPath,
     "--persist-to",
     persistDir,
+  ]);
+
+  const placementsBefore = runWrangler([
+    "d1", "execute", "DB", "--local", "--config", configPath,
+    "--persist-to", persistDir, "--command",
+    "SELECT COUNT(*) AS placement_count FROM product_version_storefront_placements",
+  ]).match(/"placement_count":\s*(\d+)/)?.[1];
+  // Simulate an owner draft: the migration must retain its image/content while
+  // aligning hierarchy fields, so publishing it later cannot undo Local Treats.
+  runWrangler([
+    "d1", "execute", "DB", "--local", "--config", configPath,
+    "--persist-to", persistDir, "--command",
+    "INSERT INTO storefront_node_versions (id,node_id,version_number,name,slug,parent_node_id,sort_order,show_in_navigation,short_description,image_url,legacy_path,created_by,created_at,published_at,superseded_at) SELECT 'sfv_upgrade_romneys_draft',v.node_id,(SELECT MAX(version_number)+1 FROM storefront_node_versions WHERE node_id=v.node_id),v.name,v.slug,v.parent_node_id,v.sort_order,v.show_in_navigation,'Owner draft preserved','/images/owner-draft.png',v.legacy_path,'upgrade-fixture','2026-09-30T11:00:00.000Z',NULL,NULL FROM storefront_nodes n JOIN storefront_node_versions v ON v.id=n.current_published_version_id WHERE n.id='sfn_romneys'; UPDATE storefront_nodes SET current_draft_version_id='sfv_upgrade_romneys_draft' WHERE id='sfn_romneys'",
   ]);
 
   copyMigration(latestMigration);
@@ -238,10 +251,38 @@ try {
     "--command",
     "SELECT COUNT(*) AS node_count FROM storefront_nodes; SELECT COUNT(*) AS root_count FROM storefront_node_versions WHERE parent_node_id IS NULL AND published_at IS NOT NULL AND superseded_at IS NULL; SELECT COUNT(*) AS nav_roots FROM storefront_node_versions WHERE parent_node_id IS NULL AND show_in_navigation=1 AND published_at IS NOT NULL AND superseded_at IS NULL; SELECT COUNT(*) AS peter_rabbit_root FROM storefront_node_versions WHERE node_id='sfn_gifts_peter_rabbit' AND parent_node_id IS NULL AND published_at IS NOT NULL AND superseded_at IS NULL;",
   ]);
-  for (const expected of ['"node_count": 23', '"root_count": 5', '"nav_roots": 4', '"peter_rabbit_root": 1']) {
+  for (const expected of ['"node_count": 24', '"root_count": 6', '"nav_roots": 6', '"peter_rabbit_root": 1']) {
     if (!storefrontSeed.includes(expected)) {
       throw new Error("Storefront Structure seed invariant missing: " + expected + "\\n" + storefrontSeed);
     }
+  }
+  const localHierarchy = runWrangler([
+    "d1", "execute", "DB", "--local", "--config", configPath,
+    "--persist-to", persistDir, "--command",
+    "SELECT n.id, v.name, v.parent_node_id FROM storefront_nodes n JOIN storefront_node_versions v ON v.id=n.current_published_version_id WHERE n.id IN ('sfn_local_treats','sfn_romneys','sfn_hawkshead','sfn_romneys_mint_cake','sfn_hawkshead_honey') ORDER BY n.id",
+  ]);
+  for (const expected of ['Local Treats', 'sfn_local_treats', 'sfn_romneys_mint_cake', 'sfn_hawkshead_honey']) {
+    if (!localHierarchy.includes(expected)) {
+      throw new Error("Three-level Local Treats hierarchy missing: " + expected + "\n" + localHierarchy);
+    }
+  }
+  const draftAfter = runWrangler([
+    "d1", "execute", "DB", "--local", "--config", configPath,
+    "--persist-to", persistDir, "--command",
+    "SELECT v.name,v.parent_node_id,v.short_description,v.image_url FROM storefront_nodes n JOIN storefront_node_versions v ON v.id=n.current_draft_version_id WHERE n.id='sfn_romneys'",
+  ]);
+  for (const expected of ["sfn_local_treats", "Owner draft preserved", "/images/owner-draft.png"]) {
+    if (!draftAfter.includes(expected)) {
+      throw new Error("Owner draft was not preserved/aligned: " + expected + "\n" + draftAfter);
+    }
+  }
+  const placementsAfter = runWrangler([
+    "d1", "execute", "DB", "--local", "--config", configPath,
+    "--persist-to", persistDir, "--command",
+    "SELECT COUNT(*) AS placement_count FROM product_version_storefront_placements",
+  ]).match(/"placement_count":\s*(\d+)/)?.[1];
+  if (!placementsBefore || placementsBefore !== placementsAfter) {
+    throw new Error("Storefront hierarchy migration changed Product placements.");
   }
 
   const homepageSeed = runWrangler([
@@ -373,7 +414,7 @@ try {
   }
 
   console.log(
-    "PASS: migrations 0000–0026 upgraded cleanly to 0027; canonical local-favourite images and all prior platform schemas are present.",
+    "PASS: migrations 0000–0028 upgraded cleanly to 0029; six published roots, nested Local Treats and all prior platform schemas are present.",
   );
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });

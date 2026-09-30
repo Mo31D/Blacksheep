@@ -34,6 +34,22 @@ function cleanPath(slug: string): string {
   return "/collections/" + encodeURIComponent(slug);
 }
 
+export function collectionSubtreeIds(
+  nodeId: string,
+  nodes: StorefrontNodeSnapshot[],
+): Set<string> {
+  const ids = new Set([nodeId]);
+  let frontier = [nodeId];
+  while (frontier.length) {
+    const next = nodes.filter(
+      (node) => node.parentNodeId && frontier.includes(node.parentNodeId),
+    );
+    frontier = next.filter((node) => !ids.has(node.id)).map((node) => node.id);
+    frontier.forEach((id) => ids.add(id));
+  }
+  return ids;
+}
+
 function productUrl(
   product: PublicCommerceProduct,
   cleanProductRoutes: boolean,
@@ -104,11 +120,13 @@ function productCard(
 export function renderCleanCollectionHtml(input: {
   node: StorefrontNodeSnapshot;
   parent: StorefrontNodeSnapshot | null;
+  ancestors?: StorefrontNodeSnapshot[];
   children: StorefrontNodeSnapshot[];
   products: PublicCommerceProduct[];
   cleanProductRoutes?: boolean;
 }): string {
   const { node, parent, children, products } = input;
+  const ancestors = input.ancestors ?? (parent ? [parent] : []);
   const cleanProductRoutes = input.cleanProductRoutes === true;
   const path = cleanPath(node.slug);
   const canonical = STOREFRONT_ORIGIN + path;
@@ -166,6 +184,10 @@ export function renderCleanCollectionHtml(input: {
     )
     .join("");
   const heroImage = imageUrl(node.imageUrl);
+  const breadcrumbs = ancestors.map((ancestor) =>
+    '<a href="' + esc(ancestor.legacyPath || cleanPath(ancestor.slug)) + '">' +
+    esc(ancestor.name) + '</a>',
+  ).join(' › ');
 
   return `<!doctype html>
 <html lang="en">
@@ -192,7 +214,7 @@ export function renderCleanCollectionHtml(input: {
 <div class="topbar"><div class="wrap"><span>Independent gift &amp; souvenir shop in Ambleside, Lake District</span><span class="right"><a href="/visit.html">Find us in Ambleside</a></span></div></div>
 <header class="header"><div class="wrap nav"><a aria-label="The Black Sheep Shop home" class="brand" href="/"><img alt="" class="brand-mark" src="/assets/sheep-icon.png"><span class="brand-type"><strong>The Black Sheep</strong><small>Shop · Ambleside</small></span></a><nav class="menu"><a href="/">Home</a><a href="/gifts.html">Gifts &amp; Souvenirs</a><a href="/icecream.html">Ice Cream</a><a href="/romneys.html">Romney's</a><a href="/hawkshead-relish.html">Hawkshead Relish</a><a href="/all-products.html">Full range</a><a href="/about.html">About</a><a href="/visit.html">Visit</a></nav><a class="nav-cta" href="/gifts.html">Browse gifts</a><button aria-label="Open menu" class="hamb" onclick="toggleMenu()">☰</button></div><nav class="mobile-menu" id="mobileMenu"><a href="/">Home</a><a href="/gifts.html">Gifts &amp; Souvenirs</a><a href="/icecream.html">Ice Cream</a><a href="/romneys.html">Romney's</a><a href="/hawkshead-relish.html">Hawkshead Relish</a><a href="/all-products.html">Full range</a><a href="/about.html">About</a><a href="/visit.html">Visit</a></nav></header>
 <main class="catalog-page">
-<section class="page-hero"><div class="wrap inner"><div><div class="eyebrow">${esc(parent?.name || "Shop collection")}</div><h1>${esc(node.name)}</h1><p class="lead">${esc(description)}</p>${childLinks ? '<div class="chips">' + childLinks + "</div>" : ""}</div>${heroImage ? '<div class="media"><img src="' + esc(heroImage) + '" alt="' + esc(node.name) + '"></div>' : ""}</div></section>
+<section class="page-hero"><div class="wrap inner"><div><div class="eyebrow">${breadcrumbs || "Shop collection"}</div><h1>${esc(node.name)}</h1><p class="lead">${esc(description)}</p>${childLinks ? '<div class="chips">' + childLinks + "</div>" : ""}</div>${heroImage ? '<div class="media"><img src="' + esc(heroImage) + '" alt="' + esc(node.name) + '"></div>' : ""}</div></section>
 <section style="padding-top:20px"><div class="wrap"><div class="catalog-intro"><div class="catalog-title-row"><h2>Products</h2><span class="catalog-count">${products.length} ${products.length === 1 ? "product" : "products"}</span></div></div><div class="catalog shopping-catalog gift-grid">${products.map((product) => productCard(product, cleanProductRoutes)).join("")}</div></div></section>
 </main>
 <div aria-hidden="true" class="brand-strip brand-strip-featured"></div>
@@ -277,7 +299,15 @@ export async function handleCleanCollectionRequest(
   const children = nodes
     .filter((row) => row.parentNodeId === node.id)
     .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
-  const targetIds = new Set([node.id, ...(node.parentNodeId ? [] : children.map((row) => row.id))]);
+  const targetIds = collectionSubtreeIds(node.id, nodes);
+  const ancestors: StorefrontNodeSnapshot[] = [];
+  let cursor = parent;
+  while (cursor && !ancestors.some((row) => row.id === cursor?.id)) {
+    ancestors.unshift(cursor);
+    cursor = cursor.parentNodeId
+      ? nodes.find((row) => row.id === cursor?.parentNodeId) ?? null
+      : null;
+  }
   const products = (await allPublicProducts(env.DB))
     .filter((product) =>
       product.storefrontNodeIds.some((id) => targetIds.has(id)),
@@ -288,6 +318,7 @@ export async function handleCleanCollectionRequest(
     renderCleanCollectionHtml({
       node,
       parent,
+      ancestors,
       children,
       products,
       cleanProductRoutes:

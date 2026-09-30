@@ -607,27 +607,58 @@ async function uniqueAdminStorefrontSlug(
   throw new Error("storefront_slug_unavailable");
 }
 
+export function assertStorefrontHierarchyMove(
+  nodes: Map<string, { parentNodeId: string | null; archived: boolean }>,
+  parentNodeId: string | null,
+  nodeId: string | null = null,
+): void {
+  if (!parentNodeId) return;
+  const parent = nodes.get(parentNodeId);
+  if (!parent) throw new Error("storefront_parent_not_found");
+  if (parent.archived) throw new Error("storefront_parent_archived");
+  const ancestors = new Set<string>();
+  let cursor: string | null = parentNodeId;
+  while (cursor) {
+    if (cursor === nodeId || ancestors.has(cursor)) throw new Error("storefront_parent_invalid");
+    ancestors.add(cursor);
+    cursor = nodes.get(cursor)?.parentNodeId ?? null;
+  }
+  const descendantDepth = (id: string, seen = new Set<string>()): number => {
+    if (seen.has(id)) throw new Error("storefront_parent_invalid");
+    seen.add(id);
+    let deepest = 1;
+    for (const [childId, child] of nodes) {
+      if (!child.archived && child.parentNodeId === id) {
+        deepest = Math.max(deepest, 1 + descendantDepth(childId, new Set(seen)));
+      }
+    }
+    return deepest;
+  };
+  if (ancestors.size + (nodeId ? descendantDepth(nodeId) : 1) > 3) {
+    throw new Error("storefront_depth_invalid");
+  }
+}
+
 async function assertAdminStorefrontParent(
   db: D1DatabaseLike,
   parentNodeId: string | null,
   nodeId: string | null = null,
 ): Promise<void> {
   if (!parentNodeId) return;
-  if (nodeId && parentNodeId === nodeId) throw new Error("storefront_parent_invalid");
-  const parent = await db
-    .prepare(
+  const rows = await allRows<Record<string, unknown>>(
+    db.prepare(
       "SELECT n.id, n.publication_status AS publicationStatus, v.parent_node_id AS parentNodeId " +
         "FROM storefront_nodes n " +
-        "JOIN storefront_node_versions v ON v.id = COALESCE(n.current_draft_version_id, n.current_published_version_id) " +
-        "WHERE n.id = ? LIMIT 1",
-    )
-    .bind(parentNodeId)
-    .first<Record<string, unknown>>();
-  if (!parent) throw new Error("storefront_parent_not_found");
-  if (String(parent.publicationStatus) === "ARCHIVED") {
-    throw new Error("storefront_parent_archived");
-  }
-  if (parent.parentNodeId != null) throw new Error("storefront_depth_invalid");
+        "JOIN storefront_node_versions v ON v.id = COALESCE(n.current_draft_version_id, n.current_published_version_id)",
+    ),
+  );
+  const nodes = new Map(rows.map((row) => [String(row.id), {
+    parentNodeId: row.parentNodeId == null ? null : String(row.parentNodeId),
+    archived: String(row.publicationStatus) === "ARCHIVED",
+  }]));
+  // Three levels are enough for the managed storefront and keep its menu legible.
+  // Include the moving node's existing descendants when checking the new depth.
+  assertStorefrontHierarchyMove(nodes, parentNodeId, nodeId);
 }
 
 async function nextAdminStorefrontSortOrder(

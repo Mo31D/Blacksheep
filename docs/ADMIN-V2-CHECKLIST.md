@@ -1,6 +1,10 @@
 # Black Sheep Admin V2 — Live Execution Checklist
 
-## 30 September 2026 — OWNER STRUCTURE OVERRIDE / CODEX REVIEW REQUIRED
+## 30 September 2026 — six-section hierarchy implementation
+
+Implementation candidate on newest remote main `b32f5d4` is being validated. The out-of-band cookie and Section-level changes were reviewed rather than reverted. `SameSite=Lax` retains `Secure` and `HttpOnly`; the policy regression test is present. A physical Safari return check remains part of staging/mobile acceptance.
+
+The new forward migration is `0029_local_treats_three_level_structure.sql`; migration `0028` remains untouched. It clones published node versions, preserves original versions and legacy URLs, retains Product placements, and aligns hierarchy fields on any existing owner draft without replacing its other content. Local SQLite with foreign keys on verified the six roots, third-level children, owner draft preservation and unchanged placement count. TypeScript, generated Admin syntax, storefront contract and all 81 Vitest files / 581 tests passed locally. Linux Commerce CI, guarded Staging deployment and live browser acceptance are still required before closing this hierarchy task.
 
 > This is the current owner instruction. It also clarifies the purpose and limitation of the out-of-band Section-level edit already deployed to Staging.
 
@@ -75,30 +79,21 @@ Local Treats
 
 ### Required structural work
 
-- [ ] Create/use one root section named **Local Treats**.
-- [ ] Re-parent the existing **Romney's** root beneath Local Treats **while preserving all of Romney's existing child sections**.
-- [ ] Re-parent the existing **Hawkshead Relish** root beneath Local Treats **while preserving all of Hawkshead's existing child sections**.
-- [ ] Extend Storefront hierarchy validation/rendering/navigation so this three-level structure is valid and browsable; do not flatten or discard the existing children merely to satisfy the old two-level guard.
-- [ ] Extend the Admin **Section level** control so a section with children can be moved safely beneath another valid section. The selector should show valid parent destinations and must prevent cycles/self-parenting.
-- [ ] Rename the current Gifts & Souvenirs root to **Lake District Souvenirs** and keep the relevant souvenir child sections attached through stable node IDs.
-- [ ] Keep/promote the existing Peter Rabbit node as a root and rename it **Peter Rabbit Gifts**.
-- [ ] Promote the existing Highland Cows node to a root and rename it **Highland Cows Ornaments**.
-- [ ] Keep Ice Cream as a root, displayed as **Ice cream**.
-- [ ] Promote the existing Christmas/seasonal node to a root and display it as **Christmas**.
-- [ ] Final published main navigation must contain **only these six root entries**. Romney's and Hawkshead Relish must not remain top-level menu entries.
-- [ ] Preserve Product records, inventory, Product placements, existing legacy URLs/canonicals and publication/audit history. **Do not recreate or move Products one by one.**
-- [ ] Do not create duplicate Storefront destinations. Re-parent/rename canonical nodes.
-- [ ] Confirm collection routes, breadcrumbs, section-page child navigation and sitemap behavior remain correct for the new third level.
+- [x] Create Local Treats and re-parent the existing Romney's and Hawkshead nodes with their children via forward migration `0029`; local FK/placement/draft checks passed. Staging gate below remains open.
+- [x] Extend data-layer hierarchy validation to three levels, including moving a parent with children and rejecting cycles, self-parenting, archived parents and a fourth level; `commerce/src/data/storefront-structure.ts`, focused tests passed.
+- [x] Extend Admin Section level/tree and Product placement picker to display all three levels without changing Product records; `commerce/src/admin/ui.ts`, generated Admin and full Vitest passed.
+- [x] Rename/promote the existing canonical nodes to Lake District Souvenirs, Peter Rabbit Gifts, Highland Cows Ornaments, Ice cream and Christmas through `0029`; original slugs and legacy paths retained.
+- [x] Update storefront collection traversal, child links and parent trail for three levels; `commerce/src/routes/storefront-clean.ts`, `assets/site.js`, focused contract tests passed.
+- [ ] Confirm on deployed Staging that public navigation has exactly six roots; Romney's/Hawkshead are nested, their children and Products are browsable, and sitemap/canonicals/legacy URLs resolve. No Production promotion.
 
 ### Codex review gate before implementation
 
-- [ ] Review commits `9054469` through `43703f1` for correctness, regressions and consistency with current Admin/Storefront architecture.
-- [ ] Specifically verify the `SameSite=Lax` session fix on iPhone/Safari and confirm no auth/security regression.
-- [ ] Review `9bb2d7e` as an **incomplete first implementation of generic re-parenting**, not as the final hierarchy model.
-- [ ] Identify and replace the current two-level restrictions in both Admin UI and data-layer validation with the minimum safe hierarchy support needed for the three-level target above.
-- [ ] Preserve cycle protection, archived-parent protection, optimistic concurrency, draft/publish behavior, sibling ordering and audit events.
-- [ ] Treat migration 0028 as staging-applied interim history. **Do not edit/rewrite an applied migration.** Add a forward migration for the remaining hierarchy changes.
-- [ ] Add/update automated tests for: three-level hierarchy, moving a node that has children, cycle rejection, published navigation showing exactly six roots, child collection browsing and stable Product placement preservation.
+- [x] Review commits `9054469` through `43703f1` and preserve their working behavior. Cookie policy uses `Lax; Secure; HttpOnly`; test `commerce/test/admin-session-cookie.test.ts` covers it.
+- [ ] Verify the Safari return-navigation behavior on an owner iPhone; code and cookie-policy regression reviewed, physical acceptance still open.
+- [x] Review `9bb2d7e` as a useful but incomplete stable-node first step, then extend it to three levels.
+- [x] Replace the two-level Admin/data restriction; retain cycle, archive, version, draft/publish and sibling-order guards. `0029` adds publication/audit versions.
+- [x] Leave staging-applied `0028` immutable; add forward migration `0029`.
+- [x] Add/update tests for the three-level move and cycle/depth rejection, six published roots, child traversal/breadcrumbs and preserved draft/placements; local SQLite and 81/581 Vitest passed.
 - [ ] Deploy and verify on Staging first. Do not promote to Production without explicit owner approval.
 
 

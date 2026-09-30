@@ -4,12 +4,37 @@ import type {
   D1PreparedStatementLike,
 } from "../src/data/d1";
 import {
+  assertStorefrontHierarchyMove,
   categorySlugsForIds,
   compatibilityPlacementStatements,
   compatibilityStorefrontPlacements,
   ownerPlacementStatements,
   resolveOwnerStorefrontPlacements,
 } from "../src/data/storefront-structure";
+
+describe("Storefront hierarchy changes", () => {
+  const nodes = new Map([
+    ["local", { parentNodeId: null, archived: false }],
+    ["romneys", { parentNodeId: null, archived: false }],
+    ["mint-cake", { parentNodeId: "romneys", archived: false }],
+    ["hawkshead", { parentNodeId: null, archived: false }],
+    ["archived", { parentNodeId: null, archived: true }],
+  ]);
+
+  it("moves a parent with children into a third level without changing node IDs", () => {
+    expect(() => assertStorefrontHierarchyMove(nodes, "local", "romneys")).not.toThrow();
+    expect(nodes.get("mint-cake")?.parentNodeId).toBe("romneys");
+  });
+
+  it("rejects self-parenting, cycles, archived parents and a fourth level", () => {
+    expect(() => assertStorefrontHierarchyMove(nodes, "romneys", "romneys")).toThrow("storefront_parent_invalid");
+    expect(() => assertStorefrontHierarchyMove(nodes, "mint-cake", "romneys")).toThrow("storefront_parent_invalid");
+    expect(() => assertStorefrontHierarchyMove(nodes, "archived", "romneys")).toThrow("storefront_parent_archived");
+    const nested = new Map(nodes);
+    nested.set("romneys", { parentNodeId: "local", archived: false });
+    expect(() => assertStorefrontHierarchyMove(nested, "mint-cake", "hawkshead")).toThrow("storefront_depth_invalid");
+  });
+});
 
 class Statement implements D1PreparedStatementLike {
   values: unknown[] = [];

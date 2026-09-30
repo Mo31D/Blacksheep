@@ -2,6 +2,8 @@
 
 ## Owner storefront-structure clarification — 30 September 2026
 
+Implementation candidate following remote `b32f5d4`: retain the useful stable-node Section-level edit from `9bb2d7e`, extend it to a guarded three-level tree, and add forward migration `0029` after applied `0028`. Admin tree and Product placement editor can now display third-level sections. Published collection traversal includes descendants, Romney's/Hawkshead child links remain reachable, and Local Treats is a new canonical root. Migration clones published versions and aligns hierarchy fields on any draft while preserving other draft content, stable node IDs, Product placements, inventory, slugs and legacy paths. Local SQLite FK/draft/placement checks, TypeScript and 81 files / 581 tests passed. **Status: awaiting Commerce CI, guarded Staging deployment and live public/Admin acceptance; Production unchanged.**
+
 The final owner-facing navigation target is **six main sections only**: **Local Treats**, **Lake District Souvenirs**, **Peter Rabbit Gifts**, **Highland Cows Ornaments**, **Ice cream**, and **Christmas**.
 
 The important productization requirement is broader than the first Section-level UI patch:
