@@ -55,6 +55,8 @@ try {
         assert.equal(await page.locator('#view-website').isVisible(), true, `${engine}: Sections returns`);
         for (const [hash, tab] of [['appearance', 'appearance'], ['media', 'media']]) {
           await page.goto(base + '/admin#' + hash);
+          // A same-document hash navigation does not execute the Admin bootstrap again.
+          await page.reload();
           assert.equal(await page.locator('#view-website').isVisible(), true, `${engine}: ${hash} deep link`);
           assert.equal(await page.locator(`[data-website-tab="${tab}"].active`).count(), 1, `${engine}: ${tab} selected`);
         }
