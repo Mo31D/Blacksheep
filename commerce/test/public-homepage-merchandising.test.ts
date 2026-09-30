@@ -138,6 +138,7 @@ describe("CARD 07 published Homepage product rail", () => {
     });
     const cardQuery = db.prepared.find((statement) => statement.sql.includes("FROM homepage_merchandising_cards c"));
     expect(cardQuery?.sql).toContain("n.current_published_version_id");
+    expect(cardQuery?.sql).toContain("n.publication_status = 'ACTIVE'");
     expect(
       db.prepared.some((statement) =>
         statement.sql.includes("ORDER BY pv.published_at DESC"),

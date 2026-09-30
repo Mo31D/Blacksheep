@@ -311,7 +311,9 @@ async function selectedCards(
         "FROM homepage_merchandising_cards c " +
         "JOIN storefront_nodes n ON n.id = c.storefront_node_id " +
         "JOIN storefront_node_versions nv ON nv.id = " + version + " " +
-        "WHERE c.version_id = ? ORDER BY c.module_key, c.position",
+        "WHERE c.version_id = ? " +
+        (publishedOnly ? "AND n.publication_status = 'ACTIVE' " : "") +
+        "ORDER BY c.module_key, c.position",
     ).bind(versionId),
   );
   const cards: HomepageDestinationCards = { COLLECTIONS: [], LOCAL_FAVOURITES: [] };
