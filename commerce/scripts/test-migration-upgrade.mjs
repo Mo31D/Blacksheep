@@ -71,13 +71,13 @@ try {
   const latestMigration = allMigrations.at(-1);
   const baselineMigrations = allMigrations.slice(0, -1);
 
-  if (!latestMigration?.startsWith("0027_")) {
+  if (!latestMigration?.startsWith("0028_")) {
     throw new Error(
-      `Expected latest migration to be 0027, found ${latestMigration ?? "none"}.`,
+      `Expected latest migration to be 0028, found ${latestMigration ?? "none"}.`,
     );
   }
-  if (baselineMigrations.at(-1)?.startsWith("0026_") !== true) {
-    throw new Error("Upgrade baseline must contain ordered migrations through 0026.");
+  if (baselineMigrations.at(-1)?.startsWith("0027_") !== true) {
+    throw new Error("Upgrade baseline must contain ordered migrations through 0027.");
   }
 
   for (const fileName of baselineMigrations) copyMigration(fileName);
