@@ -75,7 +75,7 @@ try{
       assert.equal(await page.locator('#catalog .product-card').count(),0,'Legacy Gifts must not publish stale Product membership when the API is unavailable');
       assert.equal(await page.locator('.gift-shortcuts [data-filter]').count(),0,'Legacy Gifts must not publish stale child filters');
       assert.equal(await page.locator('#catalog a[href="/all-products.html"]').count(),1,'Gifts retains a general fallback destination');
-      mode='hierarchy-unavailable';
+      mode='no-structure';
       await open('/gifts.html');
       assert.equal(await page.locator('#catalog .product-card').count(),0,'A catalogue response without published Structure cannot infer Gifts membership from legacy taxonomy');
       assert.equal(await page.locator('#catalog a[href="/all-products.html"]').count(),1);
