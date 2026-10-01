@@ -5,6 +5,7 @@ import { uploadSharedMediaImage } from "../data/media-upload";
 import { json, error, readProductJson } from "../http/admin-json";
 import {
   listAdminSharedMedia,
+  getAdminSharedMediaUsage,
   updateAdminSharedMediaAsset,
   archiveAdminSharedMediaAsset,
   restoreAdminSharedMediaAsset,
@@ -16,6 +17,7 @@ import {
 
 export interface SharedMediaDependencies {
   listAdminSharedMediaFn: typeof listAdminSharedMedia;
+  getAdminSharedMediaUsageFn: typeof getAdminSharedMediaUsage;
   updateAdminSharedMediaAssetFn: typeof updateAdminSharedMediaAsset;
   archiveAdminSharedMediaAssetFn: typeof archiveAdminSharedMediaAsset;
   restoreAdminSharedMediaAssetFn: typeof restoreAdminSharedMediaAsset;
@@ -27,6 +29,7 @@ export interface SharedMediaDependencies {
 
 export const sharedMediaDefaults: SharedMediaDependencies = {
   listAdminSharedMediaFn: listAdminSharedMedia,
+  getAdminSharedMediaUsageFn: getAdminSharedMediaUsage,
   updateAdminSharedMediaAssetFn: updateAdminSharedMediaAsset,
   archiveAdminSharedMediaAssetFn: archiveAdminSharedMediaAsset,
   restoreAdminSharedMediaAssetFn: restoreAdminSharedMediaAsset,
@@ -84,6 +87,15 @@ export async function handleAdminSharedMediaRequest(
         search: url.searchParams.get("q") ?? "",
       });
       return json({ assets });
+    } catch (cause) {
+      return sharedMediaMutationError(cause);
+    }
+  }
+
+  const usageMatch = url.pathname.match(/^\/admin\/api\/media\/([^/]+)\/usage$/);
+  if (usageMatch && request.method === "GET") {
+    try {
+      return json(await deps.getAdminSharedMediaUsageFn(env.DB, decodeURIComponent(usageMatch[1])));
     } catch (cause) {
       return sharedMediaMutationError(cause);
     }

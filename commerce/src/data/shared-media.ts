@@ -28,6 +28,7 @@ export interface SharedMediaAsset {
   context: SharedMediaContext;
   status: "ACTIVE" | "ARCHIVED" | "DELETED";
   usageCount: number;
+  currentUsageCount: number;
   createdBy: string;
   createdAt: string;
   updatedBy: string;
@@ -85,6 +86,7 @@ function rowToAsset(row: Record<string, unknown>): SharedMediaAsset {
     context: String(row.context) as SharedMediaContext,
     status: String(row.status) as SharedMediaAsset["status"],
     usageCount: Number(row.usageCount ?? 0),
+    currentUsageCount: Number(row.currentUsageCount ?? 0),
     createdBy: String(row.createdBy),
     createdAt: String(row.createdAt),
     updatedBy: String(row.updatedBy),
@@ -110,7 +112,22 @@ function selectSql(): string {
     " (SELECT COUNT(*) FROM storefront_node_versions snv WHERE snv.image_url = a.public_url) +",
     " (SELECT COUNT(*) FROM website_appearance_versions wav",
     "  WHERE wav.hero_image_url = a.public_url OR instr(COALESCE(wav.section_images_json, ''), a.public_url) > 0)",
-    ") AS usageCount",
+    ") AS usageCount,",
+    "((SELECT COUNT(DISTINCT p.id) FROM products p",
+    "  JOIN product_versions pv ON pv.product_id = p.id",
+    "  JOIN product_version_media pvm ON pvm.product_version_id = pv.id",
+    "  JOIN product_media pm ON pm.id = pvm.media_id",
+    "  WHERE p.publication_status <> 'ARCHIVED' AND pm.storage_provider = 'R2'",
+    "    AND pm.storage_key = a.storage_key",
+    "    AND pv.id IN (p.current_published_version_id, p.current_draft_version_id)) +",
+    " (SELECT COUNT(*) FROM storefront_nodes n WHERE n.publication_status <> 'ARCHIVED'",
+    "  AND EXISTS (SELECT 1 FROM storefront_node_versions v WHERE v.node_id = n.id",
+    "    AND v.id IN (n.current_published_version_id, n.current_draft_version_id)",
+    "    AND v.image_url = a.public_url)) +",
+    " (SELECT COUNT(*) FROM website_appearance w WHERE EXISTS",
+    "  (SELECT 1 FROM website_appearance_versions v WHERE v.appearance_id = w.id",
+    "    AND v.id IN (w.current_published_version_id, w.current_draft_version_id)",
+    "    AND v.hero_image_url = a.public_url))) AS currentUsageCount",
     "FROM shared_media_assets a",
   ].join(" ");
 }
@@ -199,6 +216,55 @@ export async function getAdminSharedMediaAsset(
     .bind(assetId)
     .first<Record<string, unknown>>();
   return row ? rowToAsset(row) : null;
+}
+
+export interface SharedMediaUsagePlace {
+  type: "PRODUCT" | "SECTION" | "HOMEPAGE";
+  label: string;
+  published: boolean;
+  draft: boolean;
+}
+
+// Current pointers describe owner-visible placement. Historical references remain
+// in usageCount and the permanent-delete guard, never in this display list.
+export async function getAdminSharedMediaUsage(
+  db: D1DatabaseLike,
+  assetId: string,
+): Promise<{ asset: SharedMediaAsset; places: SharedMediaUsagePlace[] }> {
+  const asset = await getAdminSharedMediaAsset(db, assetId);
+  if (!asset) throw new Error("shared_media_not_found");
+  const products = await allRows<{ label: string; published: number; draft: number }>(
+    db.prepare("SELECT COALESCE((SELECT title FROM product_versions WHERE id = COALESCE(p.current_draft_version_id, p.current_published_version_id)), p.current_slug) AS label, " +
+      "MAX(CASE WHEN pvm.product_version_id = p.current_published_version_id THEN 1 ELSE 0 END) AS published, " +
+      "MAX(CASE WHEN pvm.product_version_id = p.current_draft_version_id THEN 1 ELSE 0 END) AS draft " +
+      "FROM products p JOIN product_media pm ON pm.product_id = p.id " +
+      "JOIN product_version_media pvm ON pvm.media_id = pm.id " +
+      "WHERE p.publication_status <> 'ARCHIVED' AND pm.storage_provider = 'R2' AND pm.storage_key = ? " +
+      "AND pvm.product_version_id IN (p.current_published_version_id, p.current_draft_version_id) " +
+      "GROUP BY p.id ORDER BY label").bind(asset.storageKey),
+  );
+  const sections = await allRows<{ label: string; published: number; draft: number }>(
+    db.prepare("SELECT COALESCE((SELECT name FROM storefront_node_versions WHERE id = COALESCE(n.current_draft_version_id, n.current_published_version_id)), n.stable_key) AS label, " +
+      "MAX(CASE WHEN v.id = n.current_published_version_id THEN 1 ELSE 0 END) AS published, " +
+      "MAX(CASE WHEN v.id = n.current_draft_version_id THEN 1 ELSE 0 END) AS draft " +
+      "FROM storefront_nodes n JOIN storefront_node_versions v ON v.node_id = n.id " +
+      "WHERE n.publication_status <> 'ARCHIVED' AND v.image_url = ? " +
+      "AND v.id IN (n.current_published_version_id, n.current_draft_version_id) " +
+      "GROUP BY n.id ORDER BY label").bind(asset.publicUrl),
+  );
+  const heroes = await allRows<{ published: number; draft: number }>(
+    db.prepare("SELECT MAX(CASE WHEN v.id = w.current_published_version_id THEN 1 ELSE 0 END) AS published, " +
+      "MAX(CASE WHEN v.id = w.current_draft_version_id THEN 1 ELSE 0 END) AS draft " +
+      "FROM website_appearance w JOIN website_appearance_versions v ON v.appearance_id = w.id " +
+      "WHERE v.hero_image_url = ? AND v.id IN (w.current_published_version_id, w.current_draft_version_id) " +
+      "GROUP BY w.id").bind(asset.publicUrl),
+  );
+  const places: SharedMediaUsagePlace[] = [
+    ...products.map(row => ({ type: "PRODUCT" as const, label: row.label, published: !!row.published, draft: !!row.draft })),
+    ...sections.map(row => ({ type: "SECTION" as const, label: row.label, published: !!row.published, draft: !!row.draft })),
+    ...heroes.map(row => ({ type: "HOMEPAGE" as const, label: "Homepage → Hero", published: !!row.published, draft: !!row.draft })),
+  ];
+  return { asset, places };
 }
 
 export async function getSharedMediaStorage(

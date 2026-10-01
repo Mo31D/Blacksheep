@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { handleAdminRequest } from "../src/routes/admin";
 import { MediaUploadDb } from "./helpers/media-upload-db";
 import type { SharedMediaDependencies } from "../src/routes/admin-shared-media";
+import type { SharedMediaAsset, SharedMediaUsagePlace } from "../src/data/shared-media";
 
 const identity = { email: "owner@example.test", subject: "owner" };
 const access = async () => ({ ok: true as const, status: 200, identity });
@@ -33,6 +34,15 @@ describe("shared media through the Admin security boundary", () => {
     expect(list).toHaveBeenCalledWith(db, { includeArchived: true, context: "PRODUCT", search: "shop" });
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+  });
+  it("shows current placements through the authenticated private usage route", async () => {
+    const db = new MediaUploadDb();
+    const usage = vi.fn(async () => ({ asset: { id: "asset-1", usageCount: 2, currentUsageCount: 1 } as SharedMediaAsset, places: [{ type: "SECTION", label: "Local Treats", published: true, draft: false }] as SharedMediaUsagePlace[] }));
+    const response = await handleAdminRequest(request("/admin/api/media/asset-1/usage"), { DB: db }, { verifyAccessFn: access, getAdminSharedMediaUsageFn: usage });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect((await response.json() as { places: unknown[] }).places).toHaveLength(1);
+    expect(usage).toHaveBeenCalledWith(db, "asset-1");
   });
   it("uploads through the same library owner with the authenticated actor", async () => {
     const db = new MediaUploadDb(); const put = vi.fn(async () => {});

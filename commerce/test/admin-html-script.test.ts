@@ -104,6 +104,9 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain('id="websiteMediaPanel"');
     expect(production).toContain("Media Library");
     expect(production).toContain("Add to Image Library");
+    expect(production).toContain("View usage");
+    expect(production).toContain("Retained by saved content");
+    expect(production).toContain("sharedMediaUsage");
     expect(production).toContain("Organise in library · optional");
     expect(production).toContain("It does not place the image on the website.");
     expect(production).toContain("All categories");
