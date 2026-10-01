@@ -79,6 +79,6 @@ export function readSharedMediaImageUpload(request: Request) {
     const context = String(form.get("context") ?? "GENERAL").trim().toUpperCase();
     if (title.length > 160) throw new Error("shared_media_title_too_long");
     if (altText.length > 240) throw new Error("shared_media_alt_text_too_long");
-    return { title: title || null, altText: altText || null, context };
+    return { title: title || null, altText: altText || null, context, allowDuplicate: form.get("allowDuplicate") === "1" };
   });
 }

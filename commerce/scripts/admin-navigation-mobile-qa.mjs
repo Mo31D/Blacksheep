@@ -34,10 +34,12 @@ const homepage = {
 };
 let draftWrites = 0;
 let pendingUploadResponse = null;
+let mediaUploadCount = 0;
 const server = http.createServer((request, response) => {
   const pathname = new URL(request.url, 'http://localhost').pathname;
   if (request.method !== 'GET' && pathname.includes('/draft')) draftWrites++;
   if (pathname === '/admin/api/media' && request.method === 'POST') {
+    mediaUploadCount++;
     pendingUploadResponse = response;
     return;
   }
@@ -108,6 +110,32 @@ try {
         await page.locator('[data-structure-image-choice="asset-existing"]').waitFor();
         await page.locator('[data-structure-image-choice="asset-existing"]').click();
         assert.equal(await page.locator('#structureImageUrl').inputValue(), '/media/asset-existing', `${engine}: existing Shared Media selection fills the same Section draft`);
+        const beforeDuplicate = mediaUploadCount;
+        const duplicateRequest = page.waitForRequest(request => request.url().endsWith('/admin/api/media') && request.method() === 'POST');
+        await page.locator('#structureImageUpload').setInputFiles({ name: 'same-artwork.png', mimeType: 'image/png', buffer: Buffer.from('fixture') });
+        await duplicateRequest;
+        assert.ok(pendingUploadResponse, `${engine}: duplicate probe reached shared endpoint`);
+        pendingUploadResponse.writeHead(409, { 'content-type': 'application/json' }).end(JSON.stringify({ error: { code: 'shared_media_duplicate' }, existingAsset: { id: 'asset-existing', title: 'Existing section artwork', publicUrl: '/media/asset-existing', status: 'ACTIVE' } }));
+        pendingUploadResponse = null;
+        await page.locator('.media-duplicate-dialog').waitFor();
+        await page.locator('.media-duplicate-dialog button[value="reuse"]').click();
+        await page.waitForFunction(() => document.getElementById('saveStructureNode')?.disabled === false);
+        assert.equal(mediaUploadCount, beforeDuplicate + 1, `${engine}: reuse does not create another image`);
+        assert.equal(await page.locator('#structureImageUrl').inputValue(), '/media/asset-existing', `${engine}: reuse fills the Section draft`);
+        const separateProbe = page.waitForRequest(request => request.url().endsWith('/admin/api/media') && request.method() === 'POST');
+        await page.locator('#structureImageUpload').setInputFiles({ name: 'separate-artwork.png', mimeType: 'image/png', buffer: Buffer.from('fixture') });
+        await separateProbe;
+        pendingUploadResponse.writeHead(409, { 'content-type': 'application/json' }).end(JSON.stringify({ error: { code: 'shared_media_duplicate' }, existingAsset: { id: 'asset-existing', title: 'Existing section artwork', publicUrl: '/media/asset-existing', status: 'ACTIVE' } }));
+        pendingUploadResponse = null;
+        const separateRetry = page.waitForRequest(request => request.url().endsWith('/admin/api/media') && request.method() === 'POST');
+        await page.locator('.media-duplicate-dialog button[value="separate"]').click();
+        await separateRetry;
+        assert.equal(mediaUploadCount, beforeDuplicate + 3, `${engine}: separate copy requires a second explicit request`);
+        assert.ok(pendingUploadResponse, `${engine}: separate choice retries upload explicitly`);
+        pendingUploadResponse.writeHead(201, { 'content-type': 'application/json' }).end(JSON.stringify({ asset: { id: 'asset-separate', publicUrl: '/media/asset-separate' } }));
+        pendingUploadResponse = null;
+        await page.waitForFunction(() => document.getElementById('saveStructureNode')?.disabled === false);
+        assert.equal(await page.locator('#structureImageUrl').inputValue(), '/media/asset-separate', `${engine}: separate choice fills its own new asset`);
         assert.equal(draftWrites, 0, `${engine}: image selection stays private until Save`);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${engine}: structure editor fits ${width}px`);
         await page.locator('[data-close-product-sheet]').first().click();

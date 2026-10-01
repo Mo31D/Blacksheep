@@ -6,6 +6,7 @@ import { json, error, readProductJson } from "../http/admin-json";
 import {
   listAdminSharedMedia,
   getAdminSharedMediaUsage,
+  findActiveSharedMediaDuplicate,
   updateAdminSharedMediaAsset,
   archiveAdminSharedMediaAsset,
   restoreAdminSharedMediaAsset,
@@ -18,6 +19,7 @@ import {
 export interface SharedMediaDependencies {
   listAdminSharedMediaFn: typeof listAdminSharedMedia;
   getAdminSharedMediaUsageFn: typeof getAdminSharedMediaUsage;
+  findActiveSharedMediaDuplicateFn: typeof findActiveSharedMediaDuplicate;
   updateAdminSharedMediaAssetFn: typeof updateAdminSharedMediaAsset;
   archiveAdminSharedMediaAssetFn: typeof archiveAdminSharedMediaAsset;
   restoreAdminSharedMediaAssetFn: typeof restoreAdminSharedMediaAsset;
@@ -30,6 +32,7 @@ export interface SharedMediaDependencies {
 export const sharedMediaDefaults: SharedMediaDependencies = {
   listAdminSharedMediaFn: listAdminSharedMedia,
   getAdminSharedMediaUsageFn: getAdminSharedMediaUsage,
+  findActiveSharedMediaDuplicateFn: findActiveSharedMediaDuplicate,
   updateAdminSharedMediaAssetFn: updateAdminSharedMediaAsset,
   archiveAdminSharedMediaAssetFn: archiveAdminSharedMediaAsset,
   restoreAdminSharedMediaAssetFn: restoreAdminSharedMediaAsset,
@@ -111,6 +114,19 @@ export async function handleAdminSharedMediaRequest(
     }
     try {
       const upload = await readSharedMediaImageUpload(request);
+      if (!upload.allowDuplicate) {
+        const existing = await deps.findActiveSharedMediaDuplicateFn(env.DB, {
+          checksumSha256: upload.checksumSha256,
+          fileSize: upload.bytes.byteLength,
+          mimeType: upload.mimeType,
+        });
+        if (existing) {
+          return json({
+            error: { code: "shared_media_duplicate", message: "This image is already in the Image Library." },
+            existingAsset: { id: existing.id, title: existing.title, altText: existing.altText, publicUrl: existing.publicUrl, status: existing.status },
+          }, 409);
+        }
+      }
       const asset = await uploadSharedMediaImage(env.DB, env.PRODUCT_MEDIA, upload, identity.email);
       return json({ asset }, 201);
     } catch (cause) {

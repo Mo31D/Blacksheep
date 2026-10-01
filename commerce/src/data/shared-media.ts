@@ -218,6 +218,17 @@ export async function getAdminSharedMediaAsset(
   return row ? rowToAsset(row) : null;
 }
 
+export async function findActiveSharedMediaDuplicate(
+  db: D1DatabaseLike,
+  input: { checksumSha256: string; fileSize: number; mimeType: string },
+): Promise<SharedMediaAsset | null> {
+  const row = await db.prepare(
+    selectSql() + " WHERE a.status = 'ACTIVE' AND a.checksum_sha256 = ? " +
+      "AND a.file_size = ? AND a.mime_type = ? ORDER BY a.updated_at DESC LIMIT 1",
+  ).bind(input.checksumSha256, input.fileSize, input.mimeType).first<Record<string, unknown>>();
+  return row ? rowToAsset(row) : null;
+}
+
 export interface SharedMediaUsagePlace {
   type: "PRODUCT" | "SECTION" | "HOMEPAGE";
   label: string;

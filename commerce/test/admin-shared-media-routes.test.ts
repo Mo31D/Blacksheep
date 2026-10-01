@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { handleAdminRequest } from "../src/routes/admin";
 import { MediaUploadDb } from "./helpers/media-upload-db";
+import { SqliteD1 } from "./helpers/sqlite-d1";
+import { createAdminSharedMediaAsset } from "../src/data/shared-media";
 import type { SharedMediaDependencies } from "../src/routes/admin-shared-media";
 import type { SharedMediaAsset, SharedMediaUsagePlace } from "../src/data/shared-media";
 
@@ -50,6 +52,24 @@ describe("shared media through the Admin security boundary", () => {
     const response = await handleAdminRequest(request(undefined, "POST", body), { DB: db, PRODUCT_MEDIA: { put, async get() { return null; }, async delete() {} } }, { verifyAccessFn: access });
     expect(response.status).toBe(201); expect(put).toHaveBeenCalledOnce();
     expect((await response.json() as { asset: unknown }).asset).toMatchObject({ createdBy: identity.email, context: "PRODUCT", status: "ACTIVE" });
+  });
+  it("offers an exact active duplicate before R2 write, and allows an explicit separate upload", async () => {
+    const db = new SqliteD1();
+    const bytes = new Uint8Array([137,80,78,71,13,10,26,10]);
+    const checksumSha256 = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), value => value.toString(16).padStart(2, "0")).join("");
+    const existing = await createAdminSharedMediaAsset(db, { storageKey: "library/original.png", publicUrl: "/media/original", mimeType: "image/png", fileSize: bytes.length, checksumSha256, title: "Shop window" }, identity.email);
+    const put = vi.fn(async () => {});
+    const bucket = { put, async get() { return null; }, async delete() {} };
+    const body = new FormData(); body.set("file", new File([bytes], "same.png", { type: "image/png" }));
+    const duplicate = await handleAdminRequest(request(undefined, "POST", body), { DB: db, PRODUCT_MEDIA: bucket }, { verifyAccessFn: access });
+    expect(duplicate.status).toBe(409);
+    expect(await duplicate.json()).toMatchObject({ error: { code: "shared_media_duplicate" }, existingAsset: { id: existing.id, title: "Shop window", publicUrl: existing.publicUrl } });
+    expect(put).not.toHaveBeenCalled();
+    body.set("allowDuplicate", "1");
+    const separate = await handleAdminRequest(request(undefined, "POST", body), { DB: db, PRODUCT_MEDIA: bucket }, { verifyAccessFn: access });
+    expect(separate.status).toBe(201);
+    expect((await separate.json() as { asset: { id: string } }).asset.id).not.toBe(existing.id);
+    expect(put).toHaveBeenCalledOnce();
   });
   it.each(["archive", "restore"])("keeps %s actor and domain error mapping", async operation => {
     const mutate = vi.fn(async () => { throw new Error("shared_media_not_found"); });
