@@ -1,5 +1,13 @@
 # Session handoff — 1 October 2026
 
+## Owner hotfix — legacy collection hierarchy (manual, after Codex weekly limit)
+
+**Commit `d2d6e06`** fixes a stale-hierarchy leak on legacy collection pages without changing D1, Website Structure, Product placements, URLs or Admin data. Root cause: `gifts.html` still contains historical static filter/product markup, while `syncLegacyCollectionChildren()` only appended current Website Structure children. After Peter Rabbit Gifts and Highland Cows Ornaments were promoted to roots, the old buttons/products could therefore remain visible under Lake District Souvenirs even though the published hierarchy was correct.
+
+The hotfix makes the published Website Structure authoritative at runtime for a legacy collection route: the legacy shortcut strip is replaced by the current direct children, and the product grid/count are rebuilt from `dynamicCollectionRows(current, nodes)`, which already follows the current node plus descendants via canonical Product placements. This deliberately reuses the existing dynamic collection path rather than hard-coding Peter Rabbit/Highland exclusions. No deploy was performed by ChatGPT as part of this change.
+
+**Codex follow-up when available:** review `d2d6e06` as part of the architecture work; add/confirm regression coverage for promoting a former child to a root (it must disappear from the old parent's shortcuts and product set); verify Lake District Souvenirs shows only its current subtree on Staging/mobile; check whether the remaining static `gifts.html`, `GIFT_COLLECTIONS` and `EXTRA_COLLECTIONS` legacy sources can be retired safely later without changing SEO/legacy URLs. Do not replace this with per-section exclusions or duplicate hierarchy rules.
+
 Repository `Mo31D/Blacksheep`, existing `main` only. Always fetch remote `main` first; this workstation's local `.git` index/ref is stale and cannot write `.git/index.lock`. Use fast-forward-only GitHub ref updates if Git remains restricted. No Production deployment or Production business-data change without explicit owner approval.
 
 ## Current phase and task
