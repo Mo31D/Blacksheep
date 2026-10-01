@@ -1,5 +1,5 @@
 name: Commerce Staging V2 Deploy
-# Trigger guarded staging acceptance for exact duplicate image choices; never deploy production.
+# Trigger guarded staging acceptance for contextual Hero image selection; never deploy production.
 
 on:
   push:
