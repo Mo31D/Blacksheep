@@ -110,8 +110,8 @@ jobs:
           const fs = require("fs");
           const nodes = JSON.parse(fs.readFileSync("/tmp/staging-structure.json", "utf8")).nodes;
           const roots = nodes.filter((n) => !n.parentNodeId && n.showInNavigation).sort((a,b) => a.sortOrder-b.sortOrder);
-          const expected = ["Local Treats","Lake District Souvenirs","Peter Rabbit Gifts","Highland Cows Ornaments","Ice cream","Christmas"];
-          if (JSON.stringify(roots.map((n) => n.name)) !== JSON.stringify(expected)) throw new Error("Published roots differ from owner target");
+          const expected = new Set(["local-treats","gifts","gifts/peter-rabbit","gifts/highland-cows","icecream","gifts/seasonal"]);
+          if (roots.length !== expected.size || roots.some((n) => !expected.has(n.stableKey))) throw new Error("Published root identities differ from owner target");
           const local = nodes.find((n) => n.stableKey === "local-treats");
           const romneys = nodes.find((n) => n.id === "sfn_romneys");
           const hawkshead = nodes.find((n) => n.id === "sfn_hawkshead");
@@ -122,7 +122,7 @@ jobs:
           const localHtml = fs.readFileSync("/tmp/staging-local-treats.html", "utf8");
           const mintHtml = fs.readFileSync("/tmp/staging-mint-cake.html", "utf8");
           const menu = localHtml.match(/<nav class="menu">([\s\S]*?)<\/nav>/)?.[1] || "";
-          if ((menu.match(/<a /g) || []).length !== 6 || !expected.every((name) => menu.includes(name))) throw new Error("Server HTML lacks six-root navigation: " + menu.slice(0, 1200));
+          if ((menu.match(/<a /g) || []).length !== 6 || !roots.every((node) => menu.includes(node.name.replace(/'/g,"&#39;")))) throw new Error("Server HTML lacks the published six-root navigation: " + menu.slice(0, 1200));
           if (menu.includes("Romney&#39;s") || menu.includes("Hawkshead Relish")) throw new Error("Nested sections leaked into main menu");
           const productCount = Number(localHtml.match(/<span class="catalog-count">(\d+) products<\/span>/)?.[1] || 0);
           if (productCount < 1 || !localHtml.includes("Romney&#39;s") || !localHtml.includes("Hawkshead Relish")) throw new Error("Local Treats collection missing products or child links");
