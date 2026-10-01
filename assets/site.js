@@ -38,11 +38,31 @@ function syncCatalogCardState(root=document){if(!window.CATALOG)return;root.quer
 // prerendered in the original design. Do not reconcile during API fallback.
 function reconcilePublishedCatalogDom(){
   if(window.BLACK_SHEEP_LIVE_COMMERCE_STATE?.authoritative!==true)return;
-  let removed=0;
-  document.querySelectorAll('.product-card').forEach(card=>{
-    if(!productFromCard(card)){card.remove();removed++;}
-  });
-  if(removed&&typeof initFilters==='function')initFilters();
+  const root=document.getElementById('catalog');
+  const ctx=liveCatalogPageContext();
+  if(root&&ctx&&window.CATALOG){
+    const rows=[];
+    if(ctx.all){
+      for(const type of ['gifts','icecream','romneys','hawkshead','fragrances'])for(const item of(window.CATALOG[type]||[]))rows.push({type,item});
+    }else if(ctx.includeRomneysGifts){
+      for(const item of(window.CATALOG.romneys||[]))rows.push({type:'romneys',item});
+      for(const item of(window.CATALOG.gifts||[]))if((item.categories||[]).some(c=>c==='romneys'||c==='local-food'))rows.push({type:'gifts',item});
+    }else{
+      for(const item of(window.CATALOG[ctx.type]||[]))if(!ctx.category||(item.categories||[]).includes(ctx.category))rows.push({type:ctx.type,item});
+    }
+    root.innerHTML=rows.map(row=>card(row.item,row.type)).join('');
+    wireProductCards(root);
+    syncCatalogCardState(root);
+    sortProductCardsByAvailability(root);
+    polishListButtons(root);
+    if(typeof initFilters==='function')initFilters();
+  }else{
+    let removed=0;
+    document.querySelectorAll('.product-card').forEach(card=>{
+      if(!productFromCard(card)){card.remove();removed++;}
+    });
+    if(removed&&typeof initFilters==='function')initFilters();
+  }
   const detail=document.querySelector('.product-static');
   const match=location.pathname.match(/\/products\/([^/]+)\.html$/);
   if(!detail||!match)return;
@@ -98,7 +118,7 @@ document.addEventListener('DOMContentLoaded',normalizeFoodNavigation);
 function renderCatalog(type,category){const root=document.getElementById('catalog');if(!root||!window.CATALOG)return;if(root.querySelector('.product-card')){initFilters();return}const items=window.CATALOG[type]||[];root.innerHTML=items.filter(x=>!category||(x.categories||[]).includes(category)).map(x=>card(x,type)).join('');initFilters()}
 function renderFeatured(rootId, type, slugs){const root=document.getElementById(rootId);if(!root)return;const items=window.CATALOG[type]||[];let list=[];if(slugs&&slugs.length) list=slugs.map(s=>items.find(x=>x.slug===s)).filter(Boolean);else list=items.slice(0,4);root.innerHTML=list.map(x=>card(x,type)).join('');wireProductCards(root);syncCatalogCardState(root);sortProductCardsByAvailability(root);polishListButtons(root)}
 function initFilters(){wireProductCards();syncCatalogCardState();sortProductCardsByAvailability();polishListButtons();const search=document.getElementById('search');const chips=[...document.querySelectorAll('.chip[data-filter]')];const empty=document.getElementById('empty');const count=document.getElementById('giftCount');let active=chips.find(ch=>ch.classList.contains('active'))?.dataset.filter||'all';function apply(){const q=(search?.value||'').trim().toLowerCase();const cards=[...document.querySelectorAll('#catalog .product-card')];let n=0;cards.forEach(c=>{const okCat=active==='all'||String(c.dataset.categories||'').split(' ').includes(active);const okQ=!q||String(c.dataset.name||'').includes(q);const show=okCat&&okQ;c.style.display=show?'flex':'none';if(show)n++});if(empty)empty.style.display=n?'none':'block';if(count)count.textContent=n+' '+(n===1?'product':'products')}if(search)search.oninput=apply;chips.forEach(ch=>{ch.onclick=()=>{chips.forEach(x=>x.classList.remove('active'));ch.classList.add('active');active=ch.dataset.filter||'all';apply()}});apply()}
-function liveCatalogPageContext(){const path=location.pathname.replace(/^\//,'');if(path==='all-products.html')return{all:true};if(path==='hawkshead-relish.html')return{type:'hawkshead'};if(path==='romneys.html')return{type:'romneys',includeRomneysGifts:true};if(path==='icecream.html')return{type:'icecream'};if(path==='lakeland-fragrances.html')return{type:'fragrances'};const gifts={'gifts-peter-rabbit.html':'peter-rabbit','gifts-highland-cows.html':'highland-cows','gifts-mugs.html':'mugs','gifts-soft-toys.html':'soft-toys','gifts-cards.html':'cards','gifts-seasonal.html':'seasonal','gifts-keyrings-badges.html':'keyrings-badges','gifts-home-art.html':'home-gifts','gifts-toys-games.html':'toys-games','gifts-fridge-magnets.html':'fridge-magnets','gifts-souvenirs.html':'souvenirs','gifts-maps-books-jigsaws.html':'maps-books-jigsaws'};return gifts[path]?{type:'gifts',category:gifts[path]}:null}
+function liveCatalogPageContext(){const path=location.pathname.replace(/^\//,'');if(path==='all-products.html')return{all:true};if(path==='gifts.html')return{type:'gifts'};if(path==='hawkshead-relish.html')return{type:'hawkshead'};if(path==='romneys.html')return{type:'romneys',includeRomneysGifts:true};if(path==='icecream.html')return{type:'icecream'};if(path==='lakeland-fragrances.html')return{type:'fragrances'};const gifts={'gifts-peter-rabbit.html':'peter-rabbit','gifts-highland-cows.html':'highland-cows','gifts-mugs.html':'mugs','gifts-soft-toys.html':'soft-toys','gifts-cards.html':'cards','gifts-seasonal.html':'seasonal','gifts-keyrings-badges.html':'keyrings-badges','gifts-home-art.html':'home-gifts','gifts-toys-games.html':'toys-games','gifts-fridge-magnets.html':'fridge-magnets','gifts-souvenirs.html':'souvenirs','gifts-maps-books-jigsaws.html':'maps-books-jigsaws'};return gifts[path]?{type:'gifts',category:gifts[path]}:null}
 function syncDynamicCatalogCards(){const root=document.getElementById('catalog'),ctx=liveCatalogPageContext();if(!root||!ctx||!window.CATALOG)return 0;const rows=[];if(ctx.all){for(const type of ['gifts','icecream','romneys','hawkshead','fragrances'])for(const item of(window.CATALOG[type]||[]))if(item.commerceDynamic===true)rows.push({type,item})}else if(ctx.includeRomneysGifts){for(const item of(window.CATALOG.romneys||[]))if(item.commerceDynamic===true)rows.push({type:'romneys',item});for(const item of(window.CATALOG.gifts||[]))if(item.commerceDynamic===true&&(item.categories||[]).some(c=>c==='romneys'||c==='local-food'))rows.push({type:'gifts',item})}else{for(const item of(window.CATALOG[ctx.type]||[]))if(item.commerceDynamic===true&&(!ctx.category||(item.categories||[]).includes(ctx.category)))rows.push({type:ctx.type,item})}let added=0;for(const row of rows){const url=itemUrl(row.item,row.type);if([...root.querySelectorAll('.product-card')].some(el=>(el.dataset.url||'')===url))continue;root.insertAdjacentHTML('beforeend',card(row.item,row.type));added++}if(added)initFilters();return added}
 
 function findItem(type,slug){return (window.CATALOG[type]||[]).find(x=>x.slug===slug)}
