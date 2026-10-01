@@ -132,7 +132,7 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("/admin/api/media");
     expect(production).toContain("/media/from-library");
     expect(production).toContain("function useSharedMediaAsset");
-    expect(production).toContain("Image uploaded once and added to Product draft");
+    expect(production).toContain("Image added to Product draft");
     expect(production).toContain("context:'PRODUCT'");
     expect(production).not.toContain(
       "fetch('/admin/api/products/'+encodeURIComponent(productCurrent.id)+'/media',{method:'POST'",

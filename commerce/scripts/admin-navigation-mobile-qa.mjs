@@ -35,6 +35,13 @@ const homepage = {
 let draftWrites = 0;
 let pendingUploadResponse = null;
 let mediaUploadCount = 0;
+async function waitForUploadResponse() {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    if (pendingUploadResponse) return pendingUploadResponse;
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+  throw new Error('Mock Image Library upload did not reach the server');
+}
 const server = http.createServer((request, response) => {
   const pathname = new URL(request.url, 'http://localhost').pathname;
   if (request.method !== 'GET' && pathname.includes('/draft')) draftWrites++;
@@ -114,8 +121,7 @@ try {
         const duplicateRequest = page.waitForRequest(request => request.url().endsWith('/admin/api/media') && request.method() === 'POST');
         await page.locator('#structureImageUpload').setInputFiles({ name: 'same-artwork.png', mimeType: 'image/png', buffer: Buffer.from('fixture') });
         await duplicateRequest;
-        assert.ok(pendingUploadResponse, `${engine}: duplicate probe reached shared endpoint`);
-        pendingUploadResponse.writeHead(409, { 'content-type': 'application/json' }).end(JSON.stringify({ error: { code: 'shared_media_duplicate' }, existingAsset: { id: 'asset-existing', title: 'Existing section artwork', publicUrl: '/media/asset-existing', status: 'ACTIVE' } }));
+        (await waitForUploadResponse()).writeHead(409, { 'content-type': 'application/json' }).end(JSON.stringify({ error: { code: 'shared_media_duplicate' }, existingAsset: { id: 'asset-existing', title: 'Existing section artwork', publicUrl: '/media/asset-existing', status: 'ACTIVE' } }));
         pendingUploadResponse = null;
         await page.locator('.media-duplicate-dialog').waitFor();
         await page.locator('.media-duplicate-dialog button[value="reuse"]').click();
@@ -125,11 +131,12 @@ try {
         const separateProbe = page.waitForRequest(request => request.url().endsWith('/admin/api/media') && request.method() === 'POST');
         await page.locator('#structureImageUpload').setInputFiles({ name: 'separate-artwork.png', mimeType: 'image/png', buffer: Buffer.from('fixture') });
         await separateProbe;
-        pendingUploadResponse.writeHead(409, { 'content-type': 'application/json' }).end(JSON.stringify({ error: { code: 'shared_media_duplicate' }, existingAsset: { id: 'asset-existing', title: 'Existing section artwork', publicUrl: '/media/asset-existing', status: 'ACTIVE' } }));
+        (await waitForUploadResponse()).writeHead(409, { 'content-type': 'application/json' }).end(JSON.stringify({ error: { code: 'shared_media_duplicate' }, existingAsset: { id: 'asset-existing', title: 'Existing section artwork', publicUrl: '/media/asset-existing', status: 'ACTIVE' } }));
         pendingUploadResponse = null;
         const separateRetry = page.waitForRequest(request => request.url().endsWith('/admin/api/media') && request.method() === 'POST');
         await page.locator('.media-duplicate-dialog button[value="separate"]').click();
         await separateRetry;
+        await waitForUploadResponse();
         assert.equal(mediaUploadCount, beforeDuplicate + 3, `${engine}: separate copy requires a second explicit request`);
         assert.ok(pendingUploadResponse, `${engine}: separate choice retries upload explicitly`);
         pendingUploadResponse.writeHead(201, { 'content-type': 'application/json' }).end(JSON.stringify({ asset: { id: 'asset-separate', publicUrl: '/media/asset-separate' } }));
