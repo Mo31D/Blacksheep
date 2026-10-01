@@ -14,6 +14,17 @@ beforeEach(() => { db = new SqliteD1(); });
 afterEach(() => db.sqlite.close());
 
 describe("versioned Appearance decoration control", () => {
+  it("accepts shop destinations and rejects protocol-relative or backslash links", async () => {
+    for (const href of ["//outside.example/path", "/\\outside.example", "/shop\nelsewhere"]) {
+      await expect(saveAdminWebsiteAppearanceDraft(db, {
+        expectedVersion: 1, hero: { buttonHref: href },
+      }, actor)).rejects.toThrow("appearance_hero_href_invalid");
+    }
+    await saveAdminWebsiteAppearanceDraft(db, {
+      expectedVersion: 1, hero: { buttonHref: "/collections/local-treats" },
+    }, actor);
+    expect((await getAdminWebsiteAppearance(db)).hero.buttonHref).toBe("/collections/local-treats");
+  });
   it("keeps old published versions off, previews a draft, publishes, and restores the prior choice", async () => {
     expect((await getPublishedWebsiteAppearance(db)).decorationsEnabled).toBe(false);
 

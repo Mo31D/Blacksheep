@@ -22,6 +22,31 @@ function compileInlineScripts(html: string): void {
 }
 
 describe("generated Admin HTML scripts", () => {
+  it("offers named Hero destinations while retaining the stored route", () => {
+    const html = adminHtml("owner@example.com");
+    const script = inlineScripts(html)[0];
+    expect(html).toContain('id="appearanceHeroDestination"');
+    expect(html).toContain('id="appearanceHeroCustomHref"');
+    expect(html).toContain('type="hidden" id="appearanceHeroButtonHref"');
+    expect(script).toContain("renderAppearanceDestination(hero.buttonHref||'')");
+    expect(script).toContain("document.getElementById('appearanceHeroDestination').onchange=syncAppearanceDestination");
+    const source = script.match(/function appearanceDestinationRows\(\)\{[^\r\n]+/)?.[0];
+    expect(source).toBeTruthy();
+    const rows = new Function(
+      "storefrontNodes",
+      "storefrontPathLabel",
+      `${source};return appearanceDestinationRows()`,
+    )(
+      [
+        { id: "local", slug: "local-treats", publicationStatus: "ACTIVE", publishedVersionId: "v1", legacyPath: null },
+        { id: "draft", slug: "draft", publicationStatus: "DRAFT", publishedVersionId: null, legacyPath: null },
+      ],
+      (id: string) => id === "local" ? "Local Treats" : "Draft",
+    ) as Array<{ label: string; href: string }>;
+    expect(rows).toContainEqual({ label: "All products", href: "/all-products.html" });
+    expect(rows).toContainEqual({ label: "Local Treats", href: "/collections/local-treats" });
+    expect(rows.some((row) => row.label === "Draft")).toBe(false);
+  });
   it("resolves storefront-relative images in Worker-hosted Admin previews", () => {
     const script = inlineScripts(adminHtml("owner@example.com", "staging"))[0];
     const helper = script.match(/function storefrontImageUrl\(url\)\{[^}]+\}/)?.[0];

@@ -270,6 +270,9 @@ function safeHref(value: unknown, fallback: string | null): string | null {
     "appearance_hero_href_invalid",
   );
   if (result == null) return null;
+  if (result.startsWith("//") || /[\\\x00-\x1f\x7f]/.test(result)) {
+    throw new Error("appearance_hero_href_invalid");
+  }
   if (
     !result.startsWith("/") &&
     !/^https:\/\/(?:www\.)?theblacksheepshop\.co\.uk(?:\/|$)/i.test(result)
