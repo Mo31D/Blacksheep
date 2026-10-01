@@ -79,6 +79,9 @@ try{
       await open('/gifts.html');
       assert.equal(await page.locator('#catalog .product-card').count(),0,'A catalogue response without published Structure cannot infer Gifts membership from legacy taxonomy');
       assert.equal(await page.locator('#catalog a[href="/all-products.html"]').count(),1);
+      await open('/gifts-highland-cows.html');
+      assert.equal(await page.locator('#catalog .product-card').count(),0,'A promoted Section page must not infer Product membership without published Structure');
+      assert.equal(await page.locator('#catalog a[href="/all-products.html"]').count(),1);
       mode='hierarchy-before';
       await open('/gifts.html');
       assert.equal(await page.locator('#catalog [data-product-slug="lake-qa-product"]').count(),1);
@@ -88,6 +91,9 @@ try{
       assert.equal(await page.locator('.gift-shortcuts [data-storefront-node="promoted"]').count(),0,'Promoted Section leaves its former parent shortcut');
       assert.equal(await page.locator('#catalog [data-product-slug="lake-qa-product"]').count(),1);
       assert.equal(await page.locator('#catalog [data-product-slug="promoted-qa-product"]').count(),0,'Published placement outside the current subtree must not reappear through static Gifts taxonomy');
+      await open('/gifts-highland-cows.html');
+      assert.equal(await page.locator('#catalog [data-product-slug="promoted-qa-product"]').count(),1,'Promoted Section shows its own placed Product');
+      assert.equal(await page.locator('#catalog [data-product-slug="lake-qa-product"]').count(),0,'Former parent Product does not leak into the promoted Section');
       mode='published';
       await open('/index.html');
       await page.evaluate(()=>syncHomepageDestinationCards({
