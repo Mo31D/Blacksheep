@@ -1,5 +1,5 @@
 name: Commerce Staging V2 Deploy
-# Trigger guarded staging acceptance for direct Section Image Library selection; never deploy production.
+# Trigger guarded staging acceptance for Image Library current-usage visibility; never deploy production.
 
 on:
   push:
