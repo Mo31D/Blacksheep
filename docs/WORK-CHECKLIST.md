@@ -241,3 +241,13 @@ Search-readiness QA passed for implementation commit `bba82641f56c160e0d48f563b6
 - [x] Keep supplier/trade pricing and trade wording off public pages.
 - [x] Record image-source exception rather than hotlinking or using screenshots.
 - [x] Reconcile catalogue cards, sitemap and search-readiness QA.
+
+
+## 2026-10-01 — catalogue-authoritative storefront reconciliation
+- [x] Root cause addressed: collection pages could retain prerendered static cards after the live catalogue loaded, so stale static category membership could survive even when D1/published catalogue structure had changed.
+- [x] Published /v1/catalog is now authoritative for matched product name, description, brand, SKU, slug, categories, primary category and primary image; static catalogue remains fallback only when the live feed fails.
+- [x] Authoritative reconciliation now rebuilds supported collection-page product DOM from the published catalogue instead of merely deleting cards absent from the feed.
+- [x] gifts.html is included in the live collection-page context, so its product grid is rebuilt from the published gifts catalogue after a successful feed.
+- [x] Existing /v1/storefront-structure remains authoritative for section hierarchy/navigation and product placements; this change does not reintroduce static parent/child ownership.
+- [ ] Deploy current main to staging and verify gifts.html on two browsers/devices after a hard refresh; then deploy the same verified SHA to production.
+- [ ] Verify Peter Rabbit Gifts and Highland Cows Ornaments remain independent roots and no longer inherit stale Lake District Souvenirs membership from prerendered HTML.
