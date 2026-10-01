@@ -38,6 +38,7 @@ try{
       let mode='published';
       await page.route('https://api.theblacksheepshop.co.uk/**',async route=>{
         const url=new URL(route.request().url());
+        if(url.pathname==='/media/section-image'){await route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"/>'});return;}
         if(url.pathname!=='/v1/catalog'){await route.fulfill({status:503,body:'{}'});return;}
         if(mode==='failure'){await route.fulfill({status:503,body:'{}'});return;}
         const rows=mode==='empty'?[]:products.filter(p=>p.id!==archived.id);
@@ -64,11 +65,12 @@ try{
       assert.equal(await page.locator('.product-card[data-url="/products/'+archived.slug+'.html"]').count(),1);
       await open('/index.html');
       await page.evaluate(()=>syncHomepageDestinationCards({
-        COLLECTIONS:[{name:'Highland Cows',shortDescription:'New collection copy',imageUrl:'/images/highland-cows/highland-cow-flowers-lp73651.webp',destinationPath:'/gifts-highland-cows.html'}],
+        COLLECTIONS:[{name:'Highland Cows',shortDescription:'New collection copy',imageUrl:'/media/section-image',destinationPath:'/gifts-highland-cows.html'}],
         LOCAL_FAVOURITES:[{name:"Romney's",shortDescription:'Local treats',imageUrl:null,destinationPath:'/romneys.html'}],
       }));
       assert.equal(await page.locator('#homeCollections .collection').count(),1);
       assert.equal(await page.locator('#homeCollections .collection h3').textContent(),'Highland Cows');
+      assert.equal(await page.locator('#homeCollections .collection img').getAttribute('src'),'https://api.theblacksheepshop.co.uk/media/section-image');
       assert.equal(await page.locator('.home-discover-grid .feature').count(),1);
       assert.equal(await page.locator('.home-discover-grid .feature h3').textContent(),"Romney's");
       assert.equal(await page.locator('.home-discover-grid .feature img').count(),1);
