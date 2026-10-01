@@ -165,6 +165,7 @@ jobs:
 
 # Generic staging deploy trigger history retained below for audit continuity.
 # B.6 mobile Homepage Add favourite acceptance: normal-flow editor actions and real tap regression.
+# C.6b Product gallery inline Image Library picker acceptance after full Commerce CI.
 # platform-card01-clean-workflow-2026-09-26
 
 # catalogue-structure-card02-staging-2026-09-26
