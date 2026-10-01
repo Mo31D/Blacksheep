@@ -94,6 +94,11 @@ try {
         assert.equal(await page.locator('#homepageCollectionCards .homepage-destination-row').count(), 2, `${engine}: card editor shows current collections`);
         await page.locator('#homepageCollectionCards [data-card-move="1"]').first().click();
         assert.equal(await page.locator('#homepageCollectionCards .homepage-destination-row strong').first().textContent(), 'Highland Cows', `${engine}: phone reorder works`);
+        await page.locator('#homepageStatus [data-unsaved-edits]').waitFor();
+        assert.equal(await page.evaluate(() => { const event = new Event('beforeunload', { cancelable: true }); dispatchEvent(event); return event.defaultPrevented; }), true, `${engine}: unsaved Homepage edit guards tab close`);
+        page.once('dialog', dialog => dialog.dismiss());
+        await page.locator('#refreshWebsite').click();
+        assert.equal(await page.locator('#homepageLocalCards .homepage-destination-row').count(), 2, `${engine}: cancelled refresh preserves unsaved Homepage edits`);
         page.once('dialog', dialog => dialog.dismiss());
         await page.locator('#homepagePublish').click();
         assert.equal(draftWrites, 0, `${engine}: cancelling Publish must not save the draft`);
@@ -158,6 +163,8 @@ try {
         await page.locator('[data-close-product-sheet]').first().click();
         await page.locator('#backToWebsite').click();
         assert.equal(await page.locator('#view-website').isVisible(), true, `${engine}: Sections returns`);
+        // Reset only the isolated browser fixture's baseline before testing deep links.
+        await page.evaluate(() => window.rememberWebsiteEditor('homepage'));
         for (const [hash, tab] of [['appearance', 'appearance'], ['media', 'media']]) {
           await page.goto(base + '/admin#' + hash);
           // A same-document hash navigation does not execute the Admin bootstrap again.
@@ -165,6 +172,18 @@ try {
           assert.equal(await page.locator('#view-website').isVisible(), true, `${engine}: ${hash} deep link`);
           assert.equal(await page.locator(`[data-website-tab="${tab}"].active`).count(), 1, `${engine}: ${tab} selected`);
           if (tab === 'appearance') {
+            await page.evaluate(() => {
+              window.appearanceConfig = { version: 1, presetKey: 'DEFAULT', hasDraft: false, publishedVersionId: 'appearance-live', decorationsEnabled: false, tokens: {}, hero: { buttonHref: '/all-products.html' } };
+              window.appearancePresets = [{ key: 'DEFAULT', label: 'Default', tokens: {} }];
+              window.renderAppearance();
+            });
+            assert.equal(await page.locator('#appearanceHeroDestination option:checked').textContent(), 'All products', `${engine}: existing Hero route has an owner-readable label`);
+            await page.locator('#appearanceHeroDestination').selectOption('/collections/local-treats');
+            assert.equal(await page.locator('#appearanceHeroButtonHref').inputValue(), '/collections/local-treats', `${engine}: named Section choice retains the canonical route`);
+            await page.locator('#appearanceStatus [data-unsaved-edits]').waitFor();
+            await page.locator('#appearanceHeroDestination').selectOption('__custom__');
+            await page.locator('#appearanceHeroCustomHref').fill('/visit.html');
+            assert.equal(await page.locator('#appearanceHeroButtonHref').inputValue(), '/visit.html', `${engine}: advanced custom link remains private until Save`);
             const heroUploadRequest = page.waitForRequest(request => request.url().endsWith('/admin/api/media') && request.method() === 'POST');
             await page.locator('#appearanceHeroUpload').setInputFiles({ name: 'hero.png', mimeType: 'image/png', buffer: Buffer.from('fixture') });
             await heroUploadRequest;
@@ -181,6 +200,7 @@ try {
             await page.locator('[data-appearance-image-choice="asset-existing"]').click();
             assert.equal(await page.locator('#appearanceHeroImage').inputValue(), '/media/asset-existing', `${engine}: Hero selects existing image in place`);
             assert.equal(draftWrites, 0, `${engine}: Hero selection does not save a draft`);
+            await page.evaluate(() => window.rememberWebsiteEditor('appearance'));
           }
         }
         await page.locator('[data-shared-media-usage="asset-existing"]').waitFor();
