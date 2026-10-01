@@ -47,6 +47,14 @@ describe("generated Admin HTML scripts", () => {
     expect(rows).toContainEqual({ label: "Local Treats", href: "/collections/local-treats" });
     expect(rows.some((row) => row.label === "Draft")).toBe(false);
   });
+
+  it("keeps technical Product and Section identifiers out of primary cards", () => {
+    const script = inlineScripts(adminHtml("owner@example.com"))[0];
+    expect(script).toContain("<summary>Technical details</summary>");
+    expect(script).not.toContain("esc(p.legacyId||'')+(p.sku?");
+    expect(script).not.toContain("+' products · '+esc(n.slug)");
+    expect(script).toContain("+' products</small>");
+  });
   it("resolves storefront-relative images in Worker-hosted Admin previews", () => {
     const script = inlineScripts(adminHtml("owner@example.com", "staging"))[0];
     const helper = script.match(/function storefrontImageUrl\(url\)\{[^}]+\}/)?.[0];
