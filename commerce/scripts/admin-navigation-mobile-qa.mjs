@@ -207,6 +207,10 @@ try {
         assert.equal(await page.locator('#sharedMediaGrid').innerText().then(text => text.includes('1 current place') && text.includes('Retained by saved content') && text.includes('Unused')), true, `${engine}: current, historical and unused image states are distinct`);
         await page.locator('[data-shared-media-usage="asset-existing"]').click();
         assert.equal(await page.locator('#sharedMediaUsage').evaluate(dialog => dialog.open), true, `${engine}: usage dialog opens`);
+        await page.waitForFunction(() => {
+          const text = document.getElementById('sharedMediaUsageBody')?.innerText || '';
+          return text.includes('Local Treats') && text.includes('Published');
+        });
         assert.equal(await page.locator('#sharedMediaUsageBody').innerText().then(text => text.includes('Local Treats') && text.includes('Published')), true, `${engine}: usage names the actual published Section`);
         await page.locator('#sharedMediaUsage button[type="submit"]').click();
         assert.equal(await page.locator('#sharedMediaUsage').evaluate(dialog => dialog.open), false, `${engine}: usage dialog closes`);
