@@ -812,12 +812,41 @@ async function verifyStaticFallback() {
 
 fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
 
+async function verifyPublishedHomepageSectionImages(payload) {
+  const cards = Object.values(payload.config?.cards || {}).flat().filter(card =>
+    String(card.imageUrl || "").startsWith("/media/"),
+  );
+  if (!cards.length) return 0;
+  const browser = await chromium.launch();
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    await page.goto(SITE + "/index.html?commerce-preview=staging", { waitUntil: "domcontentloaded", timeout: 60_000 });
+    await waitForCommerce(page, "ready");
+    assert((await page.evaluate(() => window.BLACK_SHEEP_LIVE_COMMERCE_STATE?.homepageMerchandisingFallback)) === false,
+      "Staging Homepage merchandising fell back to static content");
+    for (const card of cards) {
+      const url = new URL(card.imageUrl, API).href;
+      await page.waitForFunction(expected =>
+        [...document.querySelectorAll("#homeCollections img, .home-discover-grid img")]
+          .some(image => image.src === expected && image.complete && image.naturalWidth > 0),
+        url, { timeout: 30_000 });
+    }
+    return cards.length;
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+}
+
 const { payload, target } = await getRealCatalogue();
 const homepageMerchandising = await getRealHomepageMerchandising();
 globalThis.__phase6Target = target;
 globalThis.__homepageMerchandising = homepageMerchandising;
 
 try {
+  const publishedSectionImages = await verifyPublishedHomepageSectionImages(homepageMerchandising);
+  console.log("Staging published Homepage Shared Media images loaded in browser: " + publishedSectionImages);
   await verifyRealOverlay(
     chromium,
     "Desktop Chromium",
@@ -864,6 +893,7 @@ try {
           "homepage-published-five-module-contract",
           "homepage-module-published-order",
           "homepage-module-published-visibility",
+          "staging-published-homepage-shared-media-images",
         ],
       },
       null,
