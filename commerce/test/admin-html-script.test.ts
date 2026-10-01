@@ -102,7 +102,8 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain('data-website-tab="appearance"');
     expect(production).toContain('data-website-tab="media"');
     expect(production).toContain('id="websiteMediaPanel"');
-    expect(production).toContain("Media Library");
+    expect(production).not.toContain("Media Library");
+    expect(production).toContain("Image Library");
     expect(production).toContain("Add to Image Library");
     expect(production).toContain("View usage");
     expect(production).toContain("Retained by saved content");
