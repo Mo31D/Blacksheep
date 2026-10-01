@@ -1,5 +1,9 @@
 # Session handoff — 1 October 2026
 
+## Current continuation — static Gifts source retirement
+
+Remote `main` was confirmed at `cd8baf6` before this task; the four edited source files were refreshed from GitHub blobs because this checkout cannot write `.git/FETCH_HEAD`. The current candidate removes Gifts' old static child filters, 64 Product cards, ItemList and `renderCatalog('gifts')` from `gifts.html`; `phase6-publication-collections.mjs` now carries the dynamic Section shell through generation. A `data-published-section` marker makes `commerce-live.js` skip old taxonomy reconciliation even when catalogue succeeds but Website Structure is unavailable, leaving an honest All products fallback. No hard-coded Peter Rabbit/Highland exclusion was added. The publication verifier, search readiness and browser QA now assert this behaviour. Local search readiness, dynamic storefront contract, 14-page generator, TypeScript and 83 files/579 tests passed. Local browser QA cannot load Playwright; verify Commerce CI and Staging browser acceptance after committing. **Next:** inspect other legacy collection pages individually before retiring their static membership, then resume Phase 8 E/F. No Production Worker/data deploy without explicit approval.
+
 ## Current continuation — published hierarchy versus legacy Gifts
 
 Remote `main` was re-read at `4a9cfca` after the owner reported persistent Peter Rabbit/Highland child leakage. This Windows checkout cannot write `.git/FETCH_HEAD`; authoritative files were fetched from GitHub and verified by blob SHA before editing. The owner deployed earlier `1020b37` to Staging and Production; **Codex has not deployed the newer attempts or any Production change.** The owner's new report takes priority over the unfinished E.1 phone-fixture repair.

@@ -139,7 +139,7 @@ const catalog=parseCatalogue(catalogPath);
 const all=Object.entries(catalog).flatMap(([type,list])=>(list||[]).map((item)=>({type,item})));
 
 const definitions=[
-  {file:"gifts.html",select:()=>catalog.gifts||[]},
+  {file:"gifts.html",select:()=>[],dynamicSection:true},
   {file:"gifts-peter-rabbit.html",select:()=>(catalog.gifts||[]).filter((x)=>(x.categories||[]).includes("peter-rabbit"))},
   {file:"gifts-highland-cows.html",select:()=>(catalog.gifts||[]).filter((x)=>(x.categories||[]).includes("highland-cows"))},
   {file:"gifts-mugs.html",select:()=>(catalog.gifts||[]).filter((x)=>(x.categories||[]).includes("mugs"))},
@@ -171,6 +171,18 @@ for(const definition of definitions){
     return row?.type||item.type||"gifts";
   };
   let html=readFileSync(sourcePath,"utf8");
+  if(definition.dynamicSection){
+    const cards=(html.match(/<article class="product-card\b/g)||[]).length;
+    if(cards||html.includes('"@type":"ItemList"')||/renderCatalog\(['"]gifts['"]\)/.test(html)){
+      problems.push({file:definition.file,problem:"legacy_membership_source",cards});
+    }
+    if(!html.includes('id="catalog" data-published-section')||!html.includes('href="/all-products.html"')){
+      problems.push({file:definition.file,problem:"dynamic_fallback_missing"});
+    }
+    writeFileSync(resolve(outDir,definition.file),html,"utf8");
+    pages.push({file:definition.file,products:null,cardCount:cards,itemListCount:null});
+    continue;
+  }
   const cards=selected.map((item)=>card(item,typeFor(item))).join("");
   const patched=replaceDivInnerById(html,"catalog",cards);
   if(patched==null){
