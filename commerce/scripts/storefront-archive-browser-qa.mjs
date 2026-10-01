@@ -82,10 +82,15 @@ try{
       await open('/gifts-highland-cows.html');
       assert.equal(await page.locator('#catalog .product-card').count(),0,'A promoted Section page must not infer Product membership without published Structure');
       assert.equal(await page.locator('#catalog a[href="/all-products.html"]').count(),1);
+      await open('/gifts-mugs.html');
+      assert.equal(await page.locator('#catalog .product-card').count(),0,'A legacy child Section page must not infer Product membership without published Structure');
       mode='hierarchy-before';
       await open('/gifts.html');
       assert.equal(await page.locator('#catalog [data-product-slug="lake-qa-product"]').count(),1);
       assert.equal(await page.locator('#catalog [data-product-slug="promoted-qa-product"]').count(),1);
+      await open('/gifts-mugs.html');
+      assert.equal(await page.locator('#catalog [data-product-slug="lake-qa-product"]').count(),1,'Legacy child URL uses its published placement');
+      assert.equal(await page.locator('#catalog [data-product-slug="promoted-qa-product"]').count(),0);
       mode='hierarchy-after';
       await open('/gifts.html');
       assert.equal(await page.locator('.gift-shortcuts [data-storefront-node="promoted"]').count(),0,'Promoted Section leaves its former parent shortcut');
