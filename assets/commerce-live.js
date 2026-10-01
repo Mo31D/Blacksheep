@@ -33,6 +33,17 @@
   };
 
   function applyLiveProduct(item,product){
+    // The published commerce catalogue is authoritative for customer-facing
+    // product identity and taxonomy. Static data is only the resilient fallback.
+    if(typeof product.name==='string'&&product.name.trim())item.name=product.name.trim();
+    if(typeof product.shortDescription==='string')item.desc=product.shortDescription.trim();
+    if(product.brand!==undefined)item.brand=product.brand||null;
+    if(product.sku!==undefined)item.sku=product.sku||null;
+    if(typeof product.slug==='string'&&product.slug.trim())item.slug=product.slug.trim();
+    if(Array.isArray(product.categories))item.categories=product.categories.map(String).filter(Boolean);
+    if(product.primaryCategory!==undefined)item.category=product.primaryCategory||null;
+    if(product.primaryImageUrl)item.img=mediaUrl(product.primaryImageUrl);
+    item.label=labelForProduct(product,normalizeType(product.type||item.type||item.section));
     item.commerceLive=true;
     item.commercePurchasable=product.purchasable===true;
     item.commerceUnavailableReason=normalizeReason(product.nonPurchasableReason);
