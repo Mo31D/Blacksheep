@@ -46,7 +46,12 @@ const server = http.createServer((request, response) => {
   } else {
     const body = pathname === '/admin/api/storefront-structure' ? { nodes }
       : pathname === '/admin/api/homepage-merchandising' ? { config: homepage }
-      : pathname === '/admin/api/media' ? { assets: [{ id: 'asset-existing', publicUrl: '/media/asset-existing', title: 'Existing section artwork', altText: 'Existing artwork', status: 'ACTIVE' }] } : {};
+      : pathname === '/admin/api/media' ? { assets: [
+          { id: 'asset-existing', publicUrl: '/media/asset-existing', title: 'Existing section artwork', altText: 'Existing artwork', status: 'ACTIVE', currentUsageCount: 1, usageCount: 2 },
+          { id: 'asset-history', publicUrl: '/media/asset-history', title: 'Saved artwork', status: 'ACTIVE', currentUsageCount: 0, usageCount: 1 },
+          { id: 'asset-unused', publicUrl: '/media/asset-unused', title: 'New artwork', status: 'ACTIVE', currentUsageCount: 0, usageCount: 0 },
+        ] }
+      : pathname === '/admin/api/media/asset-existing/usage' ? { asset: { id: 'asset-existing', title: 'Existing section artwork', usageCount: 2 }, places: [{ type: 'SECTION', label: 'Local Treats', published: true, draft: false }] } : {};
     response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(body));
   }
 });
@@ -115,6 +120,13 @@ try {
           assert.equal(await page.locator('#view-website').isVisible(), true, `${engine}: ${hash} deep link`);
           assert.equal(await page.locator(`[data-website-tab="${tab}"].active`).count(), 1, `${engine}: ${tab} selected`);
         }
+        await page.locator('[data-shared-media-usage="asset-existing"]').waitFor();
+        assert.equal(await page.locator('#sharedMediaGrid').innerText().then(text => text.includes('1 current place') && text.includes('Retained by saved content') && text.includes('Unused')), true, `${engine}: current, historical and unused image states are distinct`);
+        await page.locator('[data-shared-media-usage="asset-existing"]').click();
+        assert.equal(await page.locator('#sharedMediaUsage').evaluate(dialog => dialog.open), true, `${engine}: usage dialog opens`);
+        assert.equal(await page.locator('#sharedMediaUsageBody').innerText().then(text => text.includes('Local Treats') && text.includes('Published')), true, `${engine}: usage names the actual published Section`);
+        await page.locator('#sharedMediaUsage button[type="submit"]').click();
+        assert.equal(await page.locator('#sharedMediaUsage').evaluate(dialog => dialog.open), false, `${engine}: usage dialog closes`);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${engine}: no horizontal overflow at ${width}px`);
         assert.deepEqual(errors, [], `${engine}: no page errors at ${width}px`);
         await page.close();
