@@ -66,7 +66,7 @@ describe("original design DOM reconciliation", () => {
   it.each([true, false])("removes stale cards only when the feed is authoritative: %s", authoritative => {
     const removed = { remove: vi.fn() }, kept = { remove: vi.fn() };
     const initFilters = vi.fn();
-    const globals = { window: { BLACK_SHEEP_LIVE_COMMERCE_STATE: { authoritative } }, document: { getElementById: () => null, querySelectorAll: () => [removed, kept], querySelector: () => null }, location: { pathname: "/all-products.html" }, productFromCard: (card: unknown) => card === kept ? {} : null, initFilters };
+    const globals = { window: { BLACK_SHEEP_LIVE_COMMERCE_STATE: { authoritative } }, document: { getElementById: () => null, querySelectorAll: () => [removed, kept], querySelector: () => null }, location: { pathname: "/all-products.html" }, liveCatalogPageContext: () => null, productFromCard: (card: unknown) => card === kept ? {} : null, initFilters };
     runInNewContext(reconcileScript + "reconcilePublishedCatalogDom();", globals);
     expect(removed.remove).toHaveBeenCalledTimes(authoritative ? 1 : 0);
     expect(kept.remove).not.toHaveBeenCalled();
