@@ -155,6 +155,17 @@ try {
           assert.equal(await page.locator('#view-website').isVisible(), true, `${engine}: ${hash} deep link`);
           assert.equal(await page.locator(`[data-website-tab="${tab}"].active`).count(), 1, `${engine}: ${tab} selected`);
           if (tab === 'appearance') {
+            const heroUploadRequest = page.waitForRequest(request => request.url().endsWith('/admin/api/media') && request.method() === 'POST');
+            await page.locator('#appearanceHeroUpload').setInputFiles({ name: 'hero.png', mimeType: 'image/png', buffer: Buffer.from('fixture') });
+            await heroUploadRequest;
+            await waitForUploadResponse();
+            for (const id of ['appearanceSaveDraft', 'appearancePreview', 'appearancePublish', 'appearanceHeroClear', 'appearanceHeroChooseMedia']) {
+              assert.equal(await page.locator('#' + id).isDisabled(), true, `${engine}: ${id} waits for Hero upload`);
+            }
+            pendingUploadResponse.writeHead(201, { 'content-type': 'application/json' }).end(JSON.stringify({ asset: { id: 'hero-upload', publicUrl: '/media/hero-upload' } }));
+            pendingUploadResponse = null;
+            await page.waitForFunction(() => document.getElementById('appearanceSaveDraft')?.disabled === false);
+            assert.equal(await page.locator('#appearanceHeroImage').inputValue(), '/media/hero-upload', `${engine}: Hero upload fills the private form after completion`);
             await page.locator('#appearanceHeroChooseMedia').click();
             await page.locator('[data-appearance-image-choice="asset-existing"]').waitFor();
             await page.locator('[data-appearance-image-choice="asset-existing"]').click();
