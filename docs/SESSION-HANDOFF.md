@@ -63,3 +63,13 @@ Then continue B contextual content, Slice C Shared Media usage/duplicate clarity
 - Subsequent Phase 8: contextual Homepage editor, Shared Media usage/duplicate handling, named destination picker, statuses/unsaved feedback, mobile/visual acceptance. Preserve canonical domain owners and Shared Media.
 - Phase 7 staging Stocktake/reservation writes, checkout/Turnstile and physical weak-device checks remain open. CAPTCHA needs action-time approval. A properly transparent export of the detailed sheep artwork is required before replacing opaque tracked PNGs. Legacy asset deletion remains blocked on external-consumer evidence.
 - User-approved test mailbox is configured as a staging-only allowlist secret; no value in repository. Prior staging email reached Resend `DELIVERED`; inbox UI unverified. See `STAGING-ACCEPTANCE-2026-09-29.md`.
+
+
+## 2026-10-01 — catalogue-authoritative storefront reconciliation
+- [x] Root cause addressed: collection pages could retain prerendered static cards after the live catalogue loaded, so stale static category membership could survive even when D1/published catalogue structure had changed.
+- [x] Published /v1/catalog is now authoritative for matched product name, description, brand, SKU, slug, categories, primary category and primary image; static catalogue remains fallback only when the live feed fails.
+- [x] Authoritative reconciliation now rebuilds supported collection-page product DOM from the published catalogue instead of merely deleting cards absent from the feed.
+- [x] gifts.html is included in the live collection-page context, so its product grid is rebuilt from the published gifts catalogue after a successful feed.
+- [x] Existing /v1/storefront-structure remains authoritative for section hierarchy/navigation and product placements; this change does not reintroduce static parent/child ownership.
+- [ ] Deploy current main to staging and verify gifts.html on two browsers/devices after a hard refresh; then deploy the same verified SHA to production.
+- [ ] Verify Peter Rabbit Gifts and Highland Cows Ornaments remain independent roots and no longer inherit stale Lake District Souvenirs membership from prerendered HTML.
