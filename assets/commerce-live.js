@@ -116,7 +116,7 @@
     // A published Section with a preserved static URL has one renderer: its
     // current hierarchy and Product placements. Taxonomy card paths below
     // must not repopulate that page after the Section renderer has run.
-    const publishedCollectionRoute=!!document.querySelector('#catalog[data-published-section]')||Array.isArray(structureNodes)&&structureNodes.some(node=>node.legacyPath===location.pathname);
+    const publishedCollectionRoute=!!document.querySelector?.('#catalog[data-published-section]')||Array.isArray(structureNodes)&&structureNodes.some(node=>node.legacyPath===location.pathname);
     if(!publishedCollectionRoute&&typeof reconcilePublishedCatalogDom==='function')reconcilePublishedCatalogDom();
     if(Array.isArray(structureNodes)&&typeof syncDynamicStorefrontStructure==='function'){
       syncDynamicStorefrontStructure(structureNodes);

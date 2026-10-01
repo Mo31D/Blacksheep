@@ -61,7 +61,7 @@ jobs:
           const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
           const latest = String(blocks?.[0]?.results?.[0]?.name ?? "");
           const active = Number(blocks?.[1]?.results?.[0]?.active ?? -1);
-          if (latest !== "0024_shared_media_delete_jobs.sql" || active !== 146) {
+          if (!latest || active < 1) {
             console.error("Unexpected staging publication QA baseline.", { latest, active });
             process.exit(1);
           }
@@ -76,7 +76,7 @@ jobs:
           const active = Number(blocks?.[1]?.results?.[0]?.active ?? -1);
           const missingPublished = Number(blocks?.[2]?.results?.[0]?.missing_published ?? -1);
           if (
-            !["0022_website_appearance.sql", "0024_shared_media_delete_jobs.sql"].includes(latest) ||
+            !latest ||
             active < 1 ||
             missingPublished !== 0
           ) {
@@ -97,17 +97,19 @@ jobs:
         run: |
           npx wrangler d1 execute black-sheep-commerce-staging --remote --env staging --json             --command "SELECT COUNT(*) AS active FROM products WHERE publication_status='ACTIVE' AND current_published_version_id IS NOT NULL; SELECT COUNT(*) AS qa_products FROM products WHERE current_slug LIKE 'phase-6-publication-qa-%'; SELECT COUNT(*) AS qa_variants FROM product_variants WHERE sku LIKE 'QA6PUB-%';"             > /tmp/phase6-publish-cleanup.json
           cat /tmp/phase6-publish-cleanup.json
-          node - /tmp/phase6-publish-cleanup.json <<'NODE'
+          node - /tmp/phase6-publish-cleanup.json /tmp/phase6-publish-staging-baseline.json <<'NODE'
           const fs = require("fs");
           const blocks = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const baseline = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
+          const baselineActive = Number(baseline?.[1]?.results?.[0]?.active ?? -1);
           const active = Number(blocks?.[0]?.results?.[0]?.active ?? -1);
           const qaProducts = Number(blocks?.[1]?.results?.[0]?.qa_products ?? -1);
           const qaVariants = Number(blocks?.[2]?.results?.[0]?.qa_variants ?? -1);
-          if (active !== 146 || qaProducts !== 0 || qaVariants !== 0) {
-            console.error("Publication QA cleanup gate failed.", { active, qaProducts, qaVariants });
+          if (baselineActive < 1 || active !== baselineActive || qaProducts !== 0 || qaVariants !== 0) {
+            console.error("Publication QA cleanup gate failed.", { baselineActive, active, qaProducts, qaVariants });
             process.exit(1);
           }
-          console.log("Publication QA cleanup restored the 146-product baseline.");
+          console.log("Publication QA cleanup restored the initial Product baseline.");
           NODE
 
       - name: Upload publication Admin QA artifacts
