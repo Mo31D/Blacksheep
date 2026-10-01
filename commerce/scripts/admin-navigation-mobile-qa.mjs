@@ -81,6 +81,10 @@ try {
         assert.equal(await page.locator('.sidebar').isVisible(), false, `${engine}: desktop sidebar hidden`);
         assert.equal(await page.locator('#view-website').isVisible(), true, `${engine}: Website opens`);
         await page.locator('#homepageCollectionCards .homepage-destination-row').first().waitFor();
+        assert.equal(await page.locator('#homepageLocalCardAdd').isVisible(), true, `${engine}: Add favourite is visible in Website → Homepage`);
+        await page.locator('#homepageLocalCardChoice').selectOption('sfn_romneys');
+        await page.locator('#homepageLocalCardAdd').click();
+        assert.equal(await page.locator('#homepageLocalCards .homepage-destination-row').count(), 2, `${engine}: a second favourite is added without saving`);
         assert.equal(await page.locator('#homepageCollectionCards .homepage-destination-row').count(), 2, `${engine}: card editor shows current collections`);
         await page.locator('#homepageCollectionCards [data-card-move="1"]').first().click();
         assert.equal(await page.locator('#homepageCollectionCards .homepage-destination-row strong').first().textContent(), 'Highland Cows', `${engine}: phone reorder works`);

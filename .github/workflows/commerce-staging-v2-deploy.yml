@@ -136,6 +136,28 @@ jobs:
           console.log("Staging six-root menu, third level, " + productCount + " Products, legacy redirect and sitemap verified.");
           NODE
 
+      - name: Verify published Homepage Shared Media
+        env:
+          STAGING_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          node --input-type=module - <<'NODE'
+          const base = process.env.STAGING_URL;
+          const response = await fetch(base + "/v1/homepage-merchandising");
+          if (!response.ok) throw new Error("Published Homepage request failed: " + response.status);
+          const payload = await response.json();
+          const cards = Object.values(payload.config?.cards || {}).flat();
+          let checked = 0;
+          for (const card of cards) {
+            if (!String(card.imageUrl || "").startsWith("/media/")) continue;
+            const image = await fetch(new URL(card.imageUrl, base));
+            if (!image.ok || !String(image.headers.get("content-type") || "").startsWith("image/")) {
+              throw new Error("Published Homepage card image failed: " + card.name + " (" + image.status + ")");
+            }
+            checked++;
+          }
+          console.log("Published Homepage cards: " + cards.length + "; Shared Media images served: " + checked);
+          NODE
+
       - name: Safety confirmation
         run: |
           echo "Staging-only deployment completed."
