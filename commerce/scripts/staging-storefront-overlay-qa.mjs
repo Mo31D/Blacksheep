@@ -329,6 +329,8 @@ async function verifyMockedLiveChanges(realPayload) {
     brand: "Hawkshead Relish Company",
     type: "hawkshead",
     primaryCategory: "hawkshead-relish",
+    primaryStorefrontNodeId: "sfn_hawkshead",
+    storefrontNodeIds: ["sfn_hawkshead"],
     sku: "QA-LIVE-DYNAMIC",
     priceMinor: 321,
     status: "available",
