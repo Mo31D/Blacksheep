@@ -1,5 +1,13 @@
 # Session handoff — 1 October 2026
 
+## Owner hotfix verification / deployment update — 1 October 2026
+
+The owner manually promoted the legacy collection hierarchy hotfix after Codex's weekly limit. Source fix `d2d6e06` makes published Website Structure authoritative for legacy collection shortcuts and Product rows; `1020b37` updates the dynamic-storefront contract assertion for the new canonical child markup. This was intentionally a narrow compatibility fix, not a redesign and not a per-section Peter Rabbit/Highland exclusion.
+
+Verification is green on exact SHA `1020b37715096c7f97b87979e9b3c355119857aa`: Commerce CI 36859148602 SUCCESS, Search readiness 36859148710 SUCCESS and Pages 36859147787 SUCCESS. Owner-triggered guarded Staging deploy 36859971697 SUCCESS on the same SHA; its pre-deploy validation, migrations, Worker deploy, health, published hierarchy/clean-route check and Homepage Shared Media check all passed. Owner then explicitly triggered Production deploy 36860497738 on the same SHA; `npm run check` and production migrate/deploy passed. These owner deployments supersede the older handoff statement that Production remained approval-gated/undeployed for this hotfix.
+
+**Codex retains authority for continuation:** fetch latest `main` and review `d2d6e06` + `1020b37` before further architecture edits. Confirm the behaviour with browser acceptance when available: Lake District Souvenirs must derive shortcuts and Product membership from its current published subtree, so former children promoted to roots (Peter Rabbit Gifts / Highland Cows Ornaments) must not leak back through legacy static markup. Add/strengthen a regression test for child→root promotion rather than hard-coded names. Decide later, within the architecture plan, whether remaining static `gifts.html`, `GIFT_COLLECTIONS` and `EXTRA_COLLECTIONS` can be retired safely while preserving SEO/legacy URLs. If Codex finds a safer canonical implementation, it may supersede this owner hotfix after tests and Staging acceptance; do not preserve the patch merely because it was manually added.
+
 ## Owner hotfix — legacy collection hierarchy (manual, after Codex weekly limit)
 
 **Commit `d2d6e06`** fixes a stale-hierarchy leak on legacy collection pages without changing D1, Website Structure, Product placements, URLs or Admin data. Root cause: `gifts.html` still contains historical static filter/product markup, while `syncLegacyCollectionChildren()` only appended current Website Structure children. After Peter Rabbit Gifts and Highland Cows Ornaments were promoted to roots, the old buttons/products could therefore remain visible under Lake District Souvenirs even though the published hierarchy was correct.
