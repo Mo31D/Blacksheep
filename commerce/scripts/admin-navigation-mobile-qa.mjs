@@ -154,6 +154,13 @@ try {
           await page.reload();
           assert.equal(await page.locator('#view-website').isVisible(), true, `${engine}: ${hash} deep link`);
           assert.equal(await page.locator(`[data-website-tab="${tab}"].active`).count(), 1, `${engine}: ${tab} selected`);
+          if (tab === 'appearance') {
+            await page.locator('#appearanceHeroChooseMedia').click();
+            await page.locator('[data-appearance-image-choice="asset-existing"]').waitFor();
+            await page.locator('[data-appearance-image-choice="asset-existing"]').click();
+            assert.equal(await page.locator('#appearanceHeroImage').inputValue(), '/media/asset-existing', `${engine}: Hero selects existing image in place`);
+            assert.equal(draftWrites, 0, `${engine}: Hero selection does not save a draft`);
+          }
         }
         await page.locator('[data-shared-media-usage="asset-existing"]').waitFor();
         assert.equal(await page.locator('#sharedMediaGrid').innerText().then(text => text.includes('1 current place') && text.includes('Retained by saved content') && text.includes('Unused')), true, `${engine}: current, historical and unused image states are distinct`);

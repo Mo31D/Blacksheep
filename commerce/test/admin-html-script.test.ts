@@ -107,6 +107,9 @@ describe("generated Admin HTML scripts", () => {
     expect(production).toContain("View usage");
     expect(production).toContain("Retained by saved content");
     expect(production).toContain("sharedMediaUsage");
+    expect(production).toContain("appearanceHeroPicker");
+    expect(production).toContain("data-appearance-image-choice");
+    expect(production).not.toContain("openSharedMediaPicker('hero')");
     expect(production).toContain("Reuse existing");
     expect(production).toContain("Upload separately");
     expect(production).toContain("Organise in library · optional");
