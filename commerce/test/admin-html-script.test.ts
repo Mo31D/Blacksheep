@@ -131,10 +131,12 @@ describe("generated Admin HTML scripts", () => {
     expect(production).not.toContain('placeholder="/images/1.png"');
     expect(production).not.toContain('placeholder="Image address"');
     expect(production).not.toContain('placeholder="Optional image address"');
-    expect(production).toContain("Choose from Media Library");
+    expect(production).toContain('id="productMediaPicker"');
+    expect(production).toContain('data-product-media-choice');
+    expect(production).not.toContain("openSharedMediaPicker('product'");
     expect(production).toContain("/admin/api/media");
     expect(production).toContain("/media/from-library");
-    expect(production).toContain("function useSharedMediaAsset");
+    expect(production).toContain("function attachExistingProductImage");
     expect(production).toContain("Image added to Product draft");
     expect(production).toContain("context:'PRODUCT'");
     expect(production).not.toContain(

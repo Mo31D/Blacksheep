@@ -33,6 +33,7 @@ const homepage = {
   },
 };
 let draftWrites = 0;
+let productMediaAttachments = 0;
 let pendingUploadResponse = null;
 let mediaUploadCount = 0;
 async function waitForUploadResponse() {
@@ -48,6 +49,11 @@ const server = http.createServer((request, response) => {
   if (pathname === '/admin/api/media' && request.method === 'POST') {
     mediaUploadCount++;
     pendingUploadResponse = response;
+    return;
+  }
+  if (pathname === '/admin/api/products/qa-product/media/from-library' && request.method === 'POST') {
+    productMediaAttachments++;
+    response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ product: { id: 'qa-product', title: 'QA Product', publicationStatus: 'DRAFT', version: 2, media: [] } }));
     return;
   }
   if (pathname === '/admin') {
@@ -184,6 +190,20 @@ try {
         assert.equal(await page.locator('#sharedMediaUsageBody').innerText().then(text => text.includes('Local Treats') && text.includes('Published')), true, `${engine}: usage names the actual published Section`);
         await page.locator('#sharedMediaUsage button[type="submit"]').click();
         assert.equal(await page.locator('#sharedMediaUsage').evaluate(dialog => dialog.open), false, `${engine}: usage dialog closes`);
+        const attachedBefore = productMediaAttachments;
+        await page.evaluate(() => {
+          window.productCurrent = { id: 'qa-product', title: 'QA Product', publicationStatus: 'DRAFT', version: 1, media: [] };
+          window.renderProductDetail = () => {};
+          window.loadProducts = async () => {};
+          window.openProductMediaManager();
+        });
+        await page.locator('#mediaChooseExisting').click();
+        await page.locator('[data-product-media-choice="asset-existing"]').click();
+        await page.waitForFunction(() => window.productCurrent?.version === 2);
+        assert.equal(productMediaAttachments, attachedBefore + 1, `${engine}: existing image attaches to Product draft once`);
+        assert.equal(await page.locator('#productMediaPicker').count(), 1, `${engine}: Product gallery remains the editing home`);
+        assert.equal(await page.locator('#websiteMediaPanel').isVisible(), true, `${engine}: contextual choice does not navigate away`);
+        await page.locator('#catalogSheet [data-close-product-sheet]').click();
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${engine}: no horizontal overflow at ${width}px`);
         assert.deepEqual(errors, [], `${engine}: no page errors at ${width}px`);
         await page.close();
