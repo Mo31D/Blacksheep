@@ -113,7 +113,11 @@
   }
 
   function syncUi(structureNodes,homepageMerchandising,websiteAppearance){
-    if(typeof reconcilePublishedCatalogDom==='function')reconcilePublishedCatalogDom();
+    // A published Section with a preserved static URL has one renderer: its
+    // current hierarchy and Product placements. Taxonomy card paths below
+    // must not repopulate that page after the Section renderer has run.
+    const publishedCollectionRoute=Array.isArray(structureNodes)&&structureNodes.some(node=>node.legacyPath===location.pathname);
+    if(!publishedCollectionRoute&&typeof reconcilePublishedCatalogDom==='function')reconcilePublishedCatalogDom();
     if(Array.isArray(structureNodes)&&typeof syncDynamicStorefrontStructure==='function'){
       syncDynamicStorefrontStructure(structureNodes);
     }
@@ -123,7 +127,7 @@
     if(websiteAppearance&&typeof syncWebsiteAppearance==='function'){
       syncWebsiteAppearance(websiteAppearance);
     }
-    const dynamicCards=typeof syncDynamicCatalogCards==='function'?syncDynamicCatalogCards():0;
+    const dynamicCards=!publishedCollectionRoute&&typeof syncDynamicCatalogCards==='function'?syncDynamicCatalogCards():0;
     if(typeof syncCatalogCardState==='function')syncCatalogCardState();
     if(typeof sortProductCardsByAvailability==='function')sortProductCardsByAvailability();
     if(typeof polishListButtons==='function')polishListButtons();

@@ -1,5 +1,15 @@
 # Session handoff — 1 October 2026
 
+## Current continuation — published hierarchy versus legacy Gifts
+
+Remote `main` was re-read at `4a9cfca` after the owner reported persistent Peter Rabbit/Highland child leakage. This Windows checkout cannot write `.git/FETCH_HEAD`; authoritative files were fetched from GitHub and verified by blob SHA before editing. The owner deployed earlier `1020b37` to Staging and Production; **Codex has not deployed the newer attempts or any Production change.** The owner's new report takes priority over the unfinished E.1 phone-fixture repair.
+
+Review: `d2d6e06` makes a legacy page's direct child links and grid derive from published Structure/placements and is useful. `38119f4` added a separate published-catalogue taxonomy DOM rebuild, while existing `syncDynamicCatalogCards()` can append a promoted root Product *after* the canonical Section render. `a037422` copies canonical Product fields into the live catalogue and aligns with data ownership; keep it unless a test disproves it. `03022a6`/`9963fee` adjust the non-Section reconciliation test; `4a9cfca` correctly waits for asynchronous Image Library usage in browser QA. None of these is authority over the architecture.
+
+**Current candidate (local, not committed):** `assets/commerce-live.js` now selects one renderer for a page whose `legacyPath` matches a published Section: the existing `syncLegacyCollectionChildren()` uses the published subtree and placements, while taxonomy reconciliation/dynamic-card addition are skipped for that page. `commerce/scripts/storefront-archive-browser-qa.mjs` exercises a generic child→root promotion with a newly published Product at Chromium/WebKit widths; local syntax, dynamic-storefront contract and 12 focused Vitest tests passed. Next: run the full suite and GitHub browser QA, commit the bounded fix, verify guarded Staging and browser behavior, then address `gifts.html` static fallback/SEO markup as a separate source cleanup. Preserve indexed URLs and do not deploy Production without new explicit approval.
+
+**Paused independent task:** E.1 unsaved Homepage/Appearance guard is already on main at `4646264`; its first Commerce CI browser run 36845689947 exposed an unrelated usage-dialog timing race. Owner commit `4a9cfca` applied the equivalent wait after our local pending change. Recheck it on the newest main after the hierarchy defect is contained. The historical handoff paragraphs below predate these commits and should not be used as the current queue.
+
 ## Owner hotfix verification / deployment update — 1 October 2026
 
 The owner manually promoted the legacy collection hierarchy hotfix after Codex's weekly limit. Source fix `d2d6e06` makes published Website Structure authoritative for legacy collection shortcuts and Product rows; `1020b37` updates the dynamic-storefront contract assertion for the new canonical child markup. This was intentionally a narrow compatibility fix, not a redesign and not a per-section Peter Rabbit/Highland exclusion.

@@ -18,6 +18,13 @@ const products=Object.entries(context.window.CATALOG).flatMap(([type,items])=>it
 const archived=products.find(p=>p.id==='HC-003');
 assert(archived,'Original design fixture missing');
 const newProduct={...archived,id:'new-qa-product',productId:'new-qa-product',slug:'new-qa-product',name:'New QA Product'};
+const lakeProduct={...newProduct,id:'lake-qa-product',productId:'lake-qa-product',slug:'lake-qa-product',name:'Lake QA Product',storefrontNodeIds:['lake-child']};
+const promotedProduct={...newProduct,id:'promoted-qa-product',productId:'promoted-qa-product',slug:'promoted-qa-product',name:'Promoted QA Product',storefrontNodeIds:['promoted']};
+const hierarchyNodes=parentNodeId=>[
+  {id:'lake',name:'Lake District Souvenirs',slug:'lake',legacyPath:'/gifts.html',parentNodeId:null,sortOrder:10,showInNavigation:true},
+  {id:'lake-child',name:'Local Gifts',slug:'local-gifts',legacyPath:'/gifts-mugs.html',parentNodeId:'lake',sortOrder:10,showInNavigation:true},
+  {id:'promoted',name:'Promoted Collection',slug:'promoted',legacyPath:'/gifts-highland-cows.html',parentNodeId,sortOrder:20,showInNavigation:true},
+];
 const server=http.createServer((request,response)=>{
   const pathname=decodeURIComponent(new URL(request.url,'http://localhost').pathname);
   const target=path.resolve(root,'.'+(pathname==='/'?'/index.html':pathname));
@@ -39,9 +46,10 @@ try{
       await page.route('https://api.theblacksheepshop.co.uk/**',async route=>{
         const url=new URL(route.request().url());
         if(url.pathname==='/media/section-image'){await route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"/>'});return;}
+        if(url.pathname==='/v1/storefront-structure'&&mode.startsWith('hierarchy-')){await route.fulfill({contentType:'application/json',body:JSON.stringify({nodes:hierarchyNodes(mode==='hierarchy-before'?'lake':null)})});return;}
         if(url.pathname!=='/v1/catalog'){await route.fulfill({status:503,body:'{}'});return;}
         if(mode==='failure'){await route.fulfill({status:503,body:'{}'});return;}
-        const rows=mode==='empty'?[]:products.filter(p=>p.id!==archived.id);
+        const rows=mode==='empty'?[]:mode.startsWith('hierarchy-')?[lakeProduct,promotedProduct]:products.filter(p=>p.id!==archived.id);
         if(mode==='published')rows.push(newProduct);
         await route.fulfill({contentType:'application/json',body:JSON.stringify({products:rows,nextCursor:null})});
       });
@@ -63,6 +71,16 @@ try{
       mode='failure';
       await open('/all-products.html');
       assert.equal(await page.locator('.product-card[data-url="/products/'+archived.slug+'.html"]').count(),1);
+      mode='hierarchy-before';
+      await open('/gifts.html');
+      assert.equal(await page.locator('#catalog [data-product-slug="lake-qa-product"]').count(),1);
+      assert.equal(await page.locator('#catalog [data-product-slug="promoted-qa-product"]').count(),1);
+      mode='hierarchy-after';
+      await open('/gifts.html');
+      assert.equal(await page.locator('.gift-shortcuts [data-storefront-node="promoted"]').count(),0,'Promoted Section leaves its former parent shortcut');
+      assert.equal(await page.locator('#catalog [data-product-slug="lake-qa-product"]').count(),1);
+      assert.equal(await page.locator('#catalog [data-product-slug="promoted-qa-product"]').count(),0,'Published placement outside the current subtree must not reappear through static Gifts taxonomy');
+      mode='published';
       await open('/index.html');
       await page.evaluate(()=>syncHomepageDestinationCards({
         COLLECTIONS:[{name:'Highland Cows',shortDescription:'New collection copy',imageUrl:'/media/section-image',destinationPath:'/gifts-highland-cows.html'}],
@@ -74,7 +92,7 @@ try{
       assert.equal(await page.locator('.home-discover-grid .feature').count(),1);
       assert.equal(await page.locator('.home-discover-grid .feature h3').textContent(),"Romney's");
       assert.equal(await page.locator('.home-discover-grid .feature img').count(),1);
-      console.log(name+': archived catalogue behaviour and Homepage destination-card rendering passed');
+      console.log(name+': archived catalogue, child-to-root hierarchy and Homepage destination cards passed');
     }finally{await browser.close();}
   }
 }finally{await new Promise(resolve=>server.close(resolve));}
