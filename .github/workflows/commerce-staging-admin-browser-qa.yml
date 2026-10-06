@@ -1,5 +1,5 @@
 name: Commerce Staging Admin Browser QA
-# Phase 8 F owner-flow acceptance: promoted Highland Cows main-Section fixture.
+# Phase 8 F owner-flow acceptance: diagnose Product draft placement Preview.
 
 on:
   push:
