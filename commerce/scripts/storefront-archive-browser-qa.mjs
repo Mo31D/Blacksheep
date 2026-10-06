@@ -77,6 +77,10 @@ try{
       mode='failure';
       await open('/all-products.html');
       assert.equal(await page.locator('.product-card[data-url="/products/'+archived.slug+'.html"]').count(),1);
+      await open('/index.html');
+      assert.equal(await page.locator('#homeCollections .collection').count(),1,'Unavailable Homepage config keeps one general browsing fallback');
+      assert.equal(await page.locator('#homeCollections .collection').getAttribute('href'),'/all-products.html');
+      assert.equal(await page.locator('#homeCollections a[href^="/gifts-"]').count(),0,'Old Gifts taxonomy must not repopulate Homepage cards');
       await open('/gifts.html');
       assert.equal(await page.locator('#catalog .product-card').count(),0,'Legacy Gifts must not publish stale Product membership when the API is unavailable');
       assert.equal(await page.locator('.gift-shortcuts [data-filter]').count(),0,'Legacy Gifts must not publish stale child filters');
