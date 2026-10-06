@@ -1,5 +1,5 @@
 name: Commerce Staging Admin Browser QA
-# Phase 8 F owner-flow acceptance: open Sections through Website navigation.
+# Phase 8 F owner-flow acceptance: Website opens through More on phones.
 
 on:
   push:

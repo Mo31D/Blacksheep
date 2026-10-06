@@ -2044,6 +2044,10 @@ async function ownerPolishViewsQa(viewport, label) {
     if (name === "catalogue") {
       await openView("website");
       await page.locator('[data-website-tab="sections"]').click();
+    } else if (name === "website" &&
+        await page.locator("#openAdminNavigation").isVisible()) {
+      await page.locator("#openAdminNavigation").click();
+      await page.locator('#adminNavigation [data-nav="website"]').click();
     } else {
       await page.locator('[data-nav="' + name + '"]:visible').first().click();
     }
