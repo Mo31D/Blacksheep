@@ -184,12 +184,14 @@ for(const {type,item} of rows){
 }
 
 const expectedRawLinks={
- 'icecream.html':catalog.icecream.length,
  'romneys.html':catalog.romneys.length,
  'hawkshead-relish.html':catalog.hawkshead.length,
  'all-products.html':rows.length
 };
 const giftLanding=read('gifts.html');
+const iceCreamLanding=read('icecream.html');
+if((iceCreamLanding.match(/<article class="product-card\b/g)||[]).length||iceCreamLanding.includes('"@type":"ItemList"')||/renderCatalog\(/.test(iceCreamLanding)) fail.push('Ice Cream legacy membership source returned');
+if(!iceCreamLanding.includes('id="catalog" data-published-section')||!iceCreamLanding.includes('href="/all-products.html"')) fail.push('Ice Cream dynamic fallback missing');
 for(const route of ["gifts-mugs.html","gifts-soft-toys.html","gifts-cards.html","gifts-seasonal.html","gifts-keyrings-badges.html","gifts-home-art.html","gifts-toys-games.html"]){
   const h=read(route);
   if((h.match(/<article class="product-card\b/g)||[]).length||h.includes('"@type":"ItemList"')||/renderCatalog\(/.test(h)) fail.push('Legacy Section membership returned: '+route);
@@ -238,4 +240,3 @@ if(fail.length){
   process.exit(1);
 }
 console.log('Search-readiness verification passed:',{products:rows.length,activePages:active.length,sitemapUrls:(sitemap.match(/<url>/g)||[]).length,placeholders:highlandPlaceholderAudit.length});
-

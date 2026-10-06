@@ -1,5 +1,9 @@
 # Session handoff — 1 October 2026
 
+## Current candidate — Ice Cream canonical Section page (6 October 2026)
+
+Remote `main` was unchanged at `0d3ed64` before work. `/icecream.html` has a stable published Section owner (`sfn_icecream`, migration `0017`); its static 12-card/ItemList source now yields to published Structure and Product placements. The indexed URL, general CollectionPage metadata, allergen warning and visit copy stay in place; unavailable Structure leaves an honest All products link. Generator/verifier, search readiness and browser QA were extended without touching Romney's/Hawkshead. Local search readiness, dynamic storefront contract, 14-page generator, TypeScript and 83 files/579 tests passed. **Next:** commit/push, verify Commerce CI/Chromium/WebKit, Search, Pages, publication candidate and Admin E2E; only then close acceptance and inspect Romney's separately. No Production Worker/data deploy.
+
 ## Current continuation — static Gifts source retirement
 
 **Seven category URLs accepted:** `d37e6c3` [Commerce CI 36877440709](https://github.com/Mo31D/Blacksheep/actions/runs/36877440709) passed full checks and Chromium/WebKit child-Section placement/missing-Structure browser regression; Search 36877440801, Pages 36877439807, publication candidate 36877440561 and Admin E2E 36877441043 passed. The ten indexed Gifts URLs now use published Section/Product placement membership. **Next:** evaluate Ice Cream, Romney's and Hawkshead individually; each uses different page markup and may need a different fallback decision. Then resume Phase 8 E/F. No Production Worker/data deploy.

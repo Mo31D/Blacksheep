@@ -20,10 +20,12 @@ assert(archived,'Original design fixture missing');
 const newProduct={...archived,id:'new-qa-product',productId:'new-qa-product',slug:'new-qa-product',name:'New QA Product'};
 const lakeProduct={...newProduct,id:'lake-qa-product',productId:'lake-qa-product',slug:'lake-qa-product',name:'Lake QA Product',storefrontNodeIds:['lake-child']};
 const promotedProduct={...newProduct,id:'promoted-qa-product',productId:'promoted-qa-product',slug:'promoted-qa-product',name:'Promoted QA Product',storefrontNodeIds:['promoted']};
+const iceProduct={...newProduct,id:'ice-qa-product',productId:'ice-qa-product',slug:'ice-qa-product',name:'Ice Cream QA Product',type:'icecream',storefrontNodeIds:['icecream']};
 const hierarchyNodes=parentNodeId=>[
   {id:'lake',name:'Lake District Souvenirs',slug:'lake',legacyPath:'/gifts.html',parentNodeId:null,sortOrder:10,showInNavigation:true},
   {id:'lake-child',name:'Local Gifts',slug:'local-gifts',legacyPath:'/gifts-mugs.html',parentNodeId:'lake',sortOrder:10,showInNavigation:true},
   {id:'promoted',name:'Promoted Collection',slug:'promoted',legacyPath:'/gifts-highland-cows.html',parentNodeId,sortOrder:20,showInNavigation:true},
+  {id:'icecream',name:'Ice Cream',slug:'ice-cream',legacyPath:'/icecream.html',parentNodeId:null,sortOrder:30,showInNavigation:true},
 ];
 const server=http.createServer((request,response)=>{
   const pathname=decodeURIComponent(new URL(request.url,'http://localhost').pathname);
@@ -49,7 +51,7 @@ try{
         if(url.pathname==='/v1/storefront-structure'&&mode.startsWith('hierarchy-')){await route.fulfill({contentType:'application/json',body:JSON.stringify({nodes:hierarchyNodes(mode==='hierarchy-before'?'lake':null)})});return;}
         if(url.pathname!=='/v1/catalog'){await route.fulfill({status:503,body:'{}'});return;}
         if(mode==='failure'){await route.fulfill({status:503,body:'{}'});return;}
-        const rows=mode==='empty'?[]:mode.startsWith('hierarchy-')?[lakeProduct,promotedProduct]:products.filter(p=>p.id!==archived.id);
+        const rows=mode==='empty'?[]:mode.startsWith('hierarchy-')?[lakeProduct,promotedProduct,iceProduct]:products.filter(p=>p.id!==archived.id);
         if(mode==='published')rows.push(newProduct);
         await route.fulfill({contentType:'application/json',body:JSON.stringify({products:rows,nextCursor:null})});
       });
@@ -84,6 +86,9 @@ try{
       assert.equal(await page.locator('#catalog a[href="/all-products.html"]').count(),1);
       await open('/gifts-mugs.html');
       assert.equal(await page.locator('#catalog .product-card').count(),0,'A legacy child Section page must not infer Product membership without published Structure');
+      await open('/icecream.html');
+      assert.equal(await page.locator('#catalog .product-card').count(),0,'Ice Cream must not infer Product membership without published Structure');
+      assert.equal(await page.locator('#catalog a[href="/all-products.html"]').count(),1);
       mode='hierarchy-before';
       await open('/gifts.html');
       assert.equal(await page.locator('#catalog [data-product-slug="lake-qa-product"]').count(),1);
@@ -91,6 +96,9 @@ try{
       await open('/gifts-mugs.html');
       assert.equal(await page.locator('#catalog [data-product-slug="lake-qa-product"]').count(),1,'Legacy child URL uses its published placement');
       assert.equal(await page.locator('#catalog [data-product-slug="promoted-qa-product"]').count(),0);
+      await open('/icecream.html');
+      assert.equal(await page.locator('#catalog [data-product-slug="ice-qa-product"]').count(),1,'Ice Cream URL uses its published placement');
+      assert.equal(await page.locator('#catalog [data-product-slug="lake-qa-product"]').count(),0);
       mode='hierarchy-after';
       await open('/gifts.html');
       assert.equal(await page.locator('.gift-shortcuts [data-storefront-node="promoted"]').count(),0,'Promoted Section leaves its former parent shortcut');
