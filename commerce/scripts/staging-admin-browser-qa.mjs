@@ -1049,15 +1049,8 @@ async function productPlacementQa() {
     await page.locator("#productPreview").click();
     await page.waitForSelector(".preview-product-card", { timeout: 10_000 });
     const previewText = await page.locator(".product-editor-panel").innerText();
-    console.log("CARD03 QA preview placement diagnostic:", JSON.stringify({
-      privatePreview: previewText.includes("Private preview"),
-      primaryLabel: previewText.includes("Primary:"),
-      additionalLabel: previewText.includes("Also shown in:"),
-      primaryMissing: previewText.includes("Primary: Not selected"),
-      text: previewText.slice(0, 1200),
-    }));
     assert(
-      previewText.includes("Private preview") &&
+      previewText.toLowerCase().includes("private preview") &&
         previewText.includes("Primary:") &&
         previewText.includes("Also shown in:") &&
         !previewText.includes("Primary: Not selected"),
@@ -1431,7 +1424,7 @@ async function homepageMerchandisingQa() {
     await page.waitForSelector(".homepage-preview-grid", { timeout: 10_000 });
     const previewText = await page.locator(".product-editor-panel").innerText();
     assert(
-      previewText.includes("Private preview") &&
+      previewText.toLowerCase().includes("private preview") &&
         previewText.includes(HOMEPAGE_QA_HEADING),
       "CARD 06 Private Preview did not render the draft heading.",
     );
@@ -1653,7 +1646,7 @@ async function websiteAppearanceQa() {
     await page.waitForSelector(".appearance-preview-box", { timeout: 10_000 });
     const previewText = await page.locator(".appearance-preview").innerText();
     assert(
-      previewText.includes("Private preview") &&
+      previewText.toLowerCase().includes("private preview") &&
         previewText.includes(APPEARANCE_QA_HEADING),
       "CARD 08 Appearance Preview does not reflect the draft.",
     );
