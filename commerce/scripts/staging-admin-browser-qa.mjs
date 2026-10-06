@@ -2196,7 +2196,9 @@ async function ownerPolishViewsQa(viewport, label) {
       for (const expected of [
         "Website structure",
         "Brands & ranges",
-        "Gifts & Souvenirs",
+        "Lake District Souvenirs",
+        "Peter Rabbit Gifts",
+        "Highland Cows Ornaments",
         "Ice Cream",
         "Romney's",
         "Hawkshead Relish",

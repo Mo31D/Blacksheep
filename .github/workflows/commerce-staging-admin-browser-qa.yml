@@ -1,5 +1,5 @@
 name: Commerce Staging Admin Browser QA
-# Phase 8 F owner-flow acceptance: Website opens through More on phones.
+# Phase 8 F owner-flow acceptance: assert published six-root Section names.
 
 on:
   push:
