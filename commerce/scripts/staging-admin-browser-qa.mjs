@@ -1532,7 +1532,7 @@ async function websiteAppearanceQa() {
     );
 
     const appearanceText = await page.locator("#websiteAppearancePanel").innerText();
-    for (const expected of ["Theme", "Homepage hero", "Colours", "Section images"]) {
+    for (const expected of ["Theme", "Homepage hero", "Colours"]) {
       assert(
         appearanceText.includes(expected),
         "CARD 08 Appearance workspace is missing: " + expected,
@@ -1553,6 +1553,11 @@ async function websiteAppearanceQa() {
     assert(
       !appearanceText.includes("Custom CSS"),
       "CARD 08 Appearance workspace exposes arbitrary CSS.",
+    );
+    assert(
+      !appearanceText.includes("Section images") &&
+        (await page.locator("[data-appearance-section-image]").count()) === 0,
+      "CARD 08 Appearance still exposes duplicate Section image ownership.",
     );
 
     const publishedBefore = appearanceQaSnapshot.publishedVersionId;
@@ -1584,15 +1589,6 @@ async function websiteAppearanceQa() {
 
     await page.locator("#appearanceHeroHeading").fill(APPEARANCE_QA_HEADING);
     await page.locator("#appearanceHeroImage").fill("/images/1.png");
-    const sectionImage = page
-      .locator("[data-appearance-section-image]")
-      .first();
-    const sectionImageKey = await sectionImage.getAttribute(
-      "data-appearance-section-image",
-    );
-    assert(sectionImageKey, "CARD 09 has no editable Section image field.");
-    await sectionImage.fill("/images/1.png");
-
     const savePromise = page.waitForResponse(
       (response) =>
         response.url().endsWith("/admin/api/appearance/draft") &&
@@ -1613,9 +1609,8 @@ async function websiteAppearanceQa() {
       saved?.config?.presetKey === "CHRISTMAS" &&
         saved?.config?.hero?.imageUrl === "/images/1.png" &&
         String(saved?.config?.tokens?.accent || "").toLowerCase() ===
-          "#a47a35" &&
-        saved?.config?.sectionImages?.[sectionImageKey] === "/images/1.png",
-      "CARD 09 Appearance draft did not persist preset/reset/section imagery.",
+          "#a47a35",
+      "CARD 09 Appearance draft did not persist preset/reset/hero imagery.",
     );
 
     const stateAfterDraft = d1(
@@ -1689,9 +1684,7 @@ async function websiteAppearanceQa() {
         String(publicAppearance?.config?.tokens?.accent || "").toLowerCase() ===
           "#a47a35" &&
         String(publicAppearance?.config?.tokens?.button || "").toLowerCase() ===
-          "#1e5239" &&
-        publicAppearance?.config?.sectionImages?.[sectionImageKey] ===
-          "/images/1.png",
+          "#1e5239",
       "CARD 09 public Appearance contract does not match the seasonal draft.",
     );
     const appearanceAudit = d1(
@@ -1936,34 +1929,6 @@ async function sharedMediaLibraryQa() {
       "CARD 11 shared asset was not selected for the Hero.",
     );
 
-    const sectionChoose = page
-      .locator("[data-appearance-section-choose]")
-      .first();
-    const sectionKey = await sectionChoose.getAttribute(
-      "data-appearance-section-choose",
-    );
-    assert(sectionKey, "CARD 11 has no Section media picker target.");
-    await sectionChoose.click();
-    await page.waitForSelector("#websiteMediaPanel:not(.hidden)", {
-      timeout: 20_000,
-    });
-    const sectionUse = page.locator(
-      '[data-shared-media-use="' + assetId + '"]',
-    );
-    await sectionUse.waitFor({ state: "visible", timeout: 20_000 });
-    await sectionUse.click();
-    await page.waitForSelector("#websiteAppearancePanel:not(.hidden)", {
-      timeout: 20_000,
-    });
-    assert(
-      (await page
-        .locator(
-          '[data-appearance-section-image="' + sectionKey + '"]',
-        )
-        .inputValue()) === assetUrl,
-      "CARD 11 shared asset was not reused for a Section.",
-    );
-
     await page.locator("#appearanceHeroHeading").fill(MEDIA_QA_HEADING);
     const savePromise = page.waitForResponse(
       (response) =>
@@ -1978,9 +1943,8 @@ async function sharedMediaLibraryQa() {
       200,
     );
     assert(
-      saved?.config?.hero?.imageUrl === assetUrl &&
-        saved?.config?.sectionImages?.[sectionKey] === assetUrl,
-      "CARD 11 one asset was not reused by both Hero and Section draft surfaces.",
+      saved?.config?.hero?.imageUrl === assetUrl,
+      "CARD 11 shared asset was not attached to the Hero draft.",
     );
 
     await page.locator('[data-website-tab="media"]').click();

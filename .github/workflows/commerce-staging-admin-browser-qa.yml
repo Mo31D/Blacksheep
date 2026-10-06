@@ -1,5 +1,5 @@
 name: Commerce Staging Admin Browser QA
-# Phase 8 F owner-flow acceptance: match CSS-transformed private Preview headings.
+# Phase 8 F owner-flow acceptance: Section imagery belongs to Website Structure.
 
 on:
   push:
