@@ -6,7 +6,7 @@
 
 Phase 8 E.1 unsaved Homepage/Appearance guard is accepted from existing `4646264` plus owner fixture correction `4a9cfca`: Commerce CI 36865539476 and guarded Staging deploy 36846387728 succeeded. This corrects stale checklist prose; full live save/preview/publish acceptance remains under F. **Current next task:** review Draft/Published state and action clarity before final mobile/staging acceptance.
 
-**Current candidate E.2:** Website editors now distinguish Private draft, Published live and Not published with a shared status rule; Appearance uses preset labels and Homepage explicitly labels the Product strip on/off. Generated Admin test added. Local TypeScript and 83 files/580 tests passed. **Next:** commit/push and verify GitHub generated Chromium/WebKit; then review remaining E/F acceptance. No Production Worker/data deployment.
+**E.2 accepted:** `c4ea551` makes Website editors distinguish Private draft, Published live and Not published with one status rule; Appearance shows preset labels and Homepage explicitly labels the Product strip on/off. Local TypeScript and 83 files/580 tests passed. [Commerce CI 37433593218](https://github.com/Mo31D/Blacksheep/actions/runs/37433593218) passed full checks, generated 390/320px Chromium/WebKit Admin QA and archive browser regression; Search 37433593056 and Pages 37433592455 succeeded. **Current next task:** Phase 8 E final UI audit and F guarded Staging/browser acceptance. This workstation has no `gh` CLI; GitHub connector can read runs/commit but cannot dispatch the guarded Staging workflow. Keep live staging acceptance open unless the workflow can be safely started through an authenticated UI. No Production Worker/data deployment.
 
 ## Homepage Gifts fallback accepted — 6 October 2026
 
