@@ -1,5 +1,5 @@
 name: Commerce Staging Admin Browser QA
-# Phase 8 F owner-flow acceptance: diagnose Product draft placement Preview.
+# Phase 8 F owner-flow acceptance: capture Product Preview text/condition diagnosis.
 
 on:
   push:

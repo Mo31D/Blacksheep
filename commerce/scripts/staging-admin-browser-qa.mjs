@@ -1049,10 +1049,13 @@ async function productPlacementQa() {
     await page.locator("#productPreview").click();
     await page.waitForSelector(".preview-product-card", { timeout: 10_000 });
     const previewText = await page.locator(".product-editor-panel").innerText();
-    if (!previewText.includes("Also shown in:") ||
-        previewText.includes("Primary: Not selected")) {
-      console.log("CARD03 QA preview placement diagnostic:", previewText.slice(0, 1200));
-    }
+    console.log("CARD03 QA preview placement diagnostic:", JSON.stringify({
+      privatePreview: previewText.includes("Private preview"),
+      primaryLabel: previewText.includes("Primary:"),
+      additionalLabel: previewText.includes("Also shown in:"),
+      primaryMissing: previewText.includes("Primary: Not selected"),
+      text: previewText.slice(0, 1200),
+    }));
     assert(
       previewText.includes("Private preview") &&
         previewText.includes("Primary:") &&
