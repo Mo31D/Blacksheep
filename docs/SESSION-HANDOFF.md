@@ -1,8 +1,8 @@
 # Session handoff — 1 October 2026
 
-## Current candidate — Homepage Gifts fallback source (6 October 2026)
+## Homepage Gifts fallback accepted — 6 October 2026
 
-Latest remote `main` was `08f1b33` before this slice. The 13 indexed Section pages are accepted. `assets/site.js` now drops `GIFT_COLLECTIONS`/`EXTRA_COLLECTIONS` and their sole renderer; `index.html` uses a single `/all-products.html` card while published Homepage destination cards load, instead of restoring an old Gifts hierarchy on API failure. `commerce/scripts/storefront-archive-browser-qa.mjs` checks the unavailable-API path. Local syntax, search readiness, dynamic-storefront contract, TypeScript and 83 files/579 tests passed. **Next:** commit/push, verify GitHub Chromium/WebKit and other checks, then inspect Local Favourites' static fallback and Phase 8 E/F. No Production Worker/data deployment.
+`c382400` removed `GIFT_COLLECTIONS`/`EXTRA_COLLECTIONS` and their sole renderer; `index.html` uses one `/all-products.html` card until published Homepage destination cards load. The unavailable-API browser regression passed in [Commerce CI 37431506703](https://github.com/Mo31D/Blacksheep/actions/runs/37431506703) and [Storefront overlay 37431506551](https://github.com/Mo31D/Blacksheep/actions/runs/37431506551); Search and Pages succeeded. Local syntax, search readiness, dynamic-storefront contract, TypeScript and 83 files/579 tests passed. **Next:** inspect Local Favourites' static fallback and image/description fallback before Phase 8 E/F. No Production Worker/data deployment.
 
 ## Hawkshead accepted — 6 October 2026
 
