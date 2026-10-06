@@ -1588,7 +1588,11 @@ async function websiteAppearanceQa() {
     );
 
     await page.locator("#appearanceHeroHeading").fill(APPEARANCE_QA_HEADING);
-    await page.locator("#appearanceHeroImage").fill("/images/1.png");
+    const heroImageBefore = await page.locator("#appearanceHeroImage").inputValue();
+    assert(
+      (await page.locator("#appearanceHeroImage").getAttribute("type")) === "hidden",
+      "CARD 08 exposes a raw Hero image path in the ordinary editor.",
+    );
     const savePromise = page.waitForResponse(
       (response) =>
         response.url().endsWith("/admin/api/appearance/draft") &&
@@ -1607,7 +1611,7 @@ async function websiteAppearanceQa() {
     );
     assert(
       saved?.config?.presetKey === "CHRISTMAS" &&
-        saved?.config?.hero?.imageUrl === "/images/1.png" &&
+        String(saved?.config?.hero?.imageUrl || "") === heroImageBefore &&
         String(saved?.config?.tokens?.accent || "").toLowerCase() ===
           "#a47a35",
       "CARD 09 Appearance draft did not persist preset/reset/hero imagery.",
@@ -1679,7 +1683,7 @@ async function websiteAppearanceQa() {
     assert(
       publicAppearance?.contract === "website-appearance-published-v1" &&
         publicAppearance?.config?.hero?.heading === APPEARANCE_QA_HEADING &&
-        publicAppearance?.config?.hero?.imageUrl === "/images/1.png" &&
+        String(publicAppearance?.config?.hero?.imageUrl || "") === heroImageBefore &&
         publicAppearance?.config?.presetKey === "CHRISTMAS" &&
         String(publicAppearance?.config?.tokens?.accent || "").toLowerCase() ===
           "#a47a35" &&
@@ -1739,9 +1743,10 @@ async function websiteAppearanceQa() {
         applied.heading === APPEARANCE_QA_HEADING &&
           applied.contractHeading === APPEARANCE_QA_HEADING &&
           applied.presetKey === "CHRISTMAS" &&
-          applied.heroImage.endsWith("/images/1.png") &&
-          applied.imageObjectFit === "cover" &&
-          ["50% 50%", "center", "center center"].includes(applied.imageObjectPosition) &&
+          (!heroImageBefore || applied.heroImage.endsWith(heroImageBefore)) &&
+          (!heroImageBefore || applied.imageObjectFit === "cover") &&
+          (!heroImageBefore ||
+            ["50% 50%", "center", "center center"].includes(applied.imageObjectPosition)) &&
           applied.accent.toLowerCase() === "#a47a35" &&
           applied.button.toLowerCase() === "#1e5239",
         "CARD 09 storefront did not apply the published preset/Hero: " +

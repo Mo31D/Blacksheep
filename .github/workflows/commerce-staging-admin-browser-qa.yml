@@ -1,5 +1,5 @@
 name: Commerce Staging Admin Browser QA
-# Phase 8 F owner-flow acceptance: Section imagery belongs to Website Structure.
+# Phase 8 F owner-flow acceptance: Hero image uses direct controls, not a raw path.
 
 on:
   push:
