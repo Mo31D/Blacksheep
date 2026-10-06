@@ -6,6 +6,8 @@
 
 Phase 8 E.1 unsaved Homepage/Appearance guard is accepted from existing `4646264` plus owner fixture correction `4a9cfca`: Commerce CI 36865539476 and guarded Staging deploy 36846387728 succeeded. This corrects stale checklist prose; full live save/preview/publish acceptance remains under F. **Current next task:** review Draft/Published state and action clarity before final mobile/staging acceptance.
 
+**Current candidate E.2:** Website editors now distinguish Private draft, Published live and Not published with a shared status rule; Appearance uses preset labels and Homepage explicitly labels the Product strip on/off. Generated Admin test added. Local TypeScript and 83 files/580 tests passed. **Next:** commit/push and verify GitHub generated Chromium/WebKit; then review remaining E/F acceptance. No Production Worker/data deployment.
+
 ## Homepage Gifts fallback accepted — 6 October 2026
 
 `c382400` removed `GIFT_COLLECTIONS`/`EXTRA_COLLECTIONS` and their sole renderer; `index.html` uses one `/all-products.html` card until published Homepage destination cards load. The unavailable-API browser regression passed in [Commerce CI 37431506703](https://github.com/Mo31D/Blacksheep/actions/runs/37431506703) and [Storefront overlay 37431506551](https://github.com/Mo31D/Blacksheep/actions/runs/37431506551); Search and Pages succeeded. Local syntax, search readiness, dynamic-storefront contract, TypeScript and 83 files/579 tests passed. **Next:** inspect Local Favourites' static fallback and image/description fallback before Phase 8 E/F. No Production Worker/data deployment.

@@ -22,6 +22,21 @@ function compileInlineScripts(html: string): void {
 }
 
 describe("generated Admin HTML scripts", () => {
+  it("distinguishes a private Website draft from the live version", () => {
+    const script = inlineScripts(adminHtml("owner@example.com"))[0];
+    const source = script.match(/function websitePublicationBadges\(config\)\{[^\r\n]+/)?.[0];
+    expect(source).toBeTruthy();
+    const badges = new Function(`${source};return websitePublicationBadges`)() as (
+      config: { hasDraft: boolean; publishedVersionId: string | null },
+    ) => string;
+    expect(badges({ hasDraft: true, publishedVersionId: "live-v1" })).toContain("Private draft");
+    expect(badges({ hasDraft: true, publishedVersionId: "live-v1" })).toContain("Published live");
+    expect(badges({ hasDraft: false, publishedVersionId: null })).toContain("Not published");
+    expect(script).toContain("Product strip off");
+    expect(script).toContain("websitePublicationBadges(a)");
+    expect(script).toContain("websitePublicationBadges(c)");
+  });
+
   it("offers named Hero destinations while retaining the stored route", () => {
     const html = adminHtml("owner@example.com");
     const script = inlineScripts(html)[0];
