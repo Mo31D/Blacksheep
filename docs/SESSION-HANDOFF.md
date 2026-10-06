@@ -1,5 +1,9 @@
 # Session handoff — 1 October 2026
 
+## Hawkshead accepted — 6 October 2026
+
+`00cf390` [Commerce CI 37429727794](https://github.com/Mo31D/Blacksheep/actions/runs/37429727794) passed full checks and Chromium/WebKit placed Product/missing-Structure browser regression; Search 37429727674, Pages 37429727063, publication candidate 37429727647 and Admin E2E 37429727638 passed. All 13 indexed legacy Section pages now take Product membership from published placements; All products remains a separate static fallback/feed page. **Next:** audit `GIFT_COLLECTIONS`/`EXTRA_COLLECTIONS` and Homepage fallback references before closing the legacy Gifts taxonomy item, then Phase 8 E/F. No Production Worker/data deployment.
+
 ## Current candidate — Hawkshead canonical Section page (6 October 2026)
 
 `/hawkshead-relish.html` now yields its static 15 Product cards, taxonomy filter buttons, ItemList and inline `renderCatalog` to published Website Structure/placements. The indexed URL, CollectionPage metadata, brand introduction and visit guidance remain; unavailable Structure leaves an All products link. Generator/verifier, search readiness and browser QA were updated; independent Product page and Full range image checks remain. Local 14-page generator (13 Section shells), search readiness, dynamic storefront contract, TypeScript and 83 files/579 tests passed. **Next:** commit/push, verify Commerce CI Chromium/WebKit, Search, Pages, publication candidate, Admin E2E and storefront overlay; then close Phase 6 collection membership and resume Phase 8 E/F. No Production Worker/data deployment.
