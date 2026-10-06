@@ -2,7 +2,7 @@
 
 ## Current candidate — Staging Admin browser fixture alignment
 
-Remote `main` is authoritative. The guarded Admin QA fixtures have been aligned with current product navigation, Section roots, direct Hero image flow and Section-image ownership. `6790277` scoped Add child to its root action row; [QA 37508918872](https://github.com/Mo31D/Blacksheep/actions/runs/37508918872) passed synthetic Section creation/order/archive/restore and reached Homepage mobile checks. It then found an obsolete assertion that Hero, Product strip and Collections are fixed in position. Phase 8 B.1 deliberately made all five Homepage sections reorderable; current candidate asserts all five keys have accessible ↑ ↓ controls, independent of the owner's saved order. The failed-run log confirms all synthetic data cleanup. **Next:** rerun guarded Admin QA, inspect all cards/cleanup, record final evidence, then continue remaining Staging checklist. No Production deployment.
+Remote `main` is authoritative. Guarded Admin QA fixtures now reflect current navigation, Section roots, direct Hero image flow, Section-image ownership and reorderable Homepage modules. `d00a406` asserted ↑ ↓ controls for all five modules; [QA 37509713719](https://github.com/Mo31D/Blacksheep/actions/runs/37509713719) passed those mobile checks and reached Reports, where its old direct nav selector was hidden on phone. Reports, like Website, lives in the phone More menu; current candidate opens it there. Failed-run logs confirm all synthetic data cleanup. **Next:** rerun guarded Admin QA, inspect all cards/cleanup, record final evidence, then continue remaining Staging checklist. No Production deployment.
 
 ## Latest Staging deployment accepted — 6 October 2026
 

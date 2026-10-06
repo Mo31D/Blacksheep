@@ -1,5 +1,5 @@
 name: Commerce Staging Admin Browser QA
-# Phase 8 F owner-flow acceptance: all Homepage sections can be reordered.
+# Phase 8 F owner-flow acceptance: Website and Reports use phone More menu.
 
 on:
   push:
