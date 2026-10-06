@@ -2728,19 +2728,13 @@ async function ownerPolishViewsQa(viewport, label) {
         })),
       );
     assert(
-      homepageModuleRows.slice(0, 3).map((row) => row.key).join(",") ===
-        "HERO,PRODUCT_RAIL,COLLECTIONS",
-      label +
-        " Website Homepage order is not fixed as Hero → Product strip → Shop by collection: " +
+      homepageModuleRows.length === 5 &&
+        homepageModuleRows.every((row) => row.moveButtons === 2) &&
+        ["HERO", "PRODUCT_RAIL", "COLLECTIONS", "LOCAL_FAVOURITES", "VISIT_SHOP"]
+          .every((key) => homepageModuleRows.some((row) => row.key === key)) &&
+        homepageModuleRows.every((row) => !row.text.includes("Fixed position")),
+      label + " Website Homepage sections are not all reorderable: " +
         JSON.stringify(homepageModuleRows),
-    );
-    assert(
-      homepageModuleRows.slice(0, 3).every((row) => row.moveButtons === 0),
-      label + " fixed Homepage rows still expose reorder controls.",
-    );
-    assert(
-      homepageModuleRows.slice(0, 3).every((row) => row.text.includes("Fixed position")),
-      label + " fixed Homepage rows do not explain their protected position.",
     );
     for (const tab of ["homepage", "appearance", "media"]) {
       assert(

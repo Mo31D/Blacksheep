@@ -1,5 +1,5 @@
 name: Commerce Staging Admin Browser QA
-# Phase 8 F owner-flow acceptance: scope Add child to the selected root.
+# Phase 8 F owner-flow acceptance: all Homepage sections can be reordered.
 
 on:
   push:
