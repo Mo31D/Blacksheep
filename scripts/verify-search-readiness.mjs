@@ -46,7 +46,8 @@ if(/id=["']search["']/i.test(giftsPage)) fail.push('Gifts page must use category
 if(/giftSectionSelect/i.test(giftsPage)) fail.push('Obsolete Gifts section selector remains');
 const romneysPage=read('romneys.html');
 if(/id=["']search["']/i.test(romneysPage)) fail.push("Romney's page must use category filters, not search UI");
-for(const filter of ['biscuits','fudge','mint-cake','sweets','gift-boxes']) if(!romneysPage.includes('data-filter="'+filter+'"')) fail.push("Missing Romney filter: "+filter);
+if((romneysPage.match(/<article class="product-card\b/g)||[]).length||romneysPage.includes('"@type":"ItemList"')||/data-filter="/.test(romneysPage)) fail.push('Romney legacy membership or filters returned');
+if(!romneysPage.includes('id="catalog" data-published-section')||!romneysPage.includes('href="/all-products.html"')) fail.push('Romney dynamic fallback missing');
 if(rows.some(x=>x.item.slug==='rom-002-dubai-chocolate')) fail.push('Dubai Chocolate must not be in the active catalogue');
 
 const sitemap=read('sitemap.xml');
@@ -184,7 +185,6 @@ for(const {type,item} of rows){
 }
 
 const expectedRawLinks={
- 'romneys.html':catalog.romneys.length,
  'hawkshead-relish.html':catalog.hawkshead.length,
  'all-products.html':rows.length
 };
@@ -213,7 +213,6 @@ for(const [p,n] of Object.entries(expectedRawLinks)){
   const got=(h.match(/href=["']\/products\//g)||[]).length;
   if(got<n) fail.push('Too few raw product links in '+p+': '+got+' < '+n);
   if(!h.includes('"@type":"ItemList"')) fail.push('Missing ItemList graph: '+p);
-  if(p==='romneys.html' && (h.match(/<article class="product-card\b[^"]*"/g)||[]).length!==catalog.romneys.length) fail.push('Romney card count drift');
   if(p==='hawkshead-relish.html' && (h.match(/<article class="product-card\b[^"]*"/g)||[]).length!==catalog.hawkshead.length) fail.push('Hawkshead card count drift');
   if((p==='romneys.html'||p==='hawkshead-relish.html'||p==='all-products.html') && !h.includes('shopping-catalog')) fail.push('Product-first shopping grid missing: '+p);
   if((p==='romneys.html'||p==='hawkshead-relish.html'||p==='all-products.html') && /View →|Choose a type|Filter the range by product type\.|The full curated range\.|Everything we currently show online\./.test(h)) fail.push('Legacy catalogue friction copy/action returned: '+p);

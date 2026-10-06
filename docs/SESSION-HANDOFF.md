@@ -1,5 +1,9 @@
 # Session handoff — 1 October 2026
 
+## Current candidate — Romney's canonical Section page (6 October 2026)
+
+`/romneys.html` now yields its static 55 Product cards, taxonomy filter buttons and ItemList to the published Website Structure/placements. Its indexed URL, CollectionPage metadata, brand introduction and visit guidance remain. The published Section renderer supplies current child links and Product membership; unavailable Structure leaves an All products link. Generator/verifier, search readiness and browser QA were updated. Local 14-page generator (12 Section shells), search readiness, dynamic storefront contract, TypeScript and 83 files/579 tests passed. **Next:** commit/push, verify Commerce CI Chromium/WebKit, Search, Pages, publication candidate and Admin E2E; then inspect Hawkshead. No Production Worker/data deployment.
+
 ## Ice Cream accepted — 6 October 2026
 
 `beaf0ad` [Commerce CI 37426035948](https://github.com/Mo31D/Blacksheep/actions/runs/37426035948) passed full checks and Chromium/WebKit Section placement/missing-Structure browser regression; Search 37426035935, Pages 37426035618, publication candidate 37426036006 and Admin E2E 37426035958 passed. Ice Cream now derives Product membership solely from published Section placements while retaining its indexed URL and allergen guidance. **Next:** review Romney's and Hawkshead separately, including their static filter strips and search/generator contracts. Then Phase 8 E/F. No Production Worker/data deployment.

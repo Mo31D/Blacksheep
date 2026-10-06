@@ -193,7 +193,7 @@ const definitions=[
   {file:"gifts-home-art.html",select:()=>[],dynamicSection:true},
   {file:"gifts-toys-games.html",select:()=>[],dynamicSection:true},
   {file:"icecream.html",select:()=>[],dynamicSection:true},
-  {file:"romneys.html",select:()=>catalog.romneys||[]},
+  {file:"romneys.html",select:()=>[],dynamicSection:true},
   {file:"hawkshead-relish.html",select:()=>catalog.hawkshead||[]},
   {file:"all-products.html",select:()=>rows.map(x=>x.item)},
 ];
