@@ -1,5 +1,5 @@
 name: Commerce Staging Admin Browser QA
-# Phase 8 F owner-flow acceptance: Image Library name and optional category disclosure.
+# Phase 8 F owner-flow acceptance: choose Hero image in its contextual picker.
 
 on:
   push:

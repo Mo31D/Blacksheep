@@ -1919,15 +1919,15 @@ async function sharedMediaLibraryQa() {
     );
 
     await page.locator("#appearanceHeroChooseMedia").click();
-    await page.waitForSelector("#websiteMediaPanel:not(.hidden)", {
+    await page.waitForSelector("#appearanceHeroPicker:not(.hidden)", {
       timeout: 20_000,
     });
     const heroUse = page.locator(
-      '[data-shared-media-use="' + assetId + '"]',
+      '[data-appearance-image-choice="' + assetId + '"]',
     );
     await heroUse.waitFor({ state: "visible", timeout: 20_000 });
     await heroUse.click();
-    await page.waitForSelector("#websiteAppearancePanel:not(.hidden)", {
+    await page.waitForSelector("#appearanceHeroPicker.hidden", {
       timeout: 20_000,
     });
     assert(
