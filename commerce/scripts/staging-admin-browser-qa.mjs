@@ -2286,7 +2286,9 @@ async function ownerPolishViewsQa(viewport, label) {
         const freshRoot = page
           .locator("#storefrontStructureTree .structure-card")
           .filter({ hasText: STRUCTURE_ROOT_NAME });
-        await freshRoot.locator("[data-structure-add-child]").click();
+        await freshRoot.locator(
+          ":scope > .structure-body > .structure-actions [data-structure-add-child]",
+        ).click();
         await page.waitForSelector("#structureName", { timeout: 10_000 });
         await page.locator("#structureName").fill(name);
         await Promise.all([

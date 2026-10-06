@@ -1,5 +1,5 @@
 name: Commerce Staging Admin Browser QA
-# Phase 8 F owner-flow acceptance: match published Ice cream display name.
+# Phase 8 F owner-flow acceptance: scope Add child to the selected root.
 
 on:
   push:
