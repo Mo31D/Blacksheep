@@ -1,5 +1,9 @@
 # Session handoff — 1 October 2026
 
+## Current candidate — Hawkshead canonical Section page (6 October 2026)
+
+`/hawkshead-relish.html` now yields its static 15 Product cards, taxonomy filter buttons, ItemList and inline `renderCatalog` to published Website Structure/placements. The indexed URL, CollectionPage metadata, brand introduction and visit guidance remain; unavailable Structure leaves an All products link. Generator/verifier, search readiness and browser QA were updated; independent Product page and Full range image checks remain. Local 14-page generator (13 Section shells), search readiness, dynamic storefront contract, TypeScript and 83 files/579 tests passed. **Next:** commit/push, verify Commerce CI Chromium/WebKit, Search, Pages, publication candidate, Admin E2E and storefront overlay; then close Phase 6 collection membership and resume Phase 8 E/F. No Production Worker/data deployment.
+
 ## Romney's accepted — 6 October 2026
 
 `cc36e12` [Commerce CI 37428560478](https://github.com/Mo31D/Blacksheep/actions/runs/37428560478) passed full checks and Chromium/WebKit Product placement/missing-Structure browser regression, resolving the `99103f9` inline legacy renderer failure. [Staging overlay QA 37428560406](https://github.com/Mo31D/Blacksheep/actions/runs/37428560406), Search 37428560512, Pages 37428559548, publication candidate 37428560393 and Admin E2E 37428560491 passed. Romney's indexed URL and brand/visit content remain; Section placements own membership and published children own shortcuts. **Next:** inspect Hawkshead's static Product cards/filter strip/renderer; then Phase 8 E/F. No Production Worker/data deployment.

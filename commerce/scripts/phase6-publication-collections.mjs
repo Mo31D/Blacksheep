@@ -151,7 +151,7 @@ const definitions=[
   {file:"gifts-toys-games.html",select:()=>[],dynamicSection:true},
   {file:"icecream.html",select:()=>[],dynamicSection:true},
   {file:"romneys.html",select:()=>[],dynamicSection:true},
-  {file:"hawkshead-relish.html",select:()=>catalog.hawkshead||[]},
+  {file:"hawkshead-relish.html",select:()=>[],dynamicSection:true},
   {file:"all-products.html",select:()=>all.map((row)=>row.item)},
 ];
 

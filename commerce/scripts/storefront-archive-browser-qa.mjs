@@ -22,12 +22,14 @@ const lakeProduct={...newProduct,id:'lake-qa-product',productId:'lake-qa-product
 const promotedProduct={...newProduct,id:'promoted-qa-product',productId:'promoted-qa-product',slug:'promoted-qa-product',name:'Promoted QA Product',storefrontNodeIds:['promoted']};
 const iceProduct={...newProduct,id:'ice-qa-product',productId:'ice-qa-product',slug:'ice-qa-product',name:'Ice Cream QA Product',type:'icecream',storefrontNodeIds:['icecream']};
 const romneyProduct={...newProduct,id:'romney-qa-product',productId:'romney-qa-product',slug:'romney-qa-product',name:'Romney QA Product',type:'romneys',storefrontNodeIds:['romneys']};
+const hawksheadProduct={...newProduct,id:'hawkshead-qa-product',productId:'hawkshead-qa-product',slug:'hawkshead-qa-product',name:'Hawkshead QA Product',type:'hawkshead',storefrontNodeIds:['hawkshead']};
 const hierarchyNodes=parentNodeId=>[
   {id:'lake',name:'Lake District Souvenirs',slug:'lake',legacyPath:'/gifts.html',parentNodeId:null,sortOrder:10,showInNavigation:true},
   {id:'lake-child',name:'Local Gifts',slug:'local-gifts',legacyPath:'/gifts-mugs.html',parentNodeId:'lake',sortOrder:10,showInNavigation:true},
   {id:'promoted',name:'Promoted Collection',slug:'promoted',legacyPath:'/gifts-highland-cows.html',parentNodeId,sortOrder:20,showInNavigation:true},
   {id:'icecream',name:'Ice Cream',slug:'ice-cream',legacyPath:'/icecream.html',parentNodeId:null,sortOrder:30,showInNavigation:true},
   {id:'romneys',name:"Romney's",slug:'romneys',legacyPath:'/romneys.html',parentNodeId:null,sortOrder:40,showInNavigation:true},
+  {id:'hawkshead',name:'Hawkshead Relish',slug:'hawkshead-relish',legacyPath:'/hawkshead-relish.html',parentNodeId:null,sortOrder:50,showInNavigation:true},
 ];
 const server=http.createServer((request,response)=>{
   const pathname=decodeURIComponent(new URL(request.url,'http://localhost').pathname);
@@ -53,7 +55,7 @@ try{
         if(url.pathname==='/v1/storefront-structure'&&mode.startsWith('hierarchy-')){await route.fulfill({contentType:'application/json',body:JSON.stringify({nodes:hierarchyNodes(mode==='hierarchy-before'?'lake':null)})});return;}
         if(url.pathname!=='/v1/catalog'){await route.fulfill({status:503,body:'{}'});return;}
         if(mode==='failure'){await route.fulfill({status:503,body:'{}'});return;}
-        const rows=mode==='empty'?[]:mode.startsWith('hierarchy-')?[lakeProduct,promotedProduct,iceProduct,romneyProduct]:products.filter(p=>p.id!==archived.id);
+        const rows=mode==='empty'?[]:mode.startsWith('hierarchy-')?[lakeProduct,promotedProduct,iceProduct,romneyProduct,hawksheadProduct]:products.filter(p=>p.id!==archived.id);
         if(mode==='published')rows.push(newProduct);
         await route.fulfill({contentType:'application/json',body:JSON.stringify({products:rows,nextCursor:null})});
       });
@@ -94,6 +96,9 @@ try{
       await open('/romneys.html');
       assert.equal(await page.locator('#catalog .product-card').count(),0,"Romney's must not infer Product membership without published Structure");
       assert.equal(await page.locator('.catalog-filter-strip [data-filter]').count(),0,'Old Romney product filters must not appear without Structure');
+      await open('/hawkshead-relish.html');
+      assert.equal(await page.locator('#catalog .product-card').count(),0,'Hawkshead must not infer Product membership without published Structure');
+      assert.equal(await page.locator('.catalog-filter-strip [data-filter]').count(),0,'Old Hawkshead product filters must not appear without Structure');
       mode='hierarchy-before';
       await open('/gifts.html');
       assert.equal(await page.locator('#catalog [data-product-slug="lake-qa-product"]').count(),1);
@@ -107,6 +112,9 @@ try{
       await open('/romneys.html');
       assert.equal(await page.locator('#catalog [data-product-slug="romney-qa-product"]').count(),1,"Romney's URL uses its published placement");
       assert.equal(await page.locator('#catalog [data-product-slug="ice-qa-product"]').count(),0);
+      await open('/hawkshead-relish.html');
+      assert.equal(await page.locator('#catalog [data-product-slug="hawkshead-qa-product"]').count(),1,'Hawkshead URL uses its published placement');
+      assert.equal(await page.locator('#catalog [data-product-slug="romney-qa-product"]').count(),0);
       mode='hierarchy-after';
       await open('/gifts.html');
       assert.equal(await page.locator('.gift-shortcuts [data-storefront-node="promoted"]').count(),0,'Promoted Section leaves its former parent shortcut');
