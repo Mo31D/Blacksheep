@@ -1,4 +1,5 @@
 name: Commerce Staging Checkout Browser E2E
+# Phase 7 guarded checkout/Turnstile acceptance on current main.
 
 on:
   push:
