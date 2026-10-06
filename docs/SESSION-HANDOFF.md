@@ -1,5 +1,9 @@
 # Session handoff — 1 October 2026
 
+## Romney's browser finding and fix — 6 October 2026
+
+`99103f9` passed Search 37427357280, Pages 37427356569, publication candidate 37427357263 and Admin E2E 37427357300, but Commerce CI 37427357283 found `romneys.html`'s inline `renderRomneysRange('catalog')` still rebuilding 55 old cards when published Structure failed. This was a genuine competing renderer, not a fixture problem. The inline call and now-unreferenced `assets/site.js` function were removed; generator/verifier/search checks now reject its return. Local search readiness, 14-page generator, syntax and 83 files/579 tests passed. **Next:** commit/push this correction and verify Commerce CI's Chromium/WebKit missing-Structure and placed Product cases, then close Romney's acceptance and inspect Hawkshead. No Production Worker/data deployment.
+
 ## Current candidate — Romney's canonical Section page (6 October 2026)
 
 `/romneys.html` now yields its static 55 Product cards, taxonomy filter buttons and ItemList to the published Website Structure/placements. Its indexed URL, CollectionPage metadata, brand introduction and visit guidance remain. The published Section renderer supplies current child links and Product membership; unavailable Structure leaves an All products link. Generator/verifier, search readiness and browser QA were updated. Local 14-page generator (12 Section shells), search readiness, dynamic storefront contract, TypeScript and 83 files/579 tests passed. **Next:** commit/push, verify Commerce CI Chromium/WebKit, Search, Pages, publication candidate and Admin E2E; then inspect Hawkshead. No Production Worker/data deployment.

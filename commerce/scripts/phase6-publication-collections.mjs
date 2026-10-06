@@ -173,7 +173,7 @@ for(const definition of definitions){
   let html=readFileSync(sourcePath,"utf8");
   if(definition.dynamicSection){
     const cards=(html.match(/<article class="product-card\b/g)||[]).length;
-    if(cards||html.includes('"@type":"ItemList"')||/renderCatalog\(/.test(html)){
+    if(cards||html.includes('"@type":"ItemList"')||/render(?:Catalog|RomneysRange)\(/.test(html)){
       problems.push({file:definition.file,problem:"legacy_membership_source",cards});
     }
     if(!html.includes('id="catalog" data-published-section')||!html.includes('href="/all-products.html"')){

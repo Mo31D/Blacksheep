@@ -210,7 +210,7 @@ for(const def of definitions){
   if(canonicalOf(html)!==expectedCanonical)failures.push({scope:def.file,problem:"canonical",actual:canonicalOf(html),expected:expectedCanonical});
   const cards=(html.match(/<article class="product-card\b/g)||[]).length;
   if(def.dynamicSection){
-    if(cards||itemList(html)||/renderCatalog\(/.test(html))failures.push({scope:def.file,problem:"legacy_membership_source"});
+    if(cards||itemList(html)||/render(?:Catalog|RomneysRange)\(/.test(html))failures.push({scope:def.file,problem:"legacy_membership_source"});
     if(!html.includes('id="catalog" data-published-section')||!html.includes('href="/all-products.html"'))failures.push({scope:def.file,problem:"dynamic_fallback_missing"});
     continue;
   }

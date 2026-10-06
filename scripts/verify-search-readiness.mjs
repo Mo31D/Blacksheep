@@ -46,7 +46,7 @@ if(/id=["']search["']/i.test(giftsPage)) fail.push('Gifts page must use category
 if(/giftSectionSelect/i.test(giftsPage)) fail.push('Obsolete Gifts section selector remains');
 const romneysPage=read('romneys.html');
 if(/id=["']search["']/i.test(romneysPage)) fail.push("Romney's page must use category filters, not search UI");
-if((romneysPage.match(/<article class="product-card\b/g)||[]).length||romneysPage.includes('"@type":"ItemList"')||/data-filter="/.test(romneysPage)) fail.push('Romney legacy membership or filters returned');
+if((romneysPage.match(/<article class="product-card\b/g)||[]).length||romneysPage.includes('"@type":"ItemList"')||/data-filter="|renderRomneysRange\(/.test(romneysPage)) fail.push('Romney legacy membership or filters returned');
 if(!romneysPage.includes('id="catalog" data-published-section')||!romneysPage.includes('href="/all-products.html"')) fail.push('Romney dynamic fallback missing');
 if(rows.some(x=>x.item.slug==='rom-002-dubai-chocolate')) fail.push('Dubai Chocolate must not be in the active catalogue');
 
