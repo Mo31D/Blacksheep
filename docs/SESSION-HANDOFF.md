@@ -1,8 +1,8 @@
 # Session handoff — 6 October 2026
 
-## Current candidate — Staging Admin browser fixture alignment
+## Staging Admin browser acceptance — passed
 
-Remote `main` is authoritative. Guarded Admin QA fixtures now reflect current navigation, Section roots, direct Hero image flow, Section-image ownership and reorderable Homepage modules. `d00a406` asserted ↑ ↓ controls for all five modules; [QA 37509713719](https://github.com/Mo31D/Blacksheep/actions/runs/37509713719) passed those mobile checks and reached Reports, where its old direct nav selector was hidden on phone. Reports, like Website, lives in the phone More menu; current candidate opens it there. Failed-run logs confirm all synthetic data cleanup. **Next:** rerun guarded Admin QA, inspect all cards/cleanup, record final evidence, then continue remaining Staging checklist. No Production deployment.
+`45d42c1` [Staging Admin Browser QA 37510560825](https://github.com/Mo31D/Blacksheep/actions/runs/37510560825) passed the full guarded run: desktop/mobile Orders, Product draft/placement/publish, Homepage draft/Preview/reorder, Appearance seasonal publish/restore, Image Library upload/contextual Hero selection/archive/history, synthetic Website Structure hierarchy/placement, iPhone/iPad owner views, Reports and persistent Stocktake resume/cancel. The log confirms cleanup of Appearance, Homepage, Stocktake, Product, Structure, Category and order/session synthetic fixtures. Commerce CI 37510560806, Search 37510560796 and Pages 37510560045 succeeded on the same SHA. Four check labels in the browser script were stale despite the executed assertions being correct; the current documentation commit renames labels only. **Next:** run remaining isolated Staging checkout/order/reservation/Turnstile suites, record their results; physical iPhone Safari/weak-device checks remain manual. No Production deployment.
 
 ## Latest Staging deployment accepted — 6 October 2026
 
