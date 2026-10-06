@@ -2041,7 +2041,12 @@ async function ownerPolishViewsQa(viewport, label) {
   const page = await context.newPage();
 
   async function openView(name) {
-    await page.locator('[data-nav="' + name + '"]:visible').first().click();
+    if (name === "catalogue") {
+      await openView("website");
+      await page.locator('[data-website-tab="sections"]').click();
+    } else {
+      await page.locator('[data-nav="' + name + '"]:visible').first().click();
+    }
     await page.waitForFunction(
       (viewName) => {
         const view = document.getElementById("view-" + viewName);

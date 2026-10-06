@@ -1,5 +1,5 @@
 name: Commerce Staging Admin Browser QA
-# Phase 8 F owner-flow acceptance: wait for contextual image picker to close.
+# Phase 8 F owner-flow acceptance: open Sections through Website navigation.
 
 on:
   push:
