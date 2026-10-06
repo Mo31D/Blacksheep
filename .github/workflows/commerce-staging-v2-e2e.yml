@@ -1,4 +1,5 @@
 name: Commerce Staging V2 E2E
+# Phase 7 isolated order/revision/reservation lifecycle acceptance on current main.
 
 on:
   push:
