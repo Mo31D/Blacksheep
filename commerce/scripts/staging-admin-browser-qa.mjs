@@ -1927,7 +1927,8 @@ async function sharedMediaLibraryQa() {
     );
     await heroUse.waitFor({ state: "visible", timeout: 20_000 });
     await heroUse.click();
-    await page.waitForSelector("#appearanceHeroPicker.hidden", {
+    await page.locator("#appearanceHeroPicker").waitFor({
+      state: "hidden",
       timeout: 20_000,
     });
     assert(
