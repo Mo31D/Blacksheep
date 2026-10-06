@@ -2199,7 +2199,7 @@ async function ownerPolishViewsQa(viewport, label) {
         "Lake District Souvenirs",
         "Peter Rabbit Gifts",
         "Highland Cows Ornaments",
-        "Ice Cream",
+        "Ice cream",
         "Romney's",
         "Hawkshead Relish",
       ]) {

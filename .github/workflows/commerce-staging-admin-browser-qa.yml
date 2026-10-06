@@ -1,5 +1,5 @@
 name: Commerce Staging Admin Browser QA
-# Phase 8 F owner-flow acceptance: assert published six-root Section names.
+# Phase 8 F owner-flow acceptance: match published Ice cream display name.
 
 on:
   push:
