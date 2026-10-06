@@ -1,8 +1,8 @@
 # Session handoff — 1 October 2026
 
-## Current candidate — Local Favourites canonical card content (6 October 2026)
+## Phase 6 collection authority closed — 6 October 2026
 
-After accepted `c382400`/`ef39977`, `index.html` now keeps only a general Full range fallback for Local Favourites until published Homepage configuration arrives. `assets/site.js` no longer copies image/description from old static cards; published Section `imageUrl` and `shortDescription` own those values. The browser fixture checks missing API and a published Section with no image. Local syntax, search readiness, dynamic-storefront contract, TypeScript and 83 files/579 tests passed. **Next:** commit/push, verify GitHub Chromium/WebKit, then close the legacy collection authority item and continue Phase 8 E/F. No Production Worker/data deployment.
+`b878bf1` removes the final Local Favourites static card/image/description fallback: published Section content owns both Homepage card groups; unavailable configuration shows general Full range links. [Commerce CI 37432420476](https://github.com/Mo31D/Blacksheep/actions/runs/37432420476), [Storefront overlay 37432420414](https://github.com/Mo31D/Blacksheep/actions/runs/37432420414), Search and Pages passed. Local syntax, search readiness, dynamic-storefront contract, TypeScript and 83 files/579 tests passed. All 13 indexed Section pages already have canonical Product membership. **Next:** Phase 8 E/F; deployed-reference evidence for loader/archive asset retirement remains a separate manual gate. No Production Worker/data deployment.
 
 ## Homepage Gifts fallback accepted — 6 October 2026
 
