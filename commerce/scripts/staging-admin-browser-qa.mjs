@@ -796,10 +796,11 @@ async function productPlacementQa() {
 
     await page
       .locator("#newProductPrimarySection")
-      .selectOption("sfn_gifts");
-    await page
-      .locator("#newProductPrimarySubsection")
       .selectOption("sfn_gifts_highland_cows");
+    assert(
+      (await page.locator("#newProductPrimarySubsection").inputValue()) === "",
+      "Promoted Highland Cows must be a main Section, not a Gifts child.",
+    );
 
     const seasonal = page.locator(
       '#newProductAdditionalPlacements input[value="sfn_gifts_seasonal"]',
@@ -1012,9 +1013,9 @@ async function productPlacementQa() {
     page.off("response", editorResponseListener);
     await page.waitForSelector("#pePrimarySection", { timeout: 10_000 });
     assert(
-      (await page.locator("#pePrimarySection").inputValue()) === "sfn_gifts" &&
-        (await page.locator("#pePrimarySubsection").inputValue()) ===
-          "sfn_gifts_highland_cows",
+      (await page.locator("#pePrimarySection").inputValue()) ===
+        "sfn_gifts_highland_cows" &&
+        (await page.locator("#pePrimarySubsection").inputValue()) === "",
       "CARD 03 Edit Product did not persist the primary website location.",
     );
     assert(
