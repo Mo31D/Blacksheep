@@ -81,6 +81,8 @@ try{
       assert.equal(await page.locator('#homeCollections .collection').count(),1,'Unavailable Homepage config keeps one general browsing fallback');
       assert.equal(await page.locator('#homeCollections .collection').getAttribute('href'),'/all-products.html');
       assert.equal(await page.locator('#homeCollections a[href^="/gifts-"]').count(),0,'Old Gifts taxonomy must not repopulate Homepage cards');
+      assert.equal(await page.locator('.home-discover-grid .feature').count(),1,'Unavailable Homepage config keeps one general local-section fallback');
+      assert.equal(await page.locator('.home-discover-grid .feature').getAttribute('href'),'/all-products.html');
       await open('/gifts.html');
       assert.equal(await page.locator('#catalog .product-card').count(),0,'Legacy Gifts must not publish stale Product membership when the API is unavailable');
       assert.equal(await page.locator('.gift-shortcuts [data-filter]').count(),0,'Legacy Gifts must not publish stale child filters');
@@ -138,7 +140,7 @@ try{
       assert.equal(await page.locator('#homeCollections .collection img').getAttribute('src'),'https://api.theblacksheepshop.co.uk/media/section-image');
       assert.equal(await page.locator('.home-discover-grid .feature').count(),1);
       assert.equal(await page.locator('.home-discover-grid .feature h3').textContent(),"Romney's");
-      assert.equal(await page.locator('.home-discover-grid .feature img').count(),1);
+      assert.equal(await page.locator('.home-discover-grid .feature img').count(),0,'Section without an image must not inherit stale static artwork');
       console.log(name+': archived catalogue, child-to-root hierarchy and Homepage destination cards passed');
     }finally{await browser.close();}
   }

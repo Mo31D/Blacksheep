@@ -1,5 +1,9 @@
 # Session handoff — 1 October 2026
 
+## Current candidate — Local Favourites canonical card content (6 October 2026)
+
+After accepted `c382400`/`ef39977`, `index.html` now keeps only a general Full range fallback for Local Favourites until published Homepage configuration arrives. `assets/site.js` no longer copies image/description from old static cards; published Section `imageUrl` and `shortDescription` own those values. The browser fixture checks missing API and a published Section with no image. Local syntax, search readiness, dynamic-storefront contract, TypeScript and 83 files/579 tests passed. **Next:** commit/push, verify GitHub Chromium/WebKit, then close the legacy collection authority item and continue Phase 8 E/F. No Production Worker/data deployment.
+
 ## Homepage Gifts fallback accepted — 6 October 2026
 
 `c382400` removed `GIFT_COLLECTIONS`/`EXTRA_COLLECTIONS` and their sole renderer; `index.html` uses one `/all-products.html` card until published Homepage destination cards load. The unavailable-API browser regression passed in [Commerce CI 37431506703](https://github.com/Mo31D/Blacksheep/actions/runs/37431506703) and [Storefront overlay 37431506551](https://github.com/Mo31D/Blacksheep/actions/runs/37431506551); Search and Pages succeeded. Local syntax, search readiness, dynamic-storefront contract, TypeScript and 83 files/579 tests passed. **Next:** inspect Local Favourites' static fallback and image/description fallback before Phase 8 E/F. No Production Worker/data deployment.
