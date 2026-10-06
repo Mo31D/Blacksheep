@@ -1,5 +1,9 @@
 # Session handoff — 1 October 2026
 
+## Romney's accepted — 6 October 2026
+
+`cc36e12` [Commerce CI 37428560478](https://github.com/Mo31D/Blacksheep/actions/runs/37428560478) passed full checks and Chromium/WebKit Product placement/missing-Structure browser regression, resolving the `99103f9` inline legacy renderer failure. [Staging overlay QA 37428560406](https://github.com/Mo31D/Blacksheep/actions/runs/37428560406), Search 37428560512, Pages 37428559548, publication candidate 37428560393 and Admin E2E 37428560491 passed. Romney's indexed URL and brand/visit content remain; Section placements own membership and published children own shortcuts. **Next:** inspect Hawkshead's static Product cards/filter strip/renderer; then Phase 8 E/F. No Production Worker/data deployment.
+
 ## Romney's browser finding and fix — 6 October 2026
 
 `99103f9` passed Search 37427357280, Pages 37427356569, publication candidate 37427357263 and Admin E2E 37427357300, but Commerce CI 37427357283 found `romneys.html`'s inline `renderRomneysRange('catalog')` still rebuilding 55 old cards when published Structure failed. This was a genuine competing renderer, not a fixture problem. The inline call and now-unreferenced `assets/site.js` function were removed; generator/verifier/search checks now reject its return. Local search readiness, 14-page generator, syntax and 83 files/579 tests passed. **Next:** commit/push this correction and verify Commerce CI's Chromium/WebKit missing-Structure and placed Product cases, then close Romney's acceptance and inspect Hawkshead. No Production Worker/data deployment.
