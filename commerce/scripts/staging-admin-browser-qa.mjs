@@ -1841,13 +1841,13 @@ async function sharedMediaLibraryQa() {
     const mediaText = await page.locator("#websiteMediaPanel").innerText();
     for (const expected of [
       "Add image",
-      "Media Library",
+      "Image Library",
       "Upload once",
       "Show archived",
     ]) {
       assert(
         mediaText.includes(expected),
-        "CARD 11 Media Library workspace is missing: " + expected,
+        "CARD 11 Image Library workspace is missing: " + expected,
       );
     }
 
@@ -1862,6 +1862,7 @@ async function sharedMediaLibraryQa() {
     });
     await page.locator("#sharedMediaTitle").fill(MEDIA_QA_TITLE);
     await page.locator("#sharedMediaAlt").fill("CARD 11 shared media QA image");
+    await page.locator("#websiteMediaPanel details.advanced-details summary").click();
     await page.locator("#sharedMediaContext").selectOption("HOMEPAGE");
 
     const uploadPromise = page.waitForResponse(

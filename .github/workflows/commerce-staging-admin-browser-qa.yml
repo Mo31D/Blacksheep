@@ -1,5 +1,5 @@
 name: Commerce Staging Admin Browser QA
-# Phase 8 F owner-flow acceptance: Hero image uses direct controls, not a raw path.
+# Phase 8 F owner-flow acceptance: Image Library name and optional category disclosure.
 
 on:
   push:
